@@ -681,10 +681,72 @@
     .week-day-label { display: none; }
   }
 
+  /* ── Sign-in banner on Today (only rendered when signed out) ── */
+  .signin-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    background: var(--color-orange-pale);
+    border: 1px solid var(--color-orange);
+    border-radius: var(--radius-md);
+  }
+  .signin-banner-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .signin-banner-icon svg { width: 18px; height: 18px; }
+  .signin-banner-copy {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .signin-banner-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .signin-banner-sub {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .signin-banner-btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    white-space: nowrap;
+  }
+  .signin-banner-btn:hover { background: var(--color-orange-light); }
+  @media (max-width: 480px) {
+    .signin-banner { flex-wrap: wrap; }
+    .signin-banner-copy { flex-basis: calc(100% - 52px); }
+    .signin-banner-btn { flex-basis: 100%; padding: var(--space-3); }
+  }
+
   /* ── Quick jump grid ──────────────────────────────────────── */
   .jump-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: var(--space-3);
   }
   @media (max-width: 520px) {
@@ -1802,250 +1864,6 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
-     AUTH CHIP — sits in the sticky nav
-     ══════════════════════════════════════════════════════════════ */
-  .auth-chip {
-    position: fixed;
-    bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
-    right: var(--space-5);
-    z-index: var(--z-toast);
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 6px var(--space-4) 6px 6px;
-    border: 1px solid var(--border-light);
-    background: var(--bg-elevated);
-    border-radius: var(--radius-pill);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-base);
-    white-space: nowrap;
-    line-height: 1;
-    box-shadow: var(--shadow-md);
-  }
-  .auth-chip:hover {
-    border-color: var(--color-orange);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-  }
-  /* Signed-out state: orange pill invites the click */
-  .auth-chip.signed-out {
-    color: var(--color-white);
-    border-color: var(--color-orange);
-    background: var(--color-orange);
-    padding: var(--space-3) var(--space-5);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    box-shadow: var(--shadow-accent);
-  }
-  .auth-chip.signed-out:hover {
-    background: var(--color-orange-light);
-    color: var(--color-white);
-  }
-  .auth-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--color-orange);
-    color: var(--color-white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: var(--weight-bold);
-    flex-shrink: 0;
-    object-fit: cover;
-    overflow: hidden;
-  }
-  .auth-name {
-    display: inline-block;
-    color: var(--text-primary);
-  }
-  /* The wrapper span that renderAuthChip() swaps in. It needs to be flex
-     so the injected avatar + name display side by side; without this they
-     stack as inline content and the avatar wraps onto its own line. */
-  #auth-chip-content {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  /* "Last time" placeholder hint — sits under the set inputs */
-  .set-hint {
-    grid-column: 2 / -1;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-top: -2px;
-    line-height: 1.3;
-  }
-  .set-hint em {
-    font-style: normal;
-    color: var(--color-orange);
-    font-weight: var(--weight-medium);
-  }
-
-  /* Saving state on the End button while Firestore write is pending */
-  .session-banner-btn.saving {
-    opacity: 0.6;
-    cursor: wait;
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     ACCOUNT MENU (dropdown from the auth chip)
-     ══════════════════════════════════════════════════════════════ */
-  .account-menu {
-    position: fixed;
-    right: var(--space-5);
-    /* Positioned just above the chip. The chip is ~40px tall at var(--space-5)
-       bottom margin — put the menu's bottom edge 12px above the chip's top. */
-    bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px) + 52px);
-    z-index: calc(var(--z-toast) - 1);
-    width: 260px;
-    max-width: calc(100vw - var(--space-8));
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    padding: var(--space-2);
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-    transform-origin: bottom right;
-    /* Both directions animate: opacity + transform transition on both open and close.
-       visibility is delayed on close so the fade-out can complete before the menu
-       becomes unclickable; on open it switches instantly (no delay) so clicks work
-       immediately. */
-    transition:
-      opacity var(--transition-base),
-      transform var(--transition-spring),
-      visibility 0s linear var(--transition-base);
-    pointer-events: none;
-    visibility: hidden;
-  }
-  .account-menu.open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-    visibility: visible;
-    /* No delay on visibility when opening — it needs to be visible for the
-       transform/opacity animation to be seen */
-    transition:
-      opacity var(--transition-base),
-      transform var(--transition-spring),
-      visibility 0s linear 0s;
-  }
-  @media (max-width: 480px) {
-    .account-menu {
-      right: var(--space-4);
-      bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px) + 52px);
-      width: 240px;
-    }
-  }
-
-  /* Header block (avatar + name) */
-  .account-menu-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-3) var(--space-3);
-    border-bottom: 1px solid var(--border-light);
-    margin-bottom: var(--space-2);
-  }
-  .account-menu-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-orange);
-    color: var(--color-white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-body);
-    font-size: var(--text-base);
-    font-weight: var(--weight-bold);
-    flex-shrink: 0;
-    overflow: hidden;
-    object-fit: cover;
-  }
-  .account-menu-name {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    color: var(--text-primary);
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Menu items */
-  .account-menu-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: var(--space-3);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    color: var(--text-primary);
-    text-align: left;
-    line-height: 1.2;
-    transition: background var(--transition-fast), color var(--transition-fast);
-  }
-  .account-menu-item:hover {
-    background: var(--color-cream-100);
-    color: var(--color-orange);
-  }
-  .account-menu-item-label {
-    flex: 1;
-    min-width: 0;
-  }
-  .account-menu-item-arrow {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    line-height: 1;
-    transition: transform var(--transition-fast), color var(--transition-fast);
-  }
-  .account-menu-item:hover .account-menu-item-arrow {
-    color: var(--color-orange);
-    transform: translateX(2px);
-  }
-  .account-menu-item-hint {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-left: auto;
-  }
-
-  /* Divider + sign-out item (slightly muted to de-emphasize) */
-  .account-menu-divider {
-    height: 1px;
-    background: var(--border-light);
-    margin: var(--space-2) var(--space-2);
-  }
-  .account-menu-item.signout {
-    color: var(--text-secondary);
-  }
-  .account-menu-item.signout:hover {
-    color: var(--color-orange-dark);
-    background: var(--color-orange-pale);
-  }
-
-  /* ══════════════════════════════════════════════════════════════
      HISTORY PANEL
      ══════════════════════════════════════════════════════════════ */
 
@@ -2446,19 +2264,21 @@
     transform: translateX(-50%) translateY(0);
   }
   .toast.error { background: var(--color-orange-dark); }
-  @media (max-width: 480px) {
-    .auth-chip {
-      bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-      right: var(--space-4);
+
+  /* On mobile, the bottom nav lives where the toast would sit — flip it to
+     the top instead, just below the fixed topbar. The enter animation also
+     flips direction so it slides in from above. */
+  @media (max-width: 768px) {
+    .toast {
+      bottom: auto;
+      top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
+      transform: translateX(-50%) translateY(-100px);
     }
-    .auth-chip.signed-out { padding: var(--space-3) var(--space-4); }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
   }
 
-  /* Nav inner row */
-  .training-nav-inner {
-    padding-right: var(--space-3);
-    align-items: center;
-  }
   /* ══════════════════════════════════════════════════════════════
      SETTINGS PANEL
      ══════════════════════════════════════════════════════════════ */
@@ -2821,6 +2641,31 @@
     margin-inline: auto;
   }
 
+  /* Coming-soon placeholder block — used in Play and Social panels until
+     real features land. Intentionally minimal; mirrors the tone of an empty
+     state, not a marketing card. */
+  .coming-soon-block {
+    text-align: center;
+    padding: var(--space-12) var(--space-4);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--color-cream-100);
+  }
+  .coming-soon-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .coming-soon-sub {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    max-width: 42ch;
+    margin-inline: auto;
+  }
+
   /* ══════════════════════════════════════════════════════════════
      MOBILE APP SHELL — topbar, bottom nav, sheet, transitions
      Applied at ≤768px. Above that, these rules are dormant and
@@ -2829,8 +2674,7 @@
 
   /* --- Defaults: hide all mobile-only UI on desktop --- */
   .mobile-topbar,
-  .mobile-bottomnav,
-  .mobile-sheet {
+  .mobile-bottomnav {
     display: none;
   }
 
@@ -2845,8 +2689,6 @@
     /* Hide desktop shell elements on mobile */
     .training-hero { display: none; }
     .training-nav { display: none; }
-    .auth-chip { display: none !important; }
-    .account-menu { display: none !important; }
     /* The mobile topbar provides its own back button, so the in-panel
        Back link is redundant on mobile. */
     .back-link { display: none; }
@@ -2920,7 +2762,8 @@
     body[data-current-panel="day2"] .mobile-topbar-back,
     body[data-current-panel="day3"] .mobile-topbar-back,
     body[data-current-panel="history"] .mobile-topbar-back,
-    body[data-current-panel="settings"] .mobile-topbar-back {
+    body[data-current-panel="stretch"] .mobile-topbar-back,
+    body[data-current-panel="library"] .mobile-topbar-back {
       display: inline-flex;
     }
     .mobile-topbar-back-arrow {
@@ -3037,196 +2880,9 @@
       object-fit: cover;
       display: block;
     }
-    .mobile-navitem-account.active .mobile-navavatar,
-    .mobile-navitem-account.signed-in .mobile-navavatar {
+    .mobile-navitem-profile.active .mobile-navavatar,
+    .mobile-navitem-profile.signed-in .mobile-navavatar {
       border-color: var(--color-orange);
-    }
-
-    /* --- Full-screen mobile account sheet --- */
-    .mobile-sheet {
-      display: flex;
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal);
-      background: var(--color-cream-50);
-      flex-direction: column;
-      transform: translateY(100%);
-      /* iOS-style decelerated ease-out — smoother than the bouncy spring
-         for a full-screen sheet covering the viewport. */
-      transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
-      padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      pointer-events: none;
-    }
-    .mobile-sheet.open {
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-    .mobile-sheet-inner {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      width: 100%;
-    }
-    .mobile-sheet-head {
-      display: grid;
-      grid-template-columns: 44px 1fr 44px;
-      align-items: center;
-      height: var(--mobile-topbar-h);
-      padding: 0 var(--space-2);
-      border-bottom: 1px solid var(--border-light);
-      flex-shrink: 0;
-    }
-    .mobile-sheet-close {
-      width: 44px;
-      height: 44px;
-      background: transparent;
-      border: none;
-      font-size: var(--text-2xl);
-      line-height: 1;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .mobile-sheet-close:hover { color: var(--color-orange); }
-    .mobile-sheet-title {
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
-      font-weight: var(--weight-bold);
-      color: var(--text-primary);
-      text-align: center;
-      margin: 0;
-      line-height: 1;
-    }
-    .mobile-sheet-spacer { width: 44px; }
-    .mobile-sheet-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: var(--space-6) var(--space-5);
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* Mobile sheet internals — user card, action list */
-    .msheet-user {
-      display: flex;
-      align-items: center;
-      gap: var(--space-4);
-      padding: var(--space-5);
-      background: var(--color-white);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-lg);
-      margin-bottom: var(--space-6);
-    }
-    .msheet-avatar {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: var(--color-orange);
-      color: var(--color-white);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-body);
-      font-size: var(--text-xl);
-      font-weight: var(--weight-bold);
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .msheet-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .msheet-user-meta { min-width: 0; flex: 1; }
-    .msheet-user-name {
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      font-weight: var(--weight-semibold);
-      color: var(--text-primary);
-      line-height: 1.25;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .msheet-user-email {
-      font-size: var(--text-xs);
-      color: var(--text-muted);
-      margin-top: 2px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .msheet-actions {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2);
-    }
-    .msheet-action {
-      display: flex;
-      align-items: center;
-      gap: var(--space-4);
-      width: 100%;
-      background: var(--color-white);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-md);
-      padding: var(--space-4) var(--space-5);
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      font-weight: var(--weight-medium);
-      color: var(--text-primary);
-      text-align: left;
-      cursor: pointer;
-      transition: background var(--transition-fast), border-color var(--transition-fast);
-    }
-    .msheet-action:hover, .msheet-action:active {
-      background: var(--color-cream-100);
-      border-color: var(--border-medium);
-    }
-    .msheet-action-icon {
-      width: 20px;
-      height: 20px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-    .msheet-action-label { flex: 1; }
-    .msheet-action-hint {
-      font-size: var(--text-xs);
-      color: var(--text-muted);
-      font-weight: var(--weight-medium);
-      letter-spacing: var(--tracking-wide);
-      text-transform: uppercase;
-    }
-    .msheet-action-arrow {
-      font-family: var(--font-mono);
-      color: var(--text-muted);
-      font-size: var(--text-sm);
-    }
-    .msheet-divider {
-      height: 1px;
-      background: var(--border-light);
-      margin: var(--space-5) 0;
-    }
-    .msheet-signin-block {
-      text-align: center;
-      padding: var(--space-10) var(--space-4);
-    }
-    .msheet-signin-title {
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: var(--weight-bold);
-      color: var(--text-primary);
-      margin-bottom: var(--space-3);
-    }
-    .msheet-signin-sub {
-      font-size: var(--text-sm);
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: var(--space-6);
-      max-width: 32ch;
-      margin-inline: auto;
     }
 
     /* --- Panel slide-in transitions --- */
@@ -3313,9 +2969,10 @@
 <nav class="training-nav">
   <div class="training-container">
     <div class="training-nav-inner">
-      <button class="nav-tab active" id="nav-today" onclick="showPanel('today', this)">Today</button>
-      <button class="nav-tab" onclick="showPanel('stretch', this)">Stretch</button>
-      <button class="nav-tab" onclick="showPanel('library', this)">Library</button>
+      <button class="nav-tab active" id="nav-train" onclick="showPanel('today', this)">Train</button>
+      <button class="nav-tab" id="nav-play" onclick="showPanel('play', this)">Play</button>
+      <button class="nav-tab" id="nav-social" onclick="showPanel('social', this)">Social</button>
+      <button class="nav-tab" id="nav-profile" onclick="showPanel('profile', this)">Profile</button>
     </div>
   </div>
 </nav>
@@ -3325,6 +2982,9 @@
 
     <!-- ═══════════════ TODAY (DASHBOARD) ═══════════════ -->
     <section class="panel active" id="panel-today">
+      <!-- Sign-in banner — rendered only when signed out -->
+      <div id="signin-banner-mount"></div>
+
       <!-- Today / Up Next card — rendered dynamically by JS -->
       <div id="today-card-mount"></div>
 
@@ -3333,21 +2993,27 @@
 
       <div class="home-section-label">Jump To</div>
       <div class="jump-grid">
-        <button class="jump-card" onclick="showPanel('stretch', document.querySelectorAll('.nav-tab')[1])">
+        <button class="jump-card" onclick="showPanel('stretch', null)">
           <span class="jump-card-label">Every Day · 8–10 min</span>
           <span class="jump-card-title">Daily Stretch Routine</span>
           <span class="jump-card-meta">8 stretches — hip, T-spine, hamstrings, wrists</span>
         </button>
-        <button class="jump-card" onclick="showPanel('library', document.querySelectorAll('.nav-tab')[2])">
+        <button class="jump-card" onclick="showPanel('library', null)">
           <span class="jump-card-label">Browse All</span>
           <span class="jump-card-title">Workout Library</span>
           <span class="jump-card-meta">Day 1 · Day 2 · Day 3 — view any session</span>
+        </button>
+        <button class="jump-card" onclick="showPanel('history', null)">
+          <span class="jump-card-label">Past Sessions</span>
+          <span class="jump-card-title">Workout History</span>
+          <span class="jump-card-meta">Every workout you've completed</span>
         </button>
       </div>
     </section>
 
     <!-- ═══════════════ LIBRARY ═══════════════ -->
     <section class="panel" id="panel-library">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div class="panel-head">
         <span class="accent-line"></span>
         <span class="label">All Workouts</span>
@@ -3491,16 +3157,43 @@
       <div id="history-mount"></div>
     </section>
 
-    <!-- ═══════════════ SETTINGS ═══════════════ -->
-    <section class="panel" id="panel-settings">
-      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+    <!-- ═══════════════ PLAY ═══════════════ -->
+    <section class="panel" id="panel-play">
       <div class="panel-head">
         <span class="accent-line"></span>
-        <span class="label">Settings</span>
-        <h2>Your <em>Preferences</em></h2>
-        <p class="panel-desc">Adjust your training schedule, units, and account preferences. Changes sync across devices.</p>
+        <span class="label">On the Course</span>
+        <h2>Play</h2>
+        <p class="panel-desc">Track your rounds, scores, and on-course stats. Live scorecards with playing partners.</p>
       </div>
-      <div id="settings-mount"></div>
+      <div class="coming-soon-block">
+        <div class="coming-soon-title">Coming soon</div>
+        <div class="coming-soon-sub">Round tracking, scoring, and live multiplayer scorecards are in development.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ SOCIAL ═══════════════ -->
+    <section class="panel" id="panel-social">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Friends &amp; Activity</span>
+        <h2>Social</h2>
+        <p class="panel-desc">Connect with the people you train and play with. Share rounds, track progress together.</p>
+      </div>
+      <div class="coming-soon-block">
+        <div class="coming-soon-title">Coming soon</div>
+        <div class="coming-soon-sub">Add friends, share scores, and play live rounds together.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ PROFILE ═══════════════ -->
+    <section class="panel" id="panel-profile">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Account &amp; Settings</span>
+        <h2>Profile</h2>
+        <p class="panel-desc">Your account details and app preferences.</p>
+      </div>
+      <div id="profile-mount"></div>
     </section>
 
     <!-- ═══════════════ DAY 1 ═══════════════ -->
@@ -3898,6 +3591,7 @@
 
     <!-- ═══════════════ DAILY STRETCH ═══════════════ -->
     <section class="panel" id="panel-stretch">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div class="panel-head">
         <span class="accent-line"></span>
         <span class="label">Every Day · Including Rest Days</span>
@@ -4025,81 +3719,49 @@
      Four slots: Today / Stretch / Library / Account. Icons + labels.
      Stays fixed at the bottom; safe-area-padded for home-indicator. -->
 <nav class="mobile-bottomnav" id="mobile-bottomnav" role="tablist" aria-label="Main navigation">
-  <button class="mobile-navitem active" id="mnav-today" onclick="mobileNavTap('today', this)" role="tab" aria-selected="true">
+  <button class="mobile-navitem active" id="mnav-train" onclick="mobileNavTap('train', this)" role="tab" aria-selected="true">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/>
+      <!-- Dumbbell icon -->
+      <path d="M6.5 6.5h11M6.5 17.5h11"/>
+      <rect x="2" y="9" width="3" height="6" rx="1"/>
+      <rect x="19" y="9" width="3" height="6" rx="1"/>
+      <rect x="5" y="7" width="2" height="10" rx="0.5"/>
+      <rect x="17" y="7" width="2" height="10" rx="0.5"/>
     </svg>
-    <span class="mobile-navlabel">Today</span>
+    <span class="mobile-navlabel">Train</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
-  <button class="mobile-navitem" id="mnav-stretch" onclick="mobileNavTap('stretch', this)" role="tab" aria-selected="false">
+  <button class="mobile-navitem" id="mnav-play" onclick="mobileNavTap('play', this)" role="tab" aria-selected="false">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="5" r="2"/>
-      <path d="M12 7v6M9 10l3-3 3 3M8 20l4-7 4 7"/>
+      <!-- Golf flag icon -->
+      <path d="M5 21V3"/>
+      <path d="M5 4l11 2-3 4 3 4-11 2"/>
     </svg>
-    <span class="mobile-navlabel">Stretch</span>
+    <span class="mobile-navlabel">Play</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
-  <button class="mobile-navitem" id="mnav-library" onclick="mobileNavTap('library', this)" role="tab" aria-selected="false">
+  <button class="mobile-navitem" id="mnav-social" onclick="mobileNavTap('social', this)" role="tab" aria-selected="false">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      <!-- Two-person icon -->
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
-    <span class="mobile-navlabel">Library</span>
+    <span class="mobile-navlabel">Social</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
-  <button class="mobile-navitem mobile-navitem-account" id="mnav-account" onclick="openMobileAccount()" role="tab" aria-selected="false">
+  <button class="mobile-navitem mobile-navitem-profile" id="mnav-profile" onclick="mobileNavTap('profile', this)" role="tab" aria-selected="false">
     <span class="mobile-navavatar" id="mobile-navavatar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="8" r="4"/>
         <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/>
       </svg>
     </span>
-    <span class="mobile-navlabel" id="mobile-navaccount-label">Account</span>
+    <span class="mobile-navlabel">Profile</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
 </nav>
-
-<!-- MOBILE ACCOUNT SHEET — full-screen modal on mobile, replaces the
-     small dropdown menu. Slides up from the bottom. -->
-<div class="mobile-sheet" id="mobile-account-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title">
-  <div class="mobile-sheet-inner">
-    <div class="mobile-sheet-head">
-      <button class="mobile-sheet-close" onclick="closeMobileAccount()" aria-label="Close">×</button>
-      <h2 class="mobile-sheet-title" id="mobile-sheet-title">Account</h2>
-      <span class="mobile-sheet-spacer"></span>
-    </div>
-    <div class="mobile-sheet-body" id="mobile-sheet-body">
-      <!-- Dynamic content injected here — signed-in vs signed-out states -->
-    </div>
-  </div>
-</div>
-
-<!-- FLOATING AUTH CHIP — fixed bottom-right -->
-<button class="auth-chip signed-out" id="auth-chip" onclick="handleAuthClick(event)" aria-label="Sign in to sync your workouts" aria-haspopup="menu" aria-expanded="false">
-  <span id="auth-chip-content">Sign in</span>
-</button>
-
-<!-- ACCOUNT MENU (rendered only when signed in; shell for now, features stubbed) -->
-<div class="account-menu" id="account-menu" role="menu" aria-labelledby="auth-chip">
-  <div class="account-menu-header">
-    <span class="account-menu-avatar" id="account-menu-avatar">?</span>
-    <span class="account-menu-name" id="account-menu-name">—</span>
-  </div>
-  <button class="account-menu-item" role="menuitem" onclick="openAccountItem('history')">
-    <span class="account-menu-item-label">History</span>
-  </button>
-  <button class="account-menu-item" role="menuitem" onclick="openAccountItem('progress')">
-    <span class="account-menu-item-label">Progress</span>
-    <span class="account-menu-item-hint">Soon</span>
-  </button>
-  <button class="account-menu-item" role="menuitem" onclick="openAccountItem('settings')">
-    <span class="account-menu-item-label">Settings</span>
-  </button>
-  <div class="account-menu-divider"></div>
-  <button class="account-menu-item signout" role="menuitem" onclick="handleSignOut()">
-    <span class="account-menu-item-label">Sign out</span>
-  </button>
-</div>
 
 <!-- TOAST for save confirmations -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -4261,6 +3923,35 @@
   // ─────────────────────────────────────────────────────────────
   // Render the Today card
   // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // Render the sign-in banner on the Today panel
+  // ─────────────────────────────────────────────────────────────
+  // Only visible when the user is signed out. Gives them a clear path to
+  // sign in from the main landing page — otherwise they'd have to tap
+  // into Profile or History to find the sign-in button.
+  function renderSignInBanner() {
+    const mount = document.getElementById('signin-banner-mount');
+    if (!mount) return;
+    if (currentUser) {
+      mount.innerHTML = '';
+      return;
+    }
+    mount.innerHTML = `
+      <div class="signin-banner">
+        <span class="signin-banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/>
+          </svg>
+        </span>
+        <div class="signin-banner-copy">
+          <div class="signin-banner-title">Sign in to sync your workouts</div>
+          <div class="signin-banner-sub">Save sessions, track history, and keep your schedule across devices.</div>
+        </div>
+        <button class="signin-banner-btn" onclick="handleAuthClick(event)">Sign in</button>
+      </div>`;
+  }
+
   function renderTodayCard() {
     const resolution = resolveToday();
     const mount = document.getElementById('today-card-mount');
@@ -4276,8 +3967,8 @@
           <h2 class="today-title">No <em>Schedule</em> Set</h2>
           <p class="today-sub">You haven't set any workout days. Open Settings to assign Day 1, 2, and 3 to days of the week — or pick a workout below to do today.</p>
           <div class="today-actions">
-            <button class="today-btn today-btn-primary" onclick="showPanel('settings', null)">Open Settings →</button>
-            <button class="today-btn today-btn-ghost" onclick="showPanel('stretch', document.querySelectorAll('.nav-tab')[1])">Daily Stretch</button>
+            <button class="today-btn today-btn-primary" onclick="showPanel('profile', null)">Open Profile →</button>
+            <button class="today-btn today-btn-ghost" onclick="showPanel('stretch', null)">Daily Stretch</button>
           </div>
           ${swapSection}
         </div>`;
@@ -4319,7 +4010,7 @@
           <h2 class="today-title">Rest Day — Play <em>Golf</em></h2>
           <p class="today-sub">No lifting today. Get 18 in if you can, and do the Daily Stretch routine. Next workout: <strong>Day ${workout.number} — ${stripHtml(workout.title)}</strong> on ${scheduledName}.</p>
           <div class="today-actions">
-            <button class="today-btn today-btn-primary" onclick="showPanel('stretch', document.querySelectorAll('.nav-tab')[1])">Daily Stretch →</button>
+            <button class="today-btn today-btn-primary" onclick="showPanel('stretch', null)">Daily Stretch →</button>
             <button class="today-btn today-btn-ghost" onclick="showPanel('${workout.dayId}', null)">Preview ${scheduledName}'s Workout</button>
           </div>
           ${swapSection}
@@ -4417,11 +4108,6 @@
   // when programmatically restoring state.
   let previousPanelId = null;
   let currentPanelId = 'today';
-  // When the user navigates to a panel via the account menu (mobile sheet
-  // or desktop dropdown), set this so the panel's Back button reopens the
-  // menu instead of going to whatever panel they were on before opening it.
-  // Cleared after one use so subsequent in-app navigation works normally.
-  let cameFromAccountMenu = false;
 
   // Track mobile mode dynamically via matchMedia so JS can make layout-aware
   // decisions (scroll math, transitions) without duplicating the media query.
@@ -4432,37 +4118,35 @@
   // Falls back to a generic label for day panels, which get their workout
   // number filled in dynamically.
   function mobilePanelTitle(id) {
-    if (id === 'today')   return 'Today';
-    if (id === 'stretch') return 'Daily Stretch';
-    if (id === 'library') return 'Library';
-    if (id === 'history') return 'History';
-    if (id === 'settings') return 'Settings';
-    if (id === 'day1')    return 'Day 1';
-    if (id === 'day2')    return 'Day 2';
-    if (id === 'day3')    return 'Day 3';
+    if (id === 'today')    return 'Today';
+    if (id === 'stretch')  return 'Daily Stretch';
+    if (id === 'library')  return 'Library';
+    if (id === 'history')  return 'History';
+    if (id === 'play')     return 'Play';
+    if (id === 'social')   return 'Social';
+    if (id === 'profile')  return 'Profile';
+    if (id === 'day1')     return 'Day 1';
+    if (id === 'day2')     return 'Day 2';
+    if (id === 'day3')     return 'Day 3';
     return '';
   }
 
   // Which top-level tab should appear "active" in the bottom nav?
-  // Day panels bubble up to whichever tab owns them contextually (Today if
-  // it's today's workout; Library otherwise). Non-tab panels (history) get
-  // no active tab.
+  // All training-related panels (today, stretch, library, history, dayN)
+  // light up the Train tab. Play/Social/Profile are their own destinations.
   function mobileActiveTab(id) {
-    if (id === 'today') return 'today';
-    if (id === 'stretch') return 'stretch';
-    if (id === 'library') return 'library';
-    if (['day1','day2','day3'].includes(id)) {
-      const today = resolveToday();
-      if (today && today.isToday && today.workout.dayId === id) return 'today';
-      return 'library';
-    }
-    return null;
+    if (id === 'play')    return 'play';
+    if (id === 'social')  return 'social';
+    if (id === 'profile') return 'profile';
+    return 'train';
   }
 
   // Determine slide direction: forward (right-to-left) for top-level tab
   // taps and rest → workout drilldowns; reverse for back-button + up-out.
   // A simple ordered list defines the visual hierarchy for deciding direction.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'settings', 'day1', 'day2', 'day3'];
+  // Train sub-pages come first (today is the Train landing), then the other
+  // top-level tabs in left-to-right nav order.
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'social', 'profile'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -4474,16 +4158,9 @@
     opts = opts || {};
     const prevId = currentPanelId;
 
-    // Clear the "came from account menu" flag on any direct navigation
-    // that didn't originate from the menu itself. Menu navigation passes
-    // opts.fromAccountMenu = true to preserve the flag.
-    if (!opts.fromAccountMenu) {
-      cameFromAccountMenu = false;
-    }
-
-    // If leaving the Settings panel with unsaved schedule changes, confirm.
+    // If leaving the Profile panel with unsaved schedule changes, confirm.
     // Skip the prompt if the user is just re-tapping the same panel.
-    if (prevId === 'settings' && id !== 'settings' && hasPendingScheduleChanges()) {
+    if (prevId === 'profile' && id !== 'profile' && hasPendingScheduleChanges()) {
       const ok = confirm('You have unsaved schedule changes. Leave without saving?');
       if (!ok) return;
       // User chose to leave — discard the pending edits silently
@@ -4535,10 +4212,10 @@
   function syncMobileBottomNav(panelId) {
     const activeKey = mobileActiveTab(panelId);
     const items = {
-      today: document.getElementById('mnav-today'),
-      stretch: document.getElementById('mnav-stretch'),
-      library: document.getElementById('mnav-library'),
-      account: document.getElementById('mnav-account')
+      train:   document.getElementById('mnav-train'),
+      play:    document.getElementById('mnav-play'),
+      social:  document.getElementById('mnav-social'),
+      profile: document.getElementById('mnav-profile')
     };
     Object.entries(items).forEach(([key, el]) => {
       if (!el) return;
@@ -4547,49 +4224,23 @@
     });
   }
 
-  // Map panel → which nav tab should light up when you're on it
+  // Map panel → which desktop nav tab should light up when you're on it.
+  // All training-related panels light up the Train tab; Play/Social/Profile
+  // each own their own tab. Mirrors mobileActiveTab().
   function inferNavTab(panelId) {
-    const tabs = document.querySelectorAll('.nav-tab');
-    if (panelId === 'today') return tabs[0];
-    if (panelId === 'stretch') return tabs[1];
-    if (panelId === 'library') return tabs[2];
-    // Days: if it's today's scheduled workout, light up Today; otherwise Library
-    if (['day1','day2','day3'].includes(panelId)) {
-      const today = resolveToday();
-      if (today && today.isToday && today.workout.dayId === panelId) {
-        return tabs[0];
-      }
-      return tabs[2];
-    }
-    return null;
+    if (panelId === 'play')    return document.getElementById('nav-play');
+    if (panelId === 'social')  return document.getElementById('nav-social');
+    if (panelId === 'profile') return document.getElementById('nav-profile');
+    // Everything else — today/stretch/library/history/settings/dayN — is
+    // a Train sub-page. Always light up the Train tab.
+    return document.getElementById('nav-train');
   }
 
-  // Back button on day panels — returns to the previous panel,
-  // defaulting to Library if we don't have a meaningful history.
+  // Back button on any Train sub-page (Stretch, Library, History, Settings,
+  // day panels). Returns to the previous panel, defaulting to Today (the
+  // Train landing) if we don't have a meaningful history.
   function goBack() {
-    // If the user landed on this panel via the account menu, back should
-    // reopen the menu rather than jump to whatever was visible before they
-    // opened it. Mobile shows the full-screen sheet; desktop shows the
-    // dropdown anchored to the chip.
-    if (cameFromAccountMenu) {
-      cameFromAccountMenu = false;
-      // Return to Today first so the menu opens with a sensible underlying
-      // panel. Without this, dismissing the menu would leave the user on
-      // the panel they just backed out of.
-      showPanel('today', null, { direction: 'left' });
-      // Open the appropriate menu after the panel-swap animation settles.
-      setTimeout(() => {
-        if (isMobileMode()) {
-          openMobileAccount();
-        } else {
-          toggleAccountMenu(true);
-        }
-      }, 200);
-      return;
-    }
-    const fallback = 'library';
-    // If they came from Today or Library (the expected entry points), go back there.
-    // Otherwise fall back to Library as a sensible default.
+    const fallback = 'today';
     let target = previousPanelId;
     if (!target || target === currentPanelId) target = fallback;
     // Force left-slide direction so the mobile transition mirrors the
@@ -4786,7 +4437,7 @@
       const logBtn = c.querySelector('.ex-log-btn');
       if (logBtn) logBtn.classList.remove('has-logs');
     });
-    showPanel('today', document.querySelectorAll('.nav-tab')[0]);
+    showPanel('today', null);
   }
 
   function resumeSession() {
@@ -5065,163 +4716,81 @@
   // State — synced from the Firebase module script via custom events.
   let currentUser = null;
 
+  // Triggered by the sign-in CTAs on Profile, Settings, and History panels
+  // for signed-out users. Just launches the Google sign-in flow; when
+  // signed-in users need account actions they visit the Profile tab.
   function handleAuthClick(event) {
     if (!window.fb) {
       alert('Firebase is still loading. Give it a second and try again.');
       return;
     }
     if (currentUser) {
-      // Signed in — toggle the account menu (don't sign out directly).
-      // Sign-out now lives inside the menu.
-      toggleAccountMenu();
-      // Prevent the outside-click handler from immediately closing it.
-      if (event) event.stopPropagation();
-    } else {
-      // Signed out — begin sign-in flow
-      window.fb.signIn().catch(err => {
-        console.error('Sign in failed:', err);
-        if (err.code === 'auth/popup-blocked') {
-          alert('Popup was blocked. Allow popups for this site and try again.');
-        } else if (err.code === 'auth/unauthorized-domain') {
-          alert('This domain isn\'t authorized in Firebase. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
-        } else if (err.code === 'auth/popup-closed-by-user') {
-          // User canceled — stay quiet.
-        } else {
-          alert('Sign in failed: ' + (err.message || err.code));
-        }
-      });
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Account menu
-  // ─────────────────────────────────────────────────────────────
-  function toggleAccountMenu(forceState) {
-    const menu = document.getElementById('account-menu');
-    const chip = document.getElementById('auth-chip');
-    if (!menu) return;
-    const shouldOpen = typeof forceState === 'boolean' ? forceState : !menu.classList.contains('open');
-    menu.classList.toggle('open', shouldOpen);
-    if (chip) chip.setAttribute('aria-expanded', String(shouldOpen));
-
-    if (shouldOpen) {
-      // Populate the header with current user info
-      const avatarEl = document.getElementById('account-menu-avatar');
-      const nameEl = document.getElementById('account-menu-name');
-      if (avatarEl && nameEl && currentUser) {
-        const full = currentUser.displayName || currentUser.email || '';
-        const initial = (full || '?').trim().charAt(0).toUpperCase();
-        if (currentUser.photoURL) {
-          avatarEl.outerHTML = `<img class="account-menu-avatar" id="account-menu-avatar" src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer" />`;
-        } else {
-          avatarEl.textContent = initial;
-        }
-        nameEl.textContent = full;
-      }
-    }
-  }
-
-  function closeAccountMenu() {
-    toggleAccountMenu(false);
-  }
-
-  function openAccountItem(id) {
-    closeAccountMenu();
-    // Delay the panel swap so the menu's close animation can play out
-    // (200ms matches --transition-base). Without this the layout repaints
-    // immediately and the menu appears to disappear instantly.
-    if (id === 'history' || id === 'settings') {
-      cameFromAccountMenu = true;
-      setTimeout(() => showPanel(id, null, { fromAccountMenu: true }), 180);
+      // Already signed in — no-op. Sign-out lives in the Profile panel.
       return;
     }
-    const labels = { progress: 'Progress' };
-    showToast(`${labels[id] || id} — coming soon`);
-  }
-
-  function handleSignOut() {
-    closeAccountMenu();
-    if (!window.fb) return;
-    if (!confirm(`Sign out of ${currentUser.displayName || currentUser.email || 'this account'}?`)) return;
-    window.fb.signOut().catch(err => {
-      console.error('Sign out failed:', err);
-      alert('Sign out failed. See console.');
+    window.fb.signIn().catch(err => {
+      console.error('Sign in failed:', err);
+      if (err.code === 'auth/popup-blocked') {
+        alert('Popup was blocked. Allow popups for this site and try again.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        alert('This domain isn\'t authorized in Firebase. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        // User canceled — stay quiet.
+      } else {
+        alert('Sign in failed: ' + (err.message || err.code));
+      }
     });
   }
 
-  // Dismissal: click outside the menu (but not on the chip) closes it.
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('account-menu');
-    const chip = document.getElementById('auth-chip');
-    if (!menu || !menu.classList.contains('open')) return;
-    if (menu.contains(e.target)) return;       // click inside menu — ignore
-    if (chip && chip.contains(e.target)) return; // click on chip — toggle handles it
-    closeAccountMenu();
-  });
-
-  // Escape closes the menu
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const menu = document.getElementById('account-menu');
-      if (menu && menu.classList.contains('open')) closeAccountMenu();
-    }
-  });
-
-  // If auth state flips to signed-out while menu is open, force close.
-  window.addEventListener('fb-auth-changed', (e) => {
-    if (!e.detail) closeAccountMenu();
-  });
-
+  // ─────────────────────────────────────────────────────────────
+  // Auth state UI sync
+  // ─────────────────────────────────────────────────────────────
+  // Kept the name for compatibility with existing callers. Originally
+  // updated the desktop auth chip (now removed) plus the mobile nav avatar;
+  // now just delegates to the mobile avatar renderer since that's the only
+  // remaining auth-state surface that needs imperative updates.
   function renderAuthChip() {
-    const chip = document.getElementById('auth-chip');
-    const content = document.getElementById('auth-chip-content');
-    if (!chip || !content) return;
-    if (currentUser) {
-      chip.classList.remove('signed-out');
-      const fullName = currentUser.displayName || currentUser.email.split('@')[0] || '';
-      // Just the first word (first name) — keeps the chip compact.
-      const firstName = fullName.trim().split(/\s+/)[0] || fullName;
-      const initial = (fullName || '?').trim().charAt(0).toUpperCase();
-      const avatarHtml = currentUser.photoURL
-        ? `<img class="auth-avatar" src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer" />`
-        : `<span class="auth-avatar">${initial}</span>`;
-      content.innerHTML = `${avatarHtml}<span class="auth-name">${firstName}</span>`;
-    } else {
-      chip.classList.add('signed-out');
-      content.textContent = 'Sign in';
-    }
-    // Keep mobile nav avatar in sync with auth state
     renderMobileNavAvatar();
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Mobile navigation + account sheet
+  // Mobile navigation
   // ─────────────────────────────────────────────────────────────
 
   function mobileNavTap(panelId, btn) {
-    // If tapping the currently-active tab on Today/Stretch/Library, scroll
-    // to top. Otherwise navigate.
-    if (currentPanelId === panelId) {
+    // The 'train' tab is a virtual destination — it routes to the Today
+    // panel which is the Train landing. (Today/Stretch/Library/etc. are
+    // all sub-pages of Train conceptually.)
+    let targetPanelId = panelId;
+    if (panelId === 'train') targetPanelId = 'today';
+
+    // If already on this destination (or any panel that maps to the same
+    // Train tab), scroll to top instead of re-navigating.
+    if (currentPanelId === targetPanelId) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    showPanel(panelId, null);
+    // Special case: tapping Train while on any Train sub-page (history,
+    // settings, dayN, stretch, library) — navigate back to the Train
+    // landing (today) rather than no-op.
+    if (panelId === 'train' && mobileActiveTab(currentPanelId) === 'train') {
+      showPanel('today', null);
+      return;
+    }
+    showPanel(targetPanelId, null);
   }
 
   function renderMobileNavAvatar() {
     const slot = document.getElementById('mobile-navavatar');
-    const label = document.getElementById('mobile-navaccount-label');
-    const navItem = document.getElementById('mnav-account');
+    const navItem = document.getElementById('mnav-profile');
     if (!slot || !navItem) return;
     if (currentUser) {
       navItem.classList.add('signed-in');
       const fullName = currentUser.displayName || currentUser.email || '';
-      const firstName = fullName.trim().split(/\s+/)[0] || fullName;
       const initial = (fullName || '?').trim().charAt(0).toUpperCase();
       slot.innerHTML = currentUser.photoURL
         ? `<img src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer" />`
         : `<span>${initial}</span>`;
-      if (label) label.textContent = firstName || 'Account';
     } else {
       navItem.classList.remove('signed-in');
       slot.innerHTML = `
@@ -5229,140 +4798,14 @@
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/>
         </svg>`;
-      if (label) label.textContent = 'Account';
     }
   }
 
-  // Open the full-screen mobile account sheet. Renders its inner content
-  // fresh each time so the signed-in/out state is current.
-  function openMobileAccount() {
-    renderMobileSheet();
-    const sheet = document.getElementById('mobile-account-sheet');
-    if (sheet) sheet.classList.add('open');
-    // Mark the account slot as active; we don't navigate to a panel.
-    document.querySelectorAll('.mobile-navitem').forEach(el => {
-      el.classList.toggle('active', el.id === 'mnav-account');
-      el.setAttribute('aria-selected', String(el.id === 'mnav-account'));
-    });
-  }
-
-  function closeMobileAccount() {
-    const sheet = document.getElementById('mobile-account-sheet');
-    if (sheet) sheet.classList.remove('open');
-    // Restore the active tab state based on the current panel
-    syncMobileBottomNav(currentPanelId);
-  }
-
-  function renderMobileSheet() {
-    const body = document.getElementById('mobile-sheet-body');
-    if (!body) return;
-
-    if (!currentUser) {
-      body.innerHTML = `
-        <div class="msheet-signin-block">
-          <div class="msheet-signin-title">Sign in</div>
-          <div class="msheet-signin-sub">Sync your workouts across devices and track progress over time.</div>
-          <button class="btn-cta" onclick="handleMobileSignIn()">Sign in with Google</button>
-        </div>`;
-      return;
-    }
-
-    const fullName = currentUser.displayName || '';
-    const email = currentUser.email || '';
-    const initial = (fullName || email || '?').trim().charAt(0).toUpperCase();
-    const avatarInner = currentUser.photoURL
-      ? `<img src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer" />`
-      : initial;
-
-    body.innerHTML = `
-      <div class="msheet-user">
-        <div class="msheet-avatar">${avatarInner}</div>
-        <div class="msheet-user-meta">
-          <div class="msheet-user-name">${escapeHtml(fullName || 'Signed in')}</div>
-          <div class="msheet-user-email">${escapeHtml(email)}</div>
-        </div>
-      </div>
-      <div class="msheet-actions">
-        <button class="msheet-action" onclick="mobileSheetNav('history')">
-          <svg class="msheet-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span class="msheet-action-label">History</span>
-          <span class="msheet-action-arrow">→</span>
-        </button>
-        <button class="msheet-action" onclick="mobileSheetStub('Progress')">
-          <svg class="msheet-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 17 9 11 13 15 21 7"/>
-            <polyline points="14 7 21 7 21 14"/>
-          </svg>
-          <span class="msheet-action-label">Progress</span>
-          <span class="msheet-action-hint">Soon</span>
-        </button>
-        <button class="msheet-action" onclick="mobileSheetNav('settings')">
-          <svg class="msheet-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          <span class="msheet-action-label">Settings</span>
-          <span class="msheet-action-arrow">→</span>
-        </button>
-        <div class="msheet-divider"></div>
-        <button class="msheet-action" onclick="handleMobileSignOut()">
-          <svg class="msheet-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          <span class="msheet-action-label">Sign out</span>
-        </button>
-      </div>`;
-  }
-
-  function mobileSheetNav(panelId) {
-    closeMobileAccount();
-    // Flag so the destination panel's Back button reopens the account
-    // sheet instead of jumping to the previous unrelated panel.
-    cameFromAccountMenu = true;
-    // Small delay so the sheet's close animation can start before the
-    // background swaps panels, otherwise the navigation is visible behind
-    // the still-fading sheet.
-    setTimeout(() => showPanel(panelId, null, { fromAccountMenu: true }), 180);
-  }
-
-  function mobileSheetStub(label) {
-    showToast(`${label} — coming soon`);
-  }
-
-  function handleMobileSignIn() {
-    if (!window.fb) return;
-    window.fb.signIn().catch(err => {
-      console.error('Sign in failed:', err);
-      if (err.code === 'auth/unauthorized-domain') {
-        alert('This domain isn\'t authorized in Firebase. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
-      } else if (err.code !== 'auth/popup-closed-by-user') {
-        alert('Sign in failed: ' + (err.message || err.code));
-      }
-    });
-  }
-
-  function handleMobileSignOut() {
-    if (!window.fb) return;
-    if (!confirm(`Sign out of ${currentUser?.displayName || currentUser?.email || 'this account'}?`)) return;
-    closeMobileAccount();
-    window.fb.signOut().catch(err => {
-      console.error('Sign out failed:', err);
-      alert('Sign out failed. See console.');
-    });
-  }
-
-  // Close mobile sheet on auth state change (e.g., after successful sign-in)
-  // so the user doesn't stay stuck on the sign-in screen after authenticating.
-  window.addEventListener('fb-auth-changed', () => {
-    // Re-render if still open, close otherwise
-    const sheet = document.getElementById('mobile-account-sheet');
-    if (sheet && sheet.classList.contains('open')) renderMobileSheet();
-  });
+  // ─────────────────────────────────────────────────────────────
+  // Legacy mobile account sheet functions (openMobileAccount, etc.) have
+  // been removed — their functionality moved to the Profile tab in the
+  // bottom nav. Profile is now a dedicated panel, not a modal/sheet.
+  // ─────────────────────────────────────────────────────────────
 
   window.addEventListener('fb-auth-changed', (e) => {
     currentUser = e.detail;
@@ -5543,9 +4986,10 @@
     }
     // Re-render any panels affected by these changes
     renderHistory();
-    renderSettings();
+    renderPreferencePanels();
     renderTodayCard();
     renderWeekStrip();
+    renderSignInBanner();
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -5575,7 +5019,7 @@
         <div class="history-empty">
           <div class="history-empty-title">No completed sessions yet</div>
           <div class="history-empty-sub">Finish a workout and it'll show up here automatically.</div>
-          <button class="btn-cta" onclick="showPanel('today', document.querySelectorAll('.nav-tab')[0])">Go to Today</button>
+          <button class="btn-cta" onclick="showPanel('today', null)">Go to Today</button>
         </div>`;
       return;
     }
@@ -5589,25 +5033,33 @@
   // ─────────────────────────────────────────────────────────────
   // Render the Settings panel
   // ─────────────────────────────────────────────────────────────
-  function renderSettings() {
-    const mount = document.getElementById('settings-mount');
+  // ─────────────────────────────────────────────────────────────
+  // Render the Profile panel
+  // ─────────────────────────────────────────────────────────────
+  // Profile is what the avatar/account-menu used to be — but as a full
+  // panel rather than a dropdown/sheet. For now its content is identical
+  // to Settings (account info + schedule + units + appearance). Once the
+  // restructure progresses, Settings panel goes away entirely and Profile
+  // becomes the canonical home for these.
+  function renderProfile() {
+    const mount = document.getElementById('profile-mount');
     if (!mount) return;
 
     if (!currentUser) {
       mount.innerHTML = `
         <div class="settings-signin-cta">
-          <div class="settings-signin-cta-title">Sign in to manage settings</div>
-          <div class="settings-signin-cta-sub">Your training schedule and unit preferences sync across devices once you're signed in.</div>
+          <div class="settings-signin-cta-title">Sign in to view your profile</div>
+          <div class="settings-signin-cta-sub">Your account, training schedule, and preferences sync across devices once you're signed in.</div>
           <button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>
         </div>`;
       return;
     }
 
     mount.innerHTML = `
+      ${renderAccountSection()}
       ${renderScheduleSection()}
       ${renderUnitsSection()}
       ${renderAppearanceSection()}
-      ${renderAccountSection()}
     `;
   }
 
@@ -5737,6 +5189,12 @@
   // ─────────────────────────────────────────────────────────────
   // Settings actions
   // ─────────────────────────────────────────────────────────────
+  // After any state change to prefs/pendingScheduleOverride, re-render the
+  // Profile panel so the UI reflects the new state.
+  function renderPreferencePanels() {
+    renderProfile();
+  }
+
   function toggleScheduleCell(dayId, weekday) {
     // Mutate the *pending* draft — saved prefs are untouched until the
     // user explicitly taps Save. This way the Today card and week strip
@@ -5751,14 +5209,14 @@
     }
     // Re-render only the settings panel — Today card / week strip don't
     // change until the user commits.
-    renderSettings();
+    renderPreferencePanels();
   }
 
   // Commit pending schedule changes to saved prefs and push to Firestore.
   async function saveScheduleChanges() {
     if (!hasPendingScheduleChanges()) return;
     prefs.scheduleOverride = JSON.parse(JSON.stringify(pendingScheduleOverride));
-    renderSettings();
+    renderPreferencePanels();
     renderTodayCard();
     renderWeekStrip();
     const ok = await savePreferences();
@@ -5770,13 +5228,13 @@
     if (!hasPendingScheduleChanges()) return;
     if (!confirm('Discard your unsaved schedule changes?')) return;
     resetPendingSchedule();
-    renderSettings();
+    renderPreferencePanels();
   }
 
   async function setUnits(unit) {
     if (prefs.units === unit) return;
     prefs.units = unit;
-    renderSettings();
+    renderPreferencePanels();
     await savePreferences();
   }
 
@@ -6108,7 +5566,8 @@
   renderTodayCard();
   renderWeekStrip();
   renderHistory();
-  renderSettings();
+  renderPreferencePanels();
+  renderSignInBanner();
   // Seed mobile shell state based on the initial active panel ("today")
   document.body.dataset.currentPanel = currentPanelId || 'today';
   const initialTitle = document.getElementById('mobile-topbar-title');
