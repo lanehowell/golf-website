@@ -5567,7 +5567,10 @@
   renderWeekStrip();
   renderHistory();
   renderPreferencePanels();
-  renderSignInBanner();
+  // Note: renderSignInBanner() intentionally NOT called here. Firebase fires
+  // fb-auth-changed once on page load with the resolved auth state — letting
+  // that handler render the banner avoids a flash where the banner appears
+  // briefly for signed-in users before Firebase reports their identity.
   // Seed mobile shell state based on the initial active panel ("today")
   document.body.dataset.currentPanel = currentPanelId || 'today';
   const initialTitle = document.getElementById('mobile-topbar-title');
