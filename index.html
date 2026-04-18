@@ -574,6 +574,26 @@
   .today-card.rest .today-stat-value { color: var(--text-primary); }
   .today-card.rest .today-stat-label { color: var(--text-muted); }
 
+  /* Swap section is designed for the dark Today card. On the cream rest-day
+     card we need to flip the colors so the toggle and option buttons are
+     legible. */
+  .today-card.rest .swap-toggle { color: var(--text-secondary); }
+  .today-card.rest .swap-toggle:hover { color: var(--color-orange); }
+  .today-card.rest .swap-option-btn {
+    background: var(--color-cream-50);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+  }
+  .today-card.rest .swap-option-btn:hover {
+    background: var(--color-white);
+    border-color: var(--color-orange);
+  }
+  .today-card.rest .swap-option-btn.current {
+    border-color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .today-card.rest .swap-option-name { color: var(--text-primary); }
+
   /* ── Section label (for Home sub-sections) ────────────────── */
   .home-section-label {
     font-family: var(--font-body);
