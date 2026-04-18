@@ -2129,7 +2129,8 @@
   }
   @media (max-width: 560px) {
     .history-card-head {
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
+      column-gap: var(--space-3);
       row-gap: var(--space-2);
     }
     .history-card-date {
@@ -2137,9 +2138,9 @@
       border-bottom: 1px solid var(--border-light);
       padding-bottom: var(--space-2);
     }
-    .history-card-title { grid-column: 1; }
-    .history-card-progress { grid-row: 2; grid-column: 2; }
-    .history-card-chevron { grid-row: 2; grid-column: 2; justify-self: end; margin-left: var(--space-3); }
+    .history-card-title { grid-column: 1; grid-row: 2; }
+    .history-card-progress { grid-row: 2; grid-column: 2; align-self: center; }
+    .history-card-chevron { grid-row: 2; grid-column: 3; align-self: center; }
   }
 
   /* Expanded detail area */
@@ -2494,13 +2495,18 @@
       z-index: var(--z-dropdown);
     }
     .mobile-topbar-inner {
-      display: grid;
-      grid-template-columns: 44px 1fr 44px;
+      position: relative;
+      display: flex;
       align-items: center;
+      justify-content: center;
       height: var(--mobile-topbar-h);
-      padding: 0 var(--space-2);
+      padding: 0 56px;
     }
     .mobile-topbar-back {
+      position: absolute;
+      left: var(--space-2);
+      top: 50%;
+      transform: translateY(-50%);
       width: 44px;
       height: 44px;
       background: transparent;
@@ -2538,10 +2544,10 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 100%;
     }
     .mobile-topbar-spacer {
-      width: 44px;
-      height: 44px;
+      display: none;
     }
 
     /* --- Bottom nav --- */
@@ -2650,7 +2656,9 @@
       background: var(--color-cream-50);
       flex-direction: column;
       transform: translateY(100%);
-      transition: transform var(--transition-spring);
+      /* iOS-style decelerated ease-out — smoother than the bouncy spring
+         for a full-screen sheet covering the viewport. */
+      transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
       padding-top: env(safe-area-inset-top, 0px);
       padding-bottom: env(safe-area-inset-bottom, 0px);
       pointer-events: none;
