@@ -2431,6 +2431,368 @@
     align-items: center;
   }
   /* ══════════════════════════════════════════════════════════════
+     SETTINGS PANEL
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Section block — groups related settings under a heading */
+  .settings-section {
+    margin-bottom: var(--space-8);
+  }
+  .settings-section-title {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .settings-section-desc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    margin-bottom: var(--space-4);
+  }
+
+  /* A row in a settings section — label on the left, control on the right */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-row-label {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.25;
+  }
+  .settings-row-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  /* Schedule grid: weekday columns × workout rows */
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr repeat(7, minmax(36px, 1fr));
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .schedule-header {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .schedule-row-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    padding-right: var(--space-2);
+  }
+  .schedule-cell {
+    aspect-ratio: 1;
+    background: var(--color-cream-100);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .schedule-cell:hover {
+    border-color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .schedule-cell.assigned {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+  }
+  .schedule-cell.assigned::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-white);
+  }
+  /* Conflict indicator — when 2+ workouts assigned to same day, both
+     cells get a small notch to signal "shared day". */
+  .schedule-cell.shared { box-shadow: 0 0 0 2px var(--color-orange-pale); }
+  .schedule-summary {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-cream-100);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .schedule-summary strong {
+    font-family: var(--font-body);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange-dark);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    font-size: 0.66rem;
+    margin-right: var(--space-2);
+  }
+
+  /* Sticky save bar — appears at the bottom of the schedule section when
+     there are unsaved changes. Visually elevated so it's hard to miss. */
+  .schedule-savebar {
+    margin-top: var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1px solid var(--color-orange);
+    border-radius: var(--radius-md);
+    animation: savebar-in 0.25s ease;
+  }
+  @keyframes savebar-in {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .schedule-savebar-msg {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange-dark);
+    line-height: 1.3;
+  }
+  .schedule-savebar-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+  .schedule-savebar-btn {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: 1px solid transparent;
+  }
+  .schedule-savebar-btn.primary {
+    background: var(--color-orange);
+    color: var(--color-white);
+    border-color: var(--color-orange);
+  }
+  .schedule-savebar-btn.primary:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+  }
+  .schedule-savebar-btn.ghost {
+    background: transparent;
+    color: var(--color-orange-dark);
+    border-color: var(--color-orange);
+  }
+  .schedule-savebar-btn.ghost:hover {
+    background: var(--color-white);
+  }
+  @media (max-width: 480px) {
+    .schedule-savebar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-3);
+    }
+    .schedule-savebar-actions { justify-content: stretch; }
+    .schedule-savebar-btn { flex: 1; padding: var(--space-3); }
+  }
+  @media (max-width: 480px) {
+    .schedule-grid {
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--space-1);
+    }
+    .schedule-header-spacer { display: none; }
+    .schedule-row-label {
+      grid-column: 1 / -1;
+      text-align: left;
+      padding: var(--space-3) 0 var(--space-2);
+    }
+    .schedule-header { font-size: 0.58rem; }
+  }
+
+  /* Segmented toggle (used for units) */
+  .seg-control {
+    display: inline-flex;
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 2px;
+    gap: 2px;
+  }
+  .seg-control button {
+    background: transparent;
+    border: none;
+    padding: var(--space-2) var(--space-4);
+    border-radius: calc(var(--radius-md) - 2px);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .seg-control button.active {
+    background: var(--color-white);
+    color: var(--color-orange);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Account row inside settings — shows email + sign out */
+  .settings-account-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+  }
+  .settings-account-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .settings-account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .settings-account-info { flex: 1; min-width: 0; }
+  .settings-account-name {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .settings-account-email {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .settings-signout-btn {
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+  .settings-signout-btn:hover {
+    color: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+    background: var(--color-orange-pale);
+  }
+
+  /* Disabled "Coming soon" rows for stubs like dark mode */
+  .settings-row.disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .settings-row .badge-soon {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 2px var(--space-2);
+  }
+
+  /* Save indicator — small text appears briefly after a setting saves */
+  .settings-save-hint {
+    margin-top: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-orange);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+  }
+  .settings-save-hint.show { opacity: 1; }
+
+  /* Signed-out state CTA inside settings */
+  .settings-signin-cta {
+    text-align: center;
+    padding: var(--space-10) var(--space-4);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--color-cream-100);
+  }
+  .settings-signin-cta-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .settings-signin-cta-sub {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    margin-bottom: var(--space-5);
+    max-width: 36ch;
+    margin-inline: auto;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      MOBILE APP SHELL — topbar, bottom nav, sheet, transitions
      Applied at ≤768px. Above that, these rules are dormant and
      the desktop shell (hero + sticky nav + floating chip) takes over.
@@ -2525,7 +2887,8 @@
     body[data-current-panel="day1"] .mobile-topbar-back,
     body[data-current-panel="day2"] .mobile-topbar-back,
     body[data-current-panel="day3"] .mobile-topbar-back,
-    body[data-current-panel="history"] .mobile-topbar-back {
+    body[data-current-panel="history"] .mobile-topbar-back,
+    body[data-current-panel="settings"] .mobile-topbar-back {
       display: inline-flex;
     }
     .mobile-topbar-back-arrow {
@@ -3095,6 +3458,18 @@
         <p class="panel-desc">Every workout you've completed, most recent first. Tap a session to see what you logged.</p>
       </div>
       <div id="history-mount"></div>
+    </section>
+
+    <!-- ═══════════════ SETTINGS ═══════════════ -->
+    <section class="panel" id="panel-settings">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Settings</span>
+        <h2>Your <em>Preferences</em></h2>
+        <p class="panel-desc">Adjust your training schedule, units, and account preferences. Changes sync across devices.</p>
+      </div>
+      <div id="settings-mount"></div>
     </section>
 
     <!-- ═══════════════ DAY 1 ═══════════════ -->
@@ -3688,7 +4063,6 @@
   </button>
   <button class="account-menu-item" role="menuitem" onclick="openAccountItem('settings')">
     <span class="account-menu-item-label">Settings</span>
-    <span class="account-menu-item-hint">Soon</span>
   </button>
   <div class="account-menu-divider"></div>
   <button class="account-menu-item signout" role="menuitem" onclick="handleSignOut()">
@@ -3799,19 +4173,54 @@
   // ─────────────────────────────────────────────────────────────
   // Find today's or next scheduled workout
   // ─────────────────────────────────────────────────────────────
+  // Build a map of weekday → array of workout configs from prefs.
+  // Falls back to the static SCHEDULE if no override is set for a weekday.
+  // The shape returned mirrors what callers expect: each weekday entry is
+  // an array of workout objects (possibly empty for rest days).
+  function getEffectiveScheduleByWeekday() {
+    const result = {};
+    for (let weekday = 0; weekday < 7; weekday++) {
+      const overrideIds = prefs.scheduleOverride[weekday];
+      if (overrideIds && overrideIds.length > 0) {
+        // Convert dayIds to workout configs by looking them up in SCHEDULE
+        const workouts = overrideIds.map(id => {
+          for (const dow of Object.keys(SCHEDULE)) {
+            if (SCHEDULE[dow].dayId === id) return SCHEDULE[dow];
+          }
+          return null;
+        }).filter(Boolean);
+        result[weekday] = workouts;
+      } else {
+        result[weekday] = []; // explicit rest day
+      }
+    }
+    return result;
+  }
+
   function resolveToday() {
     const today = new Date().getDay();
-    if (SCHEDULE[today]) {
-      return { isToday: true, dow: today, workout: SCHEDULE[today] };
+    const schedule = getEffectiveScheduleByWeekday();
+    if (schedule[today].length > 0) {
+      return {
+        isToday: true,
+        dow: today,
+        workout: schedule[today][0],
+        allWorkouts: schedule[today]  // surface the full list for callers that want it
+      };
     }
     // Rest day — find next scheduled workout
     for (let i = 1; i <= 7; i++) {
       const nextDow = (today + i) % 7;
-      if (SCHEDULE[nextDow]) {
-        return { isToday: false, dow: nextDow, workout: SCHEDULE[nextDow] };
+      if (schedule[nextDow].length > 0) {
+        return {
+          isToday: false,
+          dow: nextDow,
+          workout: schedule[nextDow][0],
+          allWorkouts: schedule[nextDow]
+        };
       }
     }
-    return null; // unreachable with 3 workouts/week
+    return null; // truly empty schedule
   }
 
   function weekdayName(dow) {
@@ -3823,20 +4232,44 @@
   // ─────────────────────────────────────────────────────────────
   function renderTodayCard() {
     const resolution = resolveToday();
-    if (!resolution) return;
-    const { isToday, dow, workout } = resolution;
     const mount = document.getElementById('today-card-mount');
+    if (!mount) return;
+    if (!resolution) {
+      // No workouts scheduled at all — show a fallback explaining this and
+      // pointing to settings so the user can re-add days.
+      const todayName = weekdayName(new Date().getDay());
+      const swapSection = renderSwapSection(null);
+      mount.innerHTML = `
+        <div class="today-card rest" data-bg-num="—">
+          <div class="today-eyebrow">Today · ${todayName}</div>
+          <h2 class="today-title">No <em>Schedule</em> Set</h2>
+          <p class="today-sub">You haven't set any workout days. Open Settings to assign Day 1, 2, and 3 to days of the week — or pick a workout below to do today.</p>
+          <div class="today-actions">
+            <button class="today-btn today-btn-primary" onclick="showPanel('settings', null)">Open Settings →</button>
+            <button class="today-btn today-btn-ghost" onclick="showPanel('stretch', document.querySelectorAll('.nav-tab')[1])">Daily Stretch</button>
+          </div>
+          ${swapSection}
+        </div>`;
+      return;
+    }
+    const { isToday, dow, workout } = resolution;
     const todayName = weekdayName(new Date().getDay());
     const scheduledName = weekdayName(dow);
     // Build the swap section once, shared across both card variants.
     const swapSection = renderSwapSection(isToday ? workout.dayId : null);
 
     if (isToday) {
+      // If there are 2+ workouts scheduled today, surface the others as a hint.
+      const others = (resolution.allWorkouts || []).slice(1);
+      const otherNote = others.length > 0
+        ? `<div class="today-eyebrow" style="color: var(--text-muted); margin-top: var(--space-3);">Also scheduled today: ${others.map(w => `Day ${w.number}`).join(', ')}</div>`
+        : '';
       mount.innerHTML = `
         <div class="today-card" data-bg-num="${workout.number}">
           <div class="today-eyebrow">Today · ${todayName}</div>
           <h2 class="today-title">Day ${workout.number} — ${workout.title}</h2>
           <p class="today-sub">${workout.sub}</p>
+          ${otherNote}
           <div class="today-actions">
             <button class="today-btn today-btn-primary" onclick="startWorkout('${workout.dayId}')">Start Workout →</button>
             <button class="today-btn today-btn-ghost" onclick="showPanel('${workout.dayId}', null)">Preview</button>
@@ -3918,15 +4351,21 @@
   function renderWeekStrip() {
     const today = new Date().getDay();
     const strip = document.getElementById('week-strip');
+    if (!strip) return;
+    const effective = getEffectiveScheduleByWeekday();
     strip.innerHTML = WEEK.map(d => {
-      const isWorkout = !!SCHEDULE[d.dow];
+      const workouts = effective[d.dow] || [];
+      const isWorkout = workouts.length > 0;
       const isToday = d.dow === today;
       const classes = ['week-day'];
       if (isWorkout) classes.push('workout');
       if (isToday) classes.push('today');
       let label;
       if (isWorkout) {
-        label = `Day ${SCHEDULE[d.dow].number}`;
+        // Multiple workouts: list all numbers (e.g. "Day 1+3")
+        label = workouts.length > 1
+          ? `Day ${workouts.map(w => w.number).join('+')}`
+          : `Day ${workouts[0].number}`;
       } else {
         label = 'Rest';
       }
@@ -3961,6 +4400,7 @@
     if (id === 'stretch') return 'Daily Stretch';
     if (id === 'library') return 'Library';
     if (id === 'history') return 'History';
+    if (id === 'settings') return 'Settings';
     if (id === 'day1')    return 'Day 1';
     if (id === 'day2')    return 'Day 2';
     if (id === 'day3')    return 'Day 3';
@@ -3986,7 +4426,7 @@
   // Determine slide direction: forward (right-to-left) for top-level tab
   // taps and rest → workout drilldowns; reverse for back-button + up-out.
   // A simple ordered list defines the visual hierarchy for deciding direction.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'settings', 'day1', 'day2', 'day3'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -3997,6 +4437,16 @@
   function showPanel(id, btn, opts) {
     opts = opts || {};
     const prevId = currentPanelId;
+
+    // If leaving the Settings panel with unsaved schedule changes, confirm.
+    // Skip the prompt if the user is just re-tapping the same panel.
+    if (prevId === 'settings' && id !== 'settings' && hasPendingScheduleChanges()) {
+      const ok = confirm('You have unsaved schedule changes. Leave without saving?');
+      if (!ok) return;
+      // User chose to leave — discard the pending edits silently
+      resetPendingSchedule();
+    }
+
     // Update history: only track moves between *different* panels
     if (id !== currentPanelId) {
       previousPanelId = currentPanelId;
@@ -4383,7 +4833,7 @@
       const weightField = document.createElement('div');
       weightField.className = 'set-field';
       weightField.innerHTML = `
-        <span class="set-field-label">${rx.timed ? 'Time / Dist' : 'Weight (lb)'}</span>
+        <span class="set-field-label">${rx.timed ? 'Time / Dist' : `Weight (${prefs.units})`}</span>
         <input class="set-input" type="${rx.timed ? 'text' : 'number'}" inputmode="${rx.timed ? 'text' : 'decimal'}" step="any" data-field="weight" value="${existing[setIndex]?.weight ?? ''}" />
       `;
       row.appendChild(weightField);
@@ -4632,11 +5082,11 @@
     // Delay the panel swap so the menu's close animation can play out
     // (200ms matches --transition-base). Without this the layout repaints
     // immediately and the menu appears to disappear instantly.
-    if (id === 'history') {
-      setTimeout(() => showPanel('history', null), 180);
+    if (id === 'history' || id === 'settings') {
+      setTimeout(() => showPanel(id, null), 180);
       return;
     }
-    const labels = { progress: 'Progress', settings: 'Settings' };
+    const labels = { progress: 'Progress' };
     showToast(`${labels[id] || id} — coming soon`);
   }
 
@@ -4800,13 +5250,13 @@
           <span class="msheet-action-label">Progress</span>
           <span class="msheet-action-hint">Soon</span>
         </button>
-        <button class="msheet-action" onclick="mobileSheetStub('Settings')">
+        <button class="msheet-action" onclick="mobileSheetNav('settings')">
           <svg class="msheet-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           <span class="msheet-action-label">Settings</span>
-          <span class="msheet-action-hint">Soon</span>
+          <span class="msheet-action-arrow">→</span>
         </button>
         <div class="msheet-divider"></div>
         <button class="msheet-action" onclick="handleMobileSignOut()">
@@ -4877,6 +5327,80 @@
   // ("YYYY-MM-DD_dayN"), used for the "last time" hints in the log modal.
   // Populated after sign-in via loadRecentSessions().
   let recentSessions = [];
+
+  // ═════════════════════════════════════════════════════════════
+  // USER PREFERENCES
+  // ═════════════════════════════════════════════════════════════
+  // Single doc stored at users/{uid}/preferences/main. The default is the
+  // built-in M/W/F schedule and lb units, so signed-out or first-time users
+  // see exactly the original behavior.
+  const DEFAULT_PREFS = {
+    // Map of weekday (0=Sun, 1=Mon, ..., 6=Sat) → array of dayIds. Multiple
+    // dayIds per weekday means multiple workouts that day. Empty/missing
+    // weekdays are rest days. Default mirrors the original SCHEDULE.
+    scheduleOverride: { 1: ['day1'], 3: ['day2'], 5: ['day3'] },
+    units: 'lb'  // 'lb' | 'kg'
+  };
+  let prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+  // Local working copy of the schedule that the user can edit without
+  // immediately persisting. Cell taps mutate this; a "Save" / "Discard" bar
+  // appears when it diverges from prefs.scheduleOverride. The Today card,
+  // week strip, and resolveToday() all continue to read from prefs (saved),
+  // so the live app behavior only changes once the user explicitly commits.
+  let pendingScheduleOverride = JSON.parse(JSON.stringify(prefs.scheduleOverride));
+
+  // Compare pending vs saved — true if the user has edits that haven't
+  // been persisted. Stable JSON.stringify works because keys are integers
+  // (weekday numbers) and arrays preserve insertion order semantics for our
+  // purposes (assignment toggles append/filter, never reorder).
+  function hasPendingScheduleChanges() {
+    return JSON.stringify(pendingScheduleOverride) !== JSON.stringify(prefs.scheduleOverride);
+  }
+
+  // Reset pending to match saved. Called after a successful save, after
+  // the user discards, and whenever prefs are reloaded from Firestore.
+  function resetPendingSchedule() {
+    pendingScheduleOverride = JSON.parse(JSON.stringify(prefs.scheduleOverride));
+  }
+
+  async function loadPreferences() {
+    if (!currentUser || !window.fb) {
+      prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      resetPendingSchedule();
+      return;
+    }
+    try {
+      const path = `users/${currentUser.uid}/preferences/main`;
+      const data = await window.fb.getDoc(path);
+      if (data) {
+        // Merge with defaults so missing fields fall back to known-good values.
+        prefs = {
+          ...JSON.parse(JSON.stringify(DEFAULT_PREFS)),
+          ...data,
+          scheduleOverride: data.scheduleOverride || DEFAULT_PREFS.scheduleOverride
+        };
+      } else {
+        prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      }
+    } catch (err) {
+      console.error('Failed to load preferences:', err);
+      prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+    }
+    resetPendingSchedule();
+  }
+
+  async function savePreferences() {
+    if (!currentUser || !window.fb) return false;
+    try {
+      const path = `users/${currentUser.uid}/preferences/main`;
+      await window.fb.setDoc(path, prefs);
+      return true;
+    } catch (err) {
+      console.error('Failed to save preferences:', err);
+      showToast('Settings save failed — see console', true);
+      return false;
+    }
+  }
 
   function todayKey() {
     // YYYY-MM-DD in local timezone (not UTC — want consistent with user's day)
@@ -4955,17 +5479,21 @@
     return null;
   }
 
-  // When sign-in completes, load recent history into the cache.
+  // When sign-in completes, load preferences AND recent history into cache.
   window.addEventListener('fb-auth-changed', async (e) => {
     if (e.detail) {
-      // Signed in — load their history
-      await loadRecentSessions();
+      // Signed in — load their data in parallel for snappier startup
+      await Promise.all([loadPreferences(), loadRecentSessions()]);
     } else {
-      // Signed out — clear cache
+      // Signed out — clear caches and revert to default prefs
       recentSessions = [];
+      prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
     }
-    // Re-render the history panel if the user happens to be looking at it
+    // Re-render any panels affected by these changes
     renderHistory();
+    renderSettings();
+    renderTodayCard();
+    renderWeekStrip();
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -5004,6 +5532,209 @@
     // sorted desc by endTime from loadRecentSessions().
     const cards = recentSessions.map(session => renderHistoryCard(session)).join('');
     mount.innerHTML = `<div class="history-list">${cards}</div>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Render the Settings panel
+  // ─────────────────────────────────────────────────────────────
+  function renderSettings() {
+    const mount = document.getElementById('settings-mount');
+    if (!mount) return;
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="settings-signin-cta">
+          <div class="settings-signin-cta-title">Sign in to manage settings</div>
+          <div class="settings-signin-cta-sub">Your training schedule and unit preferences sync across devices once you're signed in.</div>
+          <button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>
+        </div>`;
+      return;
+    }
+
+    mount.innerHTML = `
+      ${renderScheduleSection()}
+      ${renderUnitsSection()}
+      ${renderAppearanceSection()}
+      ${renderAccountSection()}
+    `;
+  }
+
+  // Schedule section: a grid of [workout-row × weekday-column] toggles
+  function renderScheduleSection() {
+    const weekdayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const workouts = [
+      { dayId: 'day1', label: 'Day 1 — Power & Rotation' },
+      { dayId: 'day2', label: 'Day 2 — Strength & Stability' },
+      { dayId: 'day3', label: 'Day 3 — Lower Body & Hip Power' }
+    ];
+
+    // Header row with weekday labels (desktop layout uses an empty leading cell)
+    const headerRow = `
+      <div class="schedule-header schedule-header-spacer"></div>
+      ${weekdayShort.map(d => `<div class="schedule-header">${d}</div>`).join('')}
+    `;
+
+    // One row per workout: label cell + 7 day cells. Cells reflect the
+    // *pending* draft so the user sees their edits immediately.
+    const rows = workouts.map(w => {
+      const cells = [...Array(7).keys()].map(weekday => {
+        const assignedHere = (pendingScheduleOverride[weekday] || []).includes(w.dayId);
+        const shared = (pendingScheduleOverride[weekday] || []).length > 1 && assignedHere;
+        const cls = ['schedule-cell'];
+        if (assignedHere) cls.push('assigned');
+        if (shared) cls.push('shared');
+        return `<button class="${cls.join(' ')}" onclick="toggleScheduleCell('${w.dayId}', ${weekday})" aria-label="Toggle ${w.dayId} on ${weekdayShort[weekday]}"></button>`;
+      }).join('');
+      return `<div class="schedule-row-label">${w.label}</div>${cells}`;
+    }).join('');
+
+    const pending = hasPendingScheduleChanges();
+    const saveBar = pending ? `
+      <div class="schedule-savebar" role="region" aria-label="Unsaved changes">
+        <span class="schedule-savebar-msg">You have unsaved changes</span>
+        <div class="schedule-savebar-actions">
+          <button class="schedule-savebar-btn ghost" onclick="discardScheduleChanges()">Discard</button>
+          <button class="schedule-savebar-btn primary" onclick="saveScheduleChanges()">Save</button>
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Schedule</div>
+        <div class="settings-section-desc">Choose which weekdays each workout falls on. Tap a cell to toggle. You can assign the same workout to multiple days, or stack two workouts on the same day.</div>
+        <div class="schedule-grid">
+          ${headerRow}
+          ${rows}
+        </div>
+        <div class="schedule-summary">${renderScheduleSummary()}</div>
+        ${saveBar}
+      </div>`;
+  }
+
+  // Human-readable summary of the schedule. Reads from pending so the user
+  // sees what their edits would look like as soon as they tap a cell.
+  function renderScheduleSummary() {
+    const weekdayShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const workoutDays = [];
+    for (let weekday = 0; weekday < 7; weekday++) {
+      const ids = pendingScheduleOverride[weekday] || [];
+      if (ids.length > 0) {
+        const labels = ids.map(id => `Day ${id.replace('day', '')}`);
+        workoutDays.push(`${weekdayShort[weekday]} → ${labels.join(' + ')}`);
+      }
+    }
+    const heading = hasPendingScheduleChanges() ? 'Preview' : 'Active';
+    if (workoutDays.length === 0) {
+      return `<strong>${heading}</strong> No workouts scheduled — every day is a rest day.`;
+    }
+    return `<strong>${heading}</strong> ${workoutDays.join(' · ')}`;
+  }
+
+  function renderUnitsSection() {
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Units</div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Weight units</div>
+            <div class="settings-row-sub">Affects log entries going forward. Existing logs aren't converted.</div>
+          </div>
+          <div class="seg-control">
+            <button class="${prefs.units === 'lb' ? 'active' : ''}" onclick="setUnits('lb')">Lbs</button>
+            <button class="${prefs.units === 'kg' ? 'active' : ''}" onclick="setUnits('kg')">Kg</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderAppearanceSection() {
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Appearance</div>
+        <div class="settings-row disabled">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Dark mode</div>
+            <div class="settings-row-sub">Coming in a future update.</div>
+          </div>
+          <span class="badge-soon">Soon</span>
+        </div>
+      </div>`;
+  }
+
+  function renderAccountSection() {
+    const fullName = currentUser.displayName || '';
+    const email = currentUser.email || '';
+    const initial = (fullName || email || '?').trim().charAt(0).toUpperCase();
+    const avatarInner = currentUser.photoURL
+      ? `<img src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer" />`
+      : initial;
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Account</div>
+        <div class="settings-account-card">
+          <div class="settings-account-avatar">${avatarInner}</div>
+          <div class="settings-account-info">
+            <div class="settings-account-name">${escapeHtml(fullName || 'Signed in')}</div>
+            <div class="settings-account-email">${escapeHtml(email)}</div>
+          </div>
+          <button class="settings-signout-btn" onclick="handleSettingsSignOut()">Sign out</button>
+        </div>
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Settings actions
+  // ─────────────────────────────────────────────────────────────
+  function toggleScheduleCell(dayId, weekday) {
+    // Mutate the *pending* draft — saved prefs are untouched until the
+    // user explicitly taps Save. This way the Today card and week strip
+    // keep showing the live (saved) schedule until the user commits.
+    const current = pendingScheduleOverride[weekday] || [];
+    const idx = current.indexOf(dayId);
+    const next = idx === -1 ? [...current, dayId] : current.filter(d => d !== dayId);
+    if (next.length === 0) {
+      delete pendingScheduleOverride[weekday];
+    } else {
+      pendingScheduleOverride[weekday] = next;
+    }
+    // Re-render only the settings panel — Today card / week strip don't
+    // change until the user commits.
+    renderSettings();
+  }
+
+  // Commit pending schedule changes to saved prefs and push to Firestore.
+  async function saveScheduleChanges() {
+    if (!hasPendingScheduleChanges()) return;
+    prefs.scheduleOverride = JSON.parse(JSON.stringify(pendingScheduleOverride));
+    renderSettings();
+    renderTodayCard();
+    renderWeekStrip();
+    const ok = await savePreferences();
+    if (ok) showToast('Schedule saved');
+  }
+
+  // Discard pending changes — revert to whatever's in saved prefs.
+  function discardScheduleChanges() {
+    if (!hasPendingScheduleChanges()) return;
+    if (!confirm('Discard your unsaved schedule changes?')) return;
+    resetPendingSchedule();
+    renderSettings();
+  }
+
+  async function setUnits(unit) {
+    if (prefs.units === unit) return;
+    prefs.units = unit;
+    renderSettings();
+    await savePreferences();
+  }
+
+  function handleSettingsSignOut() {
+    if (!window.fb || !currentUser) return;
+    if (!confirm(`Sign out of ${currentUser.displayName || currentUser.email || 'this account'}?`)) return;
+    window.fb.signOut().catch(err => {
+      console.error('Sign out failed:', err);
+      alert('Sign out failed. See console.');
+    });
   }
 
   // Build one card's HTML for a single session document.
@@ -5325,6 +6056,7 @@
   renderTodayCard();
   renderWeekStrip();
   renderHistory();
+  renderSettings();
   // Seed mobile shell state based on the initial active panel ("today")
   document.body.dataset.currentPanel = currentPanelId || 'today';
   const initialTitle = document.getElementById('mobile-topbar-title');
