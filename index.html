@@ -681,66 +681,588 @@
     .week-day-label { display: none; }
   }
 
-  /* ── Sign-in banner on Today (only rendered when signed out) ── */
-  .signin-banner {
+  /* ══════════════════════════════════════════════════════════════
+     PLAY LANDING PAGE
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Hero CTA — dark card mirrors the Today card's visual weight */
+  .play-hero {
+    background: var(--color-black);
+    color: var(--text-inverse);
+    border-radius: var(--radius-xl);
+    padding: var(--space-10) var(--space-8);
+    margin-bottom: var(--space-10);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Subtle decorative golf flag mark */
+  .play-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, var(--color-orange-glow) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .play-hero-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-3);
+    position: relative;
+  }
+  .play-hero-title {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.05;
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-cream-50);
+    margin-bottom: var(--space-4);
+    position: relative;
+  }
+  .play-hero-title em {
+    font-style: italic;
+    color: var(--color-orange);
+  }
+  .play-hero-sub {
+    font-size: var(--text-md);
+    color: var(--color-cream-300);
+    line-height: var(--leading-normal);
+    max-width: 48ch;
+    margin-bottom: var(--space-8);
+    position: relative;
+  }
+  .play-hero-actions {
     display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-4) var(--space-5);
-    margin-bottom: var(--space-6);
-    background: var(--color-orange-pale);
-    border: 1px solid var(--color-orange);
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .play-hero-btn {
+    padding: var(--space-4) var(--space-8);
     border-radius: var(--radius-md);
-  }
-  .signin-banner-icon {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-orange);
-    color: var(--color-white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .signin-banner-icon svg { width: 18px; height: 18px; }
-  .signin-banner-copy {
-    flex: 1;
-    min-width: 0;
-    line-height: 1.35;
-  }
-  .signin-banner-title {
     font-family: var(--font-body);
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
-    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
   }
-  .signin-banner-sub {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    margin-top: 2px;
-  }
-  .signin-banner-btn {
-    flex-shrink: 0;
-    padding: var(--space-2) var(--space-4);
+  .play-hero-btn:hover { transform: translateY(-2px); }
+  .play-hero-btn-primary {
     background: var(--color-orange);
     color: var(--color-white);
-    border: none;
+    border-color: var(--color-orange);
+    box-shadow: var(--shadow-accent);
+  }
+  .play-hero-btn-primary:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+  }
+  .play-hero-btn-ghost {
+    background: transparent;
+    color: var(--color-cream-50);
+    border-color: rgba(255, 253, 247, 0.3);
+  }
+  .play-hero-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-cream-50);
+  }
+  .play-hero-meta {
+    margin-top: var(--space-6);
+    font-size: var(--text-xs);
+    color: var(--color-cream-300);
+    letter-spacing: var(--tracking-wide);
+    position: relative;
+  }
+  .play-hero-soon {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    color: var(--color-orange);
+    border: 1px solid var(--color-orange);
     border-radius: var(--radius-sm);
+    padding: 1px var(--space-2);
+    margin-left: var(--space-2);
+  }
+
+  /* Stats strip — 4 numbers in a row, mirrors the Library .lib-stats look */
+  .play-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-10);
+  }
+  .play-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-4);
+    text-align: center;
+  }
+  .play-stat-value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+  }
+  .play-stat-label {
+    display: block;
     font-family: var(--font-body);
     font-size: var(--text-xs);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
-    cursor: pointer;
-    transition: background var(--transition-fast);
-    white-space: nowrap;
+    color: var(--text-muted);
   }
-  .signin-banner-btn:hover { background: var(--color-orange-light); }
+  @media (max-width: 640px) {
+    .play-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Empty rounds state */
+  .play-empty {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--color-cream-100);
+  }
+  .play-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    color: var(--color-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-5);
+  }
+  .play-empty-icon svg { width: 28px; height: 28px; }
+  .play-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .play-empty-sub {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    max-width: 42ch;
+    margin-inline: auto;
+  }
+
+  /* Mobile tweaks */
+  @media (max-width: 640px) {
+    .play-hero { padding: var(--space-8) var(--space-6); }
+    .play-hero-title { font-size: var(--text-4xl); }
+    .play-hero-actions { flex-direction: column; }
+    .play-hero-btn { width: 100%; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PLAY → BROWSE COURSES ENTRY POINT (card on Play landing)
+     ══════════════════════════════════════════════════════════════ */
+  .play-courses-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-10);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+  .play-courses-link:hover {
+    border-color: var(--color-orange);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .play-courses-link-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-courses-link-icon svg { width: 20px; height: 20px; }
+  .play-courses-link-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .play-courses-link-title {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .play-courses-link-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .play-courses-link-arrow {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .play-courses-link:hover .play-courses-link-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     COURSES LIST PANEL
+     ══════════════════════════════════════════════════════════════ */
+  .course-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .course-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-6);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+  .course-card:hover {
+    border-color: var(--color-orange);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .course-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
+  }
+  .course-card-name {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .course-card-arrow {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .course-card:hover .course-card-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+  .course-card-meta {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-4);
+  }
+  .course-card-stats {
+    display: flex;
+    gap: var(--space-5);
+    flex-wrap: wrap;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+  .course-card-stats strong {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-right: var(--space-1);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     COURSE DETAIL PANEL — header, tee selector, scorecard
+     ══════════════════════════════════════════════════════════════ */
+  .course-detail-head {
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .course-detail-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-3);
+  }
+  .course-detail-title {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .course-detail-meta {
+    font-size: var(--text-md);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+  .course-detail-section-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+    margin-top: var(--space-8);
+  }
+  .course-detail-section-label:first-child { margin-top: 0; }
+
+  /* Tee box selector — color swatch + name + distance per tee */
+  .tee-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .tee-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: all var(--transition-fast);
+  }
+  .tee-btn:hover {
+    border-color: var(--color-orange);
+  }
+  .tee-btn.active {
+    border-color: var(--color-orange);
+    background: var(--color-orange-pale);
+    box-shadow: var(--shadow-sm);
+  }
+  .tee-btn-swatch {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-medium);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tee-btn-name {
+    flex: 1;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .tee-btn-yards {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .tee-btn.active .tee-btn-yards { color: var(--color-orange-dark); }
+
+  /* Tee info strip — yards/rating/slope/par for the selected tee */
+  .tee-info {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .tee-info-stat {
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .tee-info-value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--space-1);
+  }
+  .tee-info-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Scorecard — front 9 / back 9 side-by-side on desktop, stacked on mobile */
+  .scorecard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  @media (max-width: 720px) {
+    .scorecard { grid-template-columns: 1fr; }
+  }
+  .scorecard-side {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .scorecard-side-label {
+    background: var(--color-cream-100);
+    padding: var(--space-3) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .scorecard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .scorecard-table th {
+    background: transparent;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+  }
+  .scorecard-table th:first-child { width: 50px; }
+  .scorecard-table tbody td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+  }
+  .scorecard-table tbody tr:last-child td { border-bottom: none; }
+  .scorecard-table tbody tr:hover { background: var(--color-cream-100); }
+  .scorecard-table .hole-num {
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .scorecard-table .hole-par {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+  }
+  .scorecard-table .hole-hcp {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+  .scorecard-table tfoot td {
+    background: var(--color-cream-100);
+    padding: var(--space-3);
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    border-top: 2px solid var(--color-orange);
+    text-transform: uppercase;
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+  }
+  .scorecard-total {
+    margin-top: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-black);
+    color: var(--color-cream-50);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+  }
+  .scorecard-total span:first-child {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-cream-300);
+  }
+
+  .course-detail-actions {
+    margin-top: var(--space-8);
+    text-align: center;
+  }
+  .course-detail-cta {
+    padding: var(--space-4) var(--space-10);
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: 2px solid var(--color-orange);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--shadow-accent);
+    transition: all var(--transition-fast), transform var(--transition-spring);
+  }
+  .course-detail-cta:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+    transform: translateY(-2px);
+  }
   @media (max-width: 480px) {
-    .signin-banner { flex-wrap: wrap; }
-    .signin-banner-copy { flex-basis: calc(100% - 52px); }
-    .signin-banner-btn { flex-basis: 100%; padding: var(--space-3); }
+    .course-detail-cta { width: 100%; padding: var(--space-4); }
+    .tee-info { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* ── Quick jump grid ──────────────────────────────────────── */
@@ -2763,7 +3285,9 @@
     body[data-current-panel="day3"] .mobile-topbar-back,
     body[data-current-panel="history"] .mobile-topbar-back,
     body[data-current-panel="stretch"] .mobile-topbar-back,
-    body[data-current-panel="library"] .mobile-topbar-back {
+    body[data-current-panel="library"] .mobile-topbar-back,
+    body[data-current-panel="courses"] .mobile-topbar-back,
+    body[data-current-panel="course-detail"] .mobile-topbar-back {
       display: inline-flex;
     }
     .mobile-topbar-back-arrow {
@@ -2982,9 +3506,6 @@
 
     <!-- ═══════════════ TODAY (DASHBOARD) ═══════════════ -->
     <section class="panel active" id="panel-today">
-      <!-- Sign-in banner — rendered only when signed out -->
-      <div id="signin-banner-mount"></div>
-
       <!-- Today / Up Next card — rendered dynamically by JS -->
       <div id="today-card-mount"></div>
 
@@ -3159,16 +3680,89 @@
 
     <!-- ═══════════════ PLAY ═══════════════ -->
     <section class="panel" id="panel-play">
+      <!-- Primary CTA — "Start a Round" hero card. Echoes the visual weight
+           of the Today workout card so the most important action on this
+           page is unmistakable. Tap = toast for now; real round flow later. -->
+      <div class="play-hero">
+        <div class="play-hero-eyebrow">Round Tracking</div>
+        <h2 class="play-hero-title">Start a <em>Round</em></h2>
+        <p class="play-hero-sub">Track your scores, putts, and fairways hit. Save the round to your history when you're done.</p>
+        <div class="play-hero-actions">
+          <button class="play-hero-btn play-hero-btn-primary" onclick="showToast('Round tracking coming soon')">Start a Round →</button>
+          <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
+        </div>
+        <div class="play-hero-meta">
+          Or invite playing partners for a live shared scorecard <span class="play-hero-soon">soon</span>
+        </div>
+      </div>
+
+      <!-- Stats strip — em-dashes until real data exists -->
+      <div class="home-section-label">Your Game</div>
+      <div class="play-stats">
+        <div class="play-stat">
+          <span class="play-stat-value">—</span>
+          <span class="play-stat-label">Handicap</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">—</span>
+          <span class="play-stat-label">Avg Score</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">0</span>
+          <span class="play-stat-label">Rounds Played</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">—</span>
+          <span class="play-stat-label">Best Round</span>
+        </div>
+      </div>
+
+      <!-- Browse Courses entry point — sub-page off Play -->
+      <div class="home-section-label">Courses</div>
+      <button class="play-courses-link" onclick="showPanel('courses', null)">
+        <span class="play-courses-link-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 21V3"/>
+            <path d="M5 4l11 2-3 4 3 4-11 2"/>
+          </svg>
+        </span>
+        <span class="play-courses-link-body">
+          <span class="play-courses-link-title">Browse Courses</span>
+          <span class="play-courses-link-meta" id="play-courses-count">—</span>
+        </span>
+        <span class="play-courses-link-arrow" aria-hidden="true">→</span>
+      </button>
+
+      <!-- Recent rounds — empty state for now -->
+      <div class="home-section-label">Recent Rounds</div>
+      <div class="play-empty">
+        <div class="play-empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 21V3"/>
+            <path d="M5 4l11 2-3 4 3 4-11 2"/>
+          </svg>
+        </div>
+        <div class="play-empty-title">No rounds yet</div>
+        <div class="play-empty-sub">Your rounds will appear here once you start tracking. Tap "Start a Round" above to begin.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ COURSES (LIST) ═══════════════ -->
+    <section class="panel" id="panel-courses">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div class="panel-head">
         <span class="accent-line"></span>
-        <span class="label">On the Course</span>
-        <h2>Play</h2>
-        <p class="panel-desc">Track your rounds, scores, and on-course stats. Live scorecards with playing partners.</p>
+        <span class="label">Course Catalog</span>
+        <h2>Available <em>Courses</em></h2>
+        <p class="panel-desc">Tap a course to see hole pars, yardages, and tee box options. More courses will be added over time.</p>
       </div>
-      <div class="coming-soon-block">
-        <div class="coming-soon-title">Coming soon</div>
-        <div class="coming-soon-sub">Round tracking, scoring, and live multiplayer scorecards are in development.</div>
-      </div>
+      <div id="courses-list-mount"></div>
+    </section>
+
+    <!-- ═══════════════ COURSE DETAIL ═══════════════ -->
+    <section class="panel" id="panel-course-detail">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div id="course-detail-mount"></div>
     </section>
 
     <!-- ═══════════════ SOCIAL ═══════════════ -->
@@ -3864,6 +4458,85 @@
   ];
 
   // ─────────────────────────────────────────────────────────────
+  // Course catalog (bundled with the app)
+  // ─────────────────────────────────────────────────────────────
+  // For now this is a single hand-curated entry. Eventually grows to a
+  // larger curated set; user-added courses are deferred (see notes on
+  // multiplayer scorecard interaction). The data shape:
+  //   id, name, location
+  //   holes[]:  { number, par, handicap (stroke index 1-18) }
+  //   tees[]:   { name, color, yardages[18], totalYards, rating, slope }
+  // Pars are course-level (don't change by tee). Yardages are per-tee.
+  // Course rating + slope per tee are USGA-published numbers, used later
+  // for net handicap calculation.
+  const COURSES = [
+    {
+      id: 'mesquite-gc',
+      name: 'Mesquite Golf Club',
+      location: 'Mesquite, TX',
+      holes: [
+        { number: 1,  par: 4, handicap: 12 },
+        { number: 2,  par: 4, handicap: 14 },
+        { number: 3,  par: 5, handicap: 10 },
+        { number: 4,  par: 3, handicap: 18 },
+        { number: 5,  par: 4, handicap: 6  },
+        { number: 6,  par: 3, handicap: 2  },
+        { number: 7,  par: 5, handicap: 8  },
+        { number: 8,  par: 4, handicap: 16 },
+        { number: 9,  par: 4, handicap: 4  },
+        { number: 10, par: 4, handicap: 17 },
+        { number: 11, par: 5, handicap: 11 },
+        { number: 12, par: 3, handicap: 13 },
+        { number: 13, par: 4, handicap: 3  },
+        { number: 14, par: 4, handicap: 15 },
+        { number: 15, par: 3, handicap: 7  },
+        { number: 16, par: 5, handicap: 1  },
+        { number: 17, par: 3, handicap: 9  },
+        { number: 18, par: 4, handicap: 5  }
+      ],
+      tees: [
+        {
+          name: 'Black',
+          color: '#0d0d0d',
+          yardages: [393, 442, 529, 184, 400, 220, 532, 404, 402, 399, 520, 217, 414, 401, 184, 560, 237, 447],
+          totalYards: 6885,
+          rating: 74.2,
+          slope: 128
+        },
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [369, 427, 489, 174, 379, 179, 514, 389, 385, 376, 504, 187, 401, 356, 171, 543, 217, 374],
+          totalYards: 6434,
+          rating: 71.8,
+          slope: 127
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [334, 383, 472, 156, 363, 160, 483, 359, 358, 356, 465, 159, 363, 320, 156, 480, 201, 345],
+          totalYards: 5913,
+          rating: 68.7,
+          slope: 119
+        },
+        {
+          name: 'White',
+          color: '#f5f0e6',
+          yardages: [255, 330, 450, 131, 335, 132, 429, 311, 302, 314, 409, 111, 259, 248, 131, 408, 144, 289],
+          totalYards: 4988,
+          rating: 65.1,
+          slope: 112
+        }
+      ]
+    }
+  ];
+
+  // Helper: look up a course by id
+  function getCourse(courseId) {
+    return COURSES.find(c => c.id === courseId) || null;
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // Find today's or next scheduled workout
   // ─────────────────────────────────────────────────────────────
   // Build a map of weekday → array of workout configs from prefs.
@@ -3923,35 +4596,6 @@
   // ─────────────────────────────────────────────────────────────
   // Render the Today card
   // ─────────────────────────────────────────────────────────────
-  // ─────────────────────────────────────────────────────────────
-  // Render the sign-in banner on the Today panel
-  // ─────────────────────────────────────────────────────────────
-  // Only visible when the user is signed out. Gives them a clear path to
-  // sign in from the main landing page — otherwise they'd have to tap
-  // into Profile or History to find the sign-in button.
-  function renderSignInBanner() {
-    const mount = document.getElementById('signin-banner-mount');
-    if (!mount) return;
-    if (currentUser) {
-      mount.innerHTML = '';
-      return;
-    }
-    mount.innerHTML = `
-      <div class="signin-banner">
-        <span class="signin-banner-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/>
-          </svg>
-        </span>
-        <div class="signin-banner-copy">
-          <div class="signin-banner-title">Sign in to sync your workouts</div>
-          <div class="signin-banner-sub">Save sessions, track history, and keep your schedule across devices.</div>
-        </div>
-        <button class="signin-banner-btn" onclick="handleAuthClick(event)">Sign in</button>
-      </div>`;
-  }
-
   function renderTodayCard() {
     const resolution = resolveToday();
     const mount = document.getElementById('today-card-mount');
@@ -4118,24 +4762,27 @@
   // Falls back to a generic label for day panels, which get their workout
   // number filled in dynamically.
   function mobilePanelTitle(id) {
-    if (id === 'today')    return 'Today';
-    if (id === 'stretch')  return 'Daily Stretch';
-    if (id === 'library')  return 'Library';
-    if (id === 'history')  return 'History';
-    if (id === 'play')     return 'Play';
-    if (id === 'social')   return 'Social';
-    if (id === 'profile')  return 'Profile';
-    if (id === 'day1')     return 'Day 1';
-    if (id === 'day2')     return 'Day 2';
-    if (id === 'day3')     return 'Day 3';
+    if (id === 'today')          return 'Today';
+    if (id === 'stretch')        return 'Daily Stretch';
+    if (id === 'library')        return 'Library';
+    if (id === 'history')        return 'History';
+    if (id === 'play')           return 'Play';
+    if (id === 'social')         return 'Social';
+    if (id === 'profile')        return 'Profile';
+    if (id === 'courses')        return 'Courses';
+    if (id === 'course-detail')  return 'Course';
+    if (id === 'day1')           return 'Day 1';
+    if (id === 'day2')           return 'Day 2';
+    if (id === 'day3')           return 'Day 3';
     return '';
   }
 
   // Which top-level tab should appear "active" in the bottom nav?
   // All training-related panels (today, stretch, library, history, dayN)
   // light up the Train tab. Play/Social/Profile are their own destinations.
+  // Courses + course-detail are sub-pages of Play.
   function mobileActiveTab(id) {
-    if (id === 'play')    return 'play';
+    if (id === 'play' || id === 'courses' || id === 'course-detail') return 'play';
     if (id === 'social')  return 'social';
     if (id === 'profile') return 'profile';
     return 'train';
@@ -4145,8 +4792,8 @@
   // taps and rest → workout drilldowns; reverse for back-button + up-out.
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
-  // top-level tabs in left-to-right nav order.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'social', 'profile'];
+  // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'courses', 'course-detail', 'social', 'profile'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -4200,6 +4847,11 @@
     if (titleEl) titleEl.textContent = mobilePanelTitle(id);
     syncMobileBottomNav(id);
 
+    // Panel-specific renders: refresh content for panels that need fresh
+    // state when shown. Static panels skip this.
+    if (id === 'courses') renderCoursesList();
+    if (id === 'course-detail') renderCourseDetail();
+
     // Scroll behavior — hero has been removed everywhere, so we just scroll
     // to the top on every panel switch. The sticky nav stays pinned at the
     // top regardless of scroll position.
@@ -4228,21 +4880,37 @@
   // All training-related panels light up the Train tab; Play/Social/Profile
   // each own their own tab. Mirrors mobileActiveTab().
   function inferNavTab(panelId) {
-    if (panelId === 'play')    return document.getElementById('nav-play');
+    if (panelId === 'play' || panelId === 'courses' || panelId === 'course-detail') {
+      return document.getElementById('nav-play');
+    }
     if (panelId === 'social')  return document.getElementById('nav-social');
     if (panelId === 'profile') return document.getElementById('nav-profile');
-    // Everything else — today/stretch/library/history/settings/dayN — is
-    // a Train sub-page. Always light up the Train tab.
+    // Everything else — today/stretch/library/history/dayN — is a Train sub-page.
     return document.getElementById('nav-train');
   }
 
-  // Back button on any Train sub-page (Stretch, Library, History, Settings,
-  // day panels). Returns to the previous panel, defaulting to Today (the
-  // Train landing) if we don't have a meaningful history.
+  // Logical parent of each sub-page — where the back button should go,
+  // independent of how the user actually got there. This avoids the
+  // common "back ping-pongs between two pages" bug that happens when
+  // back is just "previous panel."
+  const PANEL_PARENTS = {
+    // Train sub-pages all return to the Train landing
+    stretch:         'today',
+    library:         'today',
+    history:         'today',
+    day1:            'today',
+    day2:            'today',
+    day3:            'today',
+    // Play sub-pages
+    courses:         'play',
+    'course-detail': 'courses',
+    // Profile/Social currently have no sub-pages
+  };
+
+  // Back button on any sub-page. Uses the logical parent map first, then
+  // falls back to the most recent previous panel, then to Today.
   function goBack() {
-    const fallback = 'today';
-    let target = previousPanelId;
-    if (!target || target === currentPanelId) target = fallback;
+    const target = PANEL_PARENTS[currentPanelId] || previousPanelId || 'today';
     // Force left-slide direction so the mobile transition mirrors the
     // forward navigation that got us here, regardless of panel order.
     showPanel(target, null, { direction: 'left' });
@@ -4975,20 +5643,8 @@
   }
 
   // When sign-in completes, load preferences AND recent history into cache.
-  // Tracks whether we've ever seen an authenticated user in this browser.
-  // Used to avoid flashing the sign-in banner on slow mobile devices where
-  // Firebase fires `onAuthStateChanged` with `null` once before restoring
-  // cached credentials a few hundred ms later. If this flag is set, we wait
-  // for a real user (or a timeout) before showing the signed-out UI.
-  const HAS_SEEN_AUTH_KEY = 'gptp:hasSeenAuth';
-  let bannerRenderTimer = null;
-
   window.addEventListener('fb-auth-changed', async (e) => {
     if (e.detail) {
-      // Signed in — remember this for future page loads + cancel any pending
-      // signed-out banner render that was waiting for confirmation.
-      try { localStorage.setItem(HAS_SEEN_AUTH_KEY, '1'); } catch (_) {}
-      if (bannerRenderTimer) { clearTimeout(bannerRenderTimer); bannerRenderTimer = null; }
       // Signed in — load their data in parallel for snappier startup
       await Promise.all([loadPreferences(), loadRecentSessions()]);
     } else {
@@ -5001,24 +5657,6 @@
     renderPreferencePanels();
     renderTodayCard();
     renderWeekStrip();
-
-    // Banner: render immediately if signed in (clears it) or if this is
-    // a brand-new visitor who's never been authenticated. Otherwise, defer
-    // briefly to let Firebase finish restoring cached credentials — avoids
-    // the banner flashing on slow mobile auth restore.
-    let hasSeenAuth = false;
-    try { hasSeenAuth = localStorage.getItem(HAS_SEEN_AUTH_KEY) === '1'; } catch (_) {}
-    if (e.detail || !hasSeenAuth) {
-      renderSignInBanner();
-    } else {
-      // Returning user, but Firebase reported null — wait briefly to see if
-      // the cached session restores. If not, show the banner.
-      if (bannerRenderTimer) clearTimeout(bannerRenderTimer);
-      bannerRenderTimer = setTimeout(() => {
-        renderSignInBanner();
-        bannerRenderTimer = null;
-      }, 1200);
-    }
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -5090,6 +5728,169 @@
       ${renderUnitsSection()}
       ${renderAppearanceSection()}
     `;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Courses (list view + detail view)
+  // ─────────────────────────────────────────────────────────────
+  // Tracks which tee box is selected on the course detail screen.
+  // Keyed by course id so each course remembers its last-viewed tee
+  // independently. Defaults to the first tee in the course's tees[] array.
+  const courseDetailState = { selectedTeeByCourse: {} };
+
+  // Update the count shown on the Play landing's "Browse Courses" link.
+  function updatePlayCoursesCount() {
+    const el = document.getElementById('play-courses-count');
+    if (!el) return;
+    const n = COURSES.length;
+    el.textContent = n === 1 ? '1 course available' : `${n} courses available`;
+  }
+
+  function renderCoursesList() {
+    const mount = document.getElementById('courses-list-mount');
+    if (!mount) return;
+    if (COURSES.length === 0) {
+      mount.innerHTML = `
+        <div class="play-empty">
+          <div class="play-empty-title">No courses yet</div>
+          <div class="play-empty-sub">Courses will be added soon.</div>
+        </div>`;
+      return;
+    }
+    const cards = COURSES.map(c => {
+      const totalPar = c.holes.reduce((sum, h) => sum + h.par, 0);
+      const teeCount = c.tees.length;
+      return `
+        <button class="course-card" onclick="openCourseDetail('${c.id}')">
+          <div class="course-card-head">
+            <div class="course-card-name">${escapeHtml(c.name)}</div>
+            <div class="course-card-arrow" aria-hidden="true">→</div>
+          </div>
+          <div class="course-card-meta">${escapeHtml(c.location)}</div>
+          <div class="course-card-stats">
+            <span><strong>${c.holes.length}</strong> Holes</span>
+            <span><strong>Par ${totalPar}</strong></span>
+            <span><strong>${teeCount}</strong> Tee${teeCount === 1 ? '' : 's'}</span>
+          </div>
+        </button>`;
+    }).join('');
+    mount.innerHTML = `<div class="course-list">${cards}</div>`;
+  }
+
+  function openCourseDetail(courseId) {
+    courseDetailState.activeCourseId = courseId;
+    showPanel('course-detail', null);
+  }
+
+  function renderCourseDetail() {
+    const mount = document.getElementById('course-detail-mount');
+    if (!mount) return;
+    const courseId = courseDetailState.activeCourseId;
+    const course = courseId ? getCourse(courseId) : null;
+    if (!course) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Course not found</h2>
+          <p class="panel-desc">Pick a course from the list.</p>
+        </div>`;
+      return;
+    }
+    // Default selected tee for this course = first tee unless user picked one
+    if (!courseDetailState.selectedTeeByCourse[courseId]) {
+      courseDetailState.selectedTeeByCourse[courseId] = course.tees[0].name;
+    }
+    const selectedTeeName = courseDetailState.selectedTeeByCourse[courseId];
+    const tee = course.tees.find(t => t.name === selectedTeeName) || course.tees[0];
+
+    const totalPar = course.holes.reduce((sum, h) => sum + h.par, 0);
+    const frontPar = course.holes.slice(0, 9).reduce((s, h) => s + h.par, 0);
+    const backPar  = course.holes.slice(9).reduce((s, h) => s + h.par, 0);
+    const frontYards = tee.yardages.slice(0, 9).reduce((s, y) => s + y, 0);
+    const backYards  = tee.yardages.slice(9).reduce((s, y) => s + y, 0);
+
+    // Tee box selector — color-coded segmented control
+    const teeButtons = course.tees.map(t => {
+      const active = t.name === selectedTeeName;
+      // Choose a contrasting text color for the swatch (light tees get dark text)
+      const lightTee = ['White', 'Gold', 'Yellow', 'Red'].includes(t.name);
+      return `
+        <button class="tee-btn${active ? ' active' : ''}" onclick="selectTee('${course.id}', '${t.name}')">
+          <span class="tee-btn-swatch" style="background:${t.color};border-color:${t.color}"></span>
+          <span class="tee-btn-name">${escapeHtml(t.name)}</span>
+          <span class="tee-btn-yards">${t.totalYards.toLocaleString()} yd</span>
+        </button>`;
+    }).join('');
+
+    // Hole-by-hole rows. We render front 9 and back 9 as separate sub-tables
+    // so subtotals can sit between them naturally.
+    const holeRow = (h) => `
+      <tr>
+        <td class="hole-num">${h.number}</td>
+        <td class="hole-yards">${tee.yardages[h.number - 1].toLocaleString()}</td>
+        <td class="hole-par">${h.par}</td>
+        <td class="hole-hcp">${h.handicap}</td>
+      </tr>`;
+    const frontRows = course.holes.slice(0, 9).map(holeRow).join('');
+    const backRows  = course.holes.slice(9).map(holeRow).join('');
+
+    mount.innerHTML = `
+      <div class="course-detail-head">
+        <div class="course-detail-eyebrow">Course Catalog</div>
+        <h2 class="course-detail-title">${escapeHtml(course.name)}</h2>
+        <p class="course-detail-meta">${escapeHtml(course.location)}</p>
+      </div>
+
+      <div class="course-detail-section-label">Tee Box</div>
+      <div class="tee-selector">${teeButtons}</div>
+      <div class="tee-info">
+        <div class="tee-info-stat"><span class="tee-info-value">${tee.totalYards.toLocaleString()}</span><span class="tee-info-label">Yards</span></div>
+        <div class="tee-info-stat"><span class="tee-info-value">${tee.rating ?? '—'}</span><span class="tee-info-label">Rating</span></div>
+        <div class="tee-info-stat"><span class="tee-info-value">${tee.slope ?? '—'}</span><span class="tee-info-label">Slope</span></div>
+        <div class="tee-info-stat"><span class="tee-info-value">${totalPar}</span><span class="tee-info-label">Par</span></div>
+      </div>
+
+      <div class="course-detail-section-label">Hole by Hole</div>
+      <div class="scorecard">
+        <div class="scorecard-side">
+          <div class="scorecard-side-label">Front 9</div>
+          <table class="scorecard-table">
+            <thead>
+              <tr><th>Hole</th><th>Yards</th><th>Par</th><th>HCP</th></tr>
+            </thead>
+            <tbody>${frontRows}</tbody>
+            <tfoot>
+              <tr><td>Out</td><td>${frontYards.toLocaleString()}</td><td>${frontPar}</td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="scorecard-side">
+          <div class="scorecard-side-label">Back 9</div>
+          <table class="scorecard-table">
+            <thead>
+              <tr><th>Hole</th><th>Yards</th><th>Par</th><th>HCP</th></tr>
+            </thead>
+            <tbody>${backRows}</tbody>
+            <tfoot>
+              <tr><td>In</td><td>${backYards.toLocaleString()}</td><td>${backPar}</td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="scorecard-total">
+        <span>Total</span>
+        <span>${tee.totalYards.toLocaleString()} yd · Par ${totalPar}</span>
+      </div>
+
+      <div class="course-detail-actions">
+        <button class="course-detail-cta" onclick="showToast('Round tracking coming soon')">Start a Round Here →</button>
+      </div>
+    `;
+  }
+
+  function selectTee(courseId, teeName) {
+    courseDetailState.selectedTeeByCourse[courseId] = teeName;
+    renderCourseDetail();
   }
 
   // Schedule section: a grid of [workout-row × weekday-column] toggles
@@ -5596,10 +6397,7 @@
   renderWeekStrip();
   renderHistory();
   renderPreferencePanels();
-  // Note: renderSignInBanner() intentionally NOT called here. Firebase fires
-  // fb-auth-changed once on page load with the resolved auth state — letting
-  // that handler render the banner avoids a flash where the banner appears
-  // briefly for signed-in users before Firebase reports their identity.
+  updatePlayCoursesCount();
   // Seed mobile shell state based on the initial active panel ("today")
   document.body.dataset.currentPanel = currentPanelId || 'today';
   const initialTitle = document.getElementById('mobile-topbar-title');
