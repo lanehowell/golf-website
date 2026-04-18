@@ -179,6 +179,7 @@
   }
   .training-nav-inner {
     display: flex;
+    align-items: center;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -209,7 +210,15 @@
   /* ── Panels ───────────────────────────────────────────────── */
   .panel { display: none; }
   .panel.active { display: block; animation: fadeUp 0.4s ease both; }
-  .page-main { padding-block: var(--space-12) var(--space-20); }
+  /* Trimmed top padding now that the hero is gone — content starts close
+     to the nav. Bottom keeps generous breathing room for the floating chip. */
+  .page-main { padding-block: var(--space-8) var(--space-20); }
+
+  /* Hero is hidden in all viewports now — kept in the DOM for legacy reasons
+     but never rendered. Originally the hero introduced the program and its
+     metrics; that info now lives in the nav wordmark and the Library panel's
+     stats strip. */
+  .training-hero { display: none; }
 
   /* ── Section heading override (tighter than .section-heading) ── */
   .panel-head { margin-bottom: var(--space-10); }
@@ -2818,6 +2827,9 @@
     .training-nav { display: none; }
     .auth-chip { display: none !important; }
     .account-menu { display: none !important; }
+    /* The mobile topbar provides its own back button, so the in-panel
+       Back link is redundant on mobile. */
+    .back-link { display: none; }
 
     /* Body/main takes over scrolling; reserve space for both bars */
     body {
@@ -3312,30 +3324,6 @@
           <span class="jump-card-meta">Day 1 · Day 2 · Day 3 — view any session</span>
         </button>
       </div>
-
-      <div class="home-section-label">Program Principles</div>
-      <div class="principles">
-        <div class="principles-head">
-          <span class="accent-line"></span>
-          <h3>Four Rules This Program Follows</h3>
-        </div>
-        <div class="principle-item">
-          <span class="principle-num">1</span>
-          <div>Hip drives everything. All lower body work emphasizes the right hip (your lead hip as a left-hander) clearing through a full range. If you feel lower back fatigue during any exercise, reduce weight and focus on glute engagement first.</div>
-        </div>
-        <div class="principle-item">
-          <span class="principle-num">2</span>
-          <div>Rotational exercises are done in both directions, every time. Your swing only goes one way — the gym should balance that out to prevent asymmetric overuse on the right side of your spine.</div>
-        </div>
-        <div class="principle-item">
-          <span class="principle-num">3</span>
-          <div>Power before fatigue. Rotational cable work always comes before isolation work. Never do heavy cable choppers when your core is already exhausted.</div>
-        </div>
-        <div class="principle-item">
-          <span class="principle-num">4</span>
-          <div>Progress weight slowly on any exercise where you feel it in your lower back instead of your glutes or core. That's a sign the posterior chain hasn't caught up yet.</div>
-        </div>
-      </div>
     </section>
 
     <!-- ═══════════════ LIBRARY ═══════════════ -->
@@ -3444,6 +3432,29 @@
           <div class="equipment-cell"><span class="equipment-dash"></span></div>
           <div class="equipment-cell"><span class="equipment-dot"></span></div>
           <div class="equipment-cell"><span class="equipment-dot"></span></div>
+        </div>
+      </div>
+
+      <div class="principles">
+        <div class="principles-head">
+          <span class="accent-line"></span>
+          <h3>Four Rules This Program Follows</h3>
+        </div>
+        <div class="principle-item">
+          <span class="principle-num">1</span>
+          <div>Hip drives everything. All lower body work emphasizes the right hip (your lead hip as a left-hander) clearing through a full range. If you feel lower back fatigue during any exercise, reduce weight and focus on glute engagement first.</div>
+        </div>
+        <div class="principle-item">
+          <span class="principle-num">2</span>
+          <div>Rotational exercises are done in both directions, every time. Your swing only goes one way — the gym should balance that out to prevent asymmetric overuse on the right side of your spine.</div>
+        </div>
+        <div class="principle-item">
+          <span class="principle-num">3</span>
+          <div>Power before fatigue. Rotational cable work always comes before isolation work. Never do heavy cable choppers when your core is already exhausted.</div>
+        </div>
+        <div class="principle-item">
+          <span class="principle-num">4</span>
+          <div>Progress weight slowly on any exercise where you feel it in your lower back instead of your glutes or core. That's a sign the posterior chain hasn't caught up yet.</div>
         </div>
       </div>
     </section>
@@ -4386,6 +4397,11 @@
   // when programmatically restoring state.
   let previousPanelId = null;
   let currentPanelId = 'today';
+  // When the user navigates to a panel via the account menu (mobile sheet
+  // or desktop dropdown), set this so the panel's Back button reopens the
+  // menu instead of going to whatever panel they were on before opening it.
+  // Cleared after one use so subsequent in-app navigation works normally.
+  let cameFromAccountMenu = false;
 
   // Track mobile mode dynamically via matchMedia so JS can make layout-aware
   // decisions (scroll math, transitions) without duplicating the media query.
@@ -4438,6 +4454,13 @@
     opts = opts || {};
     const prevId = currentPanelId;
 
+    // Clear the "came from account menu" flag on any direct navigation
+    // that didn't originate from the menu itself. Menu navigation passes
+    // opts.fromAccountMenu = true to preserve the flag.
+    if (!opts.fromAccountMenu) {
+      cameFromAccountMenu = false;
+    }
+
     // If leaving the Settings panel with unsaved schedule changes, confirm.
     // Skip the prompt if the user is just re-tapping the same panel.
     if (prevId === 'settings' && id !== 'settings' && hasPendingScheduleChanges()) {
@@ -4480,26 +4503,11 @@
     if (titleEl) titleEl.textContent = mobilePanelTitle(id);
     syncMobileBottomNav(id);
 
-    // Scroll behavior
+    // Scroll behavior — hero has been removed everywhere, so we just scroll
+    // to the top on every panel switch. The sticky nav stays pinned at the
+    // top regardless of scroll position.
     requestAnimationFrame(() => {
-      if (isMobileMode()) {
-        // Mobile: hero is hidden, content begins just under the fixed topbar.
-        // Scroll to 0 so each panel starts from the top.
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        return;
-      }
-      // Desktop: preserve the original scroll-to-hero-bottom behavior so the
-      // sticky nav pins at the top of the viewport with the new panel's
-      // content directly below.
-      const hero = document.querySelector('.training-hero');
-      if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const heroBottom = rect.top + rect.height + window.scrollY;
-      const banner = document.getElementById('session-banner');
-      const bannerOffset = (banner && document.body.classList.contains('session-active'))
-        ? banner.offsetHeight
-        : 0;
-      window.scrollTo({ top: Math.max(0, heroBottom - bannerOffset), behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }
 
@@ -4539,6 +4547,26 @@
   // Back button on day panels — returns to the previous panel,
   // defaulting to Library if we don't have a meaningful history.
   function goBack() {
+    // If the user landed on this panel via the account menu, back should
+    // reopen the menu rather than jump to whatever was visible before they
+    // opened it. Mobile shows the full-screen sheet; desktop shows the
+    // dropdown anchored to the chip.
+    if (cameFromAccountMenu) {
+      cameFromAccountMenu = false;
+      // Return to Today first so the menu opens with a sensible underlying
+      // panel. Without this, dismissing the menu would leave the user on
+      // the panel they just backed out of.
+      showPanel('today', null, { direction: 'left' });
+      // Open the appropriate menu after the panel-swap animation settles.
+      setTimeout(() => {
+        if (isMobileMode()) {
+          openMobileAccount();
+        } else {
+          toggleAccountMenu(true);
+        }
+      }, 200);
+      return;
+    }
     const fallback = 'library';
     // If they came from Today or Library (the expected entry points), go back there.
     // Otherwise fall back to Library as a sensible default.
@@ -5083,7 +5111,8 @@
     // (200ms matches --transition-base). Without this the layout repaints
     // immediately and the menu appears to disappear instantly.
     if (id === 'history' || id === 'settings') {
-      setTimeout(() => showPanel(id, null), 180);
+      cameFromAccountMenu = true;
+      setTimeout(() => showPanel(id, null, { fromAccountMenu: true }), 180);
       return;
     }
     const labels = { progress: 'Progress' };
@@ -5272,10 +5301,13 @@
 
   function mobileSheetNav(panelId) {
     closeMobileAccount();
+    // Flag so the destination panel's Back button reopens the account
+    // sheet instead of jumping to the previous unrelated panel.
+    cameFromAccountMenu = true;
     // Small delay so the sheet's close animation can start before the
     // background swaps panels, otherwise the navigation is visible behind
     // the still-fading sheet.
-    setTimeout(() => showPanel(panelId, null), 180);
+    setTimeout(() => showPanel(panelId, null, { fromAccountMenu: true }), 180);
   }
 
   function mobileSheetStub(label) {
