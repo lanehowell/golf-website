@@ -1265,6 +1265,556 @@
     .tee-info { grid-template-columns: repeat(2, 1fr); }
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     ROUND ENTRY — single-hole scorecard input
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Status strip — sticky-ish context bar at top of round screen.
+     Tells you the course/tee on the left and the running score on the right. */
+  .round-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6);
+  }
+  .round-status-side { min-width: 0; }
+  .round-status-right { text-align: right; }
+  .round-status-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .round-status-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .round-status-score {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .round-status-score span {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-orange);
+    font-weight: var(--weight-medium);
+    margin-left: var(--space-1);
+  }
+
+  /* Hole header — big "Hole 5" + par/yards/handicap reference info */
+  .round-hole-head {
+    text-align: center;
+    margin-bottom: var(--space-8);
+  }
+  .round-hole-num {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .round-hole-meta {
+    margin-top: var(--space-2);
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .round-hole-meta strong {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+
+  /* Section labels above each stepper — small uppercase ticks */
+  .round-section-label {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: var(--space-3);
+  }
+
+  /* Stepper — large +/- buttons with a value display in the middle.
+     Two sizes: primary (strokes) is huge, secondary (putts) is tighter. */
+  .round-stepper {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .round-stepper-btn {
+    flex-shrink: 0;
+    width: 72px;
+    background: var(--bg-elevated);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-stepper-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .round-stepper-btn:active {
+    transform: scale(0.96);
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+  }
+  .round-stepper-display {
+    flex: 1;
+    max-width: 220px;
+    background: var(--bg-elevated);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-3);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: background var(--transition-base), border-color var(--transition-base);
+  }
+  .round-stepper-value {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-primary);
+  }
+  .round-stepper-tag {
+    margin-top: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Primary stepper (strokes) — bigger numbers, taller display */
+  .round-stepper-primary .round-stepper-btn { height: 120px; font-size: var(--text-4xl); }
+  .round-stepper-primary .round-stepper-display { padding: var(--space-6) var(--space-4); }
+  .round-stepper-primary .round-stepper-value { font-size: 5.5rem; }
+
+  /* Secondary stepper (putts) — more compact */
+  .round-stepper-secondary .round-stepper-btn { height: 64px; font-size: var(--text-2xl); }
+  .round-stepper-secondary .round-stepper-display { padding: var(--space-3) var(--space-3); max-width: 160px; }
+  .round-stepper-secondary .round-stepper-value { font-size: var(--text-3xl); }
+
+  /* Score-vs-par color treatment on the strokes stepper.
+     Subtle background tint + colored border + tag color. */
+  .round-stepper-primary.score-eagle .round-stepper-display,
+  .round-stepper-primary.score-birdie .round-stepper-display {
+    background: #EFF8F0;
+    border-color: #88c891;
+  }
+  .round-stepper-primary.score-eagle .round-stepper-tag,
+  .round-stepper-primary.score-birdie .round-stepper-tag {
+    color: #2D6E34;
+  }
+  .round-stepper-primary.score-par .round-stepper-display {
+    background: var(--bg-elevated);
+    border-color: var(--border-medium);
+  }
+  .round-stepper-primary.score-bogey .round-stepper-display {
+    background: var(--color-orange-pale);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  .round-stepper-primary.score-bogey .round-stepper-tag {
+    color: var(--color-orange-dark);
+  }
+  .round-stepper-primary.score-doublebogey .round-stepper-display,
+  .round-stepper-primary.score-over .round-stepper-display {
+    background: #FEF0EC;
+    border-color: rgba(200, 50, 0, 0.35);
+  }
+  .round-stepper-primary.score-doublebogey .round-stepper-tag,
+  .round-stepper-primary.score-over .round-stepper-tag {
+    color: var(--color-orange-dark);
+  }
+
+  /* Footer actions — primary CTA + secondary nav */
+  .round-actions {
+    margin-top: var(--space-8);
+  }
+  .round-btn {
+    width: 100%;
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+  }
+  .round-btn-primary {
+    background: var(--color-orange);
+    color: var(--color-white);
+    border-color: var(--color-orange);
+    box-shadow: var(--shadow-accent);
+  }
+  .round-btn-primary:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+  }
+  .round-btn-primary:active { transform: scale(0.98); }
+  .round-actions-secondary {
+    margin-top: var(--space-5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 0 var(--space-2);
+  }
+  .round-btn-link {
+    background: none;
+    border: none;
+    padding: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+  .round-btn-link:hover:not([disabled]) { color: var(--color-orange); }
+  .round-btn-link[disabled] { opacity: 0.35; cursor: not-allowed; }
+  .round-btn-end { color: var(--text-muted); font-size: var(--text-xs); }
+  .round-btn-end:hover { color: var(--color-orange-dark); }
+
+  /* Mobile tweaks for round entry */
+  @media (max-width: 480px) {
+    .round-stepper-btn { width: 64px; }
+    .round-stepper-primary .round-stepper-btn { height: 104px; }
+    .round-stepper-primary .round-stepper-value { font-size: 4.5rem; }
+    .round-status { padding: var(--space-3) var(--space-4); }
+    .round-status-score { font-size: var(--text-xl); }
+    .round-hole-num { font-size: var(--text-3xl); }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PLAY LANDING — RESUME BANNER (in-progress round detection)
+     ══════════════════════════════════════════════════════════════ */
+  .play-resume {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    background: var(--color-orange-pale);
+    border: 1px solid var(--color-orange);
+    border-radius: var(--radius-md);
+  }
+  .play-resume-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-resume-icon svg { width: 18px; height: 18px; }
+  .play-resume-body {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .play-resume-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .play-resume-meta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .play-resume-btn {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    white-space: nowrap;
+  }
+  .play-resume-btn:hover { background: var(--color-orange-light); }
+  .play-resume-discard {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid rgba(232, 93, 4, 0.35);
+    color: var(--color-orange-dark);
+    border-radius: 50%;
+    font-size: var(--text-lg);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .play-resume-discard:hover {
+    background: var(--color-orange);
+    color: var(--color-white);
+    border-color: var(--color-orange);
+  }
+  @media (max-width: 480px) {
+    .play-resume { flex-wrap: wrap; }
+    .play-resume-body { flex-basis: calc(100% - 52px); }
+    .play-resume-btn { flex: 1; padding: var(--space-3); }
+    .play-resume-discard { flex-shrink: 0; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PLAY LANDING — RECENT ROUNDS CARDS
+     ══════════════════════════════════════════════════════════════ */
+  .round-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .round-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-6);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+  .round-card:hover {
+    border-color: var(--color-orange);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .round-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
+  }
+  .round-card-course {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .round-card-arrow {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .round-card:hover .round-card-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+  .round-card-meta {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-3);
+  }
+  .round-card-score-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+  .round-card-score {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .round-card-vspar {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     ROUND SUMMARY PANEL
+     ══════════════════════════════════════════════════════════════ */
+  .round-summary-head {
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-6);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .round-summary-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-3);
+  }
+  .round-summary-title {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .round-summary-meta {
+    font-size: var(--text-md);
+    color: var(--text-muted);
+  }
+
+  /* Totals — 4 stat cards, first one emphasized */
+  .round-summary-totals {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .round-summary-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-3);
+    text-align: center;
+  }
+  .round-summary-stat-primary {
+    background: var(--color-black);
+    border-color: var(--color-black);
+  }
+  .round-summary-stat-primary .round-summary-stat-value { color: var(--color-cream-50); }
+  .round-summary-stat-primary .round-summary-stat-label { color: var(--color-cream-300); }
+  .round-summary-stat-value {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+  }
+  .round-summary-stat-label {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  @media (max-width: 480px) {
+    .round-summary-totals { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .round-summary-section-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+  }
+
+  /* Hole-by-hole table on summary — visually similar to the course-detail
+     scorecard but with a score column and row coloring for vs-par. */
+  .round-summary-table-wrap {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--space-8);
+  }
+  .round-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .round-summary-table th {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    background: var(--color-cream-100);
+  }
+  .round-summary-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+  }
+  .round-summary-table tr:last-child td { border-bottom: none; }
+  .round-summary-table td strong {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-md);
+  }
+  /* Vs-par row coloring — subtle left border accent */
+  .round-summary-table .rs-hole-birdie td:first-child { border-left: 3px solid #2D6E34; }
+  .round-summary-table .rs-hole-par td:first-child    { border-left: 3px solid var(--border-medium); }
+  .round-summary-table .rs-hole-bogey td:first-child  { border-left: 3px solid var(--color-orange); }
+  .round-summary-table .rs-hole-over td:first-child   { border-left: 3px solid var(--color-orange-dark); }
+
+  .round-summary-actions {
+    text-align: center;
+  }
+
   /* ── Quick jump grid ──────────────────────────────────────── */
   .jump-grid {
     display: grid;
@@ -3287,7 +3837,9 @@
     body[data-current-panel="stretch"] .mobile-topbar-back,
     body[data-current-panel="library"] .mobile-topbar-back,
     body[data-current-panel="courses"] .mobile-topbar-back,
-    body[data-current-panel="course-detail"] .mobile-topbar-back {
+    body[data-current-panel="course-detail"] .mobile-topbar-back,
+    body[data-current-panel="round"] .mobile-topbar-back,
+    body[data-current-panel="round-summary"] .mobile-topbar-back {
       display: inline-flex;
     }
     .mobile-topbar-back-arrow {
@@ -3680,15 +4232,19 @@
 
     <!-- ═══════════════ PLAY ═══════════════ -->
     <section class="panel" id="panel-play">
+      <!-- Resume banner — populated when an in-progress round is detected -->
+      <div id="play-resume-mount"></div>
+
       <!-- Primary CTA — "Start a Round" hero card. Echoes the visual weight
            of the Today workout card so the most important action on this
-           page is unmistakable. Tap = toast for now; real round flow later. -->
+           page is unmistakable. The Start button routes to course selection
+           (currently Browse Courses since we have one course). -->
       <div class="play-hero">
         <div class="play-hero-eyebrow">Round Tracking</div>
         <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores, putts, and fairways hit. Save the round to your history when you're done.</p>
+        <p class="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
         <div class="play-hero-actions">
-          <button class="play-hero-btn play-hero-btn-primary" onclick="showToast('Round tracking coming soon')">Start a Round →</button>
+          <button class="play-hero-btn play-hero-btn-primary" onclick="showPanel('courses', null)">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
         </div>
         <div class="play-hero-meta">
@@ -3696,26 +4252,9 @@
         </div>
       </div>
 
-      <!-- Stats strip — em-dashes until real data exists -->
+      <!-- Stats strip — dynamic based on completed rounds -->
       <div class="home-section-label">Your Game</div>
-      <div class="play-stats">
-        <div class="play-stat">
-          <span class="play-stat-value">—</span>
-          <span class="play-stat-label">Handicap</span>
-        </div>
-        <div class="play-stat">
-          <span class="play-stat-value">—</span>
-          <span class="play-stat-label">Avg Score</span>
-        </div>
-        <div class="play-stat">
-          <span class="play-stat-value">0</span>
-          <span class="play-stat-label">Rounds Played</span>
-        </div>
-        <div class="play-stat">
-          <span class="play-stat-value">—</span>
-          <span class="play-stat-label">Best Round</span>
-        </div>
-      </div>
+      <div id="play-stats-mount"></div>
 
       <!-- Browse Courses entry point — sub-page off Play -->
       <div class="home-section-label">Courses</div>
@@ -3733,18 +4272,9 @@
         <span class="play-courses-link-arrow" aria-hidden="true">→</span>
       </button>
 
-      <!-- Recent rounds — empty state for now -->
+      <!-- Recent rounds — dynamic empty state vs list of round cards -->
       <div class="home-section-label">Recent Rounds</div>
-      <div class="play-empty">
-        <div class="play-empty-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 21V3"/>
-            <path d="M5 4l11 2-3 4 3 4-11 2"/>
-          </svg>
-        </div>
-        <div class="play-empty-title">No rounds yet</div>
-        <div class="play-empty-sub">Your rounds will appear here once you start tracking. Tap "Start a Round" above to begin.</div>
-      </div>
+      <div id="play-rounds-mount"></div>
     </section>
 
     <!-- ═══════════════ COURSES (LIST) ═══════════════ -->
@@ -3763,6 +4293,24 @@
     <section class="panel" id="panel-course-detail">
       <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div id="course-detail-mount"></div>
+    </section>
+
+    <!-- ═══════════════ ROUND ENTRY (single hole) ═══════════════ -->
+    <!-- The live round-tracking screen. One hole at a time. Auto-saves to
+         Firestore after each hole; a resumable round will be detected on
+         next app load if the user backgrounds the app mid-round. -->
+    <section class="panel" id="panel-round">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div id="round-mount"></div>
+    </section>
+
+    <!-- ═══════════════ ROUND SUMMARY ═══════════════ -->
+    <!-- Shown after a round is completed (full 18 or ended early). Reads
+         the round doc and renders totals, hole-by-hole breakdown, and a
+         button back to Play landing. -->
+    <section class="panel" id="panel-round-summary">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div id="round-summary-mount"></div>
     </section>
 
     <!-- ═══════════════ SOCIAL ═══════════════ -->
@@ -4771,6 +5319,8 @@
     if (id === 'profile')        return 'Profile';
     if (id === 'courses')        return 'Courses';
     if (id === 'course-detail')  return 'Course';
+    if (id === 'round')          return 'Round';
+    if (id === 'round-summary')  return 'Round Summary';
     if (id === 'day1')           return 'Day 1';
     if (id === 'day2')           return 'Day 2';
     if (id === 'day3')           return 'Day 3';
@@ -4780,9 +5330,10 @@
   // Which top-level tab should appear "active" in the bottom nav?
   // All training-related panels (today, stretch, library, history, dayN)
   // light up the Train tab. Play/Social/Profile are their own destinations.
-  // Courses + course-detail are sub-pages of Play.
+  // Courses + course-detail + round + round-summary are sub-pages of Play.
   function mobileActiveTab(id) {
-    if (id === 'play' || id === 'courses' || id === 'course-detail') return 'play';
+    if (id === 'play' || id === 'courses' || id === 'course-detail' ||
+        id === 'round' || id === 'round-summary') return 'play';
     if (id === 'social')  return 'social';
     if (id === 'profile') return 'profile';
     return 'train';
@@ -4793,7 +5344,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'courses', 'course-detail', 'social', 'profile'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'social', 'profile'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -4851,6 +5402,9 @@
     // state when shown. Static panels skip this.
     if (id === 'courses') renderCoursesList();
     if (id === 'course-detail') renderCourseDetail();
+    if (id === 'round') renderRound();
+    if (id === 'round-summary') renderRoundSummary();
+    if (id === 'play') renderPlayLanding();
 
     // Scroll behavior — hero has been removed everywhere, so we just scroll
     // to the top on every panel switch. The sticky nav stays pinned at the
@@ -4880,7 +5434,8 @@
   // All training-related panels light up the Train tab; Play/Social/Profile
   // each own their own tab. Mirrors mobileActiveTab().
   function inferNavTab(panelId) {
-    if (panelId === 'play' || panelId === 'courses' || panelId === 'course-detail') {
+    if (panelId === 'play' || panelId === 'courses' || panelId === 'course-detail' ||
+        panelId === 'round' || panelId === 'round-summary') {
       return document.getElementById('nav-play');
     }
     if (panelId === 'social')  return document.getElementById('nav-social');
@@ -4904,6 +5459,10 @@
     // Play sub-pages
     courses:         'play',
     'course-detail': 'courses',
+    round:           'course-detail',
+    // Summary is a terminal screen — back goes to Play landing, not the
+    // (now-completed) round screen which has no state to show anymore.
+    'round-summary': 'play',
     // Profile/Social currently have no sub-pages
   };
 
@@ -5628,6 +6187,104 @@
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Round persistence — auto-save in-progress, list completed rounds
+  // ─────────────────────────────────────────────────────────────
+  // Cache of recent completed rounds, used to populate Recent Rounds on
+  // the Play landing. Loaded on auth-change like sessions are.
+  let recentRounds = [];
+
+  async function loadRecentRounds() {
+    if (!currentUser || !window.fb) {
+      recentRounds = [];
+      return;
+    }
+    try {
+      const uid = currentUser.uid;
+      const path = `users/${uid}/rounds`;
+      // Load all rounds, sort by endTime desc. We'll filter in memory:
+      // completed rounds for the Recent list, in-progress for resume detection.
+      recentRounds = await window.fb.listDocs(path, {
+        orderBy: 'startTime',
+        orderDir: 'desc',
+        limit: 30
+      });
+    } catch (err) {
+      console.error('Failed to load round history:', err);
+      recentRounds = [];
+    }
+  }
+
+  // Find a single in-progress round, if one exists. Used for resume detection
+  // on app load so the user can pick up where they left off.
+  function findInProgressRound() {
+    return recentRounds.find(r => r.status === 'in-progress') || null;
+  }
+
+  // Generate a Firestore document id for a new round. Format mirrors sessions:
+  // YYYY-MM-DD_courseId_startMs. Stable, sortable, descriptive.
+  function newRoundId(courseId, startMs) {
+    const d = new Date(startMs);
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return `${dateKey}_${courseId}_${startMs}`;
+  }
+
+  // Auto-save the current round to Firestore. Called after each hole entry.
+  // Silent — no toast on success since this fires often; only logs on error.
+  async function autoSaveRound() {
+    if (!currentUser || !window.fb) return;
+    if (!roundState.courseId || !roundState.docId) return;
+    const course = getCourse(roundState.courseId);
+    if (!course) return;
+    const totals = computeRoundTotals();
+    const payload = {
+      courseId: roundState.courseId,
+      courseName: course.name,
+      teeName: roundState.teeName,
+      startTime: roundState.started,
+      endTime: null,
+      dateKey: roundState.dateKey,
+      status: 'in-progress',
+      currentHoleIndex: roundState.holeIndex,
+      scores: roundState.scores,
+      totals
+    };
+    try {
+      const path = `users/${currentUser.uid}/rounds/${roundState.docId}`;
+      await window.fb.setDoc(path, payload);
+      // Update the local cache so resume detection sees the latest state
+      const existing = recentRounds.findIndex(r => r.id === roundState.docId);
+      const cached = { id: roundState.docId, ...payload };
+      if (existing >= 0) recentRounds[existing] = cached;
+      else recentRounds.unshift(cached);
+    } catch (err) {
+      console.error('Failed to auto-save round:', err);
+    }
+  }
+
+  // Compute running totals for the round — strokes, putts, holes played, vs par.
+  function computeRoundTotals() {
+    const course = getCourse(roundState.courseId);
+    if (!course) return { strokes: 0, putts: 0, holesPlayed: 0, vsPar: 0 };
+    const playedHoles = Object.keys(roundState.scores).map(Number);
+    let strokes = 0, putts = 0, parTotal = 0;
+    for (const hn of playedHoles) {
+      const e = roundState.scores[hn];
+      if (!e) continue;
+      strokes += e.strokes || 0;
+      putts += e.putts || 0;
+      const hd = course.holes.find(h => h.number === hn);
+      if (hd) parTotal += hd.par;
+    }
+    return {
+      strokes,
+      putts,
+      holesPlayed: playedHoles.length,
+      vsPar: strokes - parTotal
+    };
+  }
+
   // Find the most recent logged set data for a given exercise name, searching
   // the cached recent sessions. Returns null if never seen. Used to populate
   // the "last time: 185 × 8" hints in the log modal.
@@ -5646,10 +6303,11 @@
   window.addEventListener('fb-auth-changed', async (e) => {
     if (e.detail) {
       // Signed in — load their data in parallel for snappier startup
-      await Promise.all([loadPreferences(), loadRecentSessions()]);
+      await Promise.all([loadPreferences(), loadRecentSessions(), loadRecentRounds()]);
     } else {
       // Signed out — clear caches and revert to default prefs
       recentSessions = [];
+      recentRounds = [];
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
     }
     // Re-render any panels affected by these changes
@@ -5657,6 +6315,7 @@
     renderPreferencePanels();
     renderTodayCard();
     renderWeekStrip();
+    renderPlayLanding();
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -5883,7 +6542,7 @@
       </div>
 
       <div class="course-detail-actions">
-        <button class="course-detail-cta" onclick="showToast('Round tracking coming soon')">Start a Round Here →</button>
+        <button class="course-detail-cta" onclick="startRoundFromCourse('${course.id}', '${tee.name}')">Start a Round Here →</button>
       </div>
     `;
   }
@@ -5891,6 +6550,596 @@
   function selectTee(courseId, teeName) {
     courseDetailState.selectedTeeByCourse[courseId] = teeName;
     renderCourseDetail();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Round entry (single-hole sketch — Phase 2 stub)
+  // ─────────────────────────────────────────────────────────────
+  // For now this is a UI mockup showing one hole's entry experience.
+  // No persistence, no hole-to-hole navigation. Validates the design
+  // before we wire it up properly.
+  // Round state — what's currently in progress (or null fields if no round active).
+  // docId is the Firestore doc id once persistence kicks in. dateKey is YYYY-MM-DD
+  // in local time, for sorting and display. scores is { holeNumber: {strokes,putts} }.
+  const roundState = {
+    docId: null,
+    courseId: null,
+    teeName: null,
+    holeIndex: 0,           // 0-based for arrays; display as +1
+    scores: {},             // { holeNumber: { strokes, putts } }
+    started: null,
+    dateKey: null
+  };
+
+  function isRoundActive() {
+    return !!(roundState.courseId && roundState.docId);
+  }
+
+  // Begin a new round from Course Detail's "Start a Round Here" button.
+  // Creates a new Firestore doc immediately so resume detection works
+  // even if the user navigates away before logging hole 1.
+  async function startRoundFromCourse(courseId, teeName) {
+    const course = getCourse(courseId);
+    if (!course) return;
+    // Block starting a second round if one's already in progress
+    if (isRoundActive()) {
+      const cont = confirm('You have a round in progress. Discard it and start a new one?');
+      if (!cont) {
+        showPanel('round', null);
+        return;
+      }
+      await abandonCurrentRound();
+    }
+    const startMs = Date.now();
+    const d = new Date(startMs);
+    const pad = (n) => String(n).padStart(2, '0');
+    roundState.dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    roundState.docId = newRoundId(courseId, startMs);
+    roundState.courseId = courseId;
+    roundState.teeName = teeName;
+    roundState.holeIndex = 0;
+    roundState.scores = {};
+    roundState.started = startMs;
+    // Initial save so an in-progress doc exists for resume detection
+    await autoSaveRound();
+    showPanel('round', null);
+  }
+
+  // Resume an in-progress round (called from the resume prompt or auto-detect).
+  function resumeRound(roundDoc) {
+    if (!roundDoc) return;
+    roundState.docId = roundDoc.id;
+    roundState.courseId = roundDoc.courseId;
+    roundState.teeName = roundDoc.teeName;
+    roundState.holeIndex = roundDoc.currentHoleIndex || 0;
+    roundState.scores = roundDoc.scores || {};
+    roundState.started = roundDoc.startTime;
+    roundState.dateKey = roundDoc.dateKey;
+    showPanel('round', null);
+  }
+
+  // Reset roundState in memory (does not delete from Firestore).
+  function clearRoundState() {
+    roundState.docId = null;
+    roundState.courseId = null;
+    roundState.teeName = null;
+    roundState.holeIndex = 0;
+    roundState.scores = {};
+    roundState.started = null;
+    roundState.dateKey = null;
+  }
+
+  // Discard the current round entirely — delete from Firestore + clear local state.
+  async function abandonCurrentRound() {
+    if (!isRoundActive()) return;
+    const docId = roundState.docId;
+    clearRoundState();
+    if (currentUser && window.fb) {
+      try {
+        await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${docId}`);
+        recentRounds = recentRounds.filter(r => r.id !== docId);
+      } catch (err) {
+        console.error('Failed to delete abandoned round:', err);
+      }
+    }
+    renderPlayLanding();
+  }
+
+  // Finish the current round — flip status to completed, write final totals.
+  async function completeCurrentRound() {
+    if (!isRoundActive()) return false;
+    const course = getCourse(roundState.courseId);
+    if (!course) return false;
+    const totals = computeRoundTotals();
+    const endMs = Date.now();
+    const payload = {
+      courseId: roundState.courseId,
+      courseName: course.name,
+      teeName: roundState.teeName,
+      startTime: roundState.started,
+      endTime: endMs,
+      dateKey: roundState.dateKey,
+      status: 'completed',
+      currentHoleIndex: roundState.holeIndex,
+      scores: roundState.scores,
+      totals
+    };
+    if (currentUser && window.fb) {
+      try {
+        const path = `users/${currentUser.uid}/rounds/${roundState.docId}`;
+        await window.fb.setDoc(path, payload);
+        // Update cache
+        const idx = recentRounds.findIndex(r => r.id === roundState.docId);
+        const cached = { id: roundState.docId, ...payload };
+        if (idx >= 0) recentRounds[idx] = cached;
+        else recentRounds.unshift(cached);
+      } catch (err) {
+        console.error('Failed to complete round:', err);
+        showToast('Save failed — see console', true);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function renderRound() {
+    const mount = document.getElementById('round-mount');
+    if (!mount) return;
+
+    const course = getCourse(roundState.courseId);
+    if (!course) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>No round in progress</h2>
+          <p class="panel-desc">Pick a course from Play to start a round.</p>
+        </div>
+        <button class="course-detail-cta" onclick="showPanel('play', null)">Go to Play →</button>`;
+      return;
+    }
+    const tee = course.tees.find(t => t.name === roundState.teeName) || course.tees[0];
+    const hole = course.holes[roundState.holeIndex];
+    const holeNum = hole.number;
+    const yards = tee.yardages[roundState.holeIndex];
+
+    // Read the user's current entry for this hole, defaulting strokes=par, putts=2
+    const entry = roundState.scores[holeNum] || { strokes: hole.par, putts: 2 };
+    const strokes = entry.strokes;
+    const putts = entry.putts;
+
+    // Score-vs-par classification for the strokes card color
+    const diff = strokes - hole.par;
+    let scoreClass = 'par';
+    let scoreLabel = 'Par';
+    if (diff <= -2)      { scoreClass = 'eagle';   scoreLabel = diff === -2 ? 'Eagle' : 'Albatross'; }
+    else if (diff === -1){ scoreClass = 'birdie';  scoreLabel = 'Birdie'; }
+    else if (diff === 0) { scoreClass = 'par';     scoreLabel = 'Par'; }
+    else if (diff === 1) { scoreClass = 'bogey';   scoreLabel = 'Bogey'; }
+    else if (diff === 2) { scoreClass = 'doublebogey'; scoreLabel = 'Double'; }
+    else                 { scoreClass = 'over';    scoreLabel = `+${diff}`; }
+
+    // Running totals through the holes the user has entered so far
+    const playedHoles = Object.keys(roundState.scores).map(Number).sort((a,b) => a-b);
+    const totalStrokes = playedHoles.reduce((s, h) => s + roundState.scores[h].strokes, 0);
+    const totalPar = playedHoles.reduce((s, h) => {
+      const hd = course.holes.find(x => x.number === h);
+      return s + (hd ? hd.par : 0);
+    }, 0);
+    const vsPar = totalStrokes - totalPar;
+    const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+    const throughCount = playedHoles.length;
+
+    mount.innerHTML = `
+      <!-- Status strip — always-visible context -->
+      <div class="round-status">
+        <div class="round-status-side">
+          <div class="round-status-eyebrow">${escapeHtml(course.name)} · ${escapeHtml(tee.name)}</div>
+          <div class="round-status-meta">Hole ${holeNum} of ${course.holes.length}</div>
+        </div>
+        <div class="round-status-side round-status-right">
+          <div class="round-status-eyebrow">Through ${throughCount}</div>
+          <div class="round-status-score">${totalStrokes} <span>(${vsParStr})</span></div>
+        </div>
+      </div>
+
+      <!-- Hole header -->
+      <div class="round-hole-head">
+        <div class="round-hole-num">Hole ${holeNum}</div>
+        <div class="round-hole-meta">
+          <span><strong>Par ${hole.par}</strong></span>
+          <span>${yards.toLocaleString()} yards</span>
+          <span>HCP ${hole.handicap}</span>
+        </div>
+      </div>
+
+      <!-- Strokes stepper — primary action, biggest visual element -->
+      <div class="round-section-label">Strokes</div>
+      <div class="round-stepper round-stepper-primary score-${scoreClass}">
+        <button class="round-stepper-btn" onclick="adjustStrokes(-1)" aria-label="Decrease strokes">−</button>
+        <div class="round-stepper-display">
+          <div class="round-stepper-value">${strokes}</div>
+          <div class="round-stepper-tag">${scoreLabel}</div>
+        </div>
+        <button class="round-stepper-btn" onclick="adjustStrokes(1)" aria-label="Increase strokes">+</button>
+      </div>
+
+      <!-- Putts stepper — secondary, smaller -->
+      <div class="round-section-label">Putts</div>
+      <div class="round-stepper round-stepper-secondary">
+        <button class="round-stepper-btn" onclick="adjustPutts(-1)" aria-label="Decrease putts">−</button>
+        <div class="round-stepper-display">
+          <div class="round-stepper-value">${putts}</div>
+        </div>
+        <button class="round-stepper-btn" onclick="adjustPutts(1)" aria-label="Increase putts">+</button>
+      </div>
+
+      <!-- Action footer -->
+      <div class="round-actions">
+        <button class="round-btn round-btn-primary" onclick="saveAndNext()">
+          ${roundState.holeIndex < course.holes.length - 1 ? 'Save & Next →' : 'Save & Finish →'}
+        </button>
+        <div class="round-actions-secondary">
+          <button class="round-btn-link" onclick="goPreviousHole()" ${roundState.holeIndex === 0 ? 'disabled' : ''}>← Previous Hole</button>
+          <button class="round-btn-link round-btn-end" onclick="endRoundEarly()">End Round Early</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Stepper actions — clamp to sensible ranges (1-15 strokes, 0-10 putts).
+  // Putts can't exceed strokes (you can't 3-putt a hole-in-one).
+  function adjustStrokes(delta) {
+    const course = getCourse(roundState.courseId);
+    if (!course) return;
+    const hole = course.holes[roundState.holeIndex];
+    const entry = roundState.scores[hole.number] || { strokes: hole.par, putts: 2 };
+    let next = entry.strokes + delta;
+    if (next < 1) next = 1;
+    if (next > 15) next = 15;
+    entry.strokes = next;
+    if (entry.putts > entry.strokes) entry.putts = entry.strokes;
+    roundState.scores[hole.number] = entry;
+    renderRound();
+  }
+  function adjustPutts(delta) {
+    const course = getCourse(roundState.courseId);
+    if (!course) return;
+    const hole = course.holes[roundState.holeIndex];
+    const entry = roundState.scores[hole.number] || { strokes: hole.par, putts: 2 };
+    let next = entry.putts + delta;
+    if (next < 0) next = 0;
+    if (next > entry.strokes) next = entry.strokes;
+    if (next > 10) next = 10;
+    entry.putts = next;
+    roundState.scores[hole.number] = entry;
+    renderRound();
+  }
+
+  // Save the current hole + advance, OR finish the round on hole 18.
+  // Auto-saves to Firestore after each hole so the round is resumable.
+  async function saveAndNext() {
+    const course = getCourse(roundState.courseId);
+    if (!course) return;
+    const hole = course.holes[roundState.holeIndex];
+    // Default the entry to par/2 if user didn't touch the steppers
+    if (!roundState.scores[hole.number]) {
+      roundState.scores[hole.number] = { strokes: hole.par, putts: 2 };
+    }
+
+    if (roundState.holeIndex < course.holes.length - 1) {
+      // Advance to next hole, persist the in-progress state silently
+      roundState.holeIndex += 1;
+      renderRound();
+      autoSaveRound(); // fire-and-forget; render doesn't wait on network
+    } else {
+      // Final hole — flip to completed, navigate to summary
+      const ok = await completeCurrentRound();
+      if (!ok) return;
+      const finishedRoundId = roundState.docId;
+      clearRoundState();
+      renderPlayLanding();
+      // Navigate to the summary, passing the just-completed round id
+      openRoundSummary(finishedRoundId);
+    }
+  }
+  function goPreviousHole() {
+    if (roundState.holeIndex > 0) {
+      roundState.holeIndex -= 1;
+      renderRound();
+    }
+  }
+  // End the round early — flip to completed if any holes were played,
+  // or delete entirely if zero holes had scores entered.
+  async function endRoundEarly() {
+    const playedCount = Object.keys(roundState.scores).length;
+    if (playedCount === 0) {
+      if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
+      await abandonCurrentRound();
+      showPanel('play', null);
+      return;
+    }
+    const msg = `End this round after ${playedCount} hole${playedCount === 1 ? '' : 's'}? It will be saved to your history.`;
+    if (!confirm(msg)) return;
+    const ok = await completeCurrentRound();
+    if (!ok) return;
+    const finishedRoundId = roundState.docId;
+    clearRoundState();
+    renderPlayLanding();
+    openRoundSummary(finishedRoundId);
+  }
+
+  // Round summary navigation. We track which round to show via state, similar
+  // to the courseDetail pattern, since the panel itself is data-driven.
+  const roundSummaryState = { roundId: null };
+  function openRoundSummary(roundId) {
+    roundSummaryState.roundId = roundId;
+    showPanel('round-summary', null);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Play landing — dynamic content (resume banner, stats, recent rounds)
+  // ─────────────────────────────────────────────────────────────
+  function renderPlayLanding() {
+    renderResumeBanner();
+    renderPlayStats();
+    renderRecentRounds();
+  }
+
+  // Resume banner: shows when an in-progress round exists in Firestore.
+  // Tap → resume that round (loads its state and routes to round screen).
+  // The X dismiss-and-discard button is intentionally explicit — better
+  // to make the user confirm than to silently lose data.
+  function renderResumeBanner() {
+    const mount = document.getElementById('play-resume-mount');
+    if (!mount) return;
+    const inProgress = findInProgressRound();
+    if (!inProgress) {
+      mount.innerHTML = '';
+      return;
+    }
+    const course = getCourse(inProgress.courseId);
+    const courseName = course ? course.name : (inProgress.courseName || 'Round');
+    const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
+    const totalHoles = course ? course.holes.length : 18;
+    mount.innerHTML = `
+      <div class="play-resume">
+        <div class="play-resume-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="play-resume-body">
+          <div class="play-resume-title">Round in progress</div>
+          <div class="play-resume-meta">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')} · Through ${holesPlayed} of ${totalHoles}</div>
+        </div>
+        <button class="play-resume-btn" onclick="resumeRoundById('${inProgress.id}')">Resume →</button>
+        <button class="play-resume-discard" onclick="discardInProgressRound('${inProgress.id}')" aria-label="Discard in-progress round">×</button>
+      </div>`;
+  }
+
+  // Resume by id — used by the banner button. Looks up the round in
+  // recentRounds and loads it into roundState.
+  function resumeRoundById(roundId) {
+    const round = recentRounds.find(r => r.id === roundId);
+    if (!round) {
+      showToast('Round not found', true);
+      return;
+    }
+    resumeRound(round);
+  }
+
+  // Discard an in-progress round from the resume banner.
+  async function discardInProgressRound(roundId) {
+    if (!confirm('Discard this in-progress round? It will be deleted permanently.')) return;
+    if (currentUser && window.fb) {
+      try {
+        await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
+        recentRounds = recentRounds.filter(r => r.id !== roundId);
+      } catch (err) {
+        console.error('Failed to delete round:', err);
+        showToast('Delete failed — see console', true);
+        return;
+      }
+    }
+    // If this happened to be the active round in memory, clear that too
+    if (roundState.docId === roundId) clearRoundState();
+    renderPlayLanding();
+  }
+
+  // Stats strip: renders 4 cards based on completed rounds.
+  // Em-dash for empty; real numbers once data exists.
+  function renderPlayStats() {
+    const mount = document.getElementById('play-stats-mount');
+    if (!mount) return;
+    const completed = recentRounds.filter(r => r.status === 'completed');
+    const roundsPlayed = completed.length;
+
+    let avgScore = '—';
+    let bestRound = '—';
+    if (roundsPlayed > 0) {
+      // Only count full 18s for "best round" so a 9-hole "ended early" round
+      // doesn't beat your best 18 with strokes alone.
+      const fullRounds = completed.filter(r => (r.totals?.holesPlayed || 0) >= 18);
+      if (fullRounds.length > 0) {
+        const totalStrokes = fullRounds.reduce((s, r) => s + (r.totals?.strokes || 0), 0);
+        avgScore = Math.round(totalStrokes / fullRounds.length);
+        const best = fullRounds.reduce((b, r) => {
+          const s = r.totals?.strokes || Infinity;
+          return s < b ? s : b;
+        }, Infinity);
+        if (best !== Infinity) bestRound = best;
+      }
+    }
+
+    mount.innerHTML = `
+      <div class="play-stats">
+        <div class="play-stat">
+          <span class="play-stat-value">—</span>
+          <span class="play-stat-label">Handicap</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">${avgScore}</span>
+          <span class="play-stat-label">Avg Score</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">${roundsPlayed}</span>
+          <span class="play-stat-label">Rounds Played</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">${bestRound}</span>
+          <span class="play-stat-label">Best Round</span>
+        </div>
+      </div>`;
+  }
+
+  // Recent rounds: empty state if no completed rounds, otherwise a list of
+  // up to 3 cards (most recent first) with a "View all" footer.
+  function renderRecentRounds() {
+    const mount = document.getElementById('play-rounds-mount');
+    if (!mount) return;
+    const completed = recentRounds.filter(r => r.status === 'completed');
+    if (completed.length === 0) {
+      mount.innerHTML = `
+        <div class="play-empty">
+          <div class="play-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 21V3"/>
+              <path d="M5 4l11 2-3 4 3 4-11 2"/>
+            </svg>
+          </div>
+          <div class="play-empty-title">No rounds yet</div>
+          <div class="play-empty-sub">Your rounds will appear here once you start tracking. Tap "Start a Round" above to begin.</div>
+        </div>`;
+      return;
+    }
+    const sorted = completed.slice().sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+    const top = sorted.slice(0, 3);
+    const cards = top.map(r => {
+      const dateStr = formatRoundDate(r.startTime);
+      const score = r.totals?.strokes ?? '—';
+      const vsPar = r.totals?.vsPar;
+      const vsParStr = vsPar === undefined || vsPar === null ? '' :
+        (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+      const partial = (r.totals?.holesPlayed || 0) < 18 ? ` · ${r.totals.holesPlayed} holes` : '';
+      return `
+        <button class="round-card" onclick="openRoundSummary('${r.id}')">
+          <div class="round-card-head">
+            <div class="round-card-course">${escapeHtml(r.courseName || 'Round')}</div>
+            <div class="round-card-arrow">→</div>
+          </div>
+          <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
+          <div class="round-card-score-row">
+            <div class="round-card-score">${score}</div>
+            ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
+          </div>
+        </button>`;
+    }).join('');
+    mount.innerHTML = `<div class="round-list">${cards}</div>`;
+  }
+
+  // Friendly date formatting for round cards: "Wed · April 17"
+  function formatRoundDate(ms) {
+    if (!ms) return '';
+    const d = new Date(ms);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${days[d.getDay()]} · ${months[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Round summary panel
+  // ─────────────────────────────────────────────────────────────
+  function renderRoundSummary() {
+    const mount = document.getElementById('round-summary-mount');
+    if (!mount) return;
+    const roundId = roundSummaryState.roundId;
+    const round = roundId ? recentRounds.find(r => r.id === roundId) : null;
+    if (!round) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Round not found</h2>
+          <p class="panel-desc">It may have been deleted or not yet loaded.</p>
+        </div>
+        <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>`;
+      return;
+    }
+
+    const course = getCourse(round.courseId);
+    const totalStrokes = round.totals?.strokes ?? 0;
+    const totalPutts = round.totals?.putts ?? 0;
+    const vsPar = round.totals?.vsPar ?? 0;
+    const holesPlayed = round.totals?.holesPlayed ?? 0;
+    const vsParStr = vsPar === 0 ? 'Even' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+    const dateStr = formatRoundDate(round.startTime);
+
+    // Hole-by-hole breakdown if we have course data
+    let holeRows = '';
+    if (course && round.scores) {
+      const playedHoleNums = Object.keys(round.scores).map(Number).sort((a, b) => a - b);
+      holeRows = playedHoleNums.map(hn => {
+        const hd = course.holes.find(h => h.number === hn);
+        const e = round.scores[hn];
+        if (!hd || !e) return '';
+        const diff = e.strokes - hd.par;
+        let cls = 'par';
+        if (diff <= -1) cls = 'birdie';
+        else if (diff === 0) cls = 'par';
+        else if (diff === 1) cls = 'bogey';
+        else cls = 'over';
+        return `
+          <tr class="rs-hole-${cls}">
+            <td>${hn}</td>
+            <td>${hd.par}</td>
+            <td><strong>${e.strokes}</strong></td>
+            <td>${e.putts ?? '—'}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    mount.innerHTML = `
+      <div class="round-summary-head">
+        <div class="round-summary-eyebrow">${holesPlayed >= 18 ? 'Round Complete' : `${holesPlayed}-Hole Round`}</div>
+        <h2 class="round-summary-title">${escapeHtml(round.courseName || 'Round')}</h2>
+        <div class="round-summary-meta">${escapeHtml(dateStr)} · ${escapeHtml(round.teeName || '')}</div>
+      </div>
+
+      <div class="round-summary-totals">
+        <div class="round-summary-stat round-summary-stat-primary">
+          <div class="round-summary-stat-value">${totalStrokes}</div>
+          <div class="round-summary-stat-label">Strokes</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${vsParStr}</div>
+          <div class="round-summary-stat-label">vs Par</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${totalPutts}</div>
+          <div class="round-summary-stat-label">Putts</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${holesPlayed}</div>
+          <div class="round-summary-stat-label">Holes</div>
+        </div>
+      </div>
+
+      ${holeRows ? `
+        <div class="round-summary-section-label">Hole by Hole</div>
+        <div class="round-summary-table-wrap">
+          <table class="round-summary-table">
+            <thead>
+              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th></tr>
+            </thead>
+            <tbody>${holeRows}</tbody>
+          </table>
+        </div>
+      ` : ''}
+
+      <div class="round-summary-actions">
+        <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>
+      </div>
+    `;
   }
 
   // Schedule section: a grid of [workout-row × weekday-column] toggles
@@ -6397,6 +7646,7 @@
   renderWeekStrip();
   renderHistory();
   renderPreferencePanels();
+  renderPlayLanding();
   updatePlayCoursesCount();
   // Seed mobile shell state based on the initial active panel ("today")
   document.body.dataset.currentPanel = currentPanelId || 'today';
