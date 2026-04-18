@@ -4975,8 +4975,20 @@
   }
 
   // When sign-in completes, load preferences AND recent history into cache.
+  // Tracks whether we've ever seen an authenticated user in this browser.
+  // Used to avoid flashing the sign-in banner on slow mobile devices where
+  // Firebase fires `onAuthStateChanged` with `null` once before restoring
+  // cached credentials a few hundred ms later. If this flag is set, we wait
+  // for a real user (or a timeout) before showing the signed-out UI.
+  const HAS_SEEN_AUTH_KEY = 'gptp:hasSeenAuth';
+  let bannerRenderTimer = null;
+
   window.addEventListener('fb-auth-changed', async (e) => {
     if (e.detail) {
+      // Signed in — remember this for future page loads + cancel any pending
+      // signed-out banner render that was waiting for confirmation.
+      try { localStorage.setItem(HAS_SEEN_AUTH_KEY, '1'); } catch (_) {}
+      if (bannerRenderTimer) { clearTimeout(bannerRenderTimer); bannerRenderTimer = null; }
       // Signed in — load their data in parallel for snappier startup
       await Promise.all([loadPreferences(), loadRecentSessions()]);
     } else {
@@ -4989,7 +5001,24 @@
     renderPreferencePanels();
     renderTodayCard();
     renderWeekStrip();
-    renderSignInBanner();
+
+    // Banner: render immediately if signed in (clears it) or if this is
+    // a brand-new visitor who's never been authenticated. Otherwise, defer
+    // briefly to let Firebase finish restoring cached credentials — avoids
+    // the banner flashing on slow mobile auth restore.
+    let hasSeenAuth = false;
+    try { hasSeenAuth = localStorage.getItem(HAS_SEEN_AUTH_KEY) === '1'; } catch (_) {}
+    if (e.detail || !hasSeenAuth) {
+      renderSignInBanner();
+    } else {
+      // Returning user, but Firebase reported null — wait briefly to see if
+      // the cached session restores. If not, show the banner.
+      if (bannerRenderTimer) clearTimeout(bannerRenderTimer);
+      bannerRenderTimer = setTimeout(() => {
+        renderSignInBanner();
+        bannerRenderTimer = null;
+      }, 1200);
+    }
   });
 
   // ─────────────────────────────────────────────────────────────
