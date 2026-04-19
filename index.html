@@ -795,6 +795,65 @@
     margin-left: var(--space-2);
   }
 
+  /* Active-round hero variant — same dark card, but with a progress strip
+     showing hole/strokes/vs-par, and an orange pulse accent so it reads as
+     "a thing already underway" rather than "start something new". */
+  .play-hero-active .play-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .play-hero-active .play-hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    animation: pulse-orange-dot 2s ease infinite;
+  }
+  @keyframes pulse-orange-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(0.75); }
+  }
+  .play-hero-progress {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    position: relative;
+  }
+  .play-hero-progress-item {
+    text-align: center;
+  }
+  .play-hero-progress-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-cream-50);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .play-hero-progress-value span {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-cream-300);
+    font-weight: var(--weight-regular);
+  }
+  .play-hero-progress-label {
+    margin-top: var(--space-2);
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-cream-300);
+  }
+
   /* Stats strip — 4 numbers in a row, mirrors the Library .lib-stats look */
   .play-stats {
     display: grid;
@@ -1276,11 +1335,11 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-3) var(--space-5);
     background: var(--color-cream-100);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
   }
   .round-status-side { min-width: 0; }
   .round-status-right { text-align: right; }
@@ -1317,14 +1376,28 @@
     margin-left: var(--space-1);
   }
 
-  /* Hole header — big "Hole 5" + par/yards/handicap reference info */
-  .round-hole-head {
+  /* ── Unified round card ──────────────────────────────────────
+     Sketch 1 layout: one card contains hole header, strokes stepper,
+     FIR/GIR chips, and the putts row — separated by thin dividers.
+     Gives the screen a single visual "object" to interact with. */
+  .round-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6) var(--space-5);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Hole header section (inside the card) */
+  .round-card-head {
     text-align: center;
-    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-cream-200);
+    margin-bottom: var(--space-5);
   }
   .round-hole-num {
     font-family: var(--font-display);
-    font-size: var(--text-4xl);
+    font-size: var(--text-3xl);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
@@ -1346,36 +1419,27 @@
     font-weight: var(--weight-semibold);
   }
 
-  /* Section labels above each stepper — small uppercase ticks */
-  .round-section-label {
-    font-family: var(--font-body);
-    font-size: 0.66rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    text-align: center;
-    margin-bottom: var(--space-3);
+  /* Internal dividers within the card */
+  .round-card-divider {
+    height: 1px;
+    background: var(--color-cream-200);
+    margin: var(--space-4) 0;
   }
 
-  /* Stepper — large +/- buttons with a value display in the middle.
-     Two sizes: primary (strokes) is huge, secondary (putts) is tighter. */
-  .round-stepper {
+  /* Strokes stepper section — the hero, vs-par tinted */
+  .round-card-strokes {
     display: flex;
     align-items: stretch;
-    justify-content: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-8);
   }
-  .round-stepper-btn {
-    flex-shrink: 0;
-    width: 72px;
-    background: var(--bg-elevated);
-    border: 2px solid var(--border-light);
+  .round-card-step-btn {
+    flex: 0 0 60px;
+    background: var(--color-cream-50);
+    border: 1.5px solid var(--border-light);
     border-radius: var(--radius-lg);
     color: var(--text-primary);
     font-family: var(--font-display);
-    font-size: var(--text-3xl);
+    font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
     line-height: 1;
     cursor: pointer;
@@ -1383,36 +1447,33 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  .round-stepper-btn:hover {
+  .round-card-step-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
-  .round-stepper-btn:active {
+  .round-card-step-btn:active {
     transform: scale(0.96);
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
   }
-  .round-stepper-display {
+  .round-card-step-display {
     flex: 1;
-    max-width: 220px;
-    background: var(--bg-elevated);
-    border: 2px solid var(--border-light);
+    background: var(--color-cream-50);
+    border: 1.5px solid var(--border-light);
     border-radius: var(--radius-lg);
-    padding: var(--space-4) var(--space-3);
+    padding: var(--space-5) var(--space-3);
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     transition: background var(--transition-base), border-color var(--transition-base);
   }
-  .round-stepper-value {
+  .round-card-step-value {
     font-family: var(--font-display);
+    font-size: 4.5rem;
     font-weight: var(--weight-bold);
     line-height: 1;
     letter-spacing: var(--tracking-tight);
     color: var(--text-primary);
   }
-  .round-stepper-tag {
+  .round-card-step-tag {
     margin-top: var(--space-2);
     font-family: var(--font-body);
     font-size: var(--text-xs);
@@ -1421,47 +1482,97 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
-
-  /* Primary stepper (strokes) — bigger numbers, taller display */
-  .round-stepper-primary .round-stepper-btn { height: 120px; font-size: var(--text-4xl); }
-  .round-stepper-primary .round-stepper-display { padding: var(--space-6) var(--space-4); }
-  .round-stepper-primary .round-stepper-value { font-size: 5.5rem; }
-
-  /* Secondary stepper (putts) — more compact */
-  .round-stepper-secondary .round-stepper-btn { height: 64px; font-size: var(--text-2xl); }
-  .round-stepper-secondary .round-stepper-display { padding: var(--space-3) var(--space-3); max-width: 160px; }
-  .round-stepper-secondary .round-stepper-value { font-size: var(--text-3xl); }
-
-  /* Score-vs-par color treatment on the strokes stepper.
-     Subtle background tint + colored border + tag color. */
-  .round-stepper-primary.score-eagle .round-stepper-display,
-  .round-stepper-primary.score-birdie .round-stepper-display {
+  /* Score-vs-par color treatment on the strokes display */
+  .round-card-step-display.score-eagle,
+  .round-card-step-display.score-birdie {
     background: #EFF8F0;
     border-color: #88c891;
   }
-  .round-stepper-primary.score-eagle .round-stepper-tag,
-  .round-stepper-primary.score-birdie .round-stepper-tag {
+  .round-card-step-display.score-eagle .round-card-step-tag,
+  .round-card-step-display.score-birdie .round-card-step-tag {
     color: #2D6E34;
   }
-  .round-stepper-primary.score-par .round-stepper-display {
-    background: var(--bg-elevated);
+  .round-card-step-display.score-par {
+    background: var(--color-cream-50);
     border-color: var(--border-medium);
   }
-  .round-stepper-primary.score-bogey .round-stepper-display {
+  .round-card-step-display.score-bogey {
     background: var(--color-orange-pale);
     border-color: rgba(232, 93, 4, 0.4);
   }
-  .round-stepper-primary.score-bogey .round-stepper-tag {
+  .round-card-step-display.score-bogey .round-card-step-tag {
     color: var(--color-orange-dark);
   }
-  .round-stepper-primary.score-doublebogey .round-stepper-display,
-  .round-stepper-primary.score-over .round-stepper-display {
+  .round-card-step-display.score-doublebogey,
+  .round-card-step-display.score-over {
     background: #FEF0EC;
     border-color: rgba(200, 50, 0, 0.35);
   }
-  .round-stepper-primary.score-doublebogey .round-stepper-tag,
-  .round-stepper-primary.score-over .round-stepper-tag {
+  .round-card-step-display.score-doublebogey .round-card-step-tag,
+  .round-card-step-display.score-over .round-card-step-tag {
     color: var(--color-orange-dark);
+  }
+
+  /* Chips row inside the card — same layout as before but without the
+     big bottom margin since the card divider handles separation. */
+  .round-card-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  /* Compact putts row — label left, stepper right */
+  .round-card-putts {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .round-card-putts-label {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .round-card-putts-step {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .round-card-putts-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--color-cream-50);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-card-putts-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .round-card-putts-btn:active {
+    transform: scale(0.94);
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+  }
+  .round-card-putts-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    min-width: 28px;
+    text-align: center;
   }
 
   /* Footer actions — primary CTA + secondary nav */
@@ -1598,12 +1709,14 @@
 
   /* Mobile tweaks for round entry */
   @media (max-width: 480px) {
-    .round-stepper-btn { width: 64px; }
-    .round-stepper-primary .round-stepper-btn { height: 104px; }
-    .round-stepper-primary .round-stepper-value { font-size: 4.5rem; }
+    .round-card { padding: var(--space-5) var(--space-4); }
+    .round-card-step-btn { flex: 0 0 52px; font-size: var(--text-xl); }
+    .round-card-step-value { font-size: 3.75rem; }
+    .round-card-step-display { padding: var(--space-4) var(--space-3); }
     .round-status { padding: var(--space-3) var(--space-4); }
     .round-status-score { font-size: var(--text-xl); }
-    .round-hole-num { font-size: var(--text-3xl); }
+    .round-hole-num { font-size: var(--text-2xl); }
+    .round-hole-meta { font-size: var(--text-xs); gap: var(--space-3); }
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -1886,11 +1999,56 @@
     font-weight: var(--weight-bold);
     font-size: var(--text-md);
   }
-  /* Vs-par row coloring — subtle left border accent */
-  .round-summary-table .rs-hole-birdie td:first-child { border-left: 3px solid #2D6E34; }
-  .round-summary-table .rs-hole-par td:first-child    { border-left: 3px solid var(--border-medium); }
-  .round-summary-table .rs-hole-bogey td:first-child  { border-left: 3px solid var(--color-orange); }
-  .round-summary-table .rs-hole-over td:first-child   { border-left: 3px solid var(--color-orange-dark); }
+
+  /* Traditional scorecard score markers — circles for under par, squares for over.
+     The marker is a pseudo-element positioned absolutely around the number,
+     so the number itself renders in normal flow like every other cell.
+     This keeps vertical alignment with neighboring cells perfect. */
+  .rs-score {
+    position: relative;
+    display: inline-block;
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-md);
+    color: var(--text-primary);
+    text-align: center;
+    min-width: 1.2em;
+  }
+  .rs-score::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 26px;
+    height: 26px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+  /* Birdie — single circle */
+  .rs-score-birdie::before {
+    border: 1.5px solid var(--text-primary);
+    border-radius: 50%;
+  }
+  /* Eagle or better — double circle */
+  .rs-score-eagle::before {
+    border: 1.5px solid var(--text-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 0 3.5px var(--text-primary);
+  }
+  /* Bogey — single square */
+  .rs-score-bogey::before {
+    border: 1.5px solid var(--text-primary);
+    border-radius: 2px;
+  }
+  /* Double bogey or worse — double square */
+  .rs-score-double::before {
+    border: 1.5px solid var(--text-primary);
+    border-radius: 2px;
+    box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 0 3.5px var(--text-primary);
+  }
+  /* Par — no mark, just the number. No ::before rendered. */
+  .rs-score-none::before { display: none; }
 
   .round-summary-actions {
     text-align: center;
@@ -2112,55 +2270,6 @@
     top: calc(var(--session-banner-height, 52px) * 2);
   }
 
-  /* ── Round immersive mode ────────────────────────────────────
-     Toggled by body.round-immersive, added when the panel-round is
-     visible. Hides the nav chrome + round banner so scoring has the
-     entire screen. A floating close button replaces the back link to
-     exit without ending the round.
-     NOTE: this intentionally does NOT hide the workout session banner
-     — if both are active (rare), the workout banner stays visible. */
-  body.round-immersive .training-nav,
-  body.round-immersive .mobile-bottomnav,
-  body.round-immersive .mobile-topbar,
-  body.round-immersive #round-banner {
-    display: none !important;
-  }
-  /* Reclaim top padding on mobile since banner + topbar are gone */
-  body.round-immersive #panel-round {
-    padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-4));
-  }
-  /* Close button — fixed, top-right of the screen. Always visible,
-     independent of scroll. */
-  .round-immersive-close {
-    display: none;
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
-    right: var(--space-3);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--bg-elevated);
-    border: 1.5px solid var(--border-medium);
-    color: var(--text-secondary);
-    font-family: var(--font-body);
-    font-size: var(--text-xl);
-    font-weight: var(--weight-medium);
-    line-height: 1;
-    cursor: pointer;
-    z-index: var(--z-toast);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-  }
-  body.round-immersive .round-immersive-close { display: flex; align-items: center; justify-content: center; }
-  .round-immersive-close:hover {
-    border-color: var(--color-orange);
-    color: var(--color-orange);
-  }
-  .round-immersive-close:active { transform: scale(0.94); }
-  /* Hide the panel's own back-link in immersive mode — the floating
-     close button replaces it and serves the same purpose. */
-  body.round-immersive #panel-round > .back-link { display: none; }
   .session-banner-inner {
     display: flex;
     align-items: center;
@@ -2587,6 +2696,140 @@
     }
     .set-row { grid-template-columns: 32px 1fr 1fr; gap: var(--space-2); }
   }
+
+  /* ══════════════════════════════════════════════════════════════
+     CONFIRM DIALOG — custom modal for destructive/warning confirmations
+     Replaces native window.confirm() with a design-system-matched dialog.
+     ══════════════════════════════════════════════════════════════ */
+  .confirm-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 13, 13, 0.55);
+    z-index: calc(var(--z-modal) + 100);
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: fadeIn 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .confirm-backdrop.open { display: flex; }
+
+  .confirm-dialog {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-xl);
+    animation: scaleIn 0.22s ease;
+    overflow: hidden;
+  }
+  .confirm-dialog-body {
+    padding: var(--space-6) var(--space-6) var(--space-5);
+  }
+  .confirm-dialog-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .confirm-dialog-eyebrow.destructive { color: var(--color-orange-dark); }
+  .confirm-dialog-eyebrow.warning     { color: var(--color-orange); }
+  .confirm-dialog-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin-bottom: var(--space-3);
+  }
+  .confirm-dialog-message {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--text-secondary);
+    white-space: pre-line; /* allow \n for paragraph breaks */
+  }
+  .confirm-dialog-actions {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    background: var(--bg-elevated);
+  }
+  .confirm-btn {
+    flex: 1;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1.5px solid;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Cancel — ghost/neutral */
+  .confirm-btn-cancel {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-medium);
+  }
+  .confirm-btn-cancel:hover {
+    background: var(--color-cream-100);
+    color: var(--text-primary);
+    border-color: var(--color-black-60);
+  }
+  /* Confirm (default) — primary orange */
+  .confirm-btn-confirm {
+    background: var(--color-orange);
+    color: var(--color-white);
+    border-color: var(--color-orange);
+    box-shadow: var(--shadow-accent);
+  }
+  .confirm-btn-confirm:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+  }
+  .confirm-btn-confirm:active {
+    background: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+  }
+  /* Destructive confirm — deeper red-orange for "delete" / "discard" actions */
+  .confirm-btn-confirm.destructive {
+    background: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+    box-shadow: 0 4px 16px rgba(200, 50, 0, 0.25);
+  }
+  .confirm-btn-confirm.destructive:hover {
+    background: #A33E00;
+    border-color: #A33E00;
+  }
+
+  /* Mobile: bottom-sheet style to match the log modal's mobile treatment */
+  @media (max-width: 560px) {
+    .confirm-backdrop { padding: 0; align-items: flex-end; }
+    .confirm-dialog {
+      max-width: 100%;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      animation: confirmSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @keyframes confirmSlideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .confirm-dialog-actions {
+      flex-direction: column-reverse; /* Confirm on top on mobile for thumb reach */
+    }
+    .confirm-btn { padding: var(--space-4) var(--space-5); font-size: var(--text-base); }
+  }
+
 
   /* ══════════════════════════════════════════════════════════════
      LIBRARY — program stats & equipment reference
@@ -3627,6 +3870,383 @@
     line-height: 1.4;
   }
 
+  /* Settings link row — a settings row that acts as a nav link to a
+     sub-page. Shows a label + compact summary on the left, a chevron
+     on the right. Used by My Bag (and anything similar later). */
+  .settings-link-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-link-row:hover {
+    border-color: var(--color-orange);
+    background: var(--color-cream-100);
+  }
+  .settings-link-row:active { transform: scale(0.995); }
+  .settings-link-row-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-link-row-label {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.25;
+  }
+  .settings-link-row-sub {
+    margin-top: 2px;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .settings-link-row-arrow {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-light);
+    color: var(--text-muted);
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color var(--transition-fast), transform var(--transition-fast);
+  }
+  .settings-link-row:hover .settings-link-row-arrow {
+    color: var(--color-orange);
+    transform: translateX(2px);
+  }
+
+  /* ── My Bag ───────────────────────────────────────────────────
+     Editable list of the user's clubs. Each row has a name text input,
+     a type dropdown, a distance number input with unit label, and a
+     remove button. Rows auto-sort by distance after a blur event. */
+
+  /* Empty-state card — shown when bag is empty, prompts to build one */
+  .bag-empty {
+    text-align: center;
+    padding: var(--space-8) var(--space-5);
+    background: var(--color-cream-100);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+  }
+  .bag-empty-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: var(--space-3);
+    filter: grayscale(0.2);
+  }
+  .bag-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+    letter-spacing: var(--tracking-tight);
+  }
+  .bag-empty-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    max-width: 44ch;
+    margin-inline: auto;
+    margin-bottom: var(--space-5);
+  }
+  .bag-empty-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* The list of club rows */
+  .bag-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Individual club row — name + type on the left, distance + remove on the right */
+  .bag-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .bag-row:hover {
+    border-color: var(--border-medium);
+  }
+  .bag-row:focus-within {
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px var(--color-orange-glow);
+  }
+
+  /* Name input + type select stack vertically on mobile, side-by-side on desktop */
+  .bag-row-main {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .bag-name-input,
+  .bag-type-select,
+  .bag-distance-input {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    outline: none;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .bag-name-input {
+    font-weight: var(--weight-semibold);
+    width: 100%;
+    min-width: 0;
+  }
+  .bag-name-input::placeholder {
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+    font-style: italic;
+  }
+  .bag-type-select {
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    background: var(--color-cream-100);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A4A4A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3) center;
+    padding-right: var(--space-6);
+    cursor: pointer;
+  }
+  .bag-name-input:focus,
+  .bag-type-select:focus,
+  .bag-distance-input:focus {
+    border-color: var(--color-orange);
+    background: var(--bg-elevated);
+  }
+
+  /* Distance cell — number input + unit suffix */
+  .bag-row-distance {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .bag-distance-input {
+    width: 64px;
+    text-align: right;
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    /* Hide the spinner arrows — distance is typed, not spun */
+    -moz-appearance: textfield;
+  }
+  .bag-distance-input::-webkit-outer-spin-button,
+  .bag-distance-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .bag-distance-input::placeholder {
+    color: var(--border-medium);
+    font-weight: var(--weight-regular);
+  }
+  .bag-distance-unit {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    min-width: 18px;
+  }
+
+  /* Remove button — subtle × that brightens red-ish on hover */
+  .bag-remove-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--text-lg);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bag-remove-btn:hover {
+    color: var(--color-orange-dark);
+    border-color: rgba(200, 50, 0, 0.25);
+    background: #FEF0EC;
+  }
+  .bag-remove-btn:active {
+    transform: scale(0.92);
+  }
+
+  /* Footer: add button on left, club count on right */
+  .bag-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--border-light);
+    gap: var(--space-3);
+  }
+  .bag-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* ── View mode ─────────────────────────────────────────────
+     Clean reference list — no form chrome, optimized for glancing. */
+  .bag-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .bag-view-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .bag-view-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px dashed var(--color-cream-200);
+  }
+  .bag-view-row:last-child { border-bottom: none; }
+  .bag-view-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+  .bag-view-name {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-tight);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bag-view-type {
+    margin-top: 2px;
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .bag-view-distance {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .bag-view-unit {
+    margin-left: 3px;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .bag-view-distance-none {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: var(--border-medium);
+    flex-shrink: 0;
+  }
+
+  /* Edit-mode action bar — Discard + Save, below the list */
+  .bag-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-light);
+  }
+  .bag-edit-actions .btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .bag-edit-actions .btn[disabled]:hover {
+    transform: none;
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+  }
+
+  /* Mobile tweaks — tighten padding, stack name/type */
+  @media (max-width: 560px) {
+    .bag-row {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: var(--space-2);
+      padding: var(--space-3);
+    }
+    .bag-row-main {
+      grid-column: 1 / -1;
+      grid-template-columns: 1fr 100px;
+    }
+    .bag-row-distance {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .bag-remove-btn {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: end;
+    }
+    .bag-empty-actions { flex-direction: column; }
+    .bag-empty-actions .btn { width: 100%; }
+  }
+
   /* Schedule grid: weekday columns × workout rows */
   .schedule-grid {
     display: grid;
@@ -4258,11 +4878,6 @@
   </div>
 </div>
 
-<!-- IMMERSIVE ROUND EXIT — floating close button shown only when
-     body.round-immersive is active. Exits to Play landing WITHOUT
-     ending the round (round stays in progress, banner reappears). -->
-<button class="round-immersive-close" onclick="exitRoundImmersive()" aria-label="Exit round screen">✕</button>
-
 <!-- MOBILE TOP TITLE BAR (visible on mobile only) -->
 <header class="mobile-topbar" id="mobile-topbar">
   <div class="mobile-topbar-inner">
@@ -4496,22 +5111,10 @@
 
     <!-- ═══════════════ PLAY ═══════════════ -->
     <section class="panel" id="panel-play">
-      <!-- Primary CTA — "Start a Round" hero card. Echoes the visual weight
-           of the Today workout card so the most important action on this
-           page is unmistakable. The Start button routes to course selection
-           (currently Browse Courses since we have one course). -->
-      <div class="play-hero">
-        <div class="play-hero-eyebrow">Round Tracking</div>
-        <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
-        <div class="play-hero-actions">
-          <button class="play-hero-btn play-hero-btn-primary" onclick="showPanel('courses', null)">Start a Round →</button>
-          <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
-        </div>
-        <div class="play-hero-meta">
-          Or invite playing partners for a live shared scorecard <span class="play-hero-soon">soon</span>
-        </div>
-      </div>
+      <!-- Primary CTA — dynamic hero card. Renders one of two states:
+           1. No round in progress → "Start a Round" (→ course picker)
+           2. Round in progress → "Continue Round" (→ resumes the round) -->
+      <div id="play-hero-mount"></div>
 
       <!-- Stats strip — dynamic based on completed rounds -->
       <div class="home-section-label">Your Game</div>
@@ -4597,6 +5200,21 @@
         <p class="panel-desc">Your account details and app preferences.</p>
       </div>
       <div id="profile-mount"></div>
+    </section>
+
+    <!-- ═══════════════ MY BAG (profile sub-page) ═══════════════ -->
+    <!-- Dedicated page for the user's clubs. Reached via the My Bag row
+         in Profile. Has its own view/edit mode; Save/Discard are in the
+         panel itself. Back returns to Profile. -->
+    <section class="panel" id="panel-bag">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Clubs &amp; Carry Distances</span>
+        <h2>My <em>Bag</em></h2>
+        <p class="panel-desc">The clubs you play and how far each one carries. We'll use these for club suggestions on the course.</p>
+      </div>
+      <div id="bag-page-mount"></div>
     </section>
 
     <!-- ═══════════════ DAY 1 ═══════════════ -->
@@ -5169,6 +5787,22 @@
 <!-- TOAST for save confirmations -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
+     Content is populated by confirmDialog() at open time. -->
+<div class="confirm-backdrop" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" onclick="if(event.target===this) __confirmDialogResolve(false)">
+  <div class="confirm-dialog">
+    <div class="confirm-dialog-body">
+      <div class="confirm-dialog-eyebrow" id="confirm-dialog-eyebrow">Confirm</div>
+      <div class="confirm-dialog-title" id="confirm-dialog-title"></div>
+      <div class="confirm-dialog-message" id="confirm-dialog-message"></div>
+    </div>
+    <div class="confirm-dialog-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="confirm-dialog-cancel" onclick="__confirmDialogResolve(false)">Cancel</button>
+      <button class="confirm-btn confirm-btn-confirm" id="confirm-dialog-ok" onclick="__confirmDialogResolve(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOG MODAL -->
 <div class="modal-backdrop" id="log-modal" onclick="if(event.target===this) closeLog()">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
@@ -5585,6 +6219,7 @@
     if (id === 'day1')           return 'Day 1';
     if (id === 'day2')           return 'Day 2';
     if (id === 'day3')           return 'Day 3';
+    if (id === 'bag')            return 'My Bag';
     return '';
   }
 
@@ -5596,7 +6231,7 @@
     if (id === 'play' || id === 'courses' || id === 'course-detail' ||
         id === 'round' || id === 'round-summary') return 'play';
     if (id === 'social')  return 'social';
-    if (id === 'profile') return 'profile';
+    if (id === 'profile' || id === 'bag') return 'profile';
     return 'train';
   }
 
@@ -5605,7 +6240,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'social', 'profile'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'history', 'day1', 'day2', 'day3', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'social', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -5617,13 +6252,35 @@
     opts = opts || {};
     const prevId = currentPanelId;
 
-    // If leaving the Profile panel with unsaved schedule changes, confirm.
-    // Skip the prompt if the user is just re-tapping the same panel.
-    if (prevId === 'profile' && id !== 'profile' && hasPendingScheduleChanges()) {
-      const ok = confirm('You have unsaved schedule changes. Leave without saving?');
-      if (!ok) return;
-      // User chose to leave — discard the pending edits silently
-      resetPendingSchedule();
+    // Unsaved-changes guards for sub-pages with a Save/Discard pattern.
+    // Schedule edits happen on Profile; bag edits happen on the bag page.
+    // Each page has its own guard that fires when you try to leave without
+    // saving. Navigating profile → bag (or bag → profile) does NOT trip the
+    // schedule guard, since you haven't truly "left" the settings area —
+    // those are internal settings navigations.
+    const leavingProfile = prevId === 'profile' && id !== 'profile' && id !== 'bag';
+    const leavingBag     = prevId === 'bag' && id !== 'bag';
+    const pendingSchedule = leavingProfile && hasPendingScheduleChanges();
+    const pendingBag      = leavingBag && hasPendingBagChanges();
+    if (pendingSchedule || pendingBag) {
+      const kind = pendingSchedule ? 'schedule' : 'bag';
+      confirmDialog({
+        eyebrow: 'Unsaved Changes',
+        eyebrowStyle: 'warning',
+        title: 'Leave without saving?',
+        message: `You've made ${kind} changes that haven't been saved yet. Leaving now will discard them.`,
+        confirmText: 'Leave',
+        cancelText: 'Keep Editing',
+      }).then(ok => {
+        if (!ok) return;
+        if (pendingSchedule) resetPendingSchedule();
+        if (pendingBag) {
+          bagEditState.editing = false;
+          bagEditState.draft = null;
+        }
+        showPanel(id, btn, opts);
+      });
+      return;
     }
 
     // Update history: only track moves between *different* panels
@@ -5666,15 +6323,7 @@
     if (id === 'round') renderRound();
     if (id === 'round-summary') renderRoundSummary();
     if (id === 'play') renderPlayLanding();
-
-    // Immersive mode toggle — the round screen is the only panel that
-    // hides nav chrome. All other panels clear the class so returning
-    // from round to anywhere restores normal nav visibility.
-    if (id === 'round') {
-      document.body.classList.add('round-immersive');
-    } else {
-      document.body.classList.remove('round-immersive');
-    }
+    if (id === 'bag') renderBagPage();
 
     // Scroll behavior — hero has been removed everywhere, so we just scroll
     // to the top on every panel switch. The sticky nav stays pinned at the
@@ -5709,7 +6358,7 @@
       return document.getElementById('nav-play');
     }
     if (panelId === 'social')  return document.getElementById('nav-social');
-    if (panelId === 'profile') return document.getElementById('nav-profile');
+    if (panelId === 'profile' || panelId === 'bag') return document.getElementById('nav-profile');
     // Everything else — today/stretch/library/history/dayN — is a Train sub-page.
     return document.getElementById('nav-train');
   }
@@ -5729,11 +6378,16 @@
     // Play sub-pages
     courses:         'play',
     'course-detail': 'courses',
-    round:           'course-detail',
+    // Back from the round panel goes to Play — the banner stays visible
+    // there so the round's state is clear, and tapping Resume/Continue
+    // from Play comes right back. No one backing out of a live round
+    // expects to land on the course-detail scorecard.
+    round:           'play',
     // Summary is a terminal screen — back goes to Play landing, not the
     // (now-completed) round screen which has no state to show anymore.
     'round-summary': 'play',
-    // Profile/Social currently have no sub-pages
+    // Profile sub-pages
+    bag:             'profile',
   };
 
   // Back button on any sub-page. Uses the logical parent map first, then
@@ -5805,9 +6459,17 @@
     return { count: setCount, perSide, timed: false, label: setsText };
   }
 
-  function beginSession(dayId) {
+  async function beginSession(dayId) {
     if (session.active) {
-      if (!confirm('A workout is already in progress. Start a new one?')) return;
+      const ok = await confirmDialog({
+        eyebrow: 'Workout In Progress',
+        eyebrowStyle: 'warning',
+        title: 'Start a new workout?',
+        message: "You already have a workout going. Starting a new one will discard the current session's progress.",
+        confirmText: 'Start New',
+        cancelText: 'Keep Going',
+      });
+      if (!ok) return;
       clearInterval(session.timerInterval);
     }
     session.active = true;
@@ -5882,17 +6544,33 @@
       (Array.isArray(entry.sets) && entry.sets.some(s => s && (s.weight || s.reps || s.notes)))
     );
 
-    let confirmMsg;
+    let confirmTitle, confirmMsg, confirmBtn;
     if (currentUser && hasAnyData) {
-      confirmMsg = 'End this workout? Your session will be saved.';
+      confirmTitle = 'End this workout?';
+      confirmMsg = 'Your session will be saved to your history.';
+      confirmBtn = 'End Workout';
     } else if (currentUser && !hasAnyData) {
-      confirmMsg = 'End this workout? Nothing was logged — all exercises will be marked skipped.';
+      confirmTitle = 'End this workout?';
+      confirmMsg = 'Nothing was logged — all exercises will be marked skipped.';
+      confirmBtn = 'End Workout';
     } else if (!currentUser && hasAnyData) {
-      confirmMsg = 'End this workout? You\'re not signed in, so logs won\'t be saved.';
+      confirmTitle = 'End this workout?';
+      confirmMsg = "You're not signed in, so logs won't be saved.";
+      confirmBtn = 'End Anyway';
     } else {
-      confirmMsg = 'End this workout?';
+      confirmTitle = 'End this workout?';
+      confirmMsg = '';
+      confirmBtn = 'End Workout';
     }
-    if (!confirm(confirmMsg)) return;
+    const ok = await confirmDialog({
+      eyebrow: 'End Workout',
+      eyebrowStyle: 'warning',
+      title: confirmTitle,
+      message: confirmMsg,
+      confirmText: confirmBtn,
+      cancelText: 'Keep Going',
+    });
+    if (!ok) return;
 
     // Capture the snapshot before we clear state, so saving can run after.
     const snapshot = {
@@ -6345,7 +7023,14 @@
     // dayIds per weekday means multiple workouts that day. Empty/missing
     // weekdays are rest days. Default mirrors the original SCHEDULE.
     scheduleOverride: { 1: ['day1'], 3: ['day2'], 5: ['day3'] },
-    units: 'lb'  // 'lb' | 'kg'
+    units: 'lb',  // 'lb' | 'kg'
+    // My Bag — list of the user's clubs with their typical distances.
+    // Each entry: { id, name, type, distance }. id is stable (generated
+    // on add) so editing one club doesn't shift others. distance is in
+    // yards if prefs.units is 'lb' (US convention), meters if 'kg'.
+    // Empty by default — user either populates from the template on
+    // first visit to My Bag, or adds clubs manually.
+    bag: []
   };
   let prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
   // Local working copy of the schedule that the user can edit without
@@ -6408,6 +7093,353 @@
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // My Bag — user's clubs and typical distances
+  // ─────────────────────────────────────────────────────────────
+
+  // Club categories with sort ordering for tie-breaking within a distance.
+  // Longer clubs sort first when distances are equal; putter always last.
+  const CLUB_TYPES = [
+    { id: 'driver',  label: 'Driver',  rank: 1 },
+    { id: 'wood',    label: 'Wood',    rank: 2 },
+    { id: 'hybrid',  label: 'Hybrid',  rank: 3 },
+    { id: 'iron',    label: 'Iron',    rank: 4 },
+    { id: 'wedge',   label: 'Wedge',   rank: 5 },
+    { id: 'putter',  label: 'Putter',  rank: 99 },
+  ];
+
+  // Default template for "Start with a typical bag" — reasonable mid-handicap
+  // starting distances. User will tune these to their actual carry numbers.
+  // Distances in yards; convert on display if the user is on metric.
+  const DEFAULT_BAG_TEMPLATE = [
+    { name: 'Driver',         type: 'driver', distance: 235 },
+    { name: '3 Wood',         type: 'wood',   distance: 215 },
+    { name: '4 Hybrid',       type: 'hybrid', distance: 195 },
+    { name: '5 Iron',         type: 'iron',   distance: 180 },
+    { name: '6 Iron',         type: 'iron',   distance: 170 },
+    { name: '7 Iron',         type: 'iron',   distance: 160 },
+    { name: '8 Iron',         type: 'iron',   distance: 150 },
+    { name: '9 Iron',         type: 'iron',   distance: 140 },
+    { name: 'Pitching Wedge', type: 'wedge',  distance: 125 },
+    { name: '52°',            type: 'wedge',  distance: 110 },
+    { name: '56°',            type: 'wedge',  distance: 90 },
+    { name: '60°',            type: 'wedge',  distance: 70 },
+    { name: 'Putter',         type: 'putter', distance: null },
+  ];
+
+  // Generate a stable-ish client-side id for new clubs. Not a cryptographic
+  // concern — just needs to be unique within the user's bag.
+  function newClubId() {
+    return 'club_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  // Unit helpers — distance is stored in yards canonically. Display and
+  // input reflect the user's preferred unit based on prefs.units (lb → yd,
+  // kg → m). One source of truth so we never persist two different units.
+  function distanceUnit() {
+    return prefs.units === 'kg' ? 'm' : 'yd';
+  }
+  function distanceToDisplay(yards) {
+    if (yards == null || yards === '') return '';
+    if (distanceUnit() === 'm') return Math.round(yards * 0.9144);
+    return Math.round(yards);
+  }
+  function distanceFromInput(displayValue) {
+    const n = parseFloat(displayValue);
+    if (!isFinite(n) || n <= 0) return null;
+    if (distanceUnit() === 'm') return Math.round(n / 0.9144);
+    return Math.round(n);
+  }
+
+  // Sort helper — takes an explicit bag array so it can sort either the
+  // committed prefs.bag or the in-edit draft. Distance descending, with
+  // type rank as the tie-breaker. Clubs without a distance go to the
+  // bottom in type-rank order.
+  function sortedBag(bag) {
+    const list = Array.isArray(bag) ? bag.slice() : [];
+    const typeRank = (t) => {
+      const c = CLUB_TYPES.find(x => x.id === t);
+      return c ? c.rank : 50;
+    };
+    list.sort((a, b) => {
+      const aHas = typeof a.distance === 'number';
+      const bHas = typeof b.distance === 'number';
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      if (aHas && bHas && a.distance !== b.distance) return b.distance - a.distance;
+      return typeRank(a.type) - typeRank(b.type);
+    });
+    return list;
+  }
+
+  // Bag edit mode — when editing: true, the bag section renders a form
+  // that mutates `draft` instead of prefs.bag directly. Save commits draft
+  // → prefs.bag and persists; Discard drops draft. Mirrors the existing
+  // schedule pattern so the mental model is consistent.
+  // `expanded` controls the view-mode default: collapsed shows a compact
+  // summary (count + distance range), expanded shows the full list.
+  const bagEditState = {
+    editing: false,
+    draft: null,  // array of club objects, initialized when edit starts
+    expanded: false,
+  };
+
+  function toggleBagExpanded() {
+    bagEditState.expanded = !bagEditState.expanded;
+    renderBag();
+  }
+
+  function hasPendingBagChanges() {
+    if (!bagEditState.editing) return false;
+    return JSON.stringify(bagEditState.draft) !== JSON.stringify(prefs.bag || []);
+  }
+
+  // Deep-clone helper for the bag (each club is a flat object, JSON works fine).
+  function cloneBag(bag) {
+    return (Array.isArray(bag) ? bag : []).map(c => ({ ...c }));
+  }
+
+  // Enter edit mode with an optional pre-populated draft. If startingClubs
+  // is provided (e.g. from "Start with template"), the draft begins with
+  // those instead of a clone of the current bag — lets the user review
+  // template distances before committing.
+  function enterBagEdit(startingClubs) {
+    bagEditState.editing = true;
+    bagEditState.draft = cloneBag(startingClubs || prefs.bag || []);
+    renderBag();
+  }
+
+  // Save: commit draft → prefs.bag and persist.
+  async function saveBagChanges() {
+    if (!bagEditState.editing) return;
+    // Strip empty-name clubs — they're either abandoned rows or in-progress
+    // typing the user stepped away from. Better to drop them quietly than
+    // persist a row that'll show as "empty name" in view mode.
+    const cleaned = (bagEditState.draft || []).filter(c => c.name && c.name.trim().length > 0);
+    prefs.bag = cleaned;
+    bagEditState.editing = false;
+    bagEditState.draft = null;
+    renderBag();
+    const ok = await savePreferences();
+    if (ok) showToast('Bag saved');
+  }
+
+  // Discard: drop the draft and leave edit mode. Prompts if there are
+  // unsaved changes, matching the schedule flow.
+  async function discardBagChanges() {
+    if (hasPendingBagChanges()) {
+      const ok = await confirmDialog({
+        eyebrow: 'Unsaved Changes',
+        eyebrowStyle: 'warning',
+        title: 'Discard changes?',
+        message: "Your bag edits will be reverted to the last saved version.",
+        confirmText: 'Discard',
+        cancelText: 'Keep Editing',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    bagEditState.editing = false;
+    bagEditState.draft = null;
+    renderBag();
+  }
+
+  // Add a blank club to the draft. Only callable in edit mode. New clubs
+  // get focused for immediate typing.
+  function addClub() {
+    if (!bagEditState.editing) enterBagEdit();
+    const club = { id: newClubId(), name: '', type: 'iron', distance: null };
+    bagEditState.draft.push(club);
+    renderBag();
+    requestAnimationFrame(() => {
+      const row = document.querySelector(`[data-club-id="${club.id}"] .bag-name-input`);
+      if (row) row.focus();
+    });
+  }
+
+  // Populate the bag from the default template. If the user has existing
+  // clubs and isn't already editing, confirms first. Drops into edit mode
+  // with the template pre-populated so distances can be tuned before Save.
+  async function populateBagFromTemplate() {
+    const hasExisting = Array.isArray(prefs.bag) && prefs.bag.length > 0;
+    if (hasExisting && !bagEditState.editing) {
+      const ok = await confirmDialog({
+        eyebrow: 'Replace Bag',
+        eyebrowStyle: 'warning',
+        title: 'Start from template?',
+        message: 'This will replace your current bag with a typical 13-club set. You can still edit each club before saving.',
+        confirmText: 'Replace',
+        cancelText: 'Cancel',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    const template = DEFAULT_BAG_TEMPLATE.map(c => ({ id: newClubId(), ...c }));
+    enterBagEdit(template);
+  }
+
+  // Remove a club from the draft. No confirm dialog — in edit mode, removals
+  // are pending and the user can hit Discard if they change their mind.
+  function removeClub(clubId) {
+    if (!bagEditState.editing) return;
+    bagEditState.draft = bagEditState.draft.filter(c => c.id !== clubId);
+    renderBag();
+  }
+
+  // Edit handlers — wired via oninput/onchange on the draft row inputs.
+  // Mutates the draft in place. No save is triggered; that's explicit.
+  function updateClubField(clubId, field, value) {
+    if (!bagEditState.editing) return;
+    const club = bagEditState.draft.find(c => c.id === clubId);
+    if (!club) return;
+    if (field === 'distance') {
+      club.distance = distanceFromInput(value);
+    } else {
+      club[field] = value;
+    }
+    // Refresh the footer (Save button enabled state, club count)
+    syncBagEditFooter();
+  }
+
+  // Re-sort + re-render on blur so rows "settle" after a user finishes typing.
+  function commitBagEdit() {
+    renderBag();
+  }
+
+  // Update just the edit footer — avoids re-rendering the whole list on
+  // every keystroke, which would kill focus and disrupt typing.
+  function syncBagEditFooter() {
+    const footer = document.getElementById('bag-edit-footer');
+    if (!footer) return;
+    const dirty = hasPendingBagChanges();
+    const saveBtn = footer.querySelector('.bag-save-btn');
+    if (saveBtn) saveBtn.disabled = !dirty;
+    const count = footer.querySelector('.bag-count');
+    if (count) {
+      const n = (bagEditState.draft || []).length;
+      count.textContent = `${n} club${n === 1 ? '' : 's'}`;
+    }
+  }
+
+  // Main render — two branches: view mode (clean list) and edit mode (form).
+  // The section header's Edit/Save button is part of the list render so it
+  // stays in sync with the current mode without extra plumbing.
+  // Entry point called from showPanel when the bag panel becomes active.
+  // Thin wrapper around renderBag so we always reset to the collapsed/view
+  // state on first open (editing flag can persist across navigations).
+  function renderBagPage() {
+    renderBag();
+  }
+
+  // Rebuild the bag list in the bag panel's mount point. Handles the three
+  // display states: empty (first-time invitation card), view (read-only
+  // scannable list with Edit button), and edit (the form).
+  function renderBag() {
+    const mount = document.getElementById('bag-page-mount');
+    if (!mount) return;
+
+    // Empty + not editing → invite to build the bag
+    const savedBag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    if (!bagEditState.editing && savedBag.length === 0) {
+      mount.innerHTML = `
+        <div class="bag-empty">
+          <div class="bag-empty-icon" aria-hidden="true">⛳</div>
+          <div class="bag-empty-title">Build your bag</div>
+          <div class="bag-empty-text">Track your clubs and typical carry distances. We'll use them to suggest clubs on the course.</div>
+          <div class="bag-empty-actions">
+            <button class="btn btn-primary" onclick="populateBagFromTemplate()">Start with template</button>
+            <button class="btn btn-ghost" onclick="addClub()">Add manually</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (bagEditState.editing) {
+      mount.innerHTML = renderBagEdit();
+    } else {
+      mount.innerHTML = renderBagView();
+    }
+  }
+
+  // View mode — a clean scannable list. No form chrome. Each row: club name
+  // on the left, distance on the right. Putter (and other distance-less
+  // clubs) show an em-dash instead of a number. The Edit button lives
+  // in the section header above the list.
+  function renderBagView() {
+    const bag = sortedBag(prefs.bag);
+    const unit = distanceUnit();
+    const rows = bag.map(club => {
+      const distText = (typeof club.distance === 'number')
+        ? `<span class="bag-view-distance">${distanceToDisplay(club.distance)}<span class="bag-view-unit">${unit}</span></span>`
+        : `<span class="bag-view-distance-none">—</span>`;
+      const typeLabel = (CLUB_TYPES.find(t => t.id === club.type) || {}).label || '';
+      return `
+        <div class="bag-view-row">
+          <div class="bag-view-main">
+            <div class="bag-view-name">${escapeHtml(club.name || 'Unnamed club')}</div>
+            <div class="bag-view-type">${escapeHtml(typeLabel)}</div>
+          </div>
+          ${distText}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="bag-view-header">
+        <div class="bag-count">${bag.length} club${bag.length === 1 ? '' : 's'}</div>
+        <button class="btn btn-outline btn-sm" onclick="enterBagEdit()">Edit</button>
+      </div>
+      <div class="bag-view-list">${rows}</div>`;
+  }
+
+  // Edit mode — the form we had before, now mutating the draft. Adds an
+  // edit footer with Save / Discard and a count.
+  function renderBagEdit() {
+    const bag = sortedBag(bagEditState.draft);
+    const unit = distanceUnit();
+    const rows = bag.map(club => {
+      const distDisplay = distanceToDisplay(club.distance);
+      const typeOptions = CLUB_TYPES.map(t =>
+        `<option value="${t.id}"${club.type === t.id ? ' selected' : ''}>${t.label}</option>`
+      ).join('');
+      return `
+        <div class="bag-row" data-club-id="${club.id}">
+          <div class="bag-row-main">
+            <input class="bag-name-input" type="text"
+                   value="${escapeHtml(club.name || '')}"
+                   placeholder="Club name"
+                   oninput="updateClubField('${club.id}', 'name', this.value)"
+                   onblur="commitBagEdit()"
+                   aria-label="Club name">
+            <select class="bag-type-select"
+                    onchange="updateClubField('${club.id}', 'type', this.value); commitBagEdit()"
+                    aria-label="Club type">${typeOptions}</select>
+          </div>
+          <div class="bag-row-distance">
+            <input class="bag-distance-input" type="number" inputmode="numeric" min="0"
+                   value="${distDisplay}"
+                   placeholder="—"
+                   oninput="updateClubField('${club.id}', 'distance', this.value)"
+                   onblur="commitBagEdit()"
+                   aria-label="Distance in ${unit}">
+            <span class="bag-distance-unit">${unit}</span>
+          </div>
+          <button class="bag-remove-btn" onclick="removeClub('${club.id}')" aria-label="Remove club">×</button>
+        </div>`;
+    }).join('');
+
+    const dirty = hasPendingBagChanges();
+    return `
+      <div class="bag-list">${rows}</div>
+      <div class="bag-footer" id="bag-edit-footer">
+        <button class="btn btn-ghost btn-sm" onclick="addClub()">+ Add Club</button>
+        <div class="bag-count">${bag.length} club${bag.length === 1 ? '' : 's'}</div>
+      </div>
+      <div class="bag-edit-actions">
+        <button class="btn btn-ghost" onclick="discardBagChanges()">Discard</button>
+        <button class="btn btn-primary bag-save-btn" onclick="saveBagChanges()" ${dirty ? '' : 'disabled'}>Save Changes</button>
+      </div>`;
+  }
+
   function todayKey() {
     // YYYY-MM-DD in local timezone (not UTC — want consistent with user's day)
     const d = new Date();
@@ -6423,6 +7455,98 @@
     el.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Custom confirm dialog — promise-based, replaces window.confirm().
+  // Usage: const ok = await confirmDialog({ title, message, confirmText,
+  //   cancelText, destructive, eyebrow }). Only one dialog can be open at
+  // a time; concurrent calls queue behind the current one.
+  // ─────────────────────────────────────────────────────────────
+  let __confirmDialogQueue = Promise.resolve();
+  let __confirmDialogCurrent = null; // { resolve, previousFocus, keyHandler }
+
+  // Called by backdrop/button onclicks. Resolves the current dialog's
+  // promise and cleans up. Global so inline onclick handlers can reach it.
+  window.__confirmDialogResolve = function(result) {
+    if (!__confirmDialogCurrent) return;
+    const { resolve, previousFocus, keyHandler } = __confirmDialogCurrent;
+    __confirmDialogCurrent = null;
+    const backdrop = document.getElementById('confirm-dialog');
+    if (backdrop) backdrop.classList.remove('open');
+    document.removeEventListener('keydown', keyHandler, true);
+    // Return focus to the element that triggered the dialog
+    if (previousFocus && typeof previousFocus.focus === 'function') {
+      try { previousFocus.focus(); } catch (_) { /* ignore */ }
+    }
+    resolve(result);
+  };
+
+  function confirmDialog(opts) {
+    opts = opts || {};
+    const title       = opts.title || 'Are you sure?';
+    const message     = opts.message || '';
+    const confirmText = opts.confirmText || 'Confirm';
+    const cancelText  = opts.cancelText  || 'Cancel';
+    const destructive = !!opts.destructive;
+    // eyebrow: 'warning' | 'destructive' | 'neutral' — defaults based on tone
+    const eyebrowStyle = opts.eyebrowStyle || (destructive ? 'destructive' : 'warning');
+    const eyebrowText  = opts.eyebrow || (destructive ? 'Confirm Deletion' : 'Confirm');
+
+    // Queue so sequential awaits don't collide
+    const pending = __confirmDialogQueue.then(() => new Promise(resolve => {
+      const backdrop = document.getElementById('confirm-dialog');
+      const titleEl  = document.getElementById('confirm-dialog-title');
+      const msgEl    = document.getElementById('confirm-dialog-message');
+      const eyebrow  = document.getElementById('confirm-dialog-eyebrow');
+      const cancel   = document.getElementById('confirm-dialog-cancel');
+      const ok       = document.getElementById('confirm-dialog-ok');
+      if (!backdrop || !titleEl || !msgEl || !cancel || !ok) {
+        // Fallback to native confirm if markup missing for any reason
+        resolve(window.confirm(title + (message ? '\n\n' + message : '')));
+        return;
+      }
+
+      titleEl.textContent = title;
+      msgEl.textContent   = message;
+      msgEl.style.display = message ? '' : 'none';
+      if (eyebrow) {
+        eyebrow.textContent = eyebrowText;
+        eyebrow.className   = 'confirm-dialog-eyebrow ' + eyebrowStyle;
+      }
+      cancel.textContent = cancelText;
+      ok.textContent     = confirmText;
+      ok.className       = 'confirm-btn confirm-btn-confirm' + (destructive ? ' destructive' : '');
+
+      const previousFocus = document.activeElement;
+      // Esc = cancel, Enter = confirm (when focus isn't on cancel)
+      const keyHandler = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          window.__confirmDialogResolve(false);
+        } else if (e.key === 'Enter' && document.activeElement !== cancel) {
+          e.preventDefault();
+          window.__confirmDialogResolve(true);
+        } else if (e.key === 'Tab') {
+          // Simple focus trap: cycle between the two buttons
+          e.preventDefault();
+          if (document.activeElement === ok) cancel.focus();
+          else ok.focus();
+        }
+      };
+
+      __confirmDialogCurrent = { resolve, previousFocus, keyHandler };
+      backdrop.classList.add('open');
+      document.addEventListener('keydown', keyHandler, true);
+      // Focus the confirm button after the open animation starts so screen
+      // readers announce the dialog. Confirm first = fast path for OK,
+      // but user can Tab or press Esc to cancel.
+      requestAnimationFrame(() => ok.focus());
+    }));
+
+    // Keep the queue chain going even if a dialog throws
+    __confirmDialogQueue = pending.catch(() => {});
+    return pending;
   }
 
   // Save a completed session to Firestore. Returns a promise; caller handles
@@ -6796,6 +7920,7 @@
 
     mount.innerHTML = `
       ${renderAccountSection()}
+      ${renderBagSection()}
       ${renderScheduleSection()}
       ${renderUnitsSection()}
       ${renderAppearanceSection()}
@@ -6996,7 +8121,15 @@
     if (!course) return;
     // Block starting a second round if one's already in progress
     if (isRoundActive()) {
-      const cont = confirm('You have a round in progress. Discard it and start a new one?');
+      const cont = await confirmDialog({
+        eyebrow: 'Round In Progress',
+        eyebrowStyle: 'warning',
+        title: 'Discard current round?',
+        message: 'Starting a new round will permanently delete the one you already have going.',
+        confirmText: 'Discard & Start New',
+        cancelText: 'Resume Current',
+        destructive: true,
+      });
       if (!cont) {
         showPanel('round', null);
         return;
@@ -7164,7 +8297,7 @@
     const girChipIcon = gir ? '✓' : '✗';
 
     mount.innerHTML = `
-      <!-- Status strip — always-visible context -->
+      <!-- Status strip — slim context bar above the card -->
       <div class="round-status">
         <div class="round-status-side">
           <div class="round-status-eyebrow">${escapeHtml(course.name)} · ${escapeHtml(tee.name)}</div>
@@ -7176,47 +8309,53 @@
         </div>
       </div>
 
-      <!-- Hole header -->
-      <div class="round-hole-head">
-        <div class="round-hole-num">Hole ${holeNum}</div>
-        <div class="round-hole-meta">
-          <span><strong>Par ${hole.par}</strong></span>
-          <span>${yards.toLocaleString()} yards</span>
-          <span>HCP ${hole.handicap}</span>
+      <!-- Unified hole card — contains all entry controls for this hole -->
+      <div class="round-card">
+        <!-- Hole header section (inside the card) -->
+        <div class="round-card-head">
+          <div class="round-hole-num">Hole ${holeNum}</div>
+          <div class="round-hole-meta">
+            <span><strong>Par ${hole.par}</strong></span>
+            <span>${yards.toLocaleString()} yards</span>
+            <span>HCP ${hole.handicap}</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Strokes stepper — primary action, biggest visual element -->
-      <div class="round-section-label">Strokes</div>
-      <div class="round-stepper round-stepper-primary score-${scoreClass}">
-        <button class="round-stepper-btn" onclick="adjustStrokes(-1)" aria-label="Decrease strokes">−</button>
-        <div class="round-stepper-display">
-          <div class="round-stepper-value">${strokes}</div>
-          <div class="round-stepper-tag">${scoreLabel}</div>
+        <!-- Strokes stepper — hero section with color tint by vs-par -->
+        <div class="round-card-strokes">
+          <button class="round-card-step-btn" onclick="adjustStrokes(-1)" aria-label="Decrease strokes">−</button>
+          <div class="round-card-step-display score-${scoreClass}">
+            <div class="round-card-step-value">${strokes}</div>
+            <div class="round-card-step-tag">${scoreLabel}</div>
+          </div>
+          <button class="round-card-step-btn" onclick="adjustStrokes(1)" aria-label="Increase strokes">+</button>
         </div>
-        <button class="round-stepper-btn" onclick="adjustStrokes(1)" aria-label="Increase strokes">+</button>
-      </div>
 
-      <!-- FIR / GIR chips — tap to toggle. Defaults optimistic (both hit). -->
-      <div class="stat-chips">
-        <button class="${firChipClass}" ${firChipOnclick} aria-label="Toggle fairway in regulation">
-          <span class="stat-chip-icon">${firChipIcon}</span>
-          <span class="stat-chip-label">Fairway</span>
-        </button>
-        <button class="${girChipClass}" onclick="toggleGir()" aria-label="Toggle green in regulation">
-          <span class="stat-chip-icon">${girChipIcon}</span>
-          <span class="stat-chip-label">Green</span>
-        </button>
-      </div>
+        <div class="round-card-divider"></div>
 
-      <!-- Putts stepper — secondary, smaller -->
-      <div class="round-section-label">Putts</div>
-      <div class="round-stepper round-stepper-secondary">
-        <button class="round-stepper-btn" onclick="adjustPutts(-1)" aria-label="Decrease putts">−</button>
-        <div class="round-stepper-display">
-          <div class="round-stepper-value">${putts}</div>
+        <!-- FIR / GIR chips — tap to toggle. Defaults optimistic (both hit). -->
+        <div class="round-card-chips">
+          <button class="${firChipClass}" ${firChipOnclick} aria-label="Toggle fairway in regulation">
+            <span class="stat-chip-icon">${firChipIcon}</span>
+            <span class="stat-chip-label">Fairway</span>
+          </button>
+          <button class="${girChipClass}" onclick="toggleGir()" aria-label="Toggle green in regulation">
+            <span class="stat-chip-icon">${girChipIcon}</span>
+            <span class="stat-chip-label">Green</span>
+          </button>
         </div>
-        <button class="round-stepper-btn" onclick="adjustPutts(1)" aria-label="Increase putts">+</button>
+
+        <div class="round-card-divider"></div>
+
+        <!-- Putts — compact horizontal row with label on the left, stepper on the right -->
+        <div class="round-card-putts">
+          <div class="round-card-putts-label">Putts</div>
+          <div class="round-card-putts-step">
+            <button class="round-card-putts-btn" onclick="adjustPutts(-1)" aria-label="Decrease putts">−</button>
+            <div class="round-card-putts-value">${putts}</div>
+            <button class="round-card-putts-btn" onclick="adjustPutts(1)" aria-label="Increase putts">+</button>
+          </div>
+        </div>
       </div>
 
       <!-- Action footer -->
@@ -7327,15 +8466,31 @@
   async function endRoundEarly() {
     const playedCount = Object.keys(roundState.scores).length;
     if (playedCount === 0) {
-      if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
+      const ok = await confirmDialog({
+        eyebrow: 'End Round',
+        eyebrowStyle: 'warning',
+        title: 'End this round?',
+        message: "No scores have been entered, so nothing will be saved.",
+        confirmText: 'End Round',
+        cancelText: 'Keep Playing',
+        destructive: true,
+      });
+      if (!ok) return;
       await abandonCurrentRound();
       showPanel('play', null);
       return;
     }
-    const msg = `End this round after ${playedCount} hole${playedCount === 1 ? '' : 's'}? It will be saved to your history.`;
-    if (!confirm(msg)) return;
-    const ok = await completeCurrentRound();
+    const ok = await confirmDialog({
+      eyebrow: 'End Round',
+      eyebrowStyle: 'warning',
+      title: `End after ${playedCount} hole${playedCount === 1 ? '' : 's'}?`,
+      message: 'Your partial round will be saved to your history.',
+      confirmText: 'End & Save',
+      cancelText: 'Keep Playing',
+    });
     if (!ok) return;
+    const ok2 = await completeCurrentRound();
+    if (!ok2) return;
     const finishedRoundId = roundState.docId;
     clearRoundState();
     renderPlayLanding();
@@ -7354,9 +8509,70 @@
   // Play landing — dynamic content (resume banner, stats, recent rounds)
   // ─────────────────────────────────────────────────────────────
   function renderPlayLanding() {
+    renderPlayHero();
     renderResumeBanner();
     renderPlayStats();
     renderRecentRounds();
+  }
+
+  // Play hero — renders the primary CTA card. Two states:
+  //   1. No round in progress → "Start a Round" invites the user to begin
+  //   2. Round in progress → "Continue Round" with course/tee/progress meta
+  // This swaps based on findInProgressRound() so it always reflects current state.
+  function renderPlayHero() {
+    const mount = document.getElementById('play-hero-mount');
+    if (!mount) return;
+    const inProgress = findInProgressRound();
+
+    if (inProgress) {
+      const course = getCourse(inProgress.courseId);
+      const courseName = course ? course.name : (inProgress.courseName || 'Round');
+      const totalHoles = course ? course.holes.length : 18;
+      const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
+      const currentHole = (inProgress.currentHoleIndex || 0) + 1;
+      const vsPar = inProgress.totals?.vsPar ?? 0;
+      const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+      const strokes = inProgress.totals?.strokes ?? 0;
+      mount.innerHTML = `
+        <div class="play-hero play-hero-active">
+          <div class="play-hero-eyebrow">Round in Progress</div>
+          <h2 class="play-hero-title">Continue <em>Round</em></h2>
+          <p class="play-hero-sub">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')}</p>
+          <div class="play-hero-progress">
+            <div class="play-hero-progress-item">
+              <div class="play-hero-progress-value">${currentHole}<span>/${totalHoles}</span></div>
+              <div class="play-hero-progress-label">Hole</div>
+            </div>
+            <div class="play-hero-progress-item">
+              <div class="play-hero-progress-value">${strokes}</div>
+              <div class="play-hero-progress-label">Strokes</div>
+            </div>
+            <div class="play-hero-progress-item">
+              <div class="play-hero-progress-value">${vsParStr}</div>
+              <div class="play-hero-progress-label">vs Par</div>
+            </div>
+          </div>
+          <div class="play-hero-actions">
+            <button class="play-hero-btn play-hero-btn-primary" onclick="resumeActiveRound()">Continue Round →</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // No round in progress — the default invite-to-start state
+    mount.innerHTML = `
+      <div class="play-hero">
+        <div class="play-hero-eyebrow">Round Tracking</div>
+        <h2 class="play-hero-title">Start a <em>Round</em></h2>
+        <p class="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
+        <div class="play-hero-actions">
+          <button class="play-hero-btn play-hero-btn-primary" onclick="showPanel('courses', null)">Start a Round →</button>
+          <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
+        </div>
+        <div class="play-hero-meta">
+          Or invite playing partners for a live shared scorecard <span class="play-hero-soon">soon</span>
+        </div>
+      </div>`;
   }
 
   // Round banner — global top bar mirroring the workout session banner.
@@ -7408,14 +8624,6 @@
   // confirms and saves as a completed partial round. If no holes were scored,
   // confirms and deletes entirely. Same logic as the End Round Early button
   // on the round screen itself — just callable from the banner.
-  // Exit the immersive round screen without ending the round. Routes to
-  // Play landing — round stays in progress, banner reappears everywhere
-  // else, user can tap Resume any time to come back. Same pattern as
-  // 18Birdies / Shot Scope / Arccos: minimize, don't end.
-  function exitRoundImmersive() {
-    showPanel('play', null);
-  }
-
   async function endActiveRoundFromBanner() {
     const inProgress = findInProgressRound();
     if (!inProgress) {
@@ -7436,14 +8644,30 @@
     }
     const playedCount = Object.keys(roundState.scores).length;
     if (playedCount === 0) {
-      if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
+      const ok = await confirmDialog({
+        eyebrow: 'End Round',
+        eyebrowStyle: 'warning',
+        title: 'End this round?',
+        message: "No scores have been entered, so nothing will be saved.",
+        confirmText: 'End Round',
+        cancelText: 'Keep Playing',
+        destructive: true,
+      });
+      if (!ok) return;
       await abandonCurrentRound();
       return;
     }
-    const msg = `End this round after ${playedCount} hole${playedCount === 1 ? '' : 's'}? It will be saved to your history.`;
-    if (!confirm(msg)) return;
-    const ok = await completeCurrentRound();
+    const ok = await confirmDialog({
+      eyebrow: 'End Round',
+      eyebrowStyle: 'warning',
+      title: `End after ${playedCount} hole${playedCount === 1 ? '' : 's'}?`,
+      message: 'Your partial round will be saved to your history.',
+      confirmText: 'End & Save',
+      cancelText: 'Keep Playing',
+    });
     if (!ok) return;
+    const ok2 = await completeCurrentRound();
+    if (!ok2) return;
     const finishedRoundId = roundState.docId;
     clearRoundState();
     renderPlayLanding();
@@ -7464,7 +8688,16 @@
   // callers; the canonical "end" path now goes through endActiveRoundFromBanner
   // → round screen → End Round Early).
   async function discardInProgressRound(roundId) {
-    if (!confirm('Discard this in-progress round? It will be deleted permanently.')) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Round',
+      eyebrowStyle: 'destructive',
+      title: 'Discard in-progress round?',
+      message: 'This round will be deleted permanently. This cannot be undone.',
+      confirmText: 'Discard',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
     if (currentUser && window.fb) {
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
@@ -7626,11 +8859,15 @@
         const e = round.scores[hn];
         if (!hd || !e) return '';
         const diff = e.strokes - hd.par;
-        let cls = 'par';
-        if (diff <= -1) cls = 'birdie';
-        else if (diff === 0) cls = 'par';
-        else if (diff === 1) cls = 'bogey';
-        else cls = 'over';
+        // Score marker following traditional scorecard convention:
+        //   eagle (or better) = double circle, birdie = single circle,
+        //   par = no mark, bogey = single square, double+ = double square.
+        let scoreMarker = 'none';
+        if (diff <= -2)      scoreMarker = 'eagle';
+        else if (diff === -1) scoreMarker = 'birdie';
+        else if (diff === 0)  scoreMarker = 'none';
+        else if (diff === 1)  scoreMarker = 'bogey';
+        else                  scoreMarker = 'double';
         // FIR cell: par 3 → em-dash (N/A), else ✓ or ✗ based on recorded value.
         // If the hole was played before FIR tracking existed, e.fir is undefined —
         // show a muted dash.
@@ -7640,10 +8877,10 @@
         const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
           e.gir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>';
         return `
-          <tr class="rs-hole-${cls}">
+          <tr>
             <td>${hn}</td>
             <td>${hd.par}</td>
-            <td><strong>${e.strokes}</strong></td>
+            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span></td>
             <td>${e.putts ?? '—'}</td>
             <td>${firCell}</td>
             <td>${girCell}</td>
@@ -7715,7 +8952,16 @@
   // Delete a completed round from the summary screen. After deletion,
   // navigate back to Play landing — there's no round left to summarize.
   async function deleteRoundFromSummary(roundId) {
-    if (!confirm('Delete this round? This cannot be undone.')) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Round',
+      eyebrowStyle: 'destructive',
+      title: 'Delete this round?',
+      message: 'This round will be permanently removed from your history. This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
     if (currentUser && window.fb) {
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
@@ -7834,6 +9080,80 @@
       </div>`;
   }
 
+  function renderBagSection() {
+    // Two presentations depending on whether the user has a bag yet:
+    //
+    // Empty: show the full "Build your bag" invitation card directly in
+    // Profile. The first-time onboarding signal is important enough that
+    // we don't want to hide it behind navigation.
+    //
+    // Populated: show a compact one-line summary row that navigates to
+    // the dedicated bag page. Takes minimal vertical space while still
+    // surfacing the key facts (count + distance range).
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+
+    if (bag.length === 0) {
+      return `
+        <div class="settings-section">
+          <div class="settings-section-title">My Bag</div>
+          <div class="settings-section-desc">Your clubs and typical carry distances. We'll use these for club suggestions on the course.</div>
+          <div class="bag-empty">
+            <div class="bag-empty-icon" aria-hidden="true">⛳</div>
+            <div class="bag-empty-title">Build your bag</div>
+            <div class="bag-empty-text">Track your clubs and typical carry distances. We'll use them to suggest clubs on the course.</div>
+            <div class="bag-empty-actions">
+              <button class="btn btn-primary" onclick="openBagPageFromEmpty('template')">Start with template</button>
+              <button class="btn btn-ghost" onclick="openBagPageFromEmpty('manual')">Add manually</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Populated: build the summary line
+    const sorted = sortedBag(bag);
+    const withDist = sorted.filter(c => typeof c.distance === 'number');
+    const unit = distanceUnit();
+    let rangeText = '';
+    if (withDist.length >= 2) {
+      const longest = distanceToDisplay(withDist[0].distance);
+      const shortest = distanceToDisplay(withDist[withDist.length - 1].distance);
+      rangeText = `${longest} → ${shortest} ${unit}`;
+    } else if (withDist.length === 1) {
+      rangeText = `${distanceToDisplay(withDist[0].distance)} ${unit}`;
+    }
+
+    const countText = `${bag.length} club${bag.length === 1 ? '' : 's'}`;
+    const summary = rangeText ? `${countText} · ${rangeText}` : countText;
+
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">My Bag</div>
+        <button class="settings-link-row" onclick="showPanel('bag', null)" aria-label="Open My Bag">
+          <div class="settings-link-row-info">
+            <div class="settings-link-row-label">My Bag</div>
+            <div class="settings-link-row-sub">${escapeHtml(summary)}</div>
+          </div>
+          <span class="settings-link-row-arrow" aria-hidden="true">›</span>
+        </button>
+      </div>`;
+  }
+
+  // Called from the Profile empty-state CTAs. Navigates to the bag page
+  // and kicks off either template population or manual-add, so the user's
+  // flow after tapping feels continuous rather than two separate steps.
+  function openBagPageFromEmpty(mode) {
+    showPanel('bag', null);
+    // Wait for the panel to actually become active before dispatching
+    // the action — renderBag() needs the mount in the DOM to paint.
+    requestAnimationFrame(() => {
+      if (mode === 'template') {
+        populateBagFromTemplate();
+      } else {
+        addClub();
+      }
+    });
+  }
+
   function renderAccountSection() {
     const fullName = currentUser.displayName || '';
     const email = currentUser.email || '';
@@ -7893,9 +9213,18 @@
   }
 
   // Discard pending changes — revert to whatever's in saved prefs.
-  function discardScheduleChanges() {
+  async function discardScheduleChanges() {
     if (!hasPendingScheduleChanges()) return;
-    if (!confirm('Discard your unsaved schedule changes?')) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Unsaved Changes',
+      eyebrowStyle: 'warning',
+      title: 'Discard changes?',
+      message: 'Your schedule edits will be reverted to the last saved version.',
+      confirmText: 'Discard',
+      cancelText: 'Keep Editing',
+      destructive: true,
+    });
+    if (!ok) return;
     resetPendingSchedule();
     renderPreferencePanels();
   }
@@ -7907,9 +9236,18 @@
     await savePreferences();
   }
 
-  function handleSettingsSignOut() {
+  async function handleSettingsSignOut() {
     if (!window.fb || !currentUser) return;
-    if (!confirm(`Sign out of ${currentUser.displayName || currentUser.email || 'this account'}?`)) return;
+    const accountLabel = currentUser.displayName || currentUser.email || 'this account';
+    const ok = await confirmDialog({
+      eyebrow: 'Sign Out',
+      eyebrowStyle: 'warning',
+      title: 'Sign out?',
+      message: `You're signed in as ${accountLabel}. Any unsaved data may be lost.`,
+      confirmText: 'Sign Out',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
     window.fb.signOut().catch(err => {
       console.error('Sign out failed:', err);
       alert('Sign out failed. See console.');
@@ -8111,7 +9449,16 @@
     const name = decodeURIComponent(encName);
     const sess = findSessionById(sessionId);
     if (!sess) return;
-    if (!confirm(`Remove "${name}" from this session?`)) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Remove Exercise',
+      eyebrowStyle: 'destructive',
+      title: `Remove "${name}"?`,
+      message: 'This exercise will be removed from this session. Other session data will be kept.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       // Build updated exercises map without this one
@@ -8158,7 +9505,16 @@
     if (!sess) return;
     const dateLabel = formatHistoryDate(sess.dateKey, sess.endTime);
     const dayTitle = dayIdToTitle(sess.dayId);
-    if (!confirm(`Delete this entire session?\n\n${dateLabel} — ${dayTitle}\n\nThis cannot be undone.`)) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Session',
+      eyebrowStyle: 'destructive',
+      title: 'Delete this session?',
+      message: `${dateLabel} — ${dayTitle}\n\nThis entire session will be permanently removed from your history. This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       if (!currentUser || !window.fb) {
