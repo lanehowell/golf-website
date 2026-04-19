@@ -4304,10 +4304,10 @@
            (currently Browse Courses since we have one course). -->
       <div class="play-hero">
         <div class="play-hero-eyebrow">Round Tracking</div>
-        <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
+        <h2 class="play-hero-title" id="play-hero-title">Start a <em>Round</em></h2>
+        <p class="play-hero-sub" id="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
         <div class="play-hero-actions">
-          <button class="play-hero-btn play-hero-btn-primary" onclick="showPanel('courses', null)">Start a Round →</button>
+          <button class="play-hero-btn play-hero-btn-primary" id="play-hero-primary-btn" onclick="showPanel('courses', null)">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
         </div>
         <div class="play-hero-meta">
@@ -7079,7 +7079,35 @@
   // ─────────────────────────────────────────────────────────────
   // Play landing — dynamic content (resume banner, stats, recent rounds)
   // ─────────────────────────────────────────────────────────────
+  function renderPlayHeroCard() {
+    const titleEl = document.getElementById('play-hero-title');
+    const subEl = document.getElementById('play-hero-sub');
+    const primaryBtn = document.getElementById('play-hero-primary-btn');
+    if (!titleEl || !subEl || !primaryBtn) return;
+
+    const inProgress = findInProgressRound();
+    if (!inProgress) {
+      titleEl.innerHTML = 'Start a <em>Round</em>';
+      subEl.textContent = `Track your scores and putts hole by hole. Save the round to your history when you're done.`;
+      primaryBtn.textContent = 'Start a Round →';
+      primaryBtn.onclick = () => showPanel('courses', null);
+      return;
+    }
+
+    const course = getCourse(inProgress.courseId);
+    const courseName = course ? course.name : (inProgress.courseName || 'Round');
+    const teeName = inProgress.teeName ? ` · ${inProgress.teeName}` : '';
+    const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
+    const totalHoles = course ? course.holes.length : 18;
+
+    titleEl.innerHTML = 'Continue <em>Round</em>';
+    subEl.textContent = `${courseName}${teeName} · ${holesPlayed}/${totalHoles} holes played`;
+    primaryBtn.textContent = 'Continue Round →';
+    primaryBtn.onclick = () => resumeActiveRound();
+  }
+
   function renderPlayLanding() {
+    renderPlayHeroCard();
     renderResumeBanner();
     renderPlayStats();
     renderRecentRounds();
