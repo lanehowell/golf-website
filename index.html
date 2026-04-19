@@ -2273,6 +2273,47 @@
     line-height: var(--leading-normal);
   }
 
+  /* ── My Bag in the dock ─────────────────────────────────────
+     The dock-embedded bag view. Reuses .bag-view-* component classes
+     for rows/partials so styling matches the Profile page exactly.
+     Constrains vertical size with an internal scroll so the dock pill
+     doesn't balloon when there are many clubs. */
+  .dock-bag-scroll {
+    max-height: 52vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(var(--space-5) * -1);
+    padding: 0 var(--space-5);
+  }
+  .dock-bag-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .dock-bag-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-cream-300);
+    border-radius: var(--radius-pill);
+  }
+  .dock-bag-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--space-3);
+    margin-top: var(--space-3);
+    border-top: 1px solid var(--color-cream-200);
+  }
+  .dock-bag-edit-link {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dock-bag-edit-link:hover {
+    color: var(--color-orange-dark);
+  }
+
   /* Mobile tweaks for the dock — the pill keeps its floating, fully
      rounded shape at all screen sizes (the base .round-dock rules
      apply); only the inner content density changes for small viewports. */
@@ -4553,12 +4594,12 @@
     margin-bottom: var(--space-4);
   }
 
-  /* Individual club row — name + type on the left, distance + remove on the right */
+  /* Individual club row — vertical container holding a top row (main
+     inputs + distance + remove ×) and optional nested partial rows below. */
   .bag-row {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-3);
-    align-items: center;
     padding: var(--space-3);
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
@@ -4571,6 +4612,13 @@
   .bag-row:focus-within {
     border-color: var(--color-orange);
     box-shadow: 0 0 0 3px var(--color-orange-glow);
+  }
+  /* Top row — the original horizontal grid: main inputs | distance | × */
+  .bag-row-top {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--space-3);
+    align-items: center;
   }
 
   /* Name input + type select stack vertically on mobile, side-by-side on desktop */
@@ -4715,15 +4763,22 @@
     display: flex;
     flex-direction: column;
   }
+  /* Row wrapper — vertical container. Holds the main club line plus an
+     optional nested list of partial swings below it. */
   .bag-view-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
+    flex-direction: column;
     padding: var(--space-3) 0;
     border-bottom: 1px dashed var(--color-cream-200);
   }
   .bag-view-row:last-child { border-bottom: none; }
+  /* The horizontal line: name/type on the left, full distance on the right */
+  .bag-view-row-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
   .bag-view-main {
     display: flex;
     flex-direction: column;
@@ -4775,6 +4830,45 @@
     flex-shrink: 0;
   }
 
+  /* Nested partial swings shown under a club in view mode. Each partial
+     is a small muted row: percent label left, distance right. Indented
+     so it's visually clear they belong to the club above. */
+  .bag-view-partials {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space-2);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--color-cream-200);
+    margin-left: var(--space-1);
+    gap: 2px;
+  }
+  .bag-view-partial {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 2px 0;
+  }
+  .bag-view-partial-percent {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-wide);
+  }
+  .bag-view-partial-distance {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .bag-view-partial-unit {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
   /* Edit-mode action bar — Discard + Save, below the list */
   .bag-edit-actions {
     display: flex;
@@ -4795,13 +4889,177 @@
     border-color: var(--color-orange);
   }
 
+  /* ─── Partial-swing edit rows ───────────────────────────────
+     Each partial row inside an edit row: small percent input, small
+     distance input, remove ×. Indented via border to visually nest
+     under the main club row. */
+  .bag-partials-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-left: var(--space-2);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--color-cream-200);
+  }
+  .bag-partial-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .bag-partial-percent {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-2);
+  }
+  .bag-partial-percent-input {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: right;
+    min-width: 0;
+    -moz-appearance: textfield;
+  }
+  .bag-partial-percent-input::-webkit-outer-spin-button,
+  .bag-partial-percent-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .bag-partial-percent-sign {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-orange);
+    font-weight: var(--weight-semibold);
+  }
+  .bag-partial-distance {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+  }
+  .bag-partial-dist-input {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+    outline: none;
+    min-width: 0;
+    -moz-appearance: textfield;
+  }
+  .bag-partial-dist-input::-webkit-outer-spin-button,
+  .bag-partial-dist-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .bag-partial-dist-input::placeholder {
+    color: var(--text-muted);
+  }
+  .bag-partial-dist-unit {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .bag-partial-remove-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--text-md);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .bag-partial-remove-btn:hover {
+    color: var(--color-orange-dark);
+    border-color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+
+  /* ─── Partial-swing preset pills ────────────────────────────
+     Row of tiny quick-add pills (100%, 75%, 50%, 25%) below each
+     club's edit controls. Tapping adds that partial to the club;
+     if already present, the pill shows a check and re-tapping
+     focuses the existing partial instead of creating a duplicate. */
+  .bag-partial-presets {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    padding-top: var(--space-1);
+  }
+  .bag-partial-presets-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: var(--space-1);
+  }
+  .bag-partial-preset {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px var(--space-3);
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .bag-partial-preset:hover {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    color: var(--color-orange-dark);
+  }
+  .bag-partial-preset.added {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    color: var(--color-orange-dark);
+  }
+  .bag-partial-preset-check {
+    font-size: 0.66rem;
+    color: var(--color-orange);
+  }
+
   /* Mobile tweaks — tighten padding, stack name/type */
   @media (max-width: 560px) {
     .bag-row {
+      gap: var(--space-2);
+      padding: var(--space-3);
+    }
+    .bag-row-top {
       grid-template-columns: 1fr auto;
       grid-template-rows: auto auto;
       gap: var(--space-2);
-      padding: var(--space-3);
     }
     .bag-row-main {
       grid-column: 1 / -1;
@@ -7841,9 +8099,22 @@
     return JSON.stringify(bagEditState.draft) !== JSON.stringify(prefs.bag || []);
   }
 
-  // Deep-clone helper for the bag (each club is a flat object, JSON works fine).
+  // Deep-clone the bag for edit-mode mutations. Each club is flattish but
+  // partials are a nested array that also needs cloning so edits to the
+  // draft don't leak back to prefs.bag. Partials also get a fresh client
+  // id (for stable edit-row keys) if they don't have one — older saved
+  // partials predate the id field.
   function cloneBag(bag) {
-    return (Array.isArray(bag) ? bag : []).map(c => ({ ...c }));
+    return (Array.isArray(bag) ? bag : []).map(c => {
+      const partials = Array.isArray(c.partials)
+        ? c.partials.map(p => ({
+            id: p.id || newPartialId(),
+            percent: p.percent,
+            distance: p.distance,
+          }))
+        : [];
+      return { ...c, partials };
+    });
   }
 
   // Enter edit mode with an optional pre-populated draft. If startingClubs
@@ -7862,7 +8133,16 @@
     // Strip empty-name clubs — they're either abandoned rows or in-progress
     // typing the user stepped away from. Better to drop them quietly than
     // persist a row that'll show as "empty name" in view mode.
-    const cleaned = (bagEditState.draft || []).filter(c => c.name && c.name.trim().length > 0);
+    // Also strip partial swings that have no distance entered — they're
+    // unfinished rows, same rationale.
+    const cleaned = (bagEditState.draft || [])
+      .filter(c => c.name && c.name.trim().length > 0)
+      .map(c => {
+        const partials = (c.partials || []).filter(p =>
+          typeof p.distance === 'number' && p.distance > 0
+        );
+        return { ...c, partials };
+      });
     prefs.bag = cleaned;
     bagEditState.editing = false;
     bagEditState.draft = null;
@@ -7892,10 +8172,12 @@
   }
 
   // Add a blank club to the draft. Only callable in edit mode. New clubs
-  // get focused for immediate typing.
+  // get focused for immediate typing. `partials` initializes empty and is
+  // populated via the "+" preset pills or "+ Add partial swing" link on
+  // the club's edit row.
   function addClub() {
     if (!bagEditState.editing) enterBagEdit();
-    const club = { id: newClubId(), name: '', type: 'iron', distance: null };
+    const club = { id: newClubId(), name: '', type: 'iron', distance: null, partials: [] };
     bagEditState.draft.push(club);
     renderBag();
     requestAnimationFrame(() => {
@@ -7930,6 +8212,90 @@
   function removeClub(clubId) {
     if (!bagEditState.editing) return;
     bagEditState.draft = bagEditState.draft.filter(c => c.id !== clubId);
+    renderBag();
+  }
+
+  // ─── Partial swings ─────────────────────────────────────────────
+  // Clubs can carry additional (percent, distance) pairs for partial
+  // swings — useful mainly for wedges (100%, 75%, 50%, 25% swings give
+  // meaningfully different carry distances). Stored on the club as
+  // `partials: [{ percent, distance }]`. A missing partials array is
+  // treated as an empty array (no partials defined).
+
+  // Preset percents for the quick-add pills. Ordering matters — pills
+  // render left-to-right in this order.
+  const PARTIAL_PRESETS = [100, 75, 50, 25];
+
+  // Generate a stable client-side id for a partial. Used as the React-style
+  // key when rendering partial rows so edits don't clobber focus.
+  function newPartialId() {
+    return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // Ensure a club has a partials array we can push to. Mutates in place.
+  // Used defensively — older saved clubs predate this field and won't
+  // have it until the user edits them.
+  function ensurePartials(club) {
+    if (!Array.isArray(club.partials)) club.partials = [];
+    return club.partials;
+  }
+
+  // Add a partial to a club. If the club already has a partial at the
+  // given percent, we don't add a duplicate — just re-render to keep the
+  // edit idempotent. Percent of 100 is allowed (some users want to
+  // explicitly record a "100% = X yd" entry even though `distance` is
+  // the canonical full-swing value); we treat it as a shorthand meaning
+  // "same as full distance" when rendering.
+  function addPartialToClub(clubId, percent) {
+    if (!bagEditState.editing) return;
+    const club = bagEditState.draft.find(c => c.id === clubId);
+    if (!club) return;
+    const partials = ensurePartials(club);
+    if (partials.some(p => p.percent === percent)) {
+      // Already exists — just focus its distance field so the user can
+      // tap a preset again to jump back to it.
+      requestAnimationFrame(() => {
+        const existing = document.querySelector(`[data-club-id="${club.id}"] [data-partial-percent="${percent}"] .bag-partial-dist-input`);
+        if (existing) existing.focus();
+      });
+      return;
+    }
+    partials.push({ id: newPartialId(), percent, distance: null });
+    // Keep partials sorted by percent desc (highest first) — reads as
+    // "full → 75 → 50 → 25" which matches how golfers think.
+    partials.sort((a, b) => b.percent - a.percent);
+    renderBag();
+    // Focus the newly-added partial's distance input for immediate entry
+    requestAnimationFrame(() => {
+      const input = document.querySelector(`[data-club-id="${club.id}"] [data-partial-percent="${percent}"] .bag-partial-dist-input`);
+      if (input) input.focus();
+    });
+  }
+
+  // Update a partial's percent or distance. Called from oninput on the
+  // partial row's inputs. Mutates the draft; no save triggered.
+  function updatePartialField(clubId, partialId, field, value) {
+    if (!bagEditState.editing) return;
+    const club = bagEditState.draft.find(c => c.id === clubId);
+    if (!club) return;
+    const partials = ensurePartials(club);
+    const partial = partials.find(p => p.id === partialId);
+    if (!partial) return;
+    if (field === 'distance') {
+      partial.distance = distanceFromInput(value);
+    } else if (field === 'percent') {
+      const n = parseInt(value, 10);
+      partial.percent = isNaN(n) ? partial.percent : Math.max(1, Math.min(100, n));
+    }
+    syncBagEditFooter();
+  }
+
+  // Remove a partial from a club.
+  function removePartial(clubId, partialId) {
+    if (!bagEditState.editing) return;
+    const club = bagEditState.draft.find(c => c.id === clubId);
+    if (!club) return;
+    club.partials = (club.partials || []).filter(p => p.id !== partialId);
     renderBag();
   }
 
@@ -8020,13 +8386,31 @@
         ? `<span class="bag-view-distance">${distanceToDisplay(club.distance)}<span class="bag-view-unit">${unit}</span></span>`
         : `<span class="bag-view-distance-none">—</span>`;
       const typeLabel = (CLUB_TYPES.find(t => t.id === club.type) || {}).label || '';
+
+      // Partials — render as small muted rows below the main club row.
+      // A partial at 100% duplicates the main distance; show it anyway if
+      // the user explicitly added one (they wanted to record it). Sort
+      // partials by percent desc so they read "75% → 50% → 25%".
+      const sortedPartials = (club.partials || [])
+        .filter(p => typeof p.distance === 'number' && p.distance > 0)
+        .sort((a, b) => b.percent - a.percent);
+      const partialRows = sortedPartials.map(p => `
+        <div class="bag-view-partial">
+          <span class="bag-view-partial-percent">${p.percent}%</span>
+          <span class="bag-view-partial-distance">${distanceToDisplay(p.distance)} <span class="bag-view-partial-unit">${unit}</span></span>
+        </div>
+      `).join('');
+
       return `
-        <div class="bag-view-row">
-          <div class="bag-view-main">
-            <div class="bag-view-name">${escapeHtml(club.name || 'Unnamed club')}</div>
-            <div class="bag-view-type">${escapeHtml(typeLabel)}</div>
+        <div class="bag-view-row${sortedPartials.length ? ' has-partials' : ''}">
+          <div class="bag-view-row-main">
+            <div class="bag-view-main">
+              <div class="bag-view-name">${escapeHtml(club.name || 'Unnamed club')}</div>
+              <div class="bag-view-type">${escapeHtml(typeLabel)}</div>
+            </div>
+            ${distText}
           </div>
-          ${distText}
+          ${partialRows ? `<div class="bag-view-partials">${partialRows}</div>` : ''}
         </div>`;
     }).join('');
 
@@ -8048,29 +8432,79 @@
       const typeOptions = CLUB_TYPES.map(t =>
         `<option value="${t.id}"${club.type === t.id ? ' selected' : ''}>${t.label}</option>`
       ).join('');
+
+      // Partials — each rendered as a smaller sub-row with percent input,
+      // distance input, and remove ×. Sorted by percent desc so they
+      // display "75 → 50 → 25" naturally. Partials without ids (e.g. an
+      // older saved bag loaded fresh into the draft via cloneBag) get
+      // one assigned by cloneBag; this renderer doesn't need to.
+      const partials = (club.partials || []).slice().sort((a, b) => b.percent - a.percent);
+      const partialRows = partials.map(p => {
+        const pDist = distanceToDisplay(p.distance);
+        return `
+          <div class="bag-partial-row" data-partial-percent="${p.percent}">
+            <div class="bag-partial-percent">
+              <input class="bag-partial-percent-input" type="number" inputmode="numeric" min="1" max="100"
+                     value="${p.percent}"
+                     oninput="updatePartialField('${club.id}', '${p.id}', 'percent', this.value)"
+                     onblur="commitBagEdit()"
+                     aria-label="Swing percent">
+              <span class="bag-partial-percent-sign">%</span>
+            </div>
+            <div class="bag-partial-distance">
+              <input class="bag-partial-dist-input" type="number" inputmode="numeric" min="0"
+                     value="${pDist}"
+                     placeholder="—"
+                     oninput="updatePartialField('${club.id}', '${p.id}', 'distance', this.value)"
+                     onblur="commitBagEdit()"
+                     aria-label="Partial swing distance in ${unit}">
+              <span class="bag-partial-dist-unit">${unit}</span>
+            </div>
+            <button class="bag-partial-remove-btn" onclick="removePartial('${club.id}', '${p.id}')" aria-label="Remove partial swing">×</button>
+          </div>`;
+      }).join('');
+
+      // Preset quick-add pills. Each tap adds a partial at that percent
+      // (or re-focuses it if it already exists).
+      const presetPills = PARTIAL_PRESETS.map(pct => {
+        const exists = partials.some(p => p.percent === pct);
+        return `
+          <button class="bag-partial-preset${exists ? ' added' : ''}"
+                  onclick="addPartialToClub('${club.id}', ${pct})">
+            ${pct}%${exists ? ' <span class="bag-partial-preset-check">✓</span>' : ''}
+          </button>`;
+      }).join('');
+
       return `
         <div class="bag-row" data-club-id="${club.id}">
-          <div class="bag-row-main">
-            <input class="bag-name-input" type="text"
-                   value="${escapeHtml(club.name || '')}"
-                   placeholder="Club name"
-                   oninput="updateClubField('${club.id}', 'name', this.value)"
-                   onblur="commitBagEdit()"
-                   aria-label="Club name">
-            <select class="bag-type-select"
-                    onchange="updateClubField('${club.id}', 'type', this.value); commitBagEdit()"
-                    aria-label="Club type">${typeOptions}</select>
+          <div class="bag-row-top">
+            <div class="bag-row-main">
+              <input class="bag-name-input" type="text"
+                     value="${escapeHtml(club.name || '')}"
+                     placeholder="Club name"
+                     oninput="updateClubField('${club.id}', 'name', this.value)"
+                     onblur="commitBagEdit()"
+                     aria-label="Club name">
+              <select class="bag-type-select"
+                      onchange="updateClubField('${club.id}', 'type', this.value); commitBagEdit()"
+                      aria-label="Club type">${typeOptions}</select>
+            </div>
+            <div class="bag-row-distance">
+              <input class="bag-distance-input" type="number" inputmode="numeric" min="0"
+                     value="${distDisplay}"
+                     placeholder="—"
+                     oninput="updateClubField('${club.id}', 'distance', this.value)"
+                     onblur="commitBagEdit()"
+                     aria-label="Distance in ${unit}">
+              <span class="bag-distance-unit">${unit}</span>
+            </div>
+            <button class="bag-remove-btn" onclick="removeClub('${club.id}')" aria-label="Remove club">×</button>
           </div>
-          <div class="bag-row-distance">
-            <input class="bag-distance-input" type="number" inputmode="numeric" min="0"
-                   value="${distDisplay}"
-                   placeholder="—"
-                   oninput="updateClubField('${club.id}', 'distance', this.value)"
-                   onblur="commitBagEdit()"
-                   aria-label="Distance in ${unit}">
-            <span class="bag-distance-unit">${unit}</span>
+          ${partialRows ? `<div class="bag-partials-list">${partialRows}</div>` : ''}
+          <div class="bag-partial-presets">
+            <span class="bag-partial-presets-label">Partial swings:</span>
+            ${presetPills}
           </div>
-          <button class="bag-remove-btn" onclick="removeClub('${club.id}')" aria-label="Remove club">×</button>
         </div>`;
     }).join('');
 
@@ -9057,6 +9491,7 @@
   // and a render function. The dock UI iterates this list.
   const DOCK_TOOLS = [
     { id: 'caddie', label: 'Club Caddie', icon: '🎯' },
+    { id: 'bag',    label: 'My Bag',      icon: '⛳' },
   ];
 
   // Toggle expansion of a specific tool. Tapping the already-active tool
@@ -9119,39 +9554,85 @@
   // multiple clubs share a distance: uses the type-rank tiebreaker from
   // sortedBag so results are deterministic.
   function getCaddieRecommendations(targetYards, bag) {
-    const candidates = (Array.isArray(bag) ? bag : [])
-      .filter(c => typeof c.distance === 'number' && c.distance > 0);
+    const typeRank = (t) => {
+      const c = CLUB_TYPES.find(x => x.id === t);
+      return c ? c.rank : 50;
+    };
+
+    // Flatten bag into a list of swing candidates. Each full-distance club
+    // yields a candidate with percent=null (meaning "full swing"); each
+    // valid partial yields a candidate with its percent. Partials at
+    // exactly 100% are labeled as full swings (no "@ 100%" suffix).
+    const candidates = [];
+    (Array.isArray(bag) ? bag : []).forEach(club => {
+      if (typeof club.distance === 'number' && club.distance > 0) {
+        candidates.push({
+          clubName: club.name,
+          clubType: club.type,
+          percent: null,   // null = full swing
+          distance: club.distance,
+          rank: typeRank(club.type),
+        });
+      }
+      (Array.isArray(club.partials) ? club.partials : []).forEach(p => {
+        if (typeof p.distance === 'number' && p.distance > 0) {
+          candidates.push({
+            clubName: club.name,
+            clubType: club.type,
+            percent: p.percent === 100 ? null : p.percent,
+            distance: p.distance,
+            rank: typeRank(club.type),
+          });
+        }
+      });
+    });
+
     if (candidates.length === 0) return { topPick: null, alternates: [], outOfRange: null };
 
-    // Sort descending by distance using the same logic as the bag display
-    const sorted = sortedBag(candidates).filter(c => typeof c.distance === 'number');
+    // Sort descending by distance. Tiebreaker: type rank (longer clubs
+    // first), then percent (higher % first — "full 9 iron" before
+    // "75% 8 iron" at equal distance). This produces a stable order
+    // that matches how a golfer thinks.
+    candidates.sort((a, b) => {
+      if (a.distance !== b.distance) return b.distance - a.distance;
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      const ap = a.percent == null ? 100 : a.percent;
+      const bp = b.percent == null ? 100 : b.percent;
+      return bp - ap;
+    });
 
-    const longest  = sorted[0].distance;
-    const shortest = sorted[sorted.length - 1].distance;
+    const longest  = candidates[0].distance;
+    const shortest = candidates[candidates.length - 1].distance;
     let outOfRange = null;
     if (targetYards > longest)  outOfRange = 'long';
     if (targetYards < shortest) outOfRange = 'short';
 
-    // Closest by absolute distance. Ties broken by type rank (already the
-    // sort order), so "first in sorted" wins among ties.
+    // Closest by absolute distance. Ties broken by the sort order above.
     let topIdx = 0;
     let bestDiff = Infinity;
-    sorted.forEach((c, i) => {
+    candidates.forEach((c, i) => {
       const diff = Math.abs(c.distance - targetYards);
       if (diff < bestDiff) {
         bestDiff = diff;
         topIdx = i;
       }
     });
-    const topPick = sorted[topIdx];
+    const topPick = candidates[topIdx];
 
-    // Alternates: one longer (index - 1) and one shorter (index + 1) if
-    // they exist. Skip past the top pick in either direction.
+    // Alternates: one longer (index - 1) and one shorter (index + 1).
     const alternates = [];
-    if (topIdx > 0)               alternates.push(sorted[topIdx - 1]); // longer
-    if (topIdx < sorted.length-1) alternates.push(sorted[topIdx + 1]); // shorter
+    if (topIdx > 0)                      alternates.push(candidates[topIdx - 1]);
+    if (topIdx < candidates.length - 1)  alternates.push(candidates[topIdx + 1]);
 
     return { topPick, alternates, outOfRange };
+  }
+
+  // Format a swing candidate's name for display. Full swings show just
+  // the club name; partials prefix with the percent: "75% 60° Wedge".
+  function formatSwingLabel(candidate) {
+    if (!candidate) return '';
+    if (candidate.percent == null) return candidate.clubName;
+    return `${candidate.percent}% ${candidate.clubName}`;
   }
 
   // Update the caddie's target distance. Called from the input's oninput.
@@ -9250,7 +9731,83 @@
     const wrapClass = opening ? 'round-dock-surface-wrap opening' : 'round-dock-surface-wrap';
     let inner = '';
     if (dockState.activeTool === 'caddie') inner = renderCaddie();
+    else if (dockState.activeTool === 'bag') inner = renderDockBag();
     return `<div class="${wrapClass}">${inner}</div>`;
+  }
+
+  // My Bag surface — a compact read-only view of the user's clubs and
+  // distances, surfaced in the dock so players can glance at their numbers
+  // mid-round without leaving the scoring screen. Reuses the bag-view
+  // component classes so it matches the Profile → My Bag page exactly.
+  // Partials are nested under each club, same as elsewhere. Scrolls
+  // internally if the list exceeds the dock's natural height.
+  function renderDockBag() {
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    const unit = distanceUnit();
+
+    if (bag.length === 0) {
+      return `
+        <div class="round-dock-surface">
+          <div class="caddie-header">
+            <div class="caddie-eyebrow">My Bag</div>
+          </div>
+          <div class="caddie-empty">
+            <div class="caddie-empty-title">No clubs yet</div>
+            <div class="caddie-empty-text">
+              Add your clubs and carry distances in
+              <a role="button" tabindex="0" onclick="showPanel('bag', null)" onkeydown="if(event.key==='Enter'){showPanel('bag', null)}">Profile → My Bag</a>
+              to see them here.
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const rows = bag.map(club => {
+      const distText = (typeof club.distance === 'number')
+        ? `<span class="bag-view-distance">${distanceToDisplay(club.distance)}<span class="bag-view-unit">${unit}</span></span>`
+        : `<span class="bag-view-distance-none">—</span>`;
+      const typeLabel = (CLUB_TYPES.find(t => t.id === club.type) || {}).label || '';
+
+      const sortedPartials = (club.partials || [])
+        .filter(p => typeof p.distance === 'number' && p.distance > 0)
+        .sort((a, b) => b.percent - a.percent);
+      const partialRows = sortedPartials.map(p => `
+        <div class="bag-view-partial">
+          <span class="bag-view-partial-percent">${p.percent}%</span>
+          <span class="bag-view-partial-distance">${distanceToDisplay(p.distance)} <span class="bag-view-partial-unit">${unit}</span></span>
+        </div>
+      `).join('');
+
+      return `
+        <div class="bag-view-row${sortedPartials.length ? ' has-partials' : ''}">
+          <div class="bag-view-row-main">
+            <div class="bag-view-main">
+              <div class="bag-view-name">${escapeHtml(club.name || 'Unnamed club')}</div>
+              <div class="bag-view-type">${escapeHtml(typeLabel)}</div>
+            </div>
+            ${distText}
+          </div>
+          ${partialRows ? `<div class="bag-view-partials">${partialRows}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="round-dock-surface">
+        <div class="caddie-header">
+          <div class="caddie-eyebrow">My Bag</div>
+          <div class="caddie-hole-hint">${bag.length} club${bag.length === 1 ? '' : 's'}</div>
+        </div>
+        <div class="dock-bag-scroll">
+          <div class="bag-view-list">${rows}</div>
+        </div>
+        <div class="dock-bag-footer">
+          <a role="button" tabindex="0" class="dock-bag-edit-link"
+             onclick="showPanel('bag', null)"
+             onkeydown="if(event.key==='Enter'){showPanel('bag', null)}">
+            Edit in Profile →
+          </a>
+        </div>
+      </div>`;
   }
 
   // The Club Caddie surface: yardage input + recommendations.
@@ -9300,8 +9857,15 @@
   function renderCaddieRecommendations() {
     const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
 
-    // Empty bag → invite user to build one
-    if (bag.filter(c => typeof c.distance === 'number' && c.distance > 0).length === 0) {
+    // Empty bag → invite user to build one. A bag is "empty for caddie
+    // purposes" if no clubs have a full distance AND no partials have
+    // distances either — since we recommend against any distance-bearing
+    // swing candidate.
+    const hasAnyDistanceBearingSwing = bag.some(c => {
+      if (typeof c.distance === 'number' && c.distance > 0) return true;
+      return (c.partials || []).some(p => typeof p.distance === 'number' && p.distance > 0);
+    });
+    if (!hasAnyDistanceBearingSwing) {
       return `
         <div class="caddie-empty">
           <div class="caddie-empty-title">No clubs with distances yet</div>
@@ -9330,7 +9894,6 @@
 
     const unit = distanceUnit();
     const topDist = distanceToDisplay(topPick.distance);
-    const targetDisp = distanceToDisplay(target);
     const diffYd = topPick.distance - target;  // canonical yards
     const diffDisp = Math.abs(distanceToDisplay(topPick.distance) - distanceToDisplay(target));
     const diffText = diffYd === 0
@@ -9339,7 +9902,8 @@
 
     // Out-of-range banner appears in addition to the closest pick — the pick
     // is still shown because "I have to swing hard with my longest club"
-    // is actionable information.
+    // is actionable information. The "short" banner mentions the club by
+    // name (no percent prefix) since the suggestion IS to swing it partially.
     let rangeBanner = '';
     if (outOfRange === 'long') {
       rangeBanner = `
@@ -9351,7 +9915,7 @@
       rangeBanner = `
         <div class="caddie-out-of-range" style="margin-bottom: var(--space-3);">
           <div class="caddie-out-of-range-title">Shorter than a full swing</div>
-          <div class="caddie-out-of-range-text">A partial swing or finesse shot with your ${escapeHtml(topPick.name)} is in order.</div>
+          <div class="caddie-out-of-range-text">A partial swing or finesse shot with your ${escapeHtml(topPick.clubName)} is in order.</div>
         </div>`;
     }
 
@@ -9362,7 +9926,7 @@
       const cDiffText = cDiffYd === 0 ? 'even' : `${cDiffYd > 0 ? '+' : '-'}${cDiffDisp}`;
       return `
         <div class="caddie-alt">
-          <span class="caddie-alt-name">${escapeHtml(c.name)}</span>
+          <span class="caddie-alt-name">${escapeHtml(formatSwingLabel(c))}</span>
           <span class="caddie-alt-detail">${cDist} ${unit}<span class="caddie-alt-delta">${cDiffText}</span></span>
         </div>`;
     }).join('');
@@ -9373,7 +9937,7 @@
         <div class="caddie-top-pick">
           <div class="caddie-top-pick-icon" aria-hidden="true">🎯</div>
           <div class="caddie-top-pick-body">
-            <div class="caddie-top-pick-name">${escapeHtml(topPick.name)}</div>
+            <div class="caddie-top-pick-name">${escapeHtml(formatSwingLabel(topPick))}</div>
             <div class="caddie-top-pick-detail">${topDist} ${unit} · ${diffText}</div>
           </div>
         </div>
