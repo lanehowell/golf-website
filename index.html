@@ -6816,6 +6816,19 @@
     showPanel('round', null);
   }
 
+  function currentRoundSnapshot() {
+    if (!isRoundActive()) return null;
+    return {
+      id: roundState.docId,
+      courseId: roundState.courseId,
+      teeName: roundState.teeName,
+      currentHoleIndex: roundState.holeIndex || 0,
+      scores: roundState.scores || {},
+      startTime: roundState.started,
+      dateKey: roundState.dateKey
+    };
+  }
+
   // Reset roundState in memory (does not delete from Firestore).
   function clearRoundState() {
     roundState.docId = null;
@@ -7051,7 +7064,9 @@
   // End the round early — flip to completed if any holes were played,
   // or delete entirely if zero holes had scores entered.
   async function endRoundEarly() {
-    const playedCount = Object.keys(roundState.scores).length;
+    const activeRound = currentRoundSnapshot();
+    if (!activeRound) return;
+    const playedCount = Object.keys(activeRound.scores || {}).length;
     if (playedCount === 0) {
       if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
       await abandonCurrentRound();
@@ -7168,17 +7183,32 @@
     roundBanner.addEventListener('click', (event) => onBannerClick(event, resumeActiveRound));
   }
 
-  // End the active round from the banner button. Routes the user to the
-  // round screen first so they can see what they're ending — then they
-  // tap "End Round Early" with full context. Less destructive than a
-  // banner-level "are you sure" that strips that context.
-  function endActiveRoundFromBanner() {
+  // End the active round from the banner button with the same confirmation
+  // flow used in the round screen's "End Round Early" action.
+  async function endActiveRoundFromBanner() {
     const inProgress = findInProgressRound();
     if (!inProgress) {
       document.body.classList.remove('round-active');
       return;
     }
-    resumeRound(inProgress);
+    // If we're already in the live round, prefer in-memory state so any
+    // unsaved hole edits in this view are included in the confirmation count.
+    const activeRound = currentRoundSnapshot();
+    if (activeRound && activeRound.id === inProgress.id) {
+      await endRoundEarly();
+      return;
+    }
+
+    // Not currently on the round view: hydrate state from cached doc so the
+    // standard end flow can run without first navigating to the round screen.
+    roundState.docId = inProgress.id;
+    roundState.courseId = inProgress.courseId;
+    roundState.teeName = inProgress.teeName;
+    roundState.holeIndex = inProgress.currentHoleIndex || 0;
+    roundState.scores = inProgress.scores || {};
+    roundState.started = inProgress.startTime;
+    roundState.dateKey = inProgress.dateKey;
+    await endRoundEarly();
   }
 
   // Resume by id — used elsewhere (e.g. older deep-link callers).
