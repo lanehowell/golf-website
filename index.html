@@ -1805,10 +1805,61 @@
     font-weight: var(--weight-bold);
     font-size: var(--text-md);
   }
+  .score-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    padding: 0 var(--space-2);
+    line-height: 1;
+  }
+  .score-mark-birdie {
+    border: 2px solid #2D6E34;
+    border-radius: 50%;
+    color: #1F5B2B;
+  }
+  .score-mark-eagle {
+    border: 2px double #1F5B2B;
+    border-radius: 50%;
+    color: #1F5B2B;
+  }
+  .score-mark-bogey {
+    border: 2px solid var(--color-orange);
+    border-radius: 2px;
+    color: var(--color-orange-dark);
+  }
+  .score-mark-doublebogey {
+    border: 3px double var(--color-orange-dark);
+    border-radius: 2px;
+    color: var(--color-orange-dark);
+  }
+  .round-summary-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .round-summary-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .round-summary-legend-item .score-mark {
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-medium);
+  }
   /* Vs-par row coloring — subtle left border accent */
   .round-summary-table .rs-hole-birdie td:first-child { border-left: 3px solid #2D6E34; }
+  .round-summary-table .rs-hole-eagle td:first-child   { border-left: 3px solid #1F5B2B; }
   .round-summary-table .rs-hole-par td:first-child    { border-left: 3px solid var(--border-medium); }
   .round-summary-table .rs-hole-bogey td:first-child  { border-left: 3px solid var(--color-orange); }
+  .round-summary-table .rs-hole-doublebogey td:first-child { border-left: 3px solid var(--color-orange-dark); }
   .round-summary-table .rs-hole-over td:first-child   { border-left: 3px solid var(--color-orange-dark); }
 
   .round-summary-actions {
@@ -1950,6 +2001,7 @@
     top: 0;
     z-index: calc(var(--z-dropdown) + 1);
     box-shadow: 0 2px 8px var(--color-orange-glow);
+    cursor: pointer;
   }
   body.session-active #session-banner { display: block; }
   body.session-active .training-nav {
@@ -4303,10 +4355,10 @@
            (currently Browse Courses since we have one course). -->
       <div class="play-hero">
         <div class="play-hero-eyebrow">Round Tracking</div>
-        <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
+        <h2 class="play-hero-title" id="play-hero-title">Start a <em>Round</em></h2>
+        <p class="play-hero-sub" id="play-hero-sub">Track your scores and putts hole by hole. Save the round to your history when you're done.</p>
         <div class="play-hero-actions">
-          <button class="play-hero-btn play-hero-btn-primary" onclick="showPanel('courses', null)">Start a Round →</button>
+          <button class="play-hero-btn play-hero-btn-primary" id="play-hero-primary-btn" onclick="showPanel('courses', null)">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showToast('Quick score coming soon')">Quick Score</button>
         </div>
         <div class="play-hero-meta">
@@ -5746,6 +5798,13 @@
     showPanel(session.dayId, null);
   }
 
+  // Make the full in-progress banners clickable so tapping anywhere on the
+  // bar resumes the underlying activity. Button clicks keep their own action.
+  function onBannerClick(event, resumeFn) {
+    if (event.target.closest('.session-banner-btn')) return;
+    resumeFn();
+  }
+
   function getDayTitle(dayId) {
     const panel = document.getElementById('panel-' + dayId);
     if (!panel) return 'Workout';
@@ -6808,6 +6867,19 @@
     showPanel('round', null);
   }
 
+  function currentRoundSnapshot() {
+    if (!isRoundActive()) return null;
+    return {
+      id: roundState.docId,
+      courseId: roundState.courseId,
+      teeName: roundState.teeName,
+      currentHoleIndex: roundState.holeIndex || 0,
+      scores: roundState.scores || {},
+      startTime: roundState.started,
+      dateKey: roundState.dateKey
+    };
+  }
+
   // Reset roundState in memory (does not delete from Firestore).
   function clearRoundState() {
     roundState.docId = null;
@@ -7043,7 +7115,9 @@
   // End the round early — flip to completed if any holes were played,
   // or delete entirely if zero holes had scores entered.
   async function endRoundEarly() {
-    const playedCount = Object.keys(roundState.scores).length;
+    const activeRound = currentRoundSnapshot();
+    if (!activeRound) return;
+    const playedCount = Object.keys(activeRound.scores || {}).length;
     if (playedCount === 0) {
       if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
       await abandonCurrentRound();
@@ -7071,7 +7145,35 @@
   // ─────────────────────────────────────────────────────────────
   // Play landing — dynamic content (resume banner, stats, recent rounds)
   // ─────────────────────────────────────────────────────────────
+  function renderPlayHeroCard() {
+    const titleEl = document.getElementById('play-hero-title');
+    const subEl = document.getElementById('play-hero-sub');
+    const primaryBtn = document.getElementById('play-hero-primary-btn');
+    if (!titleEl || !subEl || !primaryBtn) return;
+
+    const inProgress = findInProgressRound();
+    if (!inProgress) {
+      titleEl.innerHTML = 'Start a <em>Round</em>';
+      subEl.textContent = `Track your scores and putts hole by hole. Save the round to your history when you're done.`;
+      primaryBtn.textContent = 'Start a Round →';
+      primaryBtn.onclick = () => showPanel('courses', null);
+      return;
+    }
+
+    const course = getCourse(inProgress.courseId);
+    const courseName = course ? course.name : (inProgress.courseName || 'Round');
+    const teeName = inProgress.teeName ? ` · ${inProgress.teeName}` : '';
+    const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
+    const totalHoles = course ? course.holes.length : 18;
+
+    titleEl.innerHTML = 'Continue <em>Round</em>';
+    subEl.textContent = `${courseName}${teeName} · ${holesPlayed}/${totalHoles} holes played`;
+    primaryBtn.textContent = 'Continue Round →';
+    primaryBtn.onclick = () => resumeActiveRound();
+  }
+
   function renderPlayLanding() {
+    renderPlayHeroCard();
     renderResumeBanner();
     renderPlayStats();
     renderRecentRounds();
@@ -7122,17 +7224,42 @@
     resumeRound(inProgress);
   }
 
-  // End the active round from the banner button. Routes the user to the
-  // round screen first so they can see what they're ending — then they
-  // tap "End Round Early" with full context. Less destructive than a
-  // banner-level "are you sure" that strips that context.
-  function endActiveRoundFromBanner() {
+  // Wire full-banner click behavior for workout + round banners.
+  const workoutBanner = document.getElementById('session-banner');
+  if (workoutBanner) {
+    workoutBanner.addEventListener('click', (event) => onBannerClick(event, resumeSession));
+  }
+  const roundBanner = document.getElementById('round-banner');
+  if (roundBanner) {
+    roundBanner.addEventListener('click', (event) => onBannerClick(event, resumeActiveRound));
+  }
+
+  // End the active round from the banner button with the same confirmation
+  // flow used in the round screen's "End Round Early" action.
+  async function endActiveRoundFromBanner() {
     const inProgress = findInProgressRound();
     if (!inProgress) {
       document.body.classList.remove('round-active');
       return;
     }
-    resumeRound(inProgress);
+    // If we're already in the live round, prefer in-memory state so any
+    // unsaved hole edits in this view are included in the confirmation count.
+    const activeRound = currentRoundSnapshot();
+    if (activeRound && activeRound.id === inProgress.id) {
+      await endRoundEarly();
+      return;
+    }
+
+    // Not currently on the round view: hydrate state from cached doc so the
+    // standard end flow can run without first navigating to the round screen.
+    roundState.docId = inProgress.id;
+    roundState.courseId = inProgress.courseId;
+    roundState.teeName = inProgress.teeName;
+    roundState.holeIndex = inProgress.currentHoleIndex || 0;
+    roundState.scores = inProgress.scores || {};
+    roundState.started = inProgress.startTime;
+    roundState.dateKey = inProgress.dateKey;
+    await endRoundEarly();
   }
 
   // Resume by id — used elsewhere (e.g. older deep-link callers).
@@ -7301,15 +7428,37 @@
         if (!hd || !e) return '';
         const diff = e.strokes - hd.par;
         let cls = 'par';
-        if (diff <= -1) cls = 'birdie';
-        else if (diff === 0) cls = 'par';
-        else if (diff === 1) cls = 'bogey';
-        else cls = 'over';
+        let markCls = '';
+        let markLabel = '';
+        if (diff <= -2) {
+          cls = 'eagle';
+          markCls = 'score-mark-eagle';
+          markLabel = diff === -2 ? 'Eagle' : 'Albatross';
+        } else if (diff === -1) {
+          cls = 'birdie';
+          markCls = 'score-mark-birdie';
+          markLabel = 'Birdie';
+        } else if (diff === 0) {
+          cls = 'par';
+        } else if (diff === 1) {
+          cls = 'bogey';
+          markCls = 'score-mark-bogey';
+          markLabel = 'Bogey';
+        } else if (diff === 2) {
+          cls = 'doublebogey';
+          markCls = 'score-mark-doublebogey';
+          markLabel = 'Double Bogey';
+        } else {
+          cls = 'over';
+        }
+        const scoreMarkup = markCls
+          ? `<strong class="score-mark ${markCls}" aria-label="${markLabel}">${e.strokes}</strong>`
+          : `<strong>${e.strokes}</strong>`;
         return `
           <tr class="rs-hole-${cls}">
             <td>${hn}</td>
             <td>${hd.par}</td>
-            <td><strong>${e.strokes}</strong></td>
+            <td>${scoreMarkup}</td>
             <td>${e.putts ?? '—'}</td>
           </tr>`;
       }).join('');
@@ -7343,6 +7492,12 @@
 
       ${holeRows ? `
         <div class="round-summary-section-label">Hole by Hole</div>
+        <div class="round-summary-legend" aria-label="Scorecard markings legend">
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-birdie">4</span><span>Birdie</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-eagle">3</span><span>Eagle</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-bogey">5</span><span>Bogey</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-doublebogey">6</span><span>Double Bogey</span></div>
+        </div>
         <div class="round-summary-table-wrap">
           <table class="round-summary-table">
             <thead>
