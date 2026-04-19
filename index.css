@@ -2365,6 +2365,15 @@
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+  .modal-btn-danger {
+    background: var(--color-orange-dark);
+    color: var(--color-white);
+    border-color: var(--color-orange-dark);
+  }
+  .modal-btn-danger:hover {
+    background: #8d2f07;
+    border-color: #8d2f07;
+  }
   .modal-btn-ghost {
     background: transparent;
     color: var(--text-secondary);
@@ -2373,6 +2382,14 @@
   .modal-btn-ghost:hover {
     color: var(--text-primary);
     border-color: var(--color-black-60);
+  }
+  .modal-confirm {
+    max-width: 520px;
+  }
+  .modal-confirm-body {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
   }
   @media (max-width: 560px) {
     .modal-backdrop { padding: 0; align-items: flex-end; }

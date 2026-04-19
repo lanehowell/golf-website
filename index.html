@@ -964,6 +964,24 @@
   </div>
 </div>
 
+<!-- ROUND DELETE CONFIRM MODAL -->
+<div class="modal-backdrop" id="round-delete-modal" onclick="if(event.target===this) closeRoundDeleteModal()">
+  <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="round-delete-title">
+    <div class="modal-header">
+      <div class="modal-eyebrow">Delete Round</div>
+      <h3 class="modal-title" id="round-delete-title">Delete this round?</h3>
+      <div class="modal-sub">This action cannot be undone.</div>
+    </div>
+    <div class="modal-body modal-confirm-body">
+      This removes the round from your history and summary permanently.
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-ghost" onclick="closeRoundDeleteModal()">Cancel</button>
+      <button class="modal-btn modal-btn-danger" id="round-delete-confirm-btn" onclick="confirmRoundDelete()">Delete round</button>
+    </div>
+  </div>
+</div>
+
 <!-- FIREBASE: loaded as ES modules from CDN. Kept separate from the main
      app script below so that module scoping doesn't interfere with the
      global function names used by inline onclick handlers. -->

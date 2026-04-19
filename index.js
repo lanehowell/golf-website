@@ -2383,15 +2383,43 @@
 
       <div class="round-summary-actions">
         <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>
-        <button class="round-summary-delete" onclick="deleteRoundFromSummary('${round.id}')">Delete this round</button>
+        <button class="round-summary-delete" onclick="promptDeleteRound('${round.id}')">Delete this round</button>
       </div>
     `;
+  }
+
+  // Round deletion confirm modal state.
+  let pendingRoundDeleteId = null;
+
+  function promptDeleteRound(roundId) {
+    pendingRoundDeleteId = roundId;
+    const modal = document.getElementById('round-delete-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    const confirmBtn = document.getElementById('round-delete-confirm-btn');
+    if (confirmBtn) confirmBtn.focus();
+  }
+
+  function closeRoundDeleteModal() {
+    pendingRoundDeleteId = null;
+    const modal = document.getElementById('round-delete-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+  }
+
+  async function confirmRoundDelete() {
+    if (!pendingRoundDeleteId) {
+      closeRoundDeleteModal();
+      return;
+    }
+    const roundId = pendingRoundDeleteId;
+    closeRoundDeleteModal();
+    await deleteRoundFromSummary(roundId);
   }
 
   // Delete a completed round from the summary screen. After deletion,
   // navigate back to Play landing — there's no round left to summarize.
   async function deleteRoundFromSummary(roundId) {
-    if (!confirm('Delete this round? This cannot be undone.')) return;
     if (currentUser && window.fb) {
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
