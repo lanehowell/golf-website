@@ -1748,15 +1748,16 @@
   }
 
   /* Outer container — a floating pill centered near the bottom of the
-     viewport. Desktop: sits with margins all around, fully rounded.
-     Mobile: flush to the bottom edge, only top corners rounded —
-     acts more like a bottom-anchored bar for thumb access. */
+     viewport. Always fully rounded (oval shape) with breathing room on
+     all sides, so it's clearly a discrete object separate from the
+     page content behind it. Fixed positioning means it stays pinned
+     to the viewport regardless of scroll. */
   .round-dock {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-    width: min(calc(100% - var(--space-6) * 2), 520px);
+    width: min(calc(100% - var(--space-5) * 2), 520px);
     z-index: var(--z-raised);
     background: var(--color-white);
     border: 1px solid var(--border-light);
@@ -2087,33 +2088,15 @@
     line-height: var(--leading-normal);
   }
 
-  /* Mobile tweaks for the dock — flush to the bottom edge for thumb
-     reach. The pill stays "floating" (shadow still applies) but sits
-     at the very bottom of the viewport instead of with a margin. Top
-     corners stay rounded; bottom corners flatten since there's no
-     gap below. */
+  /* Mobile tweaks for the dock — the pill keeps its floating, fully
+     rounded shape at all screen sizes (the base .round-dock rules
+     apply); only the inner content density changes for small viewports. */
   @media (max-width: 560px) {
     .round-dock {
-      left: 0;
-      right: 0;
-      bottom: 0;
-      transform: none;
-      width: 100%;
-      max-width: 100%;
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border-left: none;
-      border-right: none;
-      border-bottom: none;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      box-shadow: 0 -4px 16px rgba(13, 13, 13, 0.12);
-    }
-    .round-dock.expanded {
-      box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.2);
-    }
-    /* Content padding doesn't need the bottom-offset allowance now
-       that the dock is flush — just its collapsed height. */
-    #panel-round {
-      padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+      /* Slightly tighter horizontal margins on small screens so the pill
+         doesn't feel cramped, but still has breathing room on all sides
+         to read as a distinct floating object. */
+      width: calc(100% - var(--space-4) * 2);
     }
   }
 
