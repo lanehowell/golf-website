@@ -1805,61 +1805,10 @@
     font-weight: var(--weight-bold);
     font-size: var(--text-md);
   }
-  .score-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2.1rem;
-    min-height: 2.1rem;
-    padding: 0 var(--space-2);
-    line-height: 1;
-  }
-  .score-mark-birdie {
-    border: 2px solid #2D6E34;
-    border-radius: 50%;
-    color: #1F5B2B;
-  }
-  .score-mark-eagle {
-    border: 2px double #1F5B2B;
-    border-radius: 50%;
-    color: #1F5B2B;
-  }
-  .score-mark-bogey {
-    border: 2px solid var(--color-orange);
-    border-radius: 2px;
-    color: var(--color-orange-dark);
-  }
-  .score-mark-doublebogey {
-    border: 3px double var(--color-orange-dark);
-    border-radius: 2px;
-    color: var(--color-orange-dark);
-  }
-  .round-summary-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-  .round-summary-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-  }
-  .round-summary-legend-item .score-mark {
-    min-width: 1.5rem;
-    min-height: 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    font-weight: var(--weight-medium);
-  }
   /* Vs-par row coloring — subtle left border accent */
   .round-summary-table .rs-hole-birdie td:first-child { border-left: 3px solid #2D6E34; }
-  .round-summary-table .rs-hole-eagle td:first-child   { border-left: 3px solid #1F5B2B; }
   .round-summary-table .rs-hole-par td:first-child    { border-left: 3px solid var(--border-medium); }
   .round-summary-table .rs-hole-bogey td:first-child  { border-left: 3px solid var(--color-orange); }
-  .round-summary-table .rs-hole-doublebogey td:first-child { border-left: 3px solid var(--color-orange-dark); }
   .round-summary-table .rs-hole-over td:first-child   { border-left: 3px solid var(--color-orange-dark); }
 
   .round-summary-actions {
@@ -7428,37 +7377,15 @@
         if (!hd || !e) return '';
         const diff = e.strokes - hd.par;
         let cls = 'par';
-        let markCls = '';
-        let markLabel = '';
-        if (diff <= -2) {
-          cls = 'eagle';
-          markCls = 'score-mark-eagle';
-          markLabel = diff === -2 ? 'Eagle' : 'Albatross';
-        } else if (diff === -1) {
-          cls = 'birdie';
-          markCls = 'score-mark-birdie';
-          markLabel = 'Birdie';
-        } else if (diff === 0) {
-          cls = 'par';
-        } else if (diff === 1) {
-          cls = 'bogey';
-          markCls = 'score-mark-bogey';
-          markLabel = 'Bogey';
-        } else if (diff === 2) {
-          cls = 'doublebogey';
-          markCls = 'score-mark-doublebogey';
-          markLabel = 'Double Bogey';
-        } else {
-          cls = 'over';
-        }
-        const scoreMarkup = markCls
-          ? `<strong class="score-mark ${markCls}" aria-label="${markLabel}">${e.strokes}</strong>`
-          : `<strong>${e.strokes}</strong>`;
+        if (diff <= -1) cls = 'birdie';
+        else if (diff === 0) cls = 'par';
+        else if (diff === 1) cls = 'bogey';
+        else cls = 'over';
         return `
           <tr class="rs-hole-${cls}">
             <td>${hn}</td>
             <td>${hd.par}</td>
-            <td>${scoreMarkup}</td>
+            <td><strong>${e.strokes}</strong></td>
             <td>${e.putts ?? '—'}</td>
           </tr>`;
       }).join('');
@@ -7492,12 +7419,6 @@
 
       ${holeRows ? `
         <div class="round-summary-section-label">Hole by Hole</div>
-        <div class="round-summary-legend" aria-label="Scorecard markings legend">
-          <div class="round-summary-legend-item"><span class="score-mark score-mark-birdie">4</span><span>Birdie</span></div>
-          <div class="round-summary-legend-item"><span class="score-mark score-mark-eagle">3</span><span>Eagle</span></div>
-          <div class="round-summary-legend-item"><span class="score-mark score-mark-bogey">5</span><span>Bogey</span></div>
-          <div class="round-summary-legend-item"><span class="score-mark score-mark-doublebogey">6</span><span>Double Bogey</span></div>
-        </div>
         <div class="round-summary-table-wrap">
           <table class="round-summary-table">
             <thead>
