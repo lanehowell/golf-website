@@ -3773,6 +3773,12 @@
     display: none;
   }
 
+  /* Live round should feel immersive across viewports: hide the persistent
+     desktop tab bar while the Round panel is open. */
+  body[data-current-panel="round"] .training-nav {
+    display: none;
+  }
+
   /* Custom property for mobile shell dimensions — reused across elements
      so everything stays aligned when padding/heights change. */
   :root {
@@ -3792,6 +3798,10 @@
     body {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-bottom: calc(var(--mobile-bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    }
+    /* In live Round mode we hide the bottom nav to keep focus on score entry. */
+    body[data-current-panel="round"] {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     body.session-active {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
@@ -3919,6 +3929,9 @@
       border-top: 1px solid var(--border-light);
       z-index: var(--z-dropdown);
       box-shadow: 0 -2px 12px rgba(13, 13, 13, 0.04);
+    }
+    body[data-current-panel="round"] .mobile-bottomnav {
+      display: none;
     }
     .mobile-navitem {
       background: transparent;

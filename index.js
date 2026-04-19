@@ -473,7 +473,8 @@
     // Play sub-pages
     courses:         'play',
     'course-detail': 'courses',
-    round:           'course-detail',
+    // Live round is an immersive mode; back exits to the main Play screen.
+    round:           'play',
     // Summary is a terminal screen — back goes to Play landing, not the
     // (now-completed) round screen which has no state to show anymore.
     'round-summary': 'play',
