@@ -5394,6 +5394,62 @@
      inside a wrapper div (#social-feed-mount), so it's always technically
      "last child" of its wrapper, which collapsed its bottom margin and
      jammed it against the friends list below. */
+
+  /* Section title row — title on the left, inline controls (e.g. the
+     feed filter toggle) on the right. Shared pattern with the Profile
+     page's section title rows. */
+  .social-section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .social-section-title-row .social-section-title {
+    /* Inside the title row, the title element drops its own margin/border
+       so the row's border provides the divider. */
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  /* Segmented toggle for filtering the feed (All vs. Friends only) */
+  .feed-filter-toggle {
+    display: inline-flex;
+    background: var(--color-cream-200);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    padding: 2px;
+    gap: 2px;
+  }
+  .feed-filter-btn {
+    background: transparent;
+    border: none;
+    padding: 4px var(--space-3);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+  }
+  .feed-filter-btn:hover {
+    color: var(--text-primary);
+  }
+  .feed-filter-btn.active {
+    background: var(--color-white);
+    color: var(--color-orange);
+    box-shadow: var(--shadow-xs);
+  }
+  @media (max-width: 480px) {
+    .feed-filter-btn { padding: 4px var(--space-2); font-size: 0.65rem; }
+  }
   .social-section-title {
     display: flex;
     align-items: baseline;
@@ -10241,6 +10297,19 @@
     usernameChangedAt: null,     // ms timestamp; enforces 7-day cooldown between changes
   };
   let prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+  // Whether preferences have been loaded from Firestore for the currently
+  // signed-in user. Starts false; flips true after loadPreferences() finishes
+  // (even if the user has no saved prefs yet — we've still "loaded" and know
+  // the answer). Used by savePreferences as a safety gate: we don't want to
+  // persist an in-memory `prefs` object if we haven't heard back from the
+  // server yet, because that would overwrite real data with defaults.
+  //
+  // This catches a specific race: on page reload, the UI renders before the
+  // auth/load cycle completes. If a user interacted with the schedule grid
+  // or another settings control before loadPreferences() finished, saving
+  // that change would write defaults to Firestore, clobbering username, bag,
+  // etc. Been there, done that — hence the gate.
+  let prefsLoaded = false;
   // Local working copy of the schedule that the user can edit without
   // immediately persisting. Cell taps mutate this; a "Save" / "Discard" bar
   // appears when it diverges from prefs.scheduleOverride. The Today card,
@@ -10263,10 +10332,16 @@
   }
 
   async function loadPreferences() {
+    // Reset the loaded flag until this call completes. Prevents a save from
+    // slipping in during the load window and overwriting the server state
+    // with whatever's in memory at that moment.
+    prefsLoaded = false;
     if (!currentUser || !window.fb) {
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       resetPendingSchedule();
       applyTheme();
+      // Not signed in — nothing to save to, so "loaded" is vacuously true.
+      prefsLoaded = true;
       return;
     }
     try {
@@ -10282,9 +10357,12 @@
       } else {
         prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       }
+      prefsLoaded = true;
     } catch (err) {
       console.error('Failed to load preferences:', err);
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      // Leave prefsLoaded as false — don't risk writing defaults to a doc
+      // we couldn't read. User will need to retry by reloading.
     }
     resetPendingSchedule();
     applyTheme();
@@ -10327,6 +10405,16 @@
 
   async function savePreferences() {
     if (!currentUser || !window.fb) return false;
+    // CRITICAL safety gate: refuse to persist prefs if we haven't yet
+    // loaded the user's document from Firestore. Without this check, a
+    // save triggered before loadPreferences completed would overwrite
+    // real server data with the in-memory defaults. This happened once
+    // and wiped a username + bag — not again.
+    if (!prefsLoaded) {
+      console.warn('Refusing to savePreferences — prefs not yet loaded from server');
+      showToast('Still loading, try again in a moment', true);
+      return false;
+    }
     try {
       const path = `users/${currentUser.uid}/preferences/main`;
       await window.fb.setDoc(path, prefs);
@@ -11511,6 +11599,8 @@
       sentRequestUids = new Set();
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      // Not signed in — vacuously "loaded" (no doc to read)
+      prefsLoaded = true;
       applyTheme();
     }
     // Re-render any panels affected by these changes
@@ -13893,6 +13983,7 @@
     feed: [],               // merged activity feed: friends' + own rounds
     feedLoading: false,     // true while loading
     feedLoaded: false,      // true once at least one load has completed
+    feedFilter: 'all',      // 'all' | 'friends' — whether to include my own rounds
     // Inline-expanded feed cards: Map keyed by "authorUid|roundId" so each
     // card's expansion state is independent. Value shape:
     //   { loading, comments: [], draft: '', posting }
@@ -14081,33 +14172,81 @@
     if (socialState.feedLoading && !socialState.feedLoaded) {
       return `
         <div class="social-section">
-          <div class="social-section-title">Feed</div>
+          <div class="social-section-title-row">
+            <div class="social-section-title">Feed</div>
+            ${renderFeedFilterToggle()}
+          </div>
           <div class="social-feed-loading">
             <div class="spinner"></div>
             <div class="social-feed-loading-text">Loading recent rounds…</div>
           </div>
         </div>`;
     }
-    if (socialState.feed.length === 0) {
-      // Empty feed — different messaging depending on whether you have friends
+    // Apply filter: 'all' shows everything, 'friends' hides my own rounds.
+    const filtered = socialState.feedFilter === 'friends'
+      ? socialState.feed.filter(r => r._authorUid !== currentUser?.uid)
+      : socialState.feed;
+
+    if (filtered.length === 0) {
+      // Different messaging for "no rounds at all" vs "filtered out"
       const hasFriends = friendsList.length > 0;
+      let title, sub;
+      if (socialState.feedFilter === 'friends' && socialState.feed.length > 0) {
+        // Filter is actively hiding everything
+        title = 'Only your rounds here';
+        sub = hasFriends
+          ? "Your friends haven't posted any public rounds yet. Toggle back to All to see your own."
+          : 'Add friends to see their rounds here.';
+      } else if (hasFriends) {
+        title = 'No rounds yet';
+        sub = 'Your friends haven\'t posted any public rounds yet. Check back after your next round together.';
+      } else {
+        title = 'Your feed is quiet';
+        sub = 'Add friends above to see their rounds here. Your own public rounds will appear here too.';
+      }
       return `
         <div class="social-section">
-          <div class="social-section-title">Feed</div>
+          <div class="social-section-title-row">
+            <div class="social-section-title">Feed</div>
+            ${renderFeedFilterToggle()}
+          </div>
           <div class="social-empty-block">
-            <div class="social-empty-title">${hasFriends ? 'No rounds yet' : 'Your feed is quiet'}</div>
-            <div class="social-empty-sub">${hasFriends
-              ? 'Your friends haven\'t posted any public rounds yet. Check back after your next round together.'
-              : 'Add friends above to see their rounds here. Your own public rounds will appear here too.'}</div>
+            <div class="social-empty-title">${escapeHtml(title)}</div>
+            <div class="social-empty-sub">${escapeHtml(sub)}</div>
           </div>
         </div>`;
     }
-    const cards = socialState.feed.map(renderFeedCard).join('');
+    const cards = filtered.map(renderFeedCard).join('');
     return `
       <div class="social-section">
-        <div class="social-section-title">Feed</div>
+        <div class="social-section-title-row">
+          <div class="social-section-title">Feed</div>
+          ${renderFeedFilterToggle()}
+        </div>
         <div class="social-feed-list">${cards}</div>
       </div>`;
+  }
+
+  // Segmented toggle to switch between seeing all feed items (including
+  // your own rounds) vs. only friends' rounds. Useful for treating the
+  // feed as a "what have my friends been up to" view without your own
+  // activity dominating.
+  function renderFeedFilterToggle() {
+    const f = socialState.feedFilter;
+    return `
+      <div class="feed-filter-toggle">
+        <button class="feed-filter-btn ${f === 'all' ? 'active' : ''}"
+                onclick="setFeedFilter('all')">All</button>
+        <button class="feed-filter-btn ${f === 'friends' ? 'active' : ''}"
+                onclick="setFeedFilter('friends')">Friends only</button>
+      </div>`;
+  }
+
+  function setFeedFilter(mode) {
+    if (mode !== 'all' && mode !== 'friends') return;
+    if (socialState.feedFilter === mode) return;
+    socialState.feedFilter = mode;
+    renderSocialFeedOnly();
   }
 
   // A single feed card — round played by someone (you or a friend). The
