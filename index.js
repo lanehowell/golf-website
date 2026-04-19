@@ -2419,14 +2419,13 @@
 
   function promptDeleteRound(roundId) {
     pendingRoundDeleteId = roundId;
+    const roundIdToDelete = roundId;
     promptRoundDeleteModal({
       title: 'Delete this round?',
       sub: 'This action cannot be undone.',
       body: 'This removes the round from your history and summary permanently.',
       confirmLabel: 'Delete round',
       onConfirm: async () => {
-        if (!pendingRoundDeleteId) return;
-        const roundIdToDelete = pendingRoundDeleteId;
         pendingRoundDeleteId = null;
         await deleteRoundFromSummary(roundIdToDelete);
       }
