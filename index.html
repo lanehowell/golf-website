@@ -1814,6 +1814,21 @@
   .round-summary-actions {
     text-align: center;
   }
+  .round-summary-delete {
+    display: block;
+    margin: var(--space-5) auto 0;
+    background: none;
+    border: none;
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    transition: color var(--transition-fast);
+  }
+  .round-summary-delete:hover { color: var(--color-orange-dark); }
 
   /* ── Quick jump grid ──────────────────────────────────────── */
   .jump-grid {
@@ -1936,9 +1951,24 @@
     z-index: calc(var(--z-dropdown) + 1);
     box-shadow: 0 2px 8px var(--color-orange-glow);
   }
-  body.session-active .session-banner { display: block; }
+  body.session-active #session-banner { display: block; }
   body.session-active .training-nav {
     top: var(--session-banner-height, 52px);
+  }
+  /* Round banner shows when a golf round is in progress. Same visual as
+     session banner, toggled by a separate body class so workouts and
+     rounds can coexist (in theory; in practice the workout banner wins
+     the top slot since it's listed first in the DOM). */
+  body.round-active #round-banner { display: block; }
+  body.round-active .training-nav {
+    top: var(--session-banner-height, 52px);
+  }
+  /* If both are active, stack them — workout on top, round below. */
+  body.session-active.round-active #round-banner {
+    top: var(--session-banner-height, 52px);
+  }
+  body.session-active.round-active .training-nav {
+    top: calc(var(--session-banner-height, 52px) * 2);
   }
   .session-banner-inner {
     display: flex;
@@ -3773,6 +3803,12 @@
     body.session-active {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
     }
+    body.round-active {
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
+    }
+    body.session-active.round-active {
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
+    }
     /* Neutralize the heavy vertical padding desktop needed around main */
     .page-main { padding-block: var(--space-6) var(--space-6); }
     .panel { padding-top: var(--space-4); }
@@ -3787,6 +3823,18 @@
     }
     body.session-active .mobile-topbar {
       top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
+    }
+    body.round-active .mobile-topbar {
+      top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
+    }
+    body.round-active #round-banner {
+      top: env(safe-area-inset-top, 0px);
+    }
+    body.session-active.round-active #round-banner {
+      top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
+    }
+    body.session-active.round-active .mobile-topbar {
+      top: calc(var(--session-banner-height, 52px) * 2 + env(safe-area-inset-top, 0px));
     }
 
     /* --- Top title bar --- */
@@ -3996,6 +4044,23 @@
     <span class="session-banner-timer" id="session-timer">0:00</span>
     <button class="session-banner-btn" onclick="resumeSession()">Resume</button>
     <button class="session-banner-btn end" onclick="endSession()">End</button>
+  </div>
+</div>
+
+<!-- ROUND BANNER (shown when golf round in progress).
+     Reuses .session-banner styles for visual consistency; toggled by
+     body.round-active class. Hidden behind the workout banner if both
+     are simultaneously active (rare edge case). -->
+<div class="session-banner round-banner" id="round-banner">
+  <div class="session-banner-inner">
+    <span class="session-banner-pulse" aria-hidden="true"></span>
+    <div class="session-banner-info">
+      <span class="session-banner-label">Round in progress</span>
+      <span class="session-banner-title" id="round-banner-title">—</span>
+    </div>
+    <span class="session-banner-timer" id="round-banner-progress">—</span>
+    <button class="session-banner-btn" onclick="resumeActiveRound()">Resume</button>
+    <button class="session-banner-btn end" onclick="endActiveRoundFromBanner()">End</button>
   </div>
 </div>
 
@@ -4232,9 +4297,6 @@
 
     <!-- ═══════════════ PLAY ═══════════════ -->
     <section class="panel" id="panel-play">
-      <!-- Resume banner — populated when an in-progress round is detected -->
-      <div id="play-resume-mount"></div>
-
       <!-- Primary CTA — "Start a Round" hero card. Echoes the visual weight
            of the Today workout card so the most important action on this
            page is unmistakable. The Start button routes to course selection
@@ -5498,6 +5560,7 @@
   // ═════════════════════════════════════════════════════════════
   const session = {
     active: false,
+    docId: null,             // Firestore doc id for this session (set when started)
     dayId: null,             // 'day1' | 'day2' | 'day3'
     startTime: null,         // ms timestamp
     timerInterval: null,
@@ -5543,6 +5606,13 @@
     session.dayId = dayId;
     session.startTime = Date.now();
     session.logs = {};
+    // Stable Firestore doc id for the lifetime of this session. Same id is
+    // used for in-progress writes and the final completed record so they
+    // overwrite cleanly. Format mirrors completed: dateKey_dayId_startTime.
+    const d = new Date(session.startTime);
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    session.docId = `${dateKey}_${dayId}_${session.startTime}`;
     document.body.classList.add('session-active');
 
     // Set banner title
@@ -5569,6 +5639,8 @@
     updateProgress();
     startTimer();
     recalcBannerHeight();
+    // Persist the brand-new session so it's resumable on refresh
+    autoSaveSession();
     // Jump into the workout view
     showPanel(dayId, null);
   }
@@ -5616,6 +5688,7 @@
 
     // Capture the snapshot before we clear state, so saving can run after.
     const snapshot = {
+      docId: session.docId,
       dayId: session.dayId,
       startTime: session.startTime,
       logs: JSON.parse(JSON.stringify(session.logs))
@@ -5654,6 +5727,7 @@
     // Clear local session state
     clearInterval(session.timerInterval);
     session.active = false;
+    session.docId = null;
     session.dayId = null;
     session.startTime = null;
     session.logs = {};
@@ -5721,6 +5795,7 @@
     if (!session.logs[key]) session.logs[key] = { sets: [], done: false };
     session.logs[key].done = card.classList.contains('done');
     updateProgress();
+    autoSaveSession();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -5867,6 +5942,7 @@
         }
       });
     }
+    autoSaveSession();
     closeLog();
   }
 
@@ -6148,9 +6224,11 @@
     const uid = currentUser.uid;
     const dateKey = todayKey();
     const endTime = Date.now();
-    // Unique-per-session doc ID. Prefix keeps it sortable by date/day when
-    // scanning the collection, suffix guarantees uniqueness across same-day saves.
-    const docId = `${dateKey}_${sessionSnapshot.dayId}_${endTime}`;
+    // Stable doc id — start time + day. Lets us reuse the same doc if the
+    // session was previously auto-saved as in-progress (and we're now
+    // completing it). If there was no prior in-progress doc, this still
+    // works as a unique id.
+    const docId = sessionSnapshot.docId || `${dateKey}_${sessionSnapshot.dayId}_${sessionSnapshot.startTime}`;
     const path = `users/${uid}/sessions/${docId}`;
     const payload = {
       dayId: sessionSnapshot.dayId,
@@ -6158,7 +6236,8 @@
       startTime: sessionSnapshot.startTime,
       endTime,
       durationSeconds: Math.floor((endTime - sessionSnapshot.startTime) / 1000),
-      exercises: sessionSnapshot.logs
+      exercises: sessionSnapshot.logs,
+      status: 'completed'
     };
     await window.fb.setDoc(path, payload);
     return { docId, ...payload };
@@ -6176,14 +6255,113 @@
     try {
       const uid = currentUser.uid;
       const path = `users/${uid}/sessions`;
-      recentSessions = await window.fb.listDocs(path, {
-        orderBy: 'endTime',
+      const all = await window.fb.listDocs(path, {
+        orderBy: 'startTime',
         orderDir: 'desc',
         limit: 30
       });
+      // Filter: only show completed sessions in history. Legacy docs without
+      // a status field are treated as completed (they predate this feature).
+      recentSessions = all.filter(s => !s.status || s.status === 'completed');
     } catch (err) {
       console.error('Failed to load session history:', err);
       recentSessions = [];
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // In-progress session persistence — survives page refresh
+  // ─────────────────────────────────────────────────────────────
+  // Loads any in-progress workout from Firestore on auth-change. If found,
+  // restores the in-memory session object so the user can resume seamlessly.
+
+  async function loadInProgressSession() {
+    if (!currentUser || !window.fb) return null;
+    try {
+      const uid = currentUser.uid;
+      const all = await window.fb.listDocs(`users/${uid}/sessions`, {
+        orderBy: 'startTime',
+        orderDir: 'desc',
+        limit: 5  // small — there should never be more than one in-progress
+      });
+      return all.find(s => s.status === 'in-progress') || null;
+    } catch (err) {
+      console.error('Failed to load in-progress session:', err);
+      return null;
+    }
+  }
+
+  // Restore an in-progress session into the live `session` object + UI.
+  // Mirrors what beginSession does, minus the setDoc (the doc already exists).
+  function restoreInProgressSession(doc) {
+    if (!doc) return;
+    if (session.timerInterval) clearInterval(session.timerInterval);
+    session.active = true;
+    session.docId = doc.id;
+    session.dayId = doc.dayId;
+    session.startTime = doc.startTime;
+    session.logs = doc.exercises || {};
+    document.body.classList.add('session-active');
+
+    // Set banner title
+    const titleEl = document.getElementById('session-title');
+    if (titleEl) titleEl.textContent = getDayTitle(doc.dayId);
+
+    // Mark the active day panel + progress bar
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('session-day'));
+    const dayPanel = document.getElementById('panel-' + doc.dayId);
+    if (dayPanel) dayPanel.classList.add('session-day');
+    document.querySelectorAll('.session-progress').forEach(p => p.removeAttribute('data-active-day'));
+    const progressEl = document.getElementById('progress-' + doc.dayId);
+    if (progressEl) progressEl.setAttribute('data-active-day', 'true');
+
+    // Reflect set/done state on the cards
+    if (dayPanel) {
+      dayPanel.querySelectorAll('.ex-card').forEach(card => {
+        const name = exerciseKey(card);
+        const entry = session.logs[name];
+        card.classList.remove('done', 'open');
+        if (entry?.done) card.classList.add('done');
+        const btn = card.querySelector('.ex-log-btn');
+        if (btn) {
+          const hasData = Array.isArray(entry?.sets) && entry.sets.some(s => s && (s.weight || s.reps || s.notes));
+          btn.classList.toggle('has-logs', !!hasData);
+        }
+      });
+    }
+
+    updateProgress();
+    startTimer();
+    recalcBannerHeight();
+  }
+
+  // Auto-save the current session to Firestore as in-progress. Fired after
+  // every meaningful state change (set logged, exercise marked done).
+  // Silent on success; logs on failure. Uses the same docId for the entire
+  // life of the session so ending it overwrites the same record.
+  async function autoSaveSession() {
+    if (!currentUser || !window.fb) return;
+    if (!session.active || !session.docId) return;
+    const uid = currentUser.uid;
+    const path = `users/${uid}/sessions/${session.docId}`;
+    const dateKey = (() => {
+      const d = new Date(session.startTime);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    })();
+    const payload = {
+      dayId: session.dayId,
+      dateKey,
+      startTime: session.startTime,
+      endTime: null,
+      durationSeconds: 0,
+      exercises: session.logs,
+      status: 'in-progress'
+    };
+    try {
+      await window.fb.setDoc(path, payload);
+    } catch (err) {
+      console.error('Failed to auto-save session:', err);
     }
   }
 
@@ -6258,6 +6436,8 @@
       const cached = { id: roundState.docId, ...payload };
       if (existing >= 0) recentRounds[existing] = cached;
       else recentRounds.unshift(cached);
+      // Keep the global banner in sync with the latest progress
+      updateRoundBanner();
     } catch (err) {
       console.error('Failed to auto-save round:', err);
     }
@@ -6302,8 +6482,18 @@
   // When sign-in completes, load preferences AND recent history into cache.
   window.addEventListener('fb-auth-changed', async (e) => {
     if (e.detail) {
-      // Signed in — load their data in parallel for snappier startup
-      await Promise.all([loadPreferences(), loadRecentSessions(), loadRecentRounds()]);
+      // Signed in — load their data in parallel for snappier startup.
+      // loadInProgressSession runs alongside so if a workout was left
+      // running (browser closed, refresh mid-session) we restore it.
+      const [, , , inProgressSession] = await Promise.all([
+        loadPreferences(),
+        loadRecentSessions(),
+        loadRecentRounds(),
+        loadInProgressSession()
+      ]);
+      if (inProgressSession) {
+        restoreInProgressSession(inProgressSession);
+      }
     } else {
       // Signed out — clear caches and revert to default prefs
       recentSessions = [];
@@ -6642,6 +6832,7 @@
         console.error('Failed to delete abandoned round:', err);
       }
     }
+    updateRoundBanner();
     renderPlayLanding();
   }
 
@@ -6679,6 +6870,7 @@
         return false;
       }
     }
+    updateRoundBanner();
     return true;
   }
 
@@ -6885,41 +7077,65 @@
     renderRecentRounds();
   }
 
-  // Resume banner: shows when an in-progress round exists in Firestore.
-  // Tap → resume that round (loads its state and routes to round screen).
-  // The X dismiss-and-discard button is intentionally explicit — better
-  // to make the user confirm than to silently lose data.
+  // Round banner — global top bar mirroring the workout session banner.
+  // Toggled via body.round-active. Visible from any panel, not just Play.
+  // Also clears the (now-deleted) in-Play resume mount in case any older
+  // markup remains so we don't double up.
   function renderResumeBanner() {
     const mount = document.getElementById('play-resume-mount');
-    if (!mount) return;
+    if (mount) mount.innerHTML = '';
+    updateRoundBanner();
+  }
+
+  // Show or hide the global round banner based on whether an in-progress
+  // round exists. Reads from recentRounds (Firestore-backed cache) so it
+  // works on cold load + after auth + after every save.
+  function updateRoundBanner() {
+    const banner = document.getElementById('round-banner');
+    const titleEl = document.getElementById('round-banner-title');
+    const progressEl = document.getElementById('round-banner-progress');
+    if (!banner || !titleEl || !progressEl) return;
+
     const inProgress = findInProgressRound();
     if (!inProgress) {
-      mount.innerHTML = '';
+      document.body.classList.remove('round-active');
       return;
     }
     const course = getCourse(inProgress.courseId);
     const courseName = course ? course.name : (inProgress.courseName || 'Round');
+    const teeName = inProgress.teeName || '';
     const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
     const totalHoles = course ? course.holes.length : 18;
-    mount.innerHTML = `
-      <div class="play-resume">
-        <div class="play-resume-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <div class="play-resume-body">
-          <div class="play-resume-title">Round in progress</div>
-          <div class="play-resume-meta">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')} · Through ${holesPlayed} of ${totalHoles}</div>
-        </div>
-        <button class="play-resume-btn" onclick="resumeRoundById('${inProgress.id}')">Resume →</button>
-        <button class="play-resume-discard" onclick="discardInProgressRound('${inProgress.id}')" aria-label="Discard in-progress round">×</button>
-      </div>`;
+    titleEl.textContent = teeName ? `${courseName} · ${teeName}` : courseName;
+    progressEl.textContent = `${holesPlayed}/${totalHoles}`;
+    document.body.classList.add('round-active');
   }
 
-  // Resume by id — used by the banner button. Looks up the round in
-  // recentRounds and loads it into roundState.
+  // Resume the active in-progress round from the banner button.
+  function resumeActiveRound() {
+    const inProgress = findInProgressRound();
+    if (!inProgress) {
+      showToast('No round to resume', true);
+      document.body.classList.remove('round-active');
+      return;
+    }
+    resumeRound(inProgress);
+  }
+
+  // End the active round from the banner button. Routes the user to the
+  // round screen first so they can see what they're ending — then they
+  // tap "End Round Early" with full context. Less destructive than a
+  // banner-level "are you sure" that strips that context.
+  function endActiveRoundFromBanner() {
+    const inProgress = findInProgressRound();
+    if (!inProgress) {
+      document.body.classList.remove('round-active');
+      return;
+    }
+    resumeRound(inProgress);
+  }
+
+  // Resume by id — used elsewhere (e.g. older deep-link callers).
   function resumeRoundById(roundId) {
     const round = recentRounds.find(r => r.id === roundId);
     if (!round) {
@@ -6929,7 +7145,9 @@
     resumeRound(round);
   }
 
-  // Discard an in-progress round from the resume banner.
+  // Discard an in-progress round (kept for compatibility with any older
+  // callers; the canonical "end" path now goes through endActiveRoundFromBanner
+  // → round screen → End Round Early).
   async function discardInProgressRound(roundId) {
     if (!confirm('Discard this in-progress round? It will be deleted permanently.')) return;
     if (currentUser && window.fb) {
@@ -6942,7 +7160,6 @@
         return;
       }
     }
-    // If this happened to be the active round in memory, clear that too
     if (roundState.docId === roundId) clearRoundState();
     renderPlayLanding();
   }
@@ -7138,8 +7355,29 @@
 
       <div class="round-summary-actions">
         <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>
+        <button class="round-summary-delete" onclick="deleteRoundFromSummary('${round.id}')">Delete this round</button>
       </div>
     `;
+  }
+
+  // Delete a completed round from the summary screen. After deletion,
+  // navigate back to Play landing — there's no round left to summarize.
+  async function deleteRoundFromSummary(roundId) {
+    if (!confirm('Delete this round? This cannot be undone.')) return;
+    if (currentUser && window.fb) {
+      try {
+        await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
+        recentRounds = recentRounds.filter(r => r.id !== roundId);
+      } catch (err) {
+        console.error('Failed to delete round:', err);
+        showToast('Delete failed — see console', true);
+        return;
+      }
+    }
+    roundSummaryState.roundId = null;
+    showToast('Round deleted');
+    renderPlayLanding();
+    showPanel('play', null);
   }
 
   // Schedule section: a grid of [workout-row × weekday-column] toggles
