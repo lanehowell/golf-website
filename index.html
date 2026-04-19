@@ -10310,6 +10310,77 @@
   // that change would write defaults to Firestore, clobbering username, bag,
   // etc. Been there, done that — hence the gate.
   let prefsLoaded = false;
+
+  // ─── Cached prefs (localStorage) ──────────────────────────────
+  // Firestore load is async — on page reload, the UI would render with
+  // DEFAULT_PREFS (showing "Rest Day" on workout days, empty bag, no
+  // username) for a few hundred ms until the server responds. To avoid
+  // that flicker we cache the last-known prefs per uid in localStorage.
+  //
+  // Keyed by uid so signing in as a different account doesn't flash the
+  // previous user's data. Safe because localStorage is scoped to the
+  // origin, not to the signed-in Firebase user — the cache survives sign
+  // out and another sign-in, and we pick the right one by looking up
+  // the uid from the most recent session.
+  const PREFS_CACHE_PREFIX = 'golfapp.prefs.';
+  const LAST_UID_KEY = 'golfapp.lastUid';
+
+  function readCachedPrefs(uid) {
+    if (!uid) return null;
+    try {
+      const raw = localStorage.getItem(PREFS_CACHE_PREFIX + uid);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Merge with defaults so any field added since the cache was written
+      // fills in correctly. Without this, older caches could render with
+      // `undefined` where new fields exist.
+      return {
+        ...JSON.parse(JSON.stringify(DEFAULT_PREFS)),
+        ...parsed,
+        scheduleOverride: parsed.scheduleOverride || DEFAULT_PREFS.scheduleOverride,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeCachedPrefs(uid, data) {
+    if (!uid) return;
+    try {
+      localStorage.setItem(PREFS_CACHE_PREFIX + uid, JSON.stringify(data));
+      localStorage.setItem(LAST_UID_KEY, uid);
+    } catch (e) {
+      // localStorage can fail in private browsing, quota exceeded, etc.
+      // Non-fatal — we just lose the flicker-free experience this session.
+    }
+  }
+
+  function getLastUid() {
+    try {
+      return localStorage.getItem(LAST_UID_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Synchronous seed from cache at module load. If the user had a session,
+  // their last-known prefs (including schedule, bag, username) get applied
+  // to the `prefs` object before any render fires. Firebase Auth will
+  // asynchronously restore the same user a moment later, and loadPreferences
+  // will replace the cache with fresh server data. If the auth restoration
+  // yields a DIFFERENT user (rare — only if someone signed out of Google),
+  // loadPreferences clears the cache and the UI snaps to the new user's data.
+  (function seedFromCache() {
+    const lastUid = getLastUid();
+    const cached = readCachedPrefs(lastUid);
+    if (cached) {
+      prefs = cached;
+      // Do NOT set prefsLoaded = true — we haven't confirmed with the server
+      // yet, and we don't want to allow writes based on stale cached data.
+      // The cache is for RENDER only; SAVE still waits for the server.
+    }
+  })();
+
   // Local working copy of the schedule that the user can edit without
   // immediately persisting. Cell taps mutate this; a "Save" / "Discard" bar
   // appears when it diverges from prefs.scheduleOverride. The Today card,
@@ -10344,6 +10415,20 @@
       prefsLoaded = true;
       return;
     }
+    // If the cached uid doesn't match the signed-in user (rare — only when
+    // someone signs out and a different account signs in on the same device),
+    // clear the stale entry so we don't keep serving the prior user's data
+    // on subsequent loads. We DON'T wipe the in-memory prefs here though —
+    // doing so would cause a flash of default state between render 1 (prior
+    // user's cached data) and render 3 (new user's server data). Better to
+    // keep the slightly-wrong cached data visible for the <1s until the
+    // server fetch lands than to flash a third intermediate state.
+    const lastUid = getLastUid();
+    if (lastUid && lastUid !== currentUser.uid) {
+      try {
+        localStorage.removeItem(PREFS_CACHE_PREFIX + lastUid);
+      } catch (e) {}
+    }
     try {
       const path = `users/${currentUser.uid}/preferences/main`;
       const data = await window.fb.getDoc(path);
@@ -10358,6 +10443,8 @@
         prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       }
       prefsLoaded = true;
+      // Refresh cache with server-authoritative data, keyed by this uid.
+      writeCachedPrefs(currentUser.uid, prefs);
     } catch (err) {
       console.error('Failed to load preferences:', err);
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
@@ -10418,6 +10505,9 @@
     try {
       const path = `users/${currentUser.uid}/preferences/main`;
       await window.fb.setDoc(path, prefs);
+      // Keep the local cache in sync with what we just persisted so the
+      // next page load starts from the latest state.
+      writeCachedPrefs(currentUser.uid, prefs);
       return true;
     } catch (err) {
       console.error('Failed to save preferences:', err);
@@ -11097,8 +11187,17 @@
   // Sync the public profile doc. Called when identity fields change
   // (username, display name, location, visibility) or when stats change
   // (new round completed — updates handicap, rounds count).
+  //
+  // Silently skipped if prefs or rounds aren't yet loaded — the derived
+  // doc (handicap, roundsPlayed) would be wrong otherwise. Better to
+  // delay the sync than to publish misleading stats; the next trigger
+  // (a round save, a preference change) will re-run it.
   async function syncPublicProfile() {
     if (!currentUser || !window.fb) return;
+    if (!prefsLoaded || !roundsLoaded) {
+      console.warn('Skipping syncPublicProfile — prefs or rounds not yet loaded');
+      return;
+    }
     const uid = currentUser.uid;
     const path = `publicProfiles/${uid}`;
     try {
@@ -11117,8 +11216,19 @@
   // flips profile visibility to public, so their history becomes visible
   // (not just rounds saved after the flip). Also runs on profile → private
   // to clear all public round mirrors.
+  // Bulk-sync all existing rounds to the public mirror. Used after the user
+  // flips profile visibility to public, so their history becomes visible
+  // (not just rounds saved after the flip). Also runs on profile → private
+  // to clear all public round mirrors.
+  //
+  // Gated behind roundsLoaded — iterating a half-loaded list would either
+  // miss rounds (false negatives in the public mirror) or throw.
   async function syncAllRoundsToPublic() {
     if (!currentUser || !window.fb) return;
+    if (!roundsLoaded) {
+      console.warn('Skipping syncAllRoundsToPublic — rounds not yet loaded');
+      return;
+    }
     const completed = (recentRounds || []).filter(r => r.status === 'completed');
     // Serial rather than parallel — easier on rate limits, and this only
     // runs on explicit visibility toggles (not every round save).
@@ -11391,6 +11501,12 @@
   // Cache of recent completed rounds, used to populate Recent Rounds on
   // the Play landing. Loaded on auth-change like sessions are.
   let recentRounds = [];
+  // Safety gate — see notes on prefsLoaded. Flipped true after the rounds
+  // load resolves (success or empty). Any operation that writes to Firestore
+  // using data DERIVED from recentRounds (e.g. toggling a round's visibility
+  // by re-saving the whole doc, or mirroring rounds to the public collection)
+  // must check this first.
+  let roundsLoaded = false;
 
   // ─────────────────────────────────────────────────────────────
   // Social cache — friends list and pending requests
@@ -11398,21 +11514,28 @@
   // Loaded on auth-change. Empty until the user signs in.
   let friendsList = [];       // Array of friend records
   let friendRequests = [];    // Array of incoming friend request records
+  // Safety gate for friends-dependent writes. Ensures we never e.g. remove
+  // a friend or accept a request based on a half-loaded friendsList.
+  let friendsLoaded = false;
   // Track which users I've sent requests to this session. Firestore rules
   // don't let me read my own sent requests (they live in the recipient's
   // inbox), so I remember them client-side to show "Request sent" state.
   let sentRequestUids = new Set();
 
   async function loadFriends() {
+    friendsLoaded = false;
     if (!currentUser || !window.fb) {
       friendsList = [];
+      friendsLoaded = true;
       return;
     }
     try {
       friendsList = await window.fb.listFriends(currentUser.uid);
+      friendsLoaded = true;
     } catch (err) {
       console.error('Failed to load friends:', err);
       friendsList = [];
+      // Leave friendsLoaded false — don't want writes based on an unknown list
     }
   }
 
@@ -11452,8 +11575,10 @@
   }
 
   async function loadRecentRounds() {
+    roundsLoaded = false;
     if (!currentUser || !window.fb) {
       recentRounds = [];
+      roundsLoaded = true;
       return;
     }
     try {
@@ -11466,9 +11591,12 @@
         orderDir: 'desc',
         limit: 30
       });
+      roundsLoaded = true;
     } catch (err) {
       console.error('Failed to load round history:', err);
       recentRounds = [];
+      // Leave roundsLoaded false — writes based on an unknown set of rounds
+      // could destroy data, so gate until a fresh reload succeeds.
     }
   }
 
@@ -11599,8 +11727,13 @@
       sentRequestUids = new Set();
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
-      // Not signed in — vacuously "loaded" (no doc to read)
+      // Not signed in — vacuously "loaded" (no doc to read). Setting these
+      // true rather than false because we don't want blocking toasts for
+      // signed-out users who can't be writing to Firestore anyway (the
+      // currentUser check short-circuits first).
       prefsLoaded = true;
+      roundsLoaded = true;
+      friendsLoaded = true;
       applyTheme();
     }
     // Re-render any panels affected by these changes
@@ -14540,6 +14673,10 @@
     if (!state) return;
     const text = (state.draft || '').trim();
     if (!text || state.posting) return;
+    if (!prefsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     const authorProfile = buildPublicProfileDoc();
     if (!authorProfile.username) {
       showToast('Set up your profile first', true);
@@ -14742,6 +14879,10 @@
   async function handleSendFriendRequest(recipientUid) {
     if (!currentUser) return;
     if (recipientUid === currentUser.uid) return;
+    if (!prefsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     if (!prefs.username) {
       showToast('Set up your profile first', true);
       return;
@@ -14771,6 +14912,10 @@
 
   async function handleAcceptRequest(senderUid) {
     if (!currentUser) return;
+    if (!prefsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     const req = friendRequests.find(r => r.from === senderUid);
     if (!req) return;
     try {
@@ -14963,6 +15108,10 @@
   // to Firestore. On failure, rollback the local add.
   async function postComment() {
     if (!canPostComment()) return;
+    if (!prefsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     const text = publicRoundState.commentDraft.trim();
     const ownerUid = publicRoundState.authorUid;
     const roundId = publicRoundState.roundId;
@@ -15776,6 +15925,13 @@
   // out (or back in) without changing profile-level settings. Writes the
   // updated visibility to Firestore and re-syncs the public mirror.
   async function toggleRoundPrivacy(roundId) {
+    // Safety gate — if rounds haven't loaded yet, the `round` object we'd
+    // pull from recentRounds might be undefined or stale. Writing that
+    // back to Firestore would corrupt real round data.
+    if (!roundsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     const round = (recentRounds || []).find(r => r.id === roundId);
     if (!round) return;
     // New state is the inverse of current effective visibility. We set an
@@ -16169,6 +16325,14 @@
   // release of old name, profile doc write, and bulk round mirroring.
   async function saveSocialEdit() {
     if (!canSaveSocialEdit()) return;
+    // Explicit guard — canSaveSocialEdit doesn't check prefsLoaded because
+    // the edit form uses `prefs` to seed the draft via enterSocialEdit, and
+    // if prefs weren't loaded the draft would be wrong, which would then
+    // overwrite real server data on save. Block the save outright here.
+    if (!prefsLoaded) {
+      showToast('Still loading, try again in a moment', true);
+      return;
+    }
     const d = socialEditState.draft;
     const uid = currentUser?.uid;
     if (!uid) return;
