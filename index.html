@@ -5560,11 +5560,6 @@
     <section class="panel" id="panel-round">
       <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div id="round-mount"></div>
-      <!-- Round tool dock — floating bottom bar with quick-access tools.
-           Fixed-positioned so it stays pinned while the round content scrolls.
-           Only visible when #panel-round is the active panel (display cascade
-           via .panel:not(.active) { display: none }). -->
-      <div id="round-dock-mount"></div>
     </section>
 
     <!-- ═══════════════ ROUND SUMMARY ═══════════════ -->
@@ -6186,6 +6181,14 @@
 <!-- TOAST for save confirmations -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- ROUND TOOL DOCK MOUNT — lives at the body level, not inside the round
+     panel, so it's not subject to transforms on ancestor elements (the
+     .panel has transform-based animations that create a new containing
+     block and would break position: fixed). The dock is only rendered
+     when the round panel is active; when it renders empty, there's
+     nothing visible. -->
+<div id="round-dock-mount"></div>
+
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
 <div class="confirm-backdrop" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" onclick="if(event.target===this) __confirmDialogResolve(false)">
@@ -6723,6 +6726,19 @@
     if (id === 'round-summary') renderRoundSummary();
     if (id === 'play') renderPlayLanding();
     if (id === 'bag') renderBagPage();
+
+    // If we just left the round panel, unmount the dock (it lives at
+    // the body level, outside #panel-round, so it doesn't auto-hide
+    // via display:none cascade). Also reset transient expand state.
+    if (id !== 'round') {
+      if (typeof dockState !== 'undefined') {
+        dockState.expanded = false;
+        dockState.activeTool = null;
+        dockState._animateNext = false;
+      }
+      const dockMount = document.getElementById('round-dock-mount');
+      if (dockMount) dockMount.innerHTML = '';
+    }
 
     // Scroll behavior — hero has been removed everywhere, so we just scroll
     // to the top on every panel switch. The sticky nav stays pinned at the
@@ -8908,9 +8924,20 @@
   }
 
   // Main dock render. Rebuilds the dock mount based on state.
+  // The mount lives at the body level (outside #panel-round) so it's
+  // not affected by the panel's transform-based slide animations.
+  // We gate rendering on currentPanelId: only paint the dock when the
+  // user is actually on the round panel, otherwise clear the mount.
   function renderRoundDock() {
     const mount = document.getElementById('round-dock-mount');
     if (!mount) return;
+
+    if (currentPanelId !== 'round') {
+      // Not on the round screen — clear the mount and bail. Also reset
+      // any lingering expanded state so the next visit starts collapsed.
+      if (mount.innerHTML) mount.innerHTML = '';
+      return;
+    }
 
     const surfaceHtml = dockState.expanded ? renderDockSurface() : '';
 
