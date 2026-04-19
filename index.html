@@ -1515,6 +1515,87 @@
   .round-btn-end { color: var(--text-muted); font-size: var(--text-xs); }
   .round-btn-end:hover { color: var(--color-orange-dark); }
 
+  /* FIR / GIR chip row — sits between strokes and putts steppers.
+     Two chips side by side; tap to toggle hit/miss. Par 3s: FIR chip
+     gets the .disabled state with an em-dash icon (no fairway to hit). */
+  .stat-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-3);
+    background: var(--bg-elevated);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stat-chip:active { transform: scale(0.97); }
+  .stat-chip-icon {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+  }
+  .stat-chip-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  /* Hit state — green accent (reuses alert-success palette) */
+  .stat-chip.hit {
+    background: #EFF8F0;
+    border-color: #88c891;
+  }
+  .stat-chip.hit .stat-chip-icon {
+    background: #2D6E34;
+    color: var(--color-white);
+  }
+  .stat-chip.hit .stat-chip-label {
+    color: #2D6E34;
+  }
+  /* Miss state — neutral cream with muted styling so it doesn't
+     read as error-angry. Missing a green isn't a failure, it's data. */
+  .stat-chip.miss {
+    background: var(--bg-elevated);
+    border-color: var(--border-medium);
+  }
+  .stat-chip.miss .stat-chip-icon {
+    background: var(--color-black-80);
+    color: var(--color-cream-50);
+  }
+  .stat-chip.miss .stat-chip-label {
+    color: var(--text-secondary);
+  }
+  /* Disabled state (par 3 FIR) — muted, non-tappable */
+  .stat-chip.disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+  }
+  .stat-chip.disabled .stat-chip-icon {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px dashed var(--border-medium);
+  }
+
   /* Mobile tweaks for round entry */
   @media (max-width: 480px) {
     .round-stepper-btn { width: 64px; }
@@ -1830,6 +1911,66 @@
   }
   .round-summary-delete:hover { color: var(--color-orange-dark); }
 
+  /* Ball-striking block — FIR/GIR percentage stats on the summary screen.
+     Two big percentage cards, same visual weight as the totals grid but
+     with the percentage as the hero and detail ("10 of 14") below. */
+  .round-summary-striking {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .striking-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-4);
+    text-align: center;
+  }
+  .striking-stat-pct {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: var(--space-1);
+  }
+  .striking-stat-pct span {
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--color-orange);
+    font-weight: var(--weight-medium);
+    margin-left: 2px;
+  }
+  .striking-stat-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
+  }
+  .striking-stat-detail {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* Hole-table FIR/GIR cell states — tiny visual cues in the scorecard */
+  .rs-cell-hit {
+    color: #2D6E34;
+    font-weight: var(--weight-bold);
+  }
+  .rs-cell-miss {
+    color: var(--color-orange-dark);
+    font-weight: var(--weight-bold);
+  }
+  .rs-cell-dim {
+    color: var(--text-muted);
+  }
+
   /* ── Quick jump grid ──────────────────────────────────────── */
   .jump-grid {
     display: grid;
@@ -1970,6 +2111,56 @@
   body.session-active.round-active .training-nav {
     top: calc(var(--session-banner-height, 52px) * 2);
   }
+
+  /* ── Round immersive mode ────────────────────────────────────
+     Toggled by body.round-immersive, added when the panel-round is
+     visible. Hides the nav chrome + round banner so scoring has the
+     entire screen. A floating close button replaces the back link to
+     exit without ending the round.
+     NOTE: this intentionally does NOT hide the workout session banner
+     — if both are active (rare), the workout banner stays visible. */
+  body.round-immersive .training-nav,
+  body.round-immersive .mobile-bottomnav,
+  body.round-immersive .mobile-topbar,
+  body.round-immersive #round-banner {
+    display: none !important;
+  }
+  /* Reclaim top padding on mobile since banner + topbar are gone */
+  body.round-immersive #panel-round {
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-4));
+  }
+  /* Close button — fixed, top-right of the screen. Always visible,
+     independent of scroll. */
+  .round-immersive-close {
+    display: none;
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
+    right: var(--space-3);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-medium);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-medium);
+    line-height: 1;
+    cursor: pointer;
+    z-index: var(--z-toast);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.round-immersive .round-immersive-close { display: flex; align-items: center; justify-content: center; }
+  .round-immersive-close:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .round-immersive-close:active { transform: scale(0.94); }
+  /* Hide the panel's own back-link in immersive mode — the floating
+     close button replaces it and serves the same purpose. */
+  body.round-immersive #panel-round > .back-link { display: none; }
   .session-banner-inner {
     display: flex;
     align-items: center;
@@ -1977,6 +2168,7 @@
     padding: var(--space-3) var(--space-5);
     max-width: 780px;
     margin-inline: auto;
+    cursor: pointer;
   }
   .session-banner-pulse {
     width: 8px;
@@ -4033,17 +4225,19 @@
 </head>
 <body>
 
-<!-- SESSION BANNER (shown when workout in progress) -->
+<!-- SESSION BANNER (shown when workout in progress). The whole inner area
+     is clickable and resumes the session; the buttons stopPropagation so
+     they trigger their own actions without double-firing resume. -->
 <div class="session-banner" id="session-banner">
-  <div class="session-banner-inner">
+  <div class="session-banner-inner" onclick="resumeSession()">
     <span class="session-banner-pulse" aria-hidden="true"></span>
     <div class="session-banner-info">
       <span class="session-banner-label">Workout in progress</span>
       <span class="session-banner-title" id="session-title">—</span>
     </div>
     <span class="session-banner-timer" id="session-timer">0:00</span>
-    <button class="session-banner-btn" onclick="resumeSession()">Resume</button>
-    <button class="session-banner-btn end" onclick="endSession()">End</button>
+    <button class="session-banner-btn" onclick="event.stopPropagation(); resumeSession()">Resume</button>
+    <button class="session-banner-btn end" onclick="event.stopPropagation(); endSession()">End</button>
   </div>
 </div>
 
@@ -4052,17 +4246,22 @@
      body.round-active class. Hidden behind the workout banner if both
      are simultaneously active (rare edge case). -->
 <div class="session-banner round-banner" id="round-banner">
-  <div class="session-banner-inner">
+  <div class="session-banner-inner" onclick="resumeActiveRound()">
     <span class="session-banner-pulse" aria-hidden="true"></span>
     <div class="session-banner-info">
       <span class="session-banner-label">Round in progress</span>
       <span class="session-banner-title" id="round-banner-title">—</span>
     </div>
     <span class="session-banner-timer" id="round-banner-progress">—</span>
-    <button class="session-banner-btn" onclick="resumeActiveRound()">Resume</button>
-    <button class="session-banner-btn end" onclick="endActiveRoundFromBanner()">End</button>
+    <button class="session-banner-btn" onclick="event.stopPropagation(); resumeActiveRound()">Resume</button>
+    <button class="session-banner-btn end" onclick="event.stopPropagation(); endActiveRoundFromBanner()">End</button>
   </div>
 </div>
+
+<!-- IMMERSIVE ROUND EXIT — floating close button shown only when
+     body.round-immersive is active. Exits to Play landing WITHOUT
+     ending the round (round stays in progress, banner reappears). -->
+<button class="round-immersive-close" onclick="exitRoundImmersive()" aria-label="Exit round screen">✕</button>
 
 <!-- MOBILE TOP TITLE BAR (visible on mobile only) -->
 <header class="mobile-topbar" id="mobile-topbar">
@@ -5468,6 +5667,15 @@
     if (id === 'round-summary') renderRoundSummary();
     if (id === 'play') renderPlayLanding();
 
+    // Immersive mode toggle — the round screen is the only panel that
+    // hides nav chrome. All other panels clear the class so returning
+    // from round to anywhere restores normal nav visibility.
+    if (id === 'round') {
+      document.body.classList.add('round-immersive');
+    } else {
+      document.body.classList.remove('round-immersive');
+    }
+
     // Scroll behavior — hero has been removed everywhere, so we just scroll
     // to the top on every panel switch. The sticky nav stays pinned at the
     // top regardless of scroll position.
@@ -6446,22 +6654,37 @@
   // Compute running totals for the round — strokes, putts, holes played, vs par.
   function computeRoundTotals() {
     const course = getCourse(roundState.courseId);
-    if (!course) return { strokes: 0, putts: 0, holesPlayed: 0, vsPar: 0 };
+    if (!course) return { strokes: 0, putts: 0, holesPlayed: 0, vsPar: 0, firHit: 0, firEligible: 0, girHit: 0, girEligible: 0 };
     const playedHoles = Object.keys(roundState.scores).map(Number);
     let strokes = 0, putts = 0, parTotal = 0;
+    // FIR applies to par 4/5 only. GIR applies to all holes. Both denominators
+    // count only holes the user actually played (not the full 18).
+    let firHit = 0, firEligible = 0, girHit = 0, girEligible = 0;
     for (const hn of playedHoles) {
       const e = roundState.scores[hn];
       if (!e) continue;
       strokes += e.strokes || 0;
       putts += e.putts || 0;
       const hd = course.holes.find(h => h.number === hn);
-      if (hd) parTotal += hd.par;
+      if (hd) {
+        parTotal += hd.par;
+        if (hd.par > 3) {
+          firEligible += 1;
+          if (e.fir === true) firHit += 1;
+        }
+        girEligible += 1;
+        if (e.gir === true) girHit += 1;
+      }
     }
     return {
       strokes,
       putts,
       holesPlayed: playedHoles.length,
-      vsPar: strokes - parTotal
+      vsPar: strokes - parTotal,
+      firHit,
+      firEligible,
+      girHit,
+      girEligible
     };
   }
 
@@ -6894,10 +7117,22 @@
     const holeNum = hole.number;
     const yards = tee.yardages[roundState.holeIndex];
 
-    // Read the user's current entry for this hole, defaulting strokes=par, putts=2
-    const entry = roundState.scores[holeNum] || { strokes: hole.par, putts: 2 };
+    // Read the user's current entry for this hole. Defaults:
+    //   strokes = par, putts = 2, fir = true (optimistic), gir = true.
+    // For par 3s, fir is forced to null — fairways don't apply on par 3s.
+    const isPar3 = hole.par === 3;
+    const defaultFir = isPar3 ? null : true;
+    const stored = roundState.scores[holeNum];
+    const entry = {
+      strokes: stored?.strokes ?? hole.par,
+      putts: stored?.putts ?? 2,
+      fir: isPar3 ? null : (stored?.fir ?? true),
+      gir: stored?.gir ?? true
+    };
     const strokes = entry.strokes;
     const putts = entry.putts;
+    const fir = entry.fir;
+    const gir = entry.gir;
 
     // Score-vs-par classification for the strokes card color
     const diff = strokes - hole.par;
@@ -6920,6 +7155,13 @@
     const vsPar = totalStrokes - totalPar;
     const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
     const throughCount = playedHoles.length;
+
+    // Chip state labels + classes
+    const firChipClass = isPar3 ? 'stat-chip disabled' : (fir ? 'stat-chip hit' : 'stat-chip miss');
+    const firChipIcon = isPar3 ? '—' : (fir ? '✓' : '✗');
+    const firChipOnclick = isPar3 ? '' : 'onclick="toggleFir()"';
+    const girChipClass = gir ? 'stat-chip hit' : 'stat-chip miss';
+    const girChipIcon = gir ? '✓' : '✗';
 
     mount.innerHTML = `
       <!-- Status strip — always-visible context -->
@@ -6955,6 +7197,18 @@
         <button class="round-stepper-btn" onclick="adjustStrokes(1)" aria-label="Increase strokes">+</button>
       </div>
 
+      <!-- FIR / GIR chips — tap to toggle. Defaults optimistic (both hit). -->
+      <div class="stat-chips">
+        <button class="${firChipClass}" ${firChipOnclick} aria-label="Toggle fairway in regulation">
+          <span class="stat-chip-icon">${firChipIcon}</span>
+          <span class="stat-chip-label">Fairway</span>
+        </button>
+        <button class="${girChipClass}" onclick="toggleGir()" aria-label="Toggle green in regulation">
+          <span class="stat-chip-icon">${girChipIcon}</span>
+          <span class="stat-chip-label">Green</span>
+        </button>
+      </div>
+
       <!-- Putts stepper — secondary, smaller -->
       <div class="round-section-label">Putts</div>
       <div class="round-stepper round-stepper-secondary">
@@ -6978,32 +7232,62 @@
     `;
   }
 
+  // Get (or initialize) the current hole's entry, applying defaults that
+  // depend on the hole's par. Used by all steppers/toggles to ensure
+  // FIR/GIR are always present (with correct par-3 handling) even when
+  // the user taps strokes/putts first.
+  function getOrInitHoleEntry() {
+    const course = getCourse(roundState.courseId);
+    if (!course) return null;
+    const hole = course.holes[roundState.holeIndex];
+    const isPar3 = hole.par === 3;
+    const stored = roundState.scores[hole.number];
+    const entry = {
+      strokes: stored?.strokes ?? hole.par,
+      putts: stored?.putts ?? 2,
+      fir: isPar3 ? null : (stored?.fir ?? true),
+      gir: stored?.gir ?? true
+    };
+    roundState.scores[hole.number] = entry;
+    return { entry, hole, isPar3 };
+  }
+
   // Stepper actions — clamp to sensible ranges (1-15 strokes, 0-10 putts).
   // Putts can't exceed strokes (you can't 3-putt a hole-in-one).
   function adjustStrokes(delta) {
-    const course = getCourse(roundState.courseId);
-    if (!course) return;
-    const hole = course.holes[roundState.holeIndex];
-    const entry = roundState.scores[hole.number] || { strokes: hole.par, putts: 2 };
+    const ctx = getOrInitHoleEntry();
+    if (!ctx) return;
+    const { entry } = ctx;
     let next = entry.strokes + delta;
     if (next < 1) next = 1;
     if (next > 15) next = 15;
     entry.strokes = next;
     if (entry.putts > entry.strokes) entry.putts = entry.strokes;
-    roundState.scores[hole.number] = entry;
     renderRound();
   }
   function adjustPutts(delta) {
-    const course = getCourse(roundState.courseId);
-    if (!course) return;
-    const hole = course.holes[roundState.holeIndex];
-    const entry = roundState.scores[hole.number] || { strokes: hole.par, putts: 2 };
+    const ctx = getOrInitHoleEntry();
+    if (!ctx) return;
+    const { entry } = ctx;
     let next = entry.putts + delta;
     if (next < 0) next = 0;
     if (next > entry.strokes) next = entry.strokes;
     if (next > 10) next = 10;
     entry.putts = next;
-    roundState.scores[hole.number] = entry;
+    renderRound();
+  }
+  // Toggle FIR (fairway in regulation). No-op on par 3s where FIR doesn't apply.
+  function toggleFir() {
+    const ctx = getOrInitHoleEntry();
+    if (!ctx || ctx.isPar3) return;
+    ctx.entry.fir = !ctx.entry.fir;
+    renderRound();
+  }
+  // Toggle GIR (green in regulation).
+  function toggleGir() {
+    const ctx = getOrInitHoleEntry();
+    if (!ctx) return;
+    ctx.entry.gir = !ctx.entry.gir;
     renderRound();
   }
 
@@ -7012,11 +7296,9 @@
   async function saveAndNext() {
     const course = getCourse(roundState.courseId);
     if (!course) return;
-    const hole = course.holes[roundState.holeIndex];
-    // Default the entry to par/2 if user didn't touch the steppers
-    if (!roundState.scores[hole.number]) {
-      roundState.scores[hole.number] = { strokes: hole.par, putts: 2 };
-    }
+    // Ensure the current hole's entry exists with proper defaults (par/2
+    // for strokes/putts, fir/gir defaulting to true except par 3 fir=null).
+    getOrInitHoleEntry();
 
     if (roundState.holeIndex < course.holes.length - 1) {
       // Advance to next hole, persist the in-progress state silently
@@ -7122,17 +7404,50 @@
     resumeRound(inProgress);
   }
 
-  // End the active round from the banner button. Routes the user to the
-  // round screen first so they can see what they're ending — then they
-  // tap "End Round Early" with full context. Less destructive than a
-  // banner-level "are you sure" that strips that context.
-  function endActiveRoundFromBanner() {
+  // End the active round from the banner button. If any holes were scored,
+  // confirms and saves as a completed partial round. If no holes were scored,
+  // confirms and deletes entirely. Same logic as the End Round Early button
+  // on the round screen itself — just callable from the banner.
+  // Exit the immersive round screen without ending the round. Routes to
+  // Play landing — round stays in progress, banner reappears everywhere
+  // else, user can tap Resume any time to come back. Same pattern as
+  // 18Birdies / Shot Scope / Arccos: minimize, don't end.
+  function exitRoundImmersive() {
+    showPanel('play', null);
+  }
+
+  async function endActiveRoundFromBanner() {
     const inProgress = findInProgressRound();
     if (!inProgress) {
       document.body.classList.remove('round-active');
       return;
     }
-    resumeRound(inProgress);
+    // Load state from the doc if needed, WITHOUT navigating. On a fresh
+    // page load the user may tap End from any screen; we shouldn't yank
+    // them into the round panel mid-confirm.
+    if (!isRoundActive() || roundState.docId !== inProgress.id) {
+      roundState.docId = inProgress.id;
+      roundState.courseId = inProgress.courseId;
+      roundState.teeName = inProgress.teeName;
+      roundState.holeIndex = inProgress.currentHoleIndex || 0;
+      roundState.scores = inProgress.scores || {};
+      roundState.started = inProgress.startTime;
+      roundState.dateKey = inProgress.dateKey;
+    }
+    const playedCount = Object.keys(roundState.scores).length;
+    if (playedCount === 0) {
+      if (!confirm('End this round? No scores have been entered, so nothing will be saved.')) return;
+      await abandonCurrentRound();
+      return;
+    }
+    const msg = `End this round after ${playedCount} hole${playedCount === 1 ? '' : 's'}? It will be saved to your history.`;
+    if (!confirm(msg)) return;
+    const ok = await completeCurrentRound();
+    if (!ok) return;
+    const finishedRoundId = roundState.docId;
+    clearRoundState();
+    renderPlayLanding();
+    openRoundSummary(finishedRoundId);
   }
 
   // Resume by id — used elsewhere (e.g. older deep-link callers).
@@ -7291,6 +7606,17 @@
     const vsParStr = vsPar === 0 ? 'Even' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
     const dateStr = formatRoundDate(round.startTime);
 
+    // FIR / GIR stats. Legacy rounds (pre-FIR/GIR tracking) won't have these
+    // fields on the totals — detect that and hide the row cleanly rather than
+    // showing misleading 0/0 percentages.
+    const firEligible = round.totals?.firEligible ?? 0;
+    const firHit = round.totals?.firHit ?? 0;
+    const girEligible = round.totals?.girEligible ?? 0;
+    const girHit = round.totals?.girHit ?? 0;
+    const hasStatsTracking = firEligible > 0 || girEligible > 0;
+    const firPct = firEligible > 0 ? Math.round((firHit / firEligible) * 100) : 0;
+    const girPct = girEligible > 0 ? Math.round((girHit / girEligible) * 100) : 0;
+
     // Hole-by-hole breakdown if we have course data
     let holeRows = '';
     if (course && round.scores) {
@@ -7305,12 +7631,22 @@
         else if (diff === 0) cls = 'par';
         else if (diff === 1) cls = 'bogey';
         else cls = 'over';
+        // FIR cell: par 3 → em-dash (N/A), else ✓ or ✗ based on recorded value.
+        // If the hole was played before FIR tracking existed, e.fir is undefined —
+        // show a muted dash.
+        const firCell = hd.par === 3 ? '<span class="rs-cell-dim">—</span>' :
+          (e.fir === undefined ? '<span class="rs-cell-dim">—</span>' :
+           e.fir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>');
+        const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
+          e.gir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>';
         return `
           <tr class="rs-hole-${cls}">
             <td>${hn}</td>
             <td>${hd.par}</td>
             <td><strong>${e.strokes}</strong></td>
             <td>${e.putts ?? '—'}</td>
+            <td>${firCell}</td>
+            <td>${girCell}</td>
           </tr>`;
       }).join('');
     }
@@ -7341,12 +7677,28 @@
         </div>
       </div>
 
+      ${hasStatsTracking ? `
+        <div class="round-summary-section-label">Ball Striking</div>
+        <div class="round-summary-striking">
+          <div class="striking-stat">
+            <div class="striking-stat-pct">${firPct}<span>%</span></div>
+            <div class="striking-stat-label">Fairways</div>
+            <div class="striking-stat-detail">${firHit} of ${firEligible}</div>
+          </div>
+          <div class="striking-stat">
+            <div class="striking-stat-pct">${girPct}<span>%</span></div>
+            <div class="striking-stat-label">Greens</div>
+            <div class="striking-stat-detail">${girHit} of ${girEligible}</div>
+          </div>
+        </div>
+      ` : ''}
+
       ${holeRows ? `
         <div class="round-summary-section-label">Hole by Hole</div>
         <div class="round-summary-table-wrap">
           <table class="round-summary-table">
             <thead>
-              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th></tr>
+              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr>
             </thead>
             <tbody>${holeRows}</tbody>
           </table>
