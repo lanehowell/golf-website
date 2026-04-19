@@ -1720,6 +1720,411 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     ROUND TOOL DOCK — floating bottom pill with quick-access tools
+     (club caddie, hole notes, etc.). Visible while on the round
+     panel. Collapsed by default; tapping a tool expands a dedicated
+     surface above the dock bar, dimming the background for focus.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Hide top/bottom nav chrome on the round screen so scoring and tool
+     dock get the full focus. The round banner stays visible at the top —
+     it's the primary "round in progress" signal. The back arrow (mobile
+     topbar / in-panel back-link on desktop) still works as the exit. */
+  body[data-current-panel="round"] .training-nav,
+  body[data-current-panel="round"] .mobile-bottomnav {
+    display: none !important;
+  }
+
+  /* Backdrop click catcher — completely transparent. Exists only to
+     capture tap-outside-to-dismiss. No visual dimming; the user's
+     focus comes from the dock pill itself growing to fill more space. */
+  .round-dock-scrim {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: calc(var(--z-raised) - 1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Outer container — a floating pill centered near the bottom of the
+     viewport. Desktop: sits with margins all around, fully rounded.
+     Mobile: flush to the bottom edge, only top corners rounded —
+     acts more like a bottom-anchored bar for thumb access. */
+  .round-dock {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    width: min(calc(100% - var(--space-6) * 2), 520px);
+    z-index: var(--z-raised);
+    background: var(--color-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 24px rgba(13, 13, 13, 0.12), 0 2px 6px rgba(13, 13, 13, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: box-shadow var(--transition-base);
+  }
+  .round-dock.expanded {
+    box-shadow: 0 20px 48px rgba(13, 13, 13, 0.22), 0 4px 12px rgba(13, 13, 13, 0.12);
+  }
+
+  /* Reserve space at the bottom of the round panel content so the
+     dock never obscures Save & Next / other footer buttons. The dock
+     pill sits ~space-4 from the bottom and is ~56px tall, so we need
+     that plus its bottom offset plus safe-area. */
+  #panel-round {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* The expandable tool surface sits above the dock bar. Wrapped in a
+     grid container whose row template animates from 0fr to 1fr, which
+     is the cleanest way to animate to/from intrinsic content height.
+     Works in modern browsers; no JS height measurement needed.
+     Inner child has overflow:hidden so content doesn't spill during
+     the transition. */
+  .round-dock-surface-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .round-dock-surface-wrap.collapsing {
+    grid-template-rows: 0fr;
+  }
+  .round-dock-surface-wrap > .round-dock-surface {
+    overflow: hidden;
+    min-height: 0;
+    padding: var(--space-5) var(--space-5) var(--space-5);
+    border-bottom: 1px solid var(--color-cream-200);
+    transition: opacity 200ms ease, padding 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .round-dock-surface-wrap.collapsing > .round-dock-surface {
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-color: transparent;
+  }
+  .round-dock-surface-wrap.opening > .round-dock-surface {
+    animation: dockFadeIn 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes dockFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* The always-visible dock bar — horizontal strip of tool entries */
+  .round-dock-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    min-height: 56px;
+  }
+  .round-dock-tools {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-width: 0;
+  }
+  .round-dock-tools::-webkit-scrollbar { display: none; }
+
+  /* Individual tool button in the dock bar — pill with icon + label */
+  .round-dock-tool {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--color-cream-100);
+    border: 1.5px solid var(--border-light);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .round-dock-tool:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+  }
+  .round-dock-tool.active {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    color: var(--color-orange-dark);
+  }
+  .round-dock-tool-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* The close (×) / expand (▲) indicator on the right of the bar */
+  .round-dock-indicator {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-medium);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-dock-indicator:hover {
+    background: var(--color-cream-100);
+    color: var(--text-primary);
+  }
+
+  /* ── Caddie tool ─────────────────────────────────────────── */
+  .caddie-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  .caddie-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+  }
+  .caddie-hole-hint {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* Yardage input — big prominent Playfair number with unit label */
+  .caddie-input-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    margin-bottom: var(--space-4);
+  }
+  .caddie-input-row:focus-within {
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px var(--color-orange-glow);
+  }
+  .caddie-input-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .caddie-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    text-align: right;
+    letter-spacing: var(--tracking-tight);
+    min-width: 0;
+    width: 100%;
+    /* Hide spinners */
+    -moz-appearance: textfield;
+  }
+  .caddie-input::-webkit-outer-spin-button,
+  .caddie-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .caddie-input::placeholder {
+    color: var(--border-medium);
+  }
+  .caddie-input-unit {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* The recommendation area — top pick prominent, alternates below */
+  .caddie-recs { }
+
+  .caddie-top-pick {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-orange-pale);
+    border: 1.5px solid var(--color-orange);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3);
+  }
+  .caddie-top-pick-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-lg);
+  }
+  .caddie-top-pick-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .caddie-top-pick-name {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .caddie-top-pick-detail {
+    margin-top: 4px;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--color-orange-dark);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .caddie-alternates {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .caddie-alt {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-sm);
+  }
+  .caddie-alt-name {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .caddie-alt-detail {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .caddie-alt-delta {
+    color: var(--color-orange);
+    margin-left: var(--space-2);
+    font-weight: var(--weight-semibold);
+  }
+
+  /* Edge cases — empty bag, out-of-range distance */
+  .caddie-empty,
+  .caddie-out-of-range {
+    padding: var(--space-5);
+    background: var(--color-cream-100);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+  .caddie-empty-title,
+  .caddie-out-of-range-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .caddie-empty-text,
+  .caddie-out-of-range-text {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+  .caddie-empty-text a {
+    color: var(--color-orange);
+    border-bottom: 1px solid var(--color-orange);
+  }
+
+  .caddie-placeholder {
+    padding: var(--space-5);
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+
+  /* Mobile tweaks for the dock — flush to the bottom edge for thumb
+     reach. The pill stays "floating" (shadow still applies) but sits
+     at the very bottom of the viewport instead of with a margin. Top
+     corners stay rounded; bottom corners flatten since there's no
+     gap below. */
+  @media (max-width: 560px) {
+    .round-dock {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transform: none;
+      width: 100%;
+      max-width: 100%;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow: 0 -4px 16px rgba(13, 13, 13, 0.12);
+    }
+    .round-dock.expanded {
+      box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.2);
+    }
+    /* Content padding doesn't need the bottom-offset allowance now
+       that the dock is flush — just its collapsed height. */
+    #panel-round {
+      padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .round-dock-bar { padding: var(--space-3); }
+    .round-dock-surface { padding: var(--space-4); }
+    .caddie-input { font-size: var(--text-3xl); }
+    .caddie-top-pick-name { font-size: var(--text-lg); }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      PLAY LANDING — RESUME BANNER (in-progress round detection)
      ══════════════════════════════════════════════════════════════ */
   .play-resume {
@@ -4621,6 +5026,12 @@
     body.session-active.round-active {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
     }
+    /* On the round panel, the bottom nav hides but banner + topbar stay.
+       Just remove the bottom-nav-reserved padding so content can extend
+       to the real bottom of the viewport. */
+    body[data-current-panel="round"] {
+      padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    }
     /* Neutralize the heavy vertical padding desktop needed around main */
     .page-main { padding-block: var(--space-6) var(--space-6); }
     .panel { padding-top: var(--space-4); }
@@ -5166,6 +5577,11 @@
     <section class="panel" id="panel-round">
       <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
       <div id="round-mount"></div>
+      <!-- Round tool dock — floating bottom bar with quick-access tools.
+           Fixed-positioned so it stays pinned while the round content scrolls.
+           Only visible when #panel-round is the active panel (display cascade
+           via .panel:not(.active) { display: none }). -->
+      <div id="round-dock-mount"></div>
     </section>
 
     <!-- ═══════════════ ROUND SUMMARY ═══════════════ -->
@@ -6875,10 +7291,15 @@
     }
   }
 
-  // Escape closes the modal
+  // Escape closes the modal, or collapses the round dock if open
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('log-modal').classList.contains('open')) {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('log-modal').classList.contains('open')) {
       closeLog();
+      return;
+    }
+    if (dockState && dockState.expanded) {
+      collapseDock();
     }
   });
 
@@ -8369,6 +8790,326 @@
         </div>
       </div>
     `;
+    // Re-render the dock after the main round content. The dock mounts
+    // separately (different node) so we have to trigger it explicitly.
+    renderRoundDock();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Round tool dock — floating bottom surface for on-course tools.
+  // Currently hosts the Club Caddie; structured to accept more tools.
+  // ─────────────────────────────────────────────────────────────
+
+  // Dock state lives in memory only (no persistence). Each tool gets its
+  // own nested object so different tools can hold their own UI state.
+  const dockState = {
+    expanded: false,
+    activeTool: null,       // e.g. 'caddie'
+    caddie: {
+      targetDistance: null, // canonical yards, or null
+    },
+    // Transient flag — true for exactly one render after a user-initiated
+    // expand, so the slide-up animation plays. Any subsequent re-render
+    // (e.g. after adjusting strokes) leaves the surface static.
+    _animateNext: false,
+  };
+
+  // Registry of available tools. Adding a new tool = adding an entry here
+  // and a render function. The dock UI iterates this list.
+  const DOCK_TOOLS = [
+    { id: 'caddie', label: 'Club Caddie', icon: '🎯' },
+  ];
+
+  // Toggle expansion of a specific tool. Tapping the already-active tool
+  // collapses the dock (animated). Tapping a different tool while
+  // expanded swaps content instantly (no collapse animation — it stays
+  // open with new content). Tapping any tool while collapsed expands.
+  function toggleDockTool(toolId) {
+    if (dockState.expanded && dockState.activeTool === toolId) {
+      collapseDock();
+      return;
+    }
+    const wasExpanded = dockState.expanded;
+    dockState.expanded = true;
+    dockState.activeTool = toolId;
+    // Only animate when opening from collapsed. Swapping tools shows the
+    // new content instantly — the shell is already in place.
+    dockState._animateNext = !wasExpanded;
+    renderRoundDock();
+  }
+
+  // Dismiss the dock entirely — called from the × button in the expanded
+  // state, or by tapping the currently-active tool chip. Plays a height
+  // collapse animation first, then swaps to the collapsed state. If the
+  // dock is already collapsed (shouldn't happen but defensive), no-op.
+  function collapseDock() {
+    if (!dockState.expanded) return;
+    const wrap = document.querySelector('.round-dock-surface-wrap');
+    if (!wrap) {
+      // No wrap element (edge case); do it instantly
+      dockState.expanded = false;
+      dockState.activeTool = null;
+      renderRoundDock();
+      return;
+    }
+    wrap.classList.remove('opening');
+    // Force reflow so the following class-add triggers a transition
+    void wrap.offsetHeight;
+    wrap.classList.add('collapsing');
+    const onDone = () => {
+      wrap.removeEventListener('transitionend', onDone);
+      dockState.expanded = false;
+      dockState.activeTool = null;
+      renderRoundDock();
+    };
+    wrap.addEventListener('transitionend', onDone);
+    // Safety net — if transitionend doesn't fire (e.g. reduced motion),
+    // still clean up after the expected animation duration.
+    setTimeout(() => {
+      if (wrap.classList.contains('collapsing')) onDone();
+    }, 320);
+  }
+
+  // Core recommendation logic. Pure function: given a target yardage and
+  // the user's bag, returns { topPick, alternates, outOfRange } where:
+  //   topPick   — the club whose distance is closest to target (or null)
+  //   alternates — up to 2 nearby clubs (one-shorter, one-longer) excluding topPick
+  //   outOfRange — 'long' if target exceeds all clubs, 'short' if below, else null
+  //
+  // Ignores clubs without a distance (putter, unfilled rows). Stable when
+  // multiple clubs share a distance: uses the type-rank tiebreaker from
+  // sortedBag so results are deterministic.
+  function getCaddieRecommendations(targetYards, bag) {
+    const candidates = (Array.isArray(bag) ? bag : [])
+      .filter(c => typeof c.distance === 'number' && c.distance > 0);
+    if (candidates.length === 0) return { topPick: null, alternates: [], outOfRange: null };
+
+    // Sort descending by distance using the same logic as the bag display
+    const sorted = sortedBag(candidates).filter(c => typeof c.distance === 'number');
+
+    const longest  = sorted[0].distance;
+    const shortest = sorted[sorted.length - 1].distance;
+    let outOfRange = null;
+    if (targetYards > longest)  outOfRange = 'long';
+    if (targetYards < shortest) outOfRange = 'short';
+
+    // Closest by absolute distance. Ties broken by type rank (already the
+    // sort order), so "first in sorted" wins among ties.
+    let topIdx = 0;
+    let bestDiff = Infinity;
+    sorted.forEach((c, i) => {
+      const diff = Math.abs(c.distance - targetYards);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        topIdx = i;
+      }
+    });
+    const topPick = sorted[topIdx];
+
+    // Alternates: one longer (index - 1) and one shorter (index + 1) if
+    // they exist. Skip past the top pick in either direction.
+    const alternates = [];
+    if (topIdx > 0)               alternates.push(sorted[topIdx - 1]); // longer
+    if (topIdx < sorted.length-1) alternates.push(sorted[topIdx + 1]); // shorter
+
+    return { topPick, alternates, outOfRange };
+  }
+
+  // Update the caddie's target distance. Called from the input's oninput.
+  // Re-renders only the recommendation area so the input keeps focus
+  // (re-rendering the whole dock would kill the keyboard on mobile).
+  function setCaddieDistance(displayValue) {
+    dockState.caddie.targetDistance = distanceFromInput(displayValue);
+    const recsMount = document.getElementById('caddie-recs-mount');
+    if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+  }
+
+  // Main dock render. Rebuilds the dock mount based on state.
+  function renderRoundDock() {
+    const mount = document.getElementById('round-dock-mount');
+    if (!mount) return;
+
+    const surfaceHtml = dockState.expanded ? renderDockSurface() : '';
+
+    const toolsHtml = DOCK_TOOLS.map(tool => {
+      const active = dockState.expanded && dockState.activeTool === tool.id;
+      return `
+        <button class="round-dock-tool${active ? ' active' : ''}"
+                onclick="toggleDockTool('${tool.id}')"
+                aria-pressed="${active}">
+          <span class="round-dock-tool-icon" aria-hidden="true">${tool.icon}</span>
+          <span>${tool.label}</span>
+        </button>`;
+    }).join('');
+
+    // Indicator: × when expanded, ▲ when collapsed (hint that it opens upward)
+    const indicator = dockState.expanded
+      ? `<button class="round-dock-indicator" onclick="collapseDock()" aria-label="Close tool">×</button>`
+      : `<button class="round-dock-indicator" onclick="toggleDockTool('${DOCK_TOOLS[0].id}')" aria-label="Open tools">▲</button>`;
+
+    mount.innerHTML = `
+      ${dockState.expanded ? `<div class="round-dock-scrim" onclick="collapseDock()" aria-hidden="true"></div>` : ''}
+      <div class="round-dock${dockState.expanded ? ' expanded' : ''}">
+        ${surfaceHtml}
+        <div class="round-dock-bar">
+          <div class="round-dock-tools">${toolsHtml}</div>
+          ${indicator}
+        </div>
+      </div>`;
+
+    // If the caddie just opened and we have no target yet, focus the input.
+    // Small delay to let the slide-up animation start before the keyboard
+    // jumps in — feels less jarring on mobile.
+    if (dockState.expanded && dockState.activeTool === 'caddie') {
+      requestAnimationFrame(() => {
+        const input = document.getElementById('caddie-input');
+        if (input && dockState.caddie.targetDistance == null) {
+          input.focus();
+        }
+      });
+    }
+  }
+
+  // Render the expanded tool surface based on activeTool.
+  // Render the expanded tool surface, wrapped in the grid container
+  // that enables height-collapse animation. The wrapper gets an
+  // "opening" class on first render so the content fades in; subsequent
+  // re-renders (e.g. from content updates) don't re-animate.
+  function renderDockSurface() {
+    const opening = dockState._animateNext;
+    dockState._animateNext = false;
+    const wrapClass = opening ? 'round-dock-surface-wrap opening' : 'round-dock-surface-wrap';
+    let inner = '';
+    if (dockState.activeTool === 'caddie') inner = renderCaddie();
+    return `<div class="${wrapClass}">${inner}</div>`;
+  }
+
+  // The Club Caddie surface: yardage input + recommendations.
+  function renderCaddie() {
+    // Context hint: show the current hole's par/yardage if we have it.
+    let holeHint = '';
+    if (roundState.courseId) {
+      const course = getCourse(roundState.courseId);
+      if (course) {
+        const hole = course.holes[roundState.holeIndex];
+        const tee = course.tees.find(t => t.name === roundState.teeName);
+        if (hole && tee) {
+          const yards = tee.yardages[roundState.holeIndex];
+          holeHint = `Hole ${hole.number} · Par ${hole.par} · ${yards.toLocaleString()} ${distanceUnit()}`;
+        }
+      }
+    }
+
+    const unit = distanceUnit();
+    const targetDisplay = dockState.caddie.targetDistance != null
+      ? distanceToDisplay(dockState.caddie.targetDistance)
+      : '';
+
+    return `
+      <div class="round-dock-surface">
+        <div class="caddie-header">
+          <div class="caddie-eyebrow">Club Caddie</div>
+          ${holeHint ? `<div class="caddie-hole-hint">${escapeHtml(holeHint)}</div>` : ''}
+        </div>
+        <div class="caddie-input-row">
+          <span class="caddie-input-label">To target</span>
+          <input id="caddie-input" class="caddie-input"
+                 type="number" inputmode="numeric" min="0"
+                 value="${targetDisplay}"
+                 placeholder="—"
+                 oninput="setCaddieDistance(this.value)"
+                 aria-label="Distance to target">
+          <span class="caddie-input-unit">${unit}</span>
+        </div>
+        <div id="caddie-recs-mount">${renderCaddieRecommendations()}</div>
+      </div>`;
+  }
+
+  // Just the recommendation portion. Rendered into #caddie-recs-mount so
+  // typing into the input (which drives setCaddieDistance) can update the
+  // recs without blowing away the input itself.
+  function renderCaddieRecommendations() {
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+
+    // Empty bag → invite user to build one
+    if (bag.filter(c => typeof c.distance === 'number' && c.distance > 0).length === 0) {
+      return `
+        <div class="caddie-empty">
+          <div class="caddie-empty-title">No clubs with distances yet</div>
+          <div class="caddie-empty-text">
+            Add your clubs and carry distances in
+            <a role="button" tabindex="0" onclick="showPanel('bag', null)" onkeydown="if(event.key==='Enter'){showPanel('bag', null)}">Profile → My Bag</a>
+            to get suggestions here.
+          </div>
+        </div>`;
+    }
+
+    // No distance entered → gentle prompt
+    const target = dockState.caddie.targetDistance;
+    if (target == null || target <= 0) {
+      return `
+        <div class="caddie-placeholder">
+          Enter a distance above and we'll suggest a club.
+        </div>`;
+    }
+
+    const { topPick, alternates, outOfRange } = getCaddieRecommendations(target, bag);
+    if (!topPick) {
+      return `
+        <div class="caddie-placeholder">No matching clubs found.</div>`;
+    }
+
+    const unit = distanceUnit();
+    const topDist = distanceToDisplay(topPick.distance);
+    const targetDisp = distanceToDisplay(target);
+    const diffYd = topPick.distance - target;  // canonical yards
+    const diffDisp = Math.abs(distanceToDisplay(topPick.distance) - distanceToDisplay(target));
+    const diffText = diffYd === 0
+      ? 'Exact match'
+      : `${diffYd > 0 ? '+' : '-'}${diffDisp} ${unit} ${diffYd > 0 ? 'long' : 'short'}`;
+
+    // Out-of-range banner appears in addition to the closest pick — the pick
+    // is still shown because "I have to swing hard with my longest club"
+    // is actionable information.
+    let rangeBanner = '';
+    if (outOfRange === 'long') {
+      rangeBanner = `
+        <div class="caddie-out-of-range" style="margin-bottom: var(--space-3);">
+          <div class="caddie-out-of-range-title">Longer than your bag</div>
+          <div class="caddie-out-of-range-text">Your longest club is ${distanceToDisplay(topPick.distance)} ${unit}. You'll need to swing hard or lay up.</div>
+        </div>`;
+    } else if (outOfRange === 'short') {
+      rangeBanner = `
+        <div class="caddie-out-of-range" style="margin-bottom: var(--space-3);">
+          <div class="caddie-out-of-range-title">Shorter than a full swing</div>
+          <div class="caddie-out-of-range-text">A partial swing or finesse shot with your ${escapeHtml(topPick.name)} is in order.</div>
+        </div>`;
+    }
+
+    const altsHtml = alternates.map(c => {
+      const cDist = distanceToDisplay(c.distance);
+      const cDiffYd = c.distance - target;
+      const cDiffDisp = Math.abs(distanceToDisplay(c.distance) - distanceToDisplay(target));
+      const cDiffText = cDiffYd === 0 ? 'even' : `${cDiffYd > 0 ? '+' : '-'}${cDiffDisp}`;
+      return `
+        <div class="caddie-alt">
+          <span class="caddie-alt-name">${escapeHtml(c.name)}</span>
+          <span class="caddie-alt-detail">${cDist} ${unit}<span class="caddie-alt-delta">${cDiffText}</span></span>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="caddie-recs">
+        ${rangeBanner}
+        <div class="caddie-top-pick">
+          <div class="caddie-top-pick-icon" aria-hidden="true">🎯</div>
+          <div class="caddie-top-pick-body">
+            <div class="caddie-top-pick-name">${escapeHtml(topPick.name)}</div>
+            <div class="caddie-top-pick-detail">${topDist} ${unit} · ${diffText}</div>
+          </div>
+        </div>
+        ${altsHtml ? `<div class="caddie-alternates">${altsHtml}</div>` : ''}
+      </div>`;
   }
 
   // Get (or initialize) the current hole's entry, applying defaults that
@@ -8442,6 +9183,9 @@
     if (roundState.holeIndex < course.holes.length - 1) {
       // Advance to next hole, persist the in-progress state silently
       roundState.holeIndex += 1;
+      // Caddie target is hole-specific — reset for the new hole. Dock
+      // stays open/closed based on user's expansion state.
+      dockState.caddie.targetDistance = null;
       renderRound();
       autoSaveRound(); // fire-and-forget; render doesn't wait on network
     } else {
@@ -8458,6 +9202,7 @@
   function goPreviousHole() {
     if (roundState.holeIndex > 0) {
       roundState.holeIndex -= 1;
+      dockState.caddie.targetDistance = null;
       renderRound();
     }
   }
