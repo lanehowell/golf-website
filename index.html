@@ -4,11 +4,143 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Golf Performance Training Plan</title>
+<script>
+  // Pre-paint theme init — runs before any CSS or content renders.
+  // Reads the saved theme from localStorage and toggles the .dark class
+  // on <html> synchronously so the browser paints the correct colors on
+  // first frame. Without this, a user who prefers dark mode would see
+  // a white flash on every page load (FOUC). We intentionally avoid
+  // any try/catch work, async calls, or DOM queries — fast and silent.
+  (function() {
+    try {
+      var theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {
+      // localStorage can throw in private browsing / disabled cookies;
+      // failing silently falls back to light mode which is our default.
+    }
+  })();
+</script>
 <link rel="stylesheet" href="design-system.css">
 <style>
   /* ══════════════════════════════════════════════════════════════
      PAGE-SPECIFIC STYLES — extends design-system.css
      ══════════════════════════════════════════════════════════════ */
+
+  /* ══════════════════════════════════════════════════════════════
+     DARK MODE — overrides the palette + semantic aliases when <html>
+     has the .dark class. The whole system is token-driven, so
+     redefining these values is all we need; component CSS using
+     var(--bg-page), var(--text-primary), etc. adapts automatically.
+
+     These rules live in the HTML (not design-system.css) so any
+     update ships as one file and avoids browser-cache mismatches.
+
+     Philosophy: cream isn't pure white, so "dark cream" shouldn't
+     be pure black. We use a warm dark brown-gray (#1F1C17) for the
+     page — coffee grounds, not ink. Text is warm off-white matching
+     the original cream-200. Orange is nudged slightly brighter to
+     maintain perceptual pop on dark surfaces.
+     ══════════════════════════════════════════════════════════════ */
+  html.dark {
+    /* — Palette — invert the cream chain into a warm dark chain.
+       We keep the --color-cream-* names so every component that
+       references them still works. */
+    --color-cream-50:   #1F1C17;   /* page background (dark brown-gray) */
+    --color-cream-100:  #272420;   /* softer surface */
+    --color-cream-200:  #302C26;   /* cards, panels */
+    --color-cream-300:  #44403A;   /* borders, dividers */
+    --color-cream-400:  #5E5850;   /* muted borders */
+
+    /* Text — flip "black" to warm off-white (mirrors cream-200 in light mode). */
+    --color-black:      #F5EDD8;
+    --color-black-80:   #D4BC96;
+    --color-black-60:   #A89878;
+    --color-black-20:   rgba(245, 237, 216, 0.12);
+
+    /* Orange — slightly brightened. Pure #E85D04 on dark backgrounds
+       reads as duller than on cream; bumping the main value to the
+       light-mode "hover" shade keeps visual punch. */
+    --color-orange:       #FF7A25;
+    --color-orange-light: #FF9454;
+    --color-orange-dark:  #E85D04;
+    --color-orange-pale:  rgba(255, 122, 37, 0.12);
+    --color-orange-glow:  rgba(255, 122, 37, 0.22);
+
+    /* — Semantic aliases — a few need explicit redefinition because
+       they point at --color-white (which stays #FFFFFF) in light mode
+       but should map to the elevated dark surface in dark mode. */
+    --bg-elevated:    var(--color-cream-200);   /* cards, modals — elevated above page */
+    --text-inverse:   var(--color-cream-50);     /* text ON light/orange backgrounds (rare) */
+    --text-on-accent: var(--color-white);        /* text on orange — stays white */
+    --border-dark:    var(--color-black);        /* "dark" borders — now means strong text-colored */
+
+    /* — Shadows — on dark surfaces, low-opacity black shadows don't
+       show; we use deeper shadows with higher opacity to maintain
+       perceived elevation. */
+    --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm:  0 2px 6px rgba(0, 0, 0, 0.45);
+    --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.55);
+    --shadow-xl:  0 16px 48px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     DARK-MODE COMPONENT OVERRIDES — for components whose design
+     relies on specific inversion (e.g. "the dramatic dark card")
+     that stops making sense when the whole page is already dark.
+     All component-level dark fixes live here so they're easy to find.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Play landing hero — designed in light mode as the "dramatic black
+     card" with cream text. In dark mode we can't keep that inversion
+     (the card ends up light on a dark page — loud and wrong). Instead
+     we make it a slightly-sunken surface: darker than the page, with
+     the existing orange radial glow doing more of the visual work.
+     Reads as "the hero CTA island" without the bright rectangle effect.
+     Text uses --color-black (which in dark mode flips to warm off-white
+     — this is intentional, since the card is darker than the page and
+     needs light text). */
+  html.dark .play-hero {
+    background: #161310;       /* slightly deeper than --color-cream-50 (#1F1C17) */
+    color: var(--color-black);
+    border: 1px solid var(--color-cream-300);
+  }
+  html.dark .play-hero-title   { color: var(--color-black); }
+  html.dark .play-hero-sub     { color: var(--color-black-80); }
+  html.dark .play-hero-meta    { color: var(--color-black-60); }
+  html.dark .play-hero-btn-ghost {
+    color: var(--color-black);
+    border-color: rgba(245, 237, 216, 0.25);
+  }
+  html.dark .play-hero-btn-ghost:hover {
+    background: rgba(245, 237, 216, 0.08);
+    border-color: var(--color-black);
+  }
+
+  /* Round tool dock / caddie — the dock pill uses --bg-elevated which
+     resolves correctly in dark mode, but several inner surfaces also use
+     --bg-elevated which makes them disappear against the pill. In dark
+     mode we push these inner surfaces a shade darker (sunken well look)
+     so the input and recommendation cards read as distinct elements.
+     Orange accents stay unchanged via their token aliases. */
+  html.dark .caddie-input-row {
+    background: var(--color-cream-100);   /* darker than dock's --bg-elevated */
+    border-color: var(--color-cream-300);
+  }
+  html.dark .caddie-top-pick {
+    /* The "orange pale" tinted card — in dark mode the rgba-based pale
+       orange reads fine as an accent against the darker pill interior,
+       but we strengthen the border a touch for edge definition. */
+    border-color: var(--color-orange);
+  }
+  html.dark .caddie-empty,
+  html.dark .caddie-out-of-range {
+    background: var(--color-cream-100);
+    border-color: var(--color-cream-300);
+  }
 
   /* ── Hero ─────────────────────────────────────────────────── */
   .training-hero {
@@ -1125,8 +1257,8 @@
   .tee-btn {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
+    padding: var(--space-3);
     background: var(--bg-elevated);
     border: 1.5px solid var(--border-light);
     border-radius: var(--radius-md);
@@ -1134,6 +1266,7 @@
     font-family: inherit;
     text-align: left;
     transition: all var(--transition-fast);
+    min-width: 0;
   }
   .tee-btn:hover {
     border-color: var(--color-orange);
@@ -1153,15 +1286,18 @@
   }
   .tee-btn-name {
     flex: 1;
+    min-width: 0;
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
     color: var(--text-primary);
   }
   .tee-btn-yards {
+    flex-shrink: 0;
     font-family: var(--font-mono);
     font-size: 0.7rem;
     color: var(--text-muted);
     letter-spacing: var(--tracking-wide);
+    white-space: nowrap;
   }
   .tee-btn.active .tee-btn-yards { color: var(--color-orange-dark); }
 
@@ -1170,7 +1306,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--space-2);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-6);
   }
   .tee-info-stat {
     background: var(--color-cream-100);
@@ -1295,32 +1431,77 @@
     color: var(--color-cream-300);
   }
 
-  .course-detail-actions {
-    margin-top: var(--space-8);
-    text-align: center;
+  /* ── Start Round card ─────────────────────────────────────────
+     Primary CTA island at the top of Course Detail. Houses the tee
+     selector and the Start button. Orange left border + white bg
+     to feel like a distinct action surface against the cream page. */
+  .start-round-card {
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-8);
+    padding: var(--space-5) var(--space-6) var(--space-6);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--color-orange);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
   }
-  .course-detail-cta {
-    padding: var(--space-4) var(--space-10);
+  .start-round-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-3);
+  }
+  /* Tee selector inside the Start card — tighter spacing than before */
+  .start-round-card .tee-selector {
+    margin-bottom: var(--space-5);
+  }
+  /* The Start button — full width inside the card, large thumb target.
+     Dynamic label shows the currently-selected tee so the user sees
+     exactly what they're committing to. */
+  .start-round-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-4) var(--space-6);
     background: var(--color-orange);
     color: var(--color-white);
     border: 2px solid var(--color-orange);
     border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     cursor: pointer;
     box-shadow: var(--shadow-accent);
-    transition: all var(--transition-fast), transform var(--transition-spring);
+    transition: background var(--transition-fast), border-color var(--transition-fast),
+                transform var(--transition-spring), box-shadow var(--transition-fast);
   }
-  .course-detail-cta:hover {
+  .start-round-cta:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
     transform: translateY(-2px);
+    box-shadow: 0 8px 28px var(--color-orange-glow);
   }
+  .start-round-cta:active {
+    transform: translateY(0);
+  }
+  .start-round-cta-arrow {
+    font-size: var(--text-lg);
+    line-height: 1;
+    transition: transform var(--transition-fast);
+  }
+  .start-round-cta:hover .start-round-cta-arrow {
+    transform: translateX(3px);
+  }
+
   @media (max-width: 480px) {
-    .course-detail-cta { width: 100%; padding: var(--space-4); }
+    .start-round-card { padding: var(--space-4) var(--space-5) var(--space-5); }
     .tee-info { grid-template-columns: repeat(2, 1fr); }
   }
 
@@ -1759,7 +1940,7 @@
     bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
     width: min(calc(100% - var(--space-5) * 2), 520px);
     z-index: var(--z-raised);
-    background: var(--color-white);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     box-shadow: 0 8px 24px rgba(13, 13, 13, 0.12), 0 2px 6px rgba(13, 13, 13, 0.08);
@@ -1786,12 +1967,22 @@
      Works in modern browsers; no JS height measurement needed.
      Inner child has overflow:hidden so content doesn't spill during
      the transition. */
+  /* Expanding wrapper — grid-template-rows animates from 0fr to 1fr
+     (or vice versa) which is the cleanest way to transition to/from
+     intrinsic content height. Default state is fully expanded; the
+     .collapsing modifier shrinks it. The .opening modifier is the
+     *starting* state for a newly-mounted surface: it begins at 0fr,
+     then the class is removed on the next animation frame so the
+     transition plays toward 1fr. Same shape of animation in both
+     directions — the surface truly slides up from and down into
+     the bar. */
   .round-dock-surface-wrap {
     display: grid;
     grid-template-rows: 1fr;
     transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .round-dock-surface-wrap.collapsing {
+  .round-dock-surface-wrap.collapsing,
+  .round-dock-surface-wrap.opening {
     grid-template-rows: 0fr;
   }
   .round-dock-surface-wrap > .round-dock-surface {
@@ -1801,18 +1992,12 @@
     border-bottom: 1px solid var(--color-cream-200);
     transition: opacity 200ms ease, padding 260ms cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .round-dock-surface-wrap.collapsing > .round-dock-surface {
+  .round-dock-surface-wrap.collapsing > .round-dock-surface,
+  .round-dock-surface-wrap.opening > .round-dock-surface {
     opacity: 0;
     padding-top: 0;
     padding-bottom: 0;
     border-bottom-color: transparent;
-  }
-  .round-dock-surface-wrap.opening > .round-dock-surface {
-    animation: dockFadeIn 260ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  @keyframes dockFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
   }
 
   /* The always-visible dock bar — horizontal strip of tool entries */
@@ -7444,6 +7629,11 @@
     // weekdays are rest days. Default mirrors the original SCHEDULE.
     scheduleOverride: { 1: ['day1'], 3: ['day2'], 5: ['day3'] },
     units: 'lb',  // 'lb' | 'kg'
+    // Theme — 'light' | 'dark'. Controls the app's color scheme via the
+    // .dark class on <html>. Also mirrored to localStorage('theme') so
+    // the pre-paint init script in <head> can apply it before CSS loads
+    // (prevents FOUC flash on page load).
+    theme: 'light',
     // My Bag — list of the user's clubs with their typical distances.
     // Each entry: { id, name, type, distance }. id is stable (generated
     // on add) so editing one club doesn't shift others. distance is in
@@ -7478,6 +7668,7 @@
     if (!currentUser || !window.fb) {
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       resetPendingSchedule();
+      applyTheme();
       return;
     }
     try {
@@ -7498,6 +7689,42 @@
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
     }
     resetPendingSchedule();
+    applyTheme();
+  }
+
+  // Apply the current theme to the DOM. Toggles the .dark class on <html>
+  // (so all the --color-* variable overrides in design-system.css kick in)
+  // and mirrors the choice to localStorage so the pre-paint init script
+  // in <head> can restore it on next page load before CSS has a chance
+  // to apply — that's what prevents the white-flash FOUC on dark-mode
+  // reloads. Called on prefs load and on user-initiated theme changes.
+  function applyTheme() {
+    const theme = (prefs && prefs.theme) || 'light';
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      // Private browsing etc. — lose FOUC protection but theme still works
+      // for the current session.
+    }
+  }
+
+  // User-initiated theme change from the Profile settings. Writes the new
+  // preference, applies it immediately (instant snap; no crossfade), and
+  // persists to Firestore in the background.
+  async function setTheme(theme) {
+    if (theme !== 'light' && theme !== 'dark') return;
+    if (prefs.theme === theme) return;
+    prefs.theme = theme;
+    applyTheme();
+    // Re-render Profile so the toggle's active state updates
+    if (currentPanelId === 'profile') renderProfile();
+    await savePreferences();
   }
 
   async function savePreferences() {
@@ -8266,6 +8493,7 @@
       recentSessions = [];
       recentRounds = [];
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      applyTheme();
     }
     // Re-render any panels affected by these changes
     renderHistory();
@@ -8458,8 +8686,24 @@
         <p class="course-detail-meta">${escapeHtml(course.location)}</p>
       </div>
 
-      <div class="course-detail-section-label">Tee Box</div>
-      <div class="tee-selector">${teeButtons}</div>
+      <!-- START ROUND CARD — primary CTA island. Tee selection lives here
+           (not in the scorecard below) so "which tee am I picking?" is
+           unambiguous. The scorecard below mirrors whatever's selected
+           here; this card is the one source of truth. -->
+      <div class="start-round-card">
+        <div class="start-round-eyebrow">Playing From</div>
+        <div class="tee-selector">${teeButtons}</div>
+        <button class="start-round-cta" onclick="startRoundFromCourse('${course.id}', '${tee.name}')">
+          <span>Start Round — ${escapeHtml(tee.name)}</span>
+          <span class="start-round-cta-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <!-- Tee reference stats — key at-a-glance numbers (yards/rating/
+           slope/par) for the selected tee. Positioned right after the
+           Start card so they update alongside the tee selection and
+           give the user the core "how hard is this" signal before the
+           deeper scorecard reference below. -->
       <div class="tee-info">
         <div class="tee-info-stat"><span class="tee-info-value">${tee.totalYards.toLocaleString()}</span><span class="tee-info-label">Yards</span></div>
         <div class="tee-info-stat"><span class="tee-info-value">${tee.rating ?? '—'}</span><span class="tee-info-label">Rating</span></div>
@@ -8467,7 +8711,7 @@
         <div class="tee-info-stat"><span class="tee-info-value">${totalPar}</span><span class="tee-info-label">Par</span></div>
       </div>
 
-      <div class="course-detail-section-label">Hole by Hole</div>
+      <div class="course-detail-section-label">Scorecard</div>
       <div class="scorecard">
         <div class="scorecard-side">
           <div class="scorecard-side-label">Front 9</div>
@@ -8497,10 +8741,6 @@
       <div class="scorecard-total">
         <span>Total</span>
         <span>${tee.totalYards.toLocaleString()} yd · Par ${totalPar}</span>
-      </div>
-
-      <div class="course-detail-actions">
-        <button class="course-detail-cta" onclick="startRoundFromCourse('${course.id}', '${tee.name}')">Start a Round Here →</button>
       </div>
     `;
   }
@@ -8967,16 +9207,35 @@
         </div>
       </div>`;
 
-    // If the caddie just opened and we have no target yet, focus the input.
-    // Small delay to let the slide-up animation start before the keyboard
-    // jumps in — feels less jarring on mobile.
-    if (dockState.expanded && dockState.activeTool === 'caddie') {
+    // If we just rendered the surface with the .opening class (which
+    // paints it collapsed at grid-template-rows: 0fr), peel that class
+    // off on the next frame so the CSS transition fires and grows the
+    // surface from 0fr → 1fr. Same animation as collapse, played in
+    // reverse — the surface slides up out of the bar.
+    const wrap = mount.querySelector('.round-dock-surface-wrap.opening');
+    if (wrap) {
+      // Force a reflow so the initial 0fr state is committed before
+      // we remove the class. Without this the browser would coalesce
+      // the mount + class-removal into a single paint and skip the
+      // transition.
+      void wrap.offsetHeight;
       requestAnimationFrame(() => {
+        wrap.classList.remove('opening');
+      });
+    }
+
+    // If the caddie just opened and we have no target yet, focus the input.
+    // Use a short delay so the opening animation can start — focusing an
+    // element while its wrapper is still at grid-template-rows: 0fr means
+    // the input has zero height at that instant, which confuses mobile
+    // keyboards trying to scroll the field into view.
+    if (dockState.expanded && dockState.activeTool === 'caddie') {
+      setTimeout(() => {
         const input = document.getElementById('caddie-input');
         if (input && dockState.caddie.targetDistance == null) {
           input.focus();
         }
-      });
+      }, 280);
     }
   }
 
@@ -9410,6 +9669,13 @@
       });
       if (!ok) return;
       await abandonCurrentRound();
+      // If the user tapped the banner's End button while on the round
+      // screen itself, they're now staring at a stale panel with no
+      // round behind it — kick them back to Play. If they were on any
+      // other panel (Profile, Social, etc.), leave them where they were.
+      if (currentPanelId === 'round') {
+        showPanel('play', null);
+      }
       return;
     }
     const ok = await confirmDialog({
@@ -9582,7 +9848,7 @@
           <h2>Round not found</h2>
           <p class="panel-desc">It may have been deleted or not yet loaded.</p>
         </div>
-        <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>`;
+        <button class="btn btn-primary" onclick="showPanel('play', null)">Back to Play →</button>`;
       return;
     }
 
@@ -9698,7 +9964,7 @@
       ` : ''}
 
       <div class="round-summary-actions">
-        <button class="course-detail-cta" onclick="showPanel('play', null)">Back to Play →</button>
+        <button class="btn btn-primary" onclick="showPanel('play', null)">Back to Play →</button>
         <button class="round-summary-delete" onclick="deleteRoundFromSummary('${round.id}')">Delete this round</button>
       </div>
     `;
@@ -9822,15 +10088,19 @@
   }
 
   function renderAppearanceSection() {
+    const theme = prefs.theme || 'light';
     return `
       <div class="settings-section">
         <div class="settings-section-title">Appearance</div>
-        <div class="settings-row disabled">
+        <div class="settings-row">
           <div class="settings-row-info">
-            <div class="settings-row-label">Dark mode</div>
-            <div class="settings-row-sub">Coming in a future update.</div>
+            <div class="settings-row-label">Theme</div>
+            <div class="settings-row-sub">Switch between light and dark color schemes.</div>
           </div>
-          <span class="badge-soon">Soon</span>
+          <div class="seg-control">
+            <button class="${theme === 'light' ? 'active' : ''}" onclick="setTheme('light')">Light</button>
+            <button class="${theme === 'dark' ? 'active' : ''}" onclick="setTheme('dark')">Dark</button>
+          </div>
         </div>
       </div>`;
   }
