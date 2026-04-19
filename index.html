@@ -11,6 +11,31 @@
      ══════════════════════════════════════════════════════════════ */
 
   /* ── Hero ─────────────────────────────────────────────────── */
+  /* Dark mode token overrides. We primarily swap semantic/background tokens
+     and border/text aliases so existing components inherit dark styling with
+     minimal per-component overrides. */
+  body.theme-dark {
+    --bg-page: #0f1115;
+    --bg-surface: #171b22;
+    --bg-elevated: #1d232c;
+
+    --color-cream-100: #171b22;
+    --color-cream-200: #1d232c;
+    --color-cream-300: #2a3340;
+    --color-cream-400: #364253;
+
+    --color-black: #f3f5f7;
+    --color-black-80: #dbe0e7;
+    --color-black-60: #aeb8c4;
+    --color-black-20: rgba(0, 0, 0, 0.45);
+
+    --border-light: #2a3340;
+    --border-medium: #364253;
+  }
+  body.theme-dark .training-nav {
+    background: rgba(15, 17, 21, 0.92);
+  }
+
   .training-hero {
     background: var(--color-cream-100);
     padding: var(--space-10) 0 var(--space-8);
@@ -1805,10 +1830,61 @@
     font-weight: var(--weight-bold);
     font-size: var(--text-md);
   }
+  .score-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    padding: 0 var(--space-2);
+    line-height: 1;
+  }
+  .score-mark-birdie {
+    border: 2px solid #2D6E34;
+    border-radius: 50%;
+    color: #1F5B2B;
+  }
+  .score-mark-eagle {
+    border: 2px double #1F5B2B;
+    border-radius: 50%;
+    color: #1F5B2B;
+  }
+  .score-mark-bogey {
+    border: 2px solid var(--color-orange);
+    border-radius: 2px;
+    color: var(--color-orange-dark);
+  }
+  .score-mark-doublebogey {
+    border: 3px double var(--color-orange-dark);
+    border-radius: 2px;
+    color: var(--color-orange-dark);
+  }
+  .round-summary-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .round-summary-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .round-summary-legend-item .score-mark {
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-medium);
+  }
   /* Vs-par row coloring — subtle left border accent */
   .round-summary-table .rs-hole-birdie td:first-child { border-left: 3px solid #2D6E34; }
+  .round-summary-table .rs-hole-eagle td:first-child   { border-left: 3px solid #1F5B2B; }
   .round-summary-table .rs-hole-par td:first-child    { border-left: 3px solid var(--border-medium); }
   .round-summary-table .rs-hole-bogey td:first-child  { border-left: 3px solid var(--color-orange); }
+  .round-summary-table .rs-hole-doublebogey td:first-child { border-left: 3px solid var(--color-orange-dark); }
   .round-summary-table .rs-hole-over td:first-child   { border-left: 3px solid var(--color-orange-dark); }
 
   .round-summary-actions {
@@ -6145,7 +6221,8 @@
     // dayIds per weekday means multiple workouts that day. Empty/missing
     // weekdays are rest days. Default mirrors the original SCHEDULE.
     scheduleOverride: { 1: ['day1'], 3: ['day2'], 5: ['day3'] },
-    units: 'lb'  // 'lb' | 'kg'
+    units: 'lb',  // 'lb' | 'kg'
+    theme: 'light' // 'light' | 'dark'
   };
   let prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
   // Local working copy of the schedule that the user can edit without
@@ -6169,10 +6246,17 @@
     pendingScheduleOverride = JSON.parse(JSON.stringify(prefs.scheduleOverride));
   }
 
+  function applyTheme(theme) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    document.body.classList.toggle('theme-dark', next === 'dark');
+    document.documentElement.style.colorScheme = next;
+  }
+
   async function loadPreferences() {
     if (!currentUser || !window.fb) {
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       resetPendingSchedule();
+      applyTheme(prefs.theme);
       return;
     }
     try {
@@ -6192,7 +6276,9 @@
       console.error('Failed to load preferences:', err);
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
     }
+    if (prefs.theme !== 'dark') prefs.theme = 'light';
     resetPendingSchedule();
+    applyTheme(prefs.theme);
   }
 
   async function savePreferences() {
@@ -6507,6 +6593,7 @@
       recentSessions = [];
       recentRounds = [];
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      applyTheme(prefs.theme);
     }
     // Re-render any panels affected by these changes
     renderHistory();
@@ -7377,15 +7464,37 @@
         if (!hd || !e) return '';
         const diff = e.strokes - hd.par;
         let cls = 'par';
-        if (diff <= -1) cls = 'birdie';
-        else if (diff === 0) cls = 'par';
-        else if (diff === 1) cls = 'bogey';
-        else cls = 'over';
+        let markCls = '';
+        let markLabel = '';
+        if (diff <= -2) {
+          cls = 'eagle';
+          markCls = 'score-mark-eagle';
+          markLabel = diff === -2 ? 'Eagle' : 'Albatross';
+        } else if (diff === -1) {
+          cls = 'birdie';
+          markCls = 'score-mark-birdie';
+          markLabel = 'Birdie';
+        } else if (diff === 0) {
+          cls = 'par';
+        } else if (diff === 1) {
+          cls = 'bogey';
+          markCls = 'score-mark-bogey';
+          markLabel = 'Bogey';
+        } else if (diff === 2) {
+          cls = 'doublebogey';
+          markCls = 'score-mark-doublebogey';
+          markLabel = 'Double Bogey';
+        } else {
+          cls = 'over';
+        }
+        const scoreMarkup = markCls
+          ? `<strong class="score-mark ${markCls}" aria-label="${markLabel}">${e.strokes}</strong>`
+          : `<strong>${e.strokes}</strong>`;
         return `
           <tr class="rs-hole-${cls}">
             <td>${hn}</td>
             <td>${hd.par}</td>
-            <td><strong>${e.strokes}</strong></td>
+            <td>${scoreMarkup}</td>
             <td>${e.putts ?? '—'}</td>
           </tr>`;
       }).join('');
@@ -7419,6 +7528,12 @@
 
       ${holeRows ? `
         <div class="round-summary-section-label">Hole by Hole</div>
+        <div class="round-summary-legend" aria-label="Scorecard markings legend">
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-birdie">4</span><span>Birdie</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-eagle">3</span><span>Eagle</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-bogey">5</span><span>Bogey</span></div>
+          <div class="round-summary-legend-item"><span class="score-mark score-mark-doublebogey">6</span><span>Double Bogey</span></div>
+        </div>
         <div class="round-summary-table-wrap">
           <table class="round-summary-table">
             <thead>
@@ -7548,12 +7663,15 @@
     return `
       <div class="settings-section">
         <div class="settings-section-title">Appearance</div>
-        <div class="settings-row disabled">
+        <div class="settings-row">
           <div class="settings-row-info">
             <div class="settings-row-label">Dark mode</div>
-            <div class="settings-row-sub">Coming in a future update.</div>
+            <div class="settings-row-sub">Switch between light and dark themes.</div>
           </div>
-          <span class="badge-soon">Soon</span>
+          <div class="seg-control">
+            <button class="${prefs.theme !== 'dark' ? 'active' : ''}" onclick="setTheme('light')">Light</button>
+            <button class="${prefs.theme === 'dark' ? 'active' : ''}" onclick="setTheme('dark')">Dark</button>
+          </div>
         </div>
       </div>`;
   }
@@ -7629,6 +7747,16 @@
     prefs.units = unit;
     renderPreferencePanels();
     await savePreferences();
+  }
+
+  async function setTheme(theme) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    if (prefs.theme === next) return;
+    prefs.theme = next;
+    applyTheme(next);
+    renderPreferencePanels();
+    const ok = await savePreferences();
+    if (ok) showToast('Theme saved');
   }
 
   function handleSettingsSignOut() {
@@ -7956,6 +8084,7 @@
   // ─────────────────────────────────────────────────────────────
   // Init
   // ─────────────────────────────────────────────────────────────
+  applyTheme(prefs.theme);
   renderTodayCard();
   renderWeekStrip();
   renderHistory();
