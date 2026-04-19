@@ -1950,6 +1950,7 @@
     top: 0;
     z-index: calc(var(--z-dropdown) + 1);
     box-shadow: 0 2px 8px var(--color-orange-glow);
+    cursor: pointer;
   }
   body.session-active #session-banner { display: block; }
   body.session-active .training-nav {
@@ -5746,6 +5747,13 @@
     showPanel(session.dayId, null);
   }
 
+  // Make the full in-progress banners clickable so tapping anywhere on the
+  // bar resumes the underlying activity. Button clicks keep their own action.
+  function onBannerClick(event, resumeFn) {
+    if (event.target.closest('.session-banner-btn')) return;
+    resumeFn();
+  }
+
   function getDayTitle(dayId) {
     const panel = document.getElementById('panel-' + dayId);
     if (!panel) return 'Workout';
@@ -7120,6 +7128,16 @@
       return;
     }
     resumeRound(inProgress);
+  }
+
+  // Wire full-banner click behavior for workout + round banners.
+  const workoutBanner = document.getElementById('session-banner');
+  if (workoutBanner) {
+    workoutBanner.addEventListener('click', (event) => onBannerClick(event, resumeSession));
+  }
+  const roundBanner = document.getElementById('round-banner');
+  if (roundBanner) {
+    roundBanner.addEventListener('click', (event) => onBannerClick(event, resumeActiveRound));
   }
 
   // End the active round from the banner button. Routes the user to the
