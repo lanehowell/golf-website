@@ -2177,19 +2177,26 @@
   // callers; the canonical "end" path now goes through endActiveRoundFromBanner
   // → round screen → End Round Early).
   async function discardInProgressRound(roundId) {
-    if (!confirm('Discard this in-progress round? It will be deleted permanently.')) return;
-    if (currentUser && window.fb) {
-      try {
-        await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
-        recentRounds = recentRounds.filter(r => r.id !== roundId);
-      } catch (err) {
-        console.error('Failed to delete round:', err);
-        showToast('Delete failed — see console', true);
-        return;
+    promptRoundDeleteModal({
+      title: 'Discard in-progress round?',
+      sub: 'This action cannot be undone.',
+      body: 'This will permanently remove the in-progress round and any scores entered so far.',
+      confirmLabel: 'Discard round',
+      onConfirm: async () => {
+        if (currentUser && window.fb) {
+          try {
+            await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${roundId}`);
+            recentRounds = recentRounds.filter(r => r.id !== roundId);
+          } catch (err) {
+            console.error('Failed to delete round:', err);
+            showToast('Delete failed — see console', true);
+            return;
+          }
+        }
+        if (roundState.docId === roundId) clearRoundState();
+        renderPlayLanding();
       }
-    }
-    if (roundState.docId === roundId) clearRoundState();
-    renderPlayLanding();
+    });
   }
 
   // Stats strip: renders 4 cards based on completed rounds.
@@ -2390,31 +2397,58 @@
 
   // Round deletion confirm modal state.
   let pendingRoundDeleteId = null;
+  let pendingRoundDeleteAction = null;
+
+  function promptRoundDeleteModal(opts) {
+    const modal = document.getElementById('round-delete-modal');
+    if (!modal) return;
+    const titleEl = document.getElementById('round-delete-title');
+    const subEl = document.getElementById('round-delete-sub');
+    const bodyEl = document.getElementById('round-delete-body');
+    const btnEl = document.getElementById('round-delete-confirm-btn');
+    const eyebrowEl = document.getElementById('round-delete-eyebrow');
+    if (titleEl) titleEl.textContent = opts?.title || 'Delete this round?';
+    if (subEl) subEl.textContent = opts?.sub || 'This action cannot be undone.';
+    if (bodyEl) bodyEl.textContent = opts?.body || 'This removes the round from your history and summary permanently.';
+    if (btnEl) btnEl.textContent = opts?.confirmLabel || 'Delete round';
+    if (eyebrowEl) eyebrowEl.textContent = opts?.eyebrow || 'Delete Round';
+    pendingRoundDeleteAction = typeof opts?.onConfirm === 'function' ? opts.onConfirm : null;
+    modal.classList.add('open');
+    if (btnEl) btnEl.focus();
+  }
 
   function promptDeleteRound(roundId) {
     pendingRoundDeleteId = roundId;
-    const modal = document.getElementById('round-delete-modal');
-    if (!modal) return;
-    modal.classList.add('open');
-    const confirmBtn = document.getElementById('round-delete-confirm-btn');
-    if (confirmBtn) confirmBtn.focus();
+    promptRoundDeleteModal({
+      title: 'Delete this round?',
+      sub: 'This action cannot be undone.',
+      body: 'This removes the round from your history and summary permanently.',
+      confirmLabel: 'Delete round',
+      onConfirm: async () => {
+        if (!pendingRoundDeleteId) return;
+        const roundIdToDelete = pendingRoundDeleteId;
+        pendingRoundDeleteId = null;
+        await deleteRoundFromSummary(roundIdToDelete);
+      }
+    });
   }
 
   function closeRoundDeleteModal() {
     pendingRoundDeleteId = null;
+    pendingRoundDeleteAction = null;
     const modal = document.getElementById('round-delete-modal');
     if (!modal) return;
     modal.classList.remove('open');
   }
 
   async function confirmRoundDelete() {
-    if (!pendingRoundDeleteId) {
+    const action = pendingRoundDeleteAction;
+    if (!action) {
       closeRoundDeleteModal();
       return;
     }
-    const roundId = pendingRoundDeleteId;
     closeRoundDeleteModal();
-    await deleteRoundFromSummary(roundId);
+    await action();
   }
 
   // Delete a completed round from the summary screen. After deletion,

@@ -968,11 +968,11 @@
 <div class="modal-backdrop" id="round-delete-modal" onclick="if(event.target===this) closeRoundDeleteModal()">
   <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="round-delete-title">
     <div class="modal-header">
-      <div class="modal-eyebrow">Delete Round</div>
+      <div class="modal-eyebrow" id="round-delete-eyebrow">Delete Round</div>
       <h3 class="modal-title" id="round-delete-title">Delete this round?</h3>
-      <div class="modal-sub">This action cannot be undone.</div>
+      <div class="modal-sub" id="round-delete-sub">This action cannot be undone.</div>
     </div>
-    <div class="modal-body modal-confirm-body">
+    <div class="modal-body modal-confirm-body" id="round-delete-body">
       This removes the round from your history and summary permanently.
     </div>
     <div class="modal-footer">
