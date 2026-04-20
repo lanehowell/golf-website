@@ -11632,6 +11632,18 @@
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     },
 
+    // Subscribe to the user's friends collection. Fires when an entry
+    // is added (someone accepted your request, or you accepted theirs)
+    // or removed (unfriend). Returns an unsubscribe function.
+    subscribeFriends: (myUid, onUpdate) => {
+      const ref = collection(db, `users/${myUid}/friends`);
+      const q = query(ref, orderBy('addedAt', 'desc'));
+      return onSnapshot(q, (snap) => {
+        const friends = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        onUpdate(friends);
+      });
+    },
+
     // Subscribe to the user's incoming friend requests collection. Fires
     // on any change — add, remove, update. Callback receives the full
     // current list sorted newest-first. Returns an unsubscribe function.
@@ -15526,6 +15538,9 @@
     }
     try {
       friendsList = await window.fb.listFriends(currentUser.uid);
+      // Seed the "seen friends" set so the live subscription doesn't
+      // toast for friends already loaded at startup.
+      __seenFriendUids = new Set(friendsList.map(f => f.uid));
       friendsLoaded = true;
     } catch (err) {
       console.error('Failed to load friends:', err);
@@ -15606,6 +15621,70 @@
     }
 
     updateSocialBadge();
+    if (currentPanelId === 'social') renderSocial();
+  }
+
+  // Live friends-collection subscription. Used to detect when someone
+  // accepts MY pending friend request — that write lands in my /friends
+  // subcollection. Toasts only the net-new entries (those whose uid is
+  // NOT in the seen set), so reloading doesn't spam toasts.
+  // Side effect: keeps `friendsList` in sync without a manual reload,
+  // which fixes a long-standing minor bug where the freshly-added
+  // friend wouldn't appear in the friends list until next page load.
+  let __friendsUnsub = null;
+  let __seenFriendUids = null;
+
+  function startFriendsSubscription() {
+    if (!currentUser || !window.fb) return;
+    if (__friendsUnsub) return;
+    try {
+      __friendsUnsub = window.fb.subscribeFriends(
+        currentUser.uid,
+        (fresh) => handleFriendsSnapshot(fresh)
+      );
+    } catch (err) {
+      console.error('Failed to start friends subscription:', err);
+    }
+  }
+
+  function stopFriendsSubscription() {
+    if (!__friendsUnsub) return;
+    try { __friendsUnsub(); } catch (_) {}
+    __friendsUnsub = null;
+    __seenFriendUids = null;
+  }
+
+  function handleFriendsSnapshot(freshFriends) {
+    const freshUids = new Set(freshFriends.map(f => f.uid));
+
+    // First snapshot — seed silently
+    if (__seenFriendUids === null) {
+      __seenFriendUids = freshUids;
+      friendsList = freshFriends;
+      friendsLoaded = true;
+      if (currentPanelId === 'social') renderSocial();
+      return;
+    }
+
+    // Net-new friends — typically arrives when someone accepts a request
+    // I sent (their accept writes to my /friends collection too). Could
+    // also be me accepting their request — same code path, no harm in
+    // toasting "now friends with X" in either case.
+    const newlyArrived = freshFriends.filter(f =>
+      !__seenFriendUids.has(f.uid)
+    );
+
+    friendsList = freshFriends;
+    __seenFriendUids = freshUids;
+
+    for (const friend of newlyArrived) {
+      const name = friend.displayName
+        || friend.usernameDisplay
+        || friend.username
+        || 'A friend';
+      showToast(`You're now friends with ${name}`);
+    }
+
     if (currentPanelId === 'social') renderSocial();
   }
 
@@ -15948,6 +16027,7 @@
       // without a page refresh.
       startGroupRoundInvitesSubscription();
       startFriendRequestsSubscription();
+      startFriendsSubscription();
       // Phase 3 seed: after all loads complete, check whether this user
       // needs their starter routines. Safe to call every session — the
       // function is idempotent. Runs in the background; UI doesn't wait.
@@ -15956,6 +16036,7 @@
       // Signed out — clear caches and revert to default prefs
       stopGroupRoundInvitesSubscription();
       stopFriendRequestsSubscription();
+      stopFriendsSubscription();
       recentSessions = [];
       recentRounds = [];
       friendsList = [];
@@ -23850,6 +23931,42 @@
     }
   }
 
+  // Build just the status pill HTML for the username field. Called from
+  // both the full section render AND the surgical keystroke updater so
+  // both produce identical markup. The state argument is the current
+  // socialEditState.usernameCheck shape.
+  function buildUsernameStatusPillHtml(check) {
+    if (!check) return '';
+    if (check.state === 'checking') {
+      return `<span class="social-username-status social-username-checking">Checking…</span>`;
+    }
+    if (check.state === 'available') {
+      return `<span class="social-username-status social-username-ok">✓ Available</span>`;
+    }
+    if (check.state === 'owned') {
+      return `<span class="social-username-status social-username-ok">✓ Your current</span>`;
+    }
+    if (check.state === 'taken') {
+      return `<span class="social-username-status social-username-bad">Already taken</span>`;
+    }
+    if (check.state === 'invalid') {
+      return `<span class="social-username-status social-username-bad">${escapeHtml(check.reason || 'Invalid')}</span>`;
+    }
+    return '';
+  }
+
+  // Surgically update only the status pill — does NOT touch the input
+  // element, so focus and the on-screen keyboard are preserved on mobile.
+  // Also nudges the Save button enabled-state since canSaveSocialEdit
+  // depends on the check result.
+  function updateUsernameStatusPill() {
+    const mount = document.getElementById('social-username-status-mount');
+    if (mount) {
+      mount.innerHTML = buildUsernameStatusPillHtml(socialEditState.usernameCheck);
+    }
+    syncSocialEditFooter();
+  }
+
   // When the username input changes: validate locally, then check
   // Firestore for availability. Async, with a sequence id to ignore
   // stale responses (user types faster than network responds).
@@ -23858,24 +23975,24 @@
     const val = (rawValue || '').trim();
     if (val === '') {
       socialEditState.usernameCheck = { state: 'idle' };
-      renderSocialSectionInPlace();
+      updateUsernameStatusPill();
       return;
     }
     const validation = validateUsername(val);
     if (!validation.ok) {
       socialEditState.usernameCheck = { state: 'invalid', reason: validation.reason };
-      renderSocialSectionInPlace();
+      updateUsernameStatusPill();
       return;
     }
     // If this is the user's own current username, no need to check.
     if (prefs.username && validation.normalized === prefs.username) {
       socialEditState.usernameCheck = { state: 'owned' };
-      renderSocialSectionInPlace();
+      updateUsernameStatusPill();
       return;
     }
     // Optimistic "checking" state
     socialEditState.usernameCheck = { state: 'checking' };
-    renderSocialSectionInPlace();
+    updateUsernameStatusPill();
     try {
       const available = await window.fb.usernameAvailable(validation.normalized);
       // Ignore stale response
@@ -23885,22 +24002,16 @@
       if (seq !== socialEditState._checkSeq) return;
       socialEditState.usernameCheck = { state: 'invalid', reason: 'Could not check availability' };
     }
-    renderSocialSectionInPlace();
+    updateUsernameStatusPill();
   }
 
-  // Re-render only the social section without touching other parts of the
-  // Profile page. This keeps focus on whatever input is active while
-  // reflecting the username check status (checkmark, x, spinner).
+  // Legacy full-section re-render. Retained for non-keystroke code paths
+  // that legitimately need to redraw everything (visibility toggle, etc).
+  // The keystroke handler no longer uses this — see updateUsernameStatusPill.
   function renderSocialSectionInPlace() {
     const existing = document.getElementById('social-section-mount');
     if (!existing) return;
     existing.outerHTML = renderSocialSection();
-    // Restore focus to the username input if it was what was being typed
-    const input = document.getElementById('social-username-input');
-    if (input && document.activeElement !== input) {
-      // Focus restore only if user is still "editing" that field — check
-      // against the current draft value to avoid stealing focus.
-    }
   }
 
   // Update the footer's Save button enabled-state + cancel link without
@@ -24091,19 +24202,11 @@
     const inCooldown = !!prefs.username && cooldownMs > 0 &&
                        (d.username || '').trim().toLowerCase() !== prefs.username;
 
-    // Username status pill — visual feedback next to the input
-    let statusPill = '';
-    if (check.state === 'checking') {
-      statusPill = `<span class="social-username-status social-username-checking">Checking…</span>`;
-    } else if (check.state === 'available') {
-      statusPill = `<span class="social-username-status social-username-ok">✓ Available</span>`;
-    } else if (check.state === 'owned') {
-      statusPill = `<span class="social-username-status social-username-ok">✓ Your current</span>`;
-    } else if (check.state === 'taken') {
-      statusPill = `<span class="social-username-status social-username-bad">Already taken</span>`;
-    } else if (check.state === 'invalid') {
-      statusPill = `<span class="social-username-status social-username-bad">${escapeHtml(check.reason || 'Invalid')}</span>`;
-    }
+    // Username status pill — visual feedback next to the input. Built
+    // by a separate function so the keystroke handler can update just
+    // this pill without re-rendering (and re-mounting) the input field
+    // — which on mobile causes the keyboard to dismiss between keys.
+    const statusPill = buildUsernameStatusPillHtml(check);
 
     // Cooldown message — if they already have a username and haven't waited
     const cooldownMsg = inCooldown ? `
@@ -24130,7 +24233,7 @@
                      autocomplete="off" autocapitalize="none" spellcheck="false"
                      oninput="updateSocialField('username', this.value)">
             </div>
-            <div class="social-username-row">
+            <div class="social-username-row" id="social-username-status-mount">
               ${statusPill}
             </div>
             ${cooldownMsg}
