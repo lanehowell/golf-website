@@ -3293,11 +3293,17 @@
      dock get the full focus. The round banner stays visible at the top —
      it's the primary "round in progress" signal. The back arrow (mobile
      topbar / in-panel back-link on desktop) still works as the exit.
-     Group round panel gets the same immersive treatment. */
+     Group round panel + practice session panels (range, short game) all
+     get the same immersive treatment — any "logging shots / scores"
+     screen benefits from edge-to-edge focus. */
   body[data-current-panel="round"] .training-nav,
   body[data-current-panel="round"] .mobile-bottomnav,
   body[data-current-panel="group-round"] .training-nav,
-  body[data-current-panel="group-round"] .mobile-bottomnav {
+  body[data-current-panel="group-round"] .mobile-bottomnav,
+  body[data-current-panel="range-session"] .training-nav,
+  body[data-current-panel="range-session"] .mobile-bottomnav,
+  body[data-current-panel="shortgame-session"] .training-nav,
+  body[data-current-panel="shortgame-session"] .mobile-bottomnav {
     display: none !important;
   }
 
@@ -6046,6 +6052,313 @@
       grid-template-columns: 32px 1fr;
       gap: var(--space-2);
       padding: var(--space-3);
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     SHORT GAME — COMPACT PLAY LAYOUT (no-scroll)
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Compact one-line status strip. Everything critical collapses here
+     so the play card above the fold has more room. */
+  .shortgame-status-compact {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: var(--space-3) 0;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    flex-wrap: wrap;
+  }
+  .shortgame-status-range {
+    color: var(--color-orange);
+    font-weight: var(--weight-bold);
+  }
+  .shortgame-status-sep {
+    opacity: 0.4;
+  }
+  .shortgame-status-avg {
+    color: var(--text-primary);
+  }
+
+  /* Play card — two columns above the fold: target left, entry right.
+     On narrow viewports they stack but stay tight. */
+  .shortgame-play-card {
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+    align-items: stretch;
+  }
+
+  /* Target column — reuses the orange gradient treatment from the
+     original target card but scaled down to fit next to the form. */
+  .shortgame-play-target {
+    padding: var(--space-5) var(--space-4);
+    background: linear-gradient(135deg,
+      var(--color-orange-dark) 0%,
+      var(--color-orange) 50%,
+      var(--color-orange-light) 100%);
+    color: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-accent);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 180px;
+  }
+  .shortgame-play-target::after {
+    content: '';
+    position: absolute;
+    top: -24px;
+    right: -24px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 0 0 14px transparent,
+      inset 0 0 0 15px rgba(255, 255, 255, 0.06),
+      inset 0 0 0 30px transparent,
+      inset 0 0 0 31px rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  .shortgame-play-target .shortgame-target-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: var(--space-2);
+    position: relative;
+    z-index: 1;
+  }
+  .shortgame-play-target .shortgame-target-value {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    font-weight: var(--weight-black);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-white);
+    position: relative;
+    z-index: 1;
+  }
+  .shortgame-play-target .shortgame-target-value span {
+    font-family: var(--font-mono);
+    font-size: 0.3em;
+    font-weight: var(--weight-regular);
+    color: rgba(255, 255, 255, 0.75);
+    margin-left: var(--space-1);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  /* Inline "Last: +4 yd long" chip inside the target card, below the
+     big number. Smaller + compact — fits in the limited vertical space. */
+  .shortgame-last-delta-inline {
+    margin-top: var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    align-self: flex-start;
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--color-white);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Entry column — stacks the club dropdown, distance input, and log
+     button. Each row is tight — label + control on one line for club,
+     label + control + button below. */
+  .shortgame-play-entry {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .shortgame-entry-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .shortgame-entry-row .label-text {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0;
+  }
+  .shortgame-club-select-compact {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    padding: var(--space-2) var(--space-3);
+  }
+  .shortgame-actual-input-compact {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    text-align: center;
+    padding: var(--space-3);
+    letter-spacing: -0.01em;
+  }
+  .shortgame-actual-input-compact::placeholder {
+    font-family: var(--font-body);
+    font-weight: var(--weight-regular);
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+  .shortgame-log-btn-full {
+    width: 100%;
+    margin-top: var(--space-1);
+  }
+
+  /* Wedge reference strip — compact glance card showing the selected
+     wedge's estimated carry at each swing % (100/75/50/25). Four-column
+     grid with mono distances so they scan quickly. Sits between the
+     play card and the secondary actions row. */
+  .shortgame-wedge-ref {
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .shortgame-wedge-ref-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .shortgame-wedge-ref-name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .shortgame-wedge-ref-hint {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .shortgame-wedge-ref-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+  }
+  .shortgame-wedge-ref-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--space-2) var(--space-1);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+  .shortgame-wedge-ref-pct {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-orange);
+  }
+  .shortgame-wedge-ref-dist {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .shortgame-wedge-ref-dist span {
+    font-family: var(--font-mono);
+    font-size: 0.55em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  /* Secondary actions row — sits below the play card, above the shot
+     list. Undo on the left, End Session on the right. */
+  .shortgame-secondary-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    padding: var(--space-2) 0;
+  }
+
+  .shortgame-shotlist-section {
+    margin-top: var(--space-4);
+  }
+
+  /* Narrow viewports: stack target above entry. Keep both compact. */
+  @media (max-width: 560px) {
+    .shortgame-play-card {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .shortgame-play-target {
+      min-height: 0;
+      padding: var(--space-4);
+    }
+    .shortgame-play-target .shortgame-target-value {
+      font-size: 3rem;
+    }
+    .shortgame-play-entry {
+      padding: var(--space-4);
+      gap: var(--space-3);
+    }
+    .shortgame-actual-input-compact {
+      font-size: var(--text-lg);
+    }
+    .shortgame-status-compact {
+      padding: var(--space-2) 0;
+      margin-bottom: var(--space-2);
+    }
+  }
+
+  /* Very narrow phones — prioritize the entry row by making the target
+     card even more compact so the log button is near the thumb. */
+  @media (max-width: 400px) {
+    .shortgame-play-target {
+      padding: var(--space-3) var(--space-4);
+    }
+    .shortgame-play-target .shortgame-target-value {
+      font-size: 2.5rem;
+    }
+    .shortgame-play-target::after {
+      top: -16px;
+      right: -16px;
+      width: 70px;
+      height: 70px;
     }
   }
 
@@ -20549,11 +20862,15 @@
 
     // Need a bag
     const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
-    if (bag.length === 0) {
+    // Short game is wedge work by design — filter to wedges only.
+    // If no wedges are in the bag, prompt the user to add some rather
+    // than letting them pick a 7-iron and call it short game.
+    const wedges = bag.filter(c => c.type === 'wedge');
+    if (wedges.length === 0) {
       const ok = await confirmDialog({
-        eyebrow: 'Set Up Your Bag',
-        title: 'Add your clubs first',
-        message: 'Short game drills log shots by club. Add your clubs in Profile → My Bag, then come back.',
+        eyebrow: 'Set Up Your Wedges',
+        title: 'Add wedges to your bag',
+        message: 'Short game drills are wedge-only. Add at least one wedge in Profile → My Bag, then come back.',
         confirmText: 'Open My Bag',
         cancelText: 'Cancel',
       });
@@ -20589,10 +20906,11 @@
     const minYards = parseInt(shortGameSetupDraft.min, 10);
     const maxYards = parseInt(shortGameSetupDraft.max, 10);
 
-    // Default draft club to first bag entry
+    // Default draft club to first wedge in bag (short game is wedge-only)
     const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    const wedges = bag.filter(c => c.type === 'wedge');
     practiceSessionState.draft = {
-      clubId: bag[0]?.id || bag[0]?.name || null,
+      clubId: wedges[0]?.id || wedges[0]?.name || null,
       swingPct: 100,        // unused for short game, kept for shape parity
       distance: '',         // unused for short game, kept for shape parity
       actualDistance: '',
@@ -20872,18 +21190,79 @@
     const shots = doc.shots || [];
     const stats = shortGameSessionStats(shots);
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    // Wedge-only: short game is strictly wedge work in this drill
+    const wedges = bag.filter(c => c.type === 'wedge');
     const d = practiceSessionState.draft;
 
-    const clubOptions = bag.map(c => {
+    // If the user's bag has no wedges anymore (edited out during session),
+    // we can't proceed — render a helpful error state instead of a broken
+    // dropdown.
+    if (wedges.length === 0) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>No wedges in bag</h2>
+          <p class="panel-desc">Short game drills are wedge-only. Add at least one wedge in Profile → My Bag.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPanel('bag', null)">Open My Bag →</button>
+      `;
+      return;
+    }
+
+    // If the current draft club isn't a wedge (bag was edited), snap to
+    // the first available wedge so the user isn't blocked.
+    if (!wedges.find(c => (c.id || c.name) === d.clubId)) {
+      d.clubId = wedges[0].id || wedges[0].name;
+    }
+
+    const clubOptions = wedges.map(c => {
       const val = c.id || c.name;
       const sel = val === d.clubId ? 'selected' : '';
-      return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(c.name || 'Club')}</option>`;
+      return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(c.name || 'Wedge')}</option>`;
     }).join('');
 
-    // "Just logged" delta flash — shows briefly after logging a shot
+    // Reference strip showing the selected wedge's carry distances at
+    // each swing %. Useful glance-reference when the target is, say,
+    // 40 yards and the user is deciding between a 50% 56° and a 100%
+    // 60°. Values are proportional estimates from the bag's stored
+    // 100% distance — marked "est." so they aren't mistaken for
+    // measured data. If/when we extend the bag schema to store
+    // per-club partial-swing distances, this strip will pick those
+    // up automatically (custom > estimate).
+    const selectedWedge = wedges.find(c => (c.id || c.name) === d.clubId);
+    const wedgeRefStripHtml = (() => {
+      if (!selectedWedge || typeof selectedWedge.distance !== 'number') return '';
+      const full = selectedWedge.distance;
+      const unit = distanceUnit();
+      const dispFull = distanceToDisplay(full);
+      const row = [
+        { pct: 100, dist: dispFull },
+        { pct: 75,  dist: distanceToDisplay(Math.round(full * 0.75)) },
+        { pct: 50,  dist: distanceToDisplay(Math.round(full * 0.5)) },
+        { pct: 25,  dist: distanceToDisplay(Math.round(full * 0.25)) },
+      ];
+      const cells = row.map(r => `
+        <div class="shortgame-wedge-ref-cell">
+          <div class="shortgame-wedge-ref-pct">${r.pct}%</div>
+          <div class="shortgame-wedge-ref-dist">${r.dist}<span>${unit}</span></div>
+        </div>
+      `).join('');
+      return `
+        <div class="shortgame-wedge-ref">
+          <div class="shortgame-wedge-ref-head">
+            <span class="shortgame-wedge-ref-name">${escapeHtml(selectedWedge.name || 'Wedge')}</span>
+            <span class="shortgame-wedge-ref-hint">Est. carry</span>
+          </div>
+          <div class="shortgame-wedge-ref-grid">${cells}</div>
+        </div>
+      `;
+    })();
+
+    // "Just logged" delta flash — small inline indicator right above the
+    // target in the hero card, rather than a full-width banner above it.
     const lastDeltaLabel = (d.lastDelta !== null && d.lastDelta !== undefined)
-      ? `<div class="shortgame-last-delta ${d.lastDelta === 0 ? 'is-bullseye' : (d.lastDelta > 0 ? 'is-long' : 'is-short')}">
-           Last shot: ${formatShortGameDelta(d.lastDelta)}
+      ? `<div class="shortgame-last-delta-inline ${d.lastDelta === 0 ? 'is-bullseye' : (d.lastDelta > 0 ? 'is-long' : 'is-short')}">
+           Last: ${formatShortGameDelta(d.lastDelta)}
          </div>`
       : '';
 
@@ -20912,63 +21291,72 @@
         }).join('');
 
     mount.innerHTML = `
-      <!-- Status strip -->
-      <div class="round-status">
-        <div class="round-status-side">
-          <div class="round-status-eyebrow">Short Game · ${doc.minYards}–${doc.maxYards} ${distanceUnit()}</div>
-          <div class="round-status-meta">${stats.count} shot${stats.count === 1 ? '' : 's'}${stats.count > 0 ? ` · Avg ±${stats.avgAbsDelta} ${distanceUnit()}` : ''}</div>
-        </div>
-        <div class="round-status-side round-status-right">
-          <div class="round-status-eyebrow">Best</div>
-          <div class="round-status-score">${stats.bestAbsDelta !== null ? `±${stats.bestAbsDelta}` : '—'}</div>
-        </div>
+      <!-- Compact status strip: range + shot count only — no big "Best" box
+           since that info is less important above the fold than the target
+           and entry. -->
+      <div class="shortgame-status-compact">
+        <span class="shortgame-status-range">${doc.minYards}–${doc.maxYards} ${distanceUnit()}</span>
+        <span class="shortgame-status-sep">·</span>
+        <span class="shortgame-status-count">${stats.count} shot${stats.count === 1 ? '' : 's'}</span>
+        ${stats.count > 0 ? `
+          <span class="shortgame-status-sep">·</span>
+          <span class="shortgame-status-avg">Avg ±${stats.avgAbsDelta}</span>
+        ` : ''}
       </div>
 
-      ${lastDeltaLabel}
-
-      <!-- Target display -->
-      <div class="shortgame-target-card">
-        <div class="shortgame-target-eyebrow">Next Target</div>
-        <div class="shortgame-target-value">${d.currentTarget}<span>${distanceUnit()}</span></div>
-      </div>
-
-      <!-- Shot entry -->
-      <div class="round-card range-entry-card">
-        <div class="range-entry-label">Log Your Shot</div>
-
-        <div class="range-field">
-          <label class="label-text" for="shortgame-club-select">Club</label>
-          <select id="shortgame-club-select" class="select range-club-select"
-                  onchange="shortGameSelectClub(this.value)">
-            ${clubOptions}
-          </select>
+      <!-- Above-the-fold play card: target on the left, entry form on the
+           right, everything the user needs without scrolling. On narrow
+           viewports these stack vertically but stay compact. -->
+      <div class="shortgame-play-card">
+        <!-- Target side -->
+        <div class="shortgame-play-target">
+          <div class="shortgame-target-eyebrow">Next Target</div>
+          <div class="shortgame-target-value">${d.currentTarget}<span>${distanceUnit()}</span></div>
+          ${lastDeltaLabel}
         </div>
 
-        <div class="range-field">
-          <label class="label-text" for="shortgame-actual-input">Actual Distance (${distanceUnit()})</label>
-          <input id="shortgame-actual-input" type="number" inputmode="numeric"
-                 class="input range-distance-input"
-                 min="1" max="500"
-                 value="${escapeHtml(d.actualDistance || '')}"
-                 placeholder="${d.currentTarget}"
-                 oninput="shortGameSetActualDistance(this.value)"
-                 onkeydown="if(event.key==='Enter'){event.preventDefault();logShortGameShot();}">
-        </div>
-
-        <div class="round-actions">
-          <button id="shortgame-log-btn" class="round-btn round-btn-primary"
-                  onclick="logShortGameShot()" ${canLogShortGameShot() ? '' : 'disabled'}>
-            Log Shot & Next Target →
-          </button>
-          <div class="round-actions-secondary">
-            ${shots.length > 0 ? `<button class="round-btn-link" onclick="undoLastShortGameShot()">↶ Undo Last</button>` : ''}
-            <button class="round-btn-link round-btn-end" onclick="endShortGameSession()">End Session</button>
+        <!-- Entry side -->
+        <div class="shortgame-play-entry">
+          <div class="shortgame-entry-row">
+            <label class="label-text" for="shortgame-club-select">Wedge</label>
+            <select id="shortgame-club-select" class="select shortgame-club-select-compact"
+                    onchange="shortGameSelectClub(this.value)">
+              ${clubOptions}
+            </select>
           </div>
+
+          <div class="shortgame-entry-row">
+            <label class="label-text" for="shortgame-actual-input">Hit (${distanceUnit()})</label>
+            <input id="shortgame-actual-input" type="number" inputmode="numeric"
+                   class="input shortgame-actual-input-compact"
+                   min="1" max="500"
+                   value="${escapeHtml(d.actualDistance || '')}"
+                   placeholder="${d.currentTarget}"
+                   oninput="shortGameSetActualDistance(this.value)"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();logShortGameShot();}">
+          </div>
+
+          <button id="shortgame-log-btn" class="round-btn round-btn-primary shortgame-log-btn-full"
+                  onclick="logShortGameShot()" ${canLogShortGameShot() ? '' : 'disabled'}>
+            Log & Next →
+          </button>
         </div>
       </div>
 
-      <!-- Shot list -->
-      <div class="range-shotlist-section">
+      <!-- Wedge reference strip — glance card showing the selected
+           wedge's carry distances at each swing %. Lives below the play
+           card so it's just a short scroll away during shot entry. -->
+      ${wedgeRefStripHtml}
+
+      <!-- Secondary actions row — outside the play card so the card stays
+           focused on the single active task. -->
+      <div class="shortgame-secondary-actions">
+        ${shots.length > 0 ? `<button class="round-btn-link" onclick="undoLastShortGameShot()">↶ Undo Last</button>` : '<span></span>'}
+        <button class="round-btn-link round-btn-end" onclick="endShortGameSession()">End Session</button>
+      </div>
+
+      <!-- Shot list — visible below when you scroll, not blocking play -->
+      <div class="range-shotlist-section shortgame-shotlist-section">
         <div class="range-shotlist-head">
           <div class="range-shotlist-label">Shots</div>
         </div>
