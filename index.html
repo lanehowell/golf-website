@@ -12715,8 +12715,9 @@
 <nav class="training-nav">
   <div class="training-container">
     <div class="training-nav-inner">
-      <button class="nav-tab active" id="nav-train" onclick="showPanel('today', this)">Train</button>
       <button class="nav-tab" id="nav-play" onclick="showPanel('play', this)">Play</button>
+      <button class="nav-tab" id="nav-practice" onclick="showPanel('practice', this)">Practice</button>
+      <button class="nav-tab active" id="nav-train" onclick="showPanel('today', this)">Train</button>
       <button class="nav-tab" id="nav-social" onclick="showPanel('social', this)">Social</button>
       <button class="nav-tab" id="nav-profile" onclick="showPanel('profile', this)">Profile</button>
     </div>
@@ -13249,18 +13250,6 @@
      Four slots: Today / Stretch / Library / Account. Icons + labels.
      Stays fixed at the bottom; safe-area-padded for home-indicator. -->
 <nav class="mobile-bottomnav" id="mobile-bottomnav" role="tablist" aria-label="Main navigation">
-  <button class="mobile-navitem active" id="mnav-train" onclick="mobileNavTap('train', this)" role="tab" aria-selected="true">
-    <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <!-- Dumbbell icon -->
-      <path d="M6.5 6.5h11M6.5 17.5h11"/>
-      <rect x="2" y="9" width="3" height="6" rx="1"/>
-      <rect x="19" y="9" width="3" height="6" rx="1"/>
-      <rect x="5" y="7" width="2" height="10" rx="0.5"/>
-      <rect x="17" y="7" width="2" height="10" rx="0.5"/>
-    </svg>
-    <span class="mobile-navlabel">Train</span>
-    <span class="mobile-navindicator" aria-hidden="true"></span>
-  </button>
   <button class="mobile-navitem" id="mnav-play" onclick="mobileNavTap('play', this)" role="tab" aria-selected="false">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <!-- Golf flag icon -->
@@ -13278,6 +13267,18 @@
       <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
     </svg>
     <span class="mobile-navlabel">Practice</span>
+    <span class="mobile-navindicator" aria-hidden="true"></span>
+  </button>
+  <button class="mobile-navitem active" id="mnav-train" onclick="mobileNavTap('train', this)" role="tab" aria-selected="true">
+    <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <!-- Dumbbell icon -->
+      <path d="M6.5 6.5h11M6.5 17.5h11"/>
+      <rect x="2" y="9" width="3" height="6" rx="1"/>
+      <rect x="19" y="9" width="3" height="6" rx="1"/>
+      <rect x="5" y="7" width="2" height="10" rx="0.5"/>
+      <rect x="17" y="7" width="2" height="10" rx="0.5"/>
+    </svg>
+    <span class="mobile-navlabel">Train</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
   <button class="mobile-navitem" id="mnav-social" onclick="mobileNavTap('social', this)" role="tab" aria-selected="false">
@@ -15430,8 +15431,16 @@
   function inferNavTab(panelId) {
     if (panelId === 'play' || panelId === 'courses' || panelId === 'course-detail' ||
         panelId === 'round' || panelId === 'round-summary' || panelId === 'rounds' ||
-        panelId === 'quick-score') {
+        panelId === 'quick-score' || panelId === 'group-lobby' || panelId === 'group-round') {
       return document.getElementById('nav-play');
+    }
+    if (panelId === 'practice' || panelId === 'range-session' ||
+        panelId === 'range-history' || panelId === 'range-session-detail' ||
+        panelId === 'range-session-club-detail' ||
+        panelId === 'shortgame-setup' || panelId === 'shortgame-session' ||
+        panelId === 'shortgame-history' || panelId === 'shortgame-session-detail' ||
+        panelId === 'course-practice-setup' || panelId === 'course-practice-session') {
+      return document.getElementById('nav-practice');
     }
     if (panelId === 'social' || panelId === 'user-profile' || panelId === 'public-round')  return document.getElementById('nav-social');
     if (panelId === 'profile' || panelId === 'bag') return document.getElementById('nav-profile');
