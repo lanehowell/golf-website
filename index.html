@@ -5064,6 +5064,455 @@
     line-height: 1.4;
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     PRACTICE SECTION
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Stacked list of practice-type cards on the Practice landing page.
+     Each card is a large tappable row with icon + body + arrow.
+     Pattern is closer to a settings list than the jump-grid tiles —
+     Practice types are chunkier, fewer in number, and want more room
+     for descriptive copy. */
+  .practice-types {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .practice-type-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    width: 100%;
+    padding: var(--space-6);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform var(--transition-spring),
+                box-shadow var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .practice-type-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-orange);
+  }
+  .practice-type-card:active { transform: translateY(0); }
+
+  /* "Coming soon" variant — shown flat, muted, not tappable. */
+  .practice-type-card-soon {
+    cursor: default;
+    opacity: 0.7;
+  }
+  .practice-type-card-soon:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-light);
+  }
+
+  .practice-type-icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .practice-type-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  .practice-type-icon-soon {
+    background: var(--color-cream-200);
+    color: var(--text-muted);
+  }
+
+  .practice-type-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .practice-type-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+  }
+  .practice-type-card-soon .practice-type-eyebrow {
+    color: var(--text-muted);
+  }
+  .practice-type-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+  .practice-type-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-snug);
+    margin-top: var(--space-1);
+  }
+
+  .practice-type-arrow {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--text-muted);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .practice-type-card:hover .practice-type-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+
+  @media (max-width: 560px) {
+    .practice-type-card {
+      padding: var(--space-5);
+      gap: var(--space-4);
+    }
+    .practice-type-icon {
+      width: 48px;
+      height: 48px;
+    }
+    .practice-type-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+    .practice-type-title {
+      font-size: var(--text-lg);
+    }
+  }
+
+  /* Range session placeholder — used only during the foundation turn
+     before the real session UI lands. Deliberately simple so there's
+     no throwaway polish. */
+  .practice-placeholder-card {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+  }
+  .practice-placeholder-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+  }
+  .practice-placeholder-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+    color: var(--text-primary);
+  }
+  .practice-placeholder-text {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 44ch;
+    margin: 0 auto var(--space-6);
+    line-height: var(--leading-normal);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     RANGE SESSION — IN-PROGRESS UI
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Resume card at the top of Practice landing when a session is in
+     progress. Same shape/feel as the round-invite banner but with
+     practice vocabulary. */
+  .practice-resume-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    width: 100%;
+    padding: var(--space-5) var(--space-6);
+    margin-bottom: var(--space-6);
+    background: var(--color-orange-pale);
+    border: 1px solid rgba(232, 93, 4, 0.35);
+    border-left: 4px solid var(--color-orange);
+    border-radius: var(--radius-lg);
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform var(--transition-spring),
+                box-shadow var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    animation: fadeUp 0.4s ease both;
+  }
+  .practice-resume-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-accent);
+    border-color: var(--color-orange);
+  }
+  .practice-resume-card:active { transform: translateY(0); }
+
+  .practice-resume-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .practice-resume-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange-dark);
+    margin-bottom: var(--space-1);
+  }
+  .practice-resume-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .practice-resume-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-snug);
+  }
+  .practice-resume-arrow {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--color-orange);
+    transition: transform var(--transition-fast);
+  }
+  .practice-resume-card:hover .practice-resume-arrow {
+    transform: translateX(3px);
+  }
+
+  /* Shot-entry card — reuses .round-card as base (matches round screen
+     styling) with a few range-specific tweaks. */
+  .range-entry-card {
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    margin-top: var(--space-5);
+  }
+  .range-entry-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Field wrapper — stacked label + control. Tighter spacing than the
+     generic .field to fit 3 fields into the card cleanly. */
+  .range-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+  }
+  .range-field .label-text {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-1);
+  }
+
+  .range-club-select {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+  }
+
+  /* Swing % segmented control — 4 equal buttons in a row */
+  .range-swing-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+    padding: 2px;
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .range-swing-btn {
+    padding: var(--space-3) 0;
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius-md) - 2px);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .range-swing-btn:hover:not(.active) {
+    color: var(--text-primary);
+  }
+  .range-swing-btn.active {
+    background: var(--bg-elevated);
+    color: var(--color-orange);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Distance input — big, numeric, center-weighted */
+  .range-distance-input {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    text-align: center;
+    padding: var(--space-4);
+    letter-spacing: -0.01em;
+  }
+  .range-distance-input::placeholder {
+    font-family: var(--font-body);
+    font-weight: var(--weight-regular);
+    font-size: var(--text-md);
+    color: var(--text-muted);
+  }
+
+  /* Shot list below the entry card */
+  .range-shotlist-section {
+    margin-top: var(--space-8);
+  }
+  .range-shotlist-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+  .range-shotlist-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .range-shotlist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .range-shotlist-empty {
+    padding: var(--space-8) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Individual shot row — mono font, quick-scan layout */
+  .range-shot-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 56px 96px 32px;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast);
+    animation: fadeUp 0.3s ease both;
+  }
+  .range-shot-row:hover {
+    border-color: var(--color-orange);
+  }
+  .range-shot-num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: var(--weight-semibold);
+  }
+  .range-shot-club {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .range-shot-swing {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    text-align: right;
+  }
+  .range-shot-distance {
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    text-align: right;
+  }
+  .range-shot-distance span {
+    font-size: 0.65em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .range-shot-delete {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .range-shot-delete:hover {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+    border-color: var(--color-orange);
+  }
+
+  @media (max-width: 560px) {
+    .range-shot-row {
+      grid-template-columns: 32px 1fr 44px 72px 28px;
+      padding: var(--space-3);
+      gap: var(--space-2);
+    }
+    .range-shot-club {
+      font-size: var(--text-sm);
+    }
+    .range-shot-distance {
+      font-size: var(--text-base);
+    }
+  }
+
   /* ── Callout boxes ────────────────────────────────────────── */
   .callout {
     padding: var(--space-5) var(--space-6);
@@ -10898,6 +11347,22 @@
       <div id="rounds-page-mount"></div>
     </section>
 
+    <!-- ═══════════════ PRACTICE ═══════════════ -->
+    <section class="panel" id="panel-practice">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Skill Building</span>
+        <h2>Practice</h2>
+        <p class="panel-desc">Track range sessions, putting drills, and other skill-focused work — separate from on-course rounds.</p>
+      </div>
+      <div id="practice-landing-mount"></div>
+    </section>
+
+    <!-- ═══════════════ RANGE SESSION ═══════════════ -->
+    <section class="panel" id="panel-range-session">
+      <div id="range-session-mount"></div>
+    </section>
+
     <!-- ═══════════════ SOCIAL ═══════════════ -->
     <section class="panel" id="panel-social">
       <div class="panel-head">
@@ -11113,6 +11578,16 @@
       <path d="M5 4l11 2-3 4 3 4-11 2"/>
     </svg>
     <span class="mobile-navlabel">Play</span>
+    <span class="mobile-navindicator" aria-hidden="true"></span>
+  </button>
+  <button class="mobile-navitem" id="mnav-practice" onclick="mobileNavTap('practice', this)" role="tab" aria-selected="false">
+    <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <!-- Target/bullseye icon — represents practicing toward a target -->
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="5"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+    </svg>
+    <span class="mobile-navlabel">Practice</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
   <button class="mobile-navitem" id="mnav-social" onclick="mobileNavTap('social', this)" role="tab" aria-selected="false">
@@ -11643,6 +12118,54 @@
         onUpdate(friends);
       });
     },
+
+    // ─── Practice sessions ────────────────────────────────────────
+    // Range sessions, putting drills, etc. live here. Separate from
+    // rounds — no handicap impact, no round-history crossover. Stored
+    // at users/{uid}/practiceSessions/{sessionId}.
+
+    // Create a new practice session. Returns the new doc id. Caller
+    // supplies the initial payload (type, startTime, dateKey, status,
+    // shots:[]). Uses setDoc with a deterministic id so the client can
+    // stash it in state and keep writing updates to the same doc.
+    createPracticeSession: async (myUid, payload) => {
+      const docId = payload.id || `ps_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      await setDoc(doc(db, `users/${myUid}/practiceSessions/${docId}`), {
+        ...payload,
+        id: docId,
+      });
+      return docId;
+    },
+
+    // Read a single practice session by id. Returns { id, ...data } or null.
+    getPracticeSession: async (myUid, sessionId) => {
+      const snap = await getDoc(doc(db, `users/${myUid}/practiceSessions/${sessionId}`));
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    },
+
+    // Update arbitrary fields on a practice session. Used for adding
+    // shots (merging in a new shots array), marking complete, etc.
+    updatePracticeSession: async (myUid, sessionId, updates) => {
+      await updateDoc(doc(db, `users/${myUid}/practiceSessions/${sessionId}`), updates);
+    },
+
+    // List the user's practice sessions. Filter arg is optional — pass
+    // 'in-progress' to find a resumable session, or omit for all.
+    listPracticeSessions: async (myUid, statusFilter) => {
+      const ref = collection(db, `users/${myUid}/practiceSessions`);
+      const q = statusFilter
+        ? query(ref, where('status', '==', statusFilter), orderBy('startTime', 'desc'))
+        : query(ref, orderBy('startTime', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+
+    // Delete a practice session. Used for abandon-on-empty and for
+    // explicit delete from session history.
+    deletePracticeSession: async (myUid, sessionId) => {
+      await deleteDoc(doc(db, `users/${myUid}/practiceSessions/${sessionId}`));
+    },
+
 
     // Subscribe to the user's incoming friend requests collection. Fires
     // on any change — add, remove, update. Callback receives the full
@@ -12981,6 +13504,8 @@
     if (id === 'routine-builder') return builderState.editingId ? 'Edit Routine' : 'New Routine';
     if (id === 'history')        return 'History';
     if (id === 'play')           return 'Play';
+    if (id === 'practice')       return 'Practice';
+    if (id === 'range-session')  return 'Range Session';
     if (id === 'social')         return 'Social';
     if (id === 'profile')        return 'Profile';
     if (id === 'courses')        return 'Courses';
@@ -13008,6 +13533,7 @@
     if (id === 'play' || id === 'courses' || id === 'course-detail' ||
         id === 'round' || id === 'round-summary' || id === 'rounds' ||
         id === 'quick-score') return 'play';
+    if (id === 'practice' || id === 'range-session') return 'practice';
     if (id === 'social' || id === 'user-profile' || id === 'public-round')  return 'social';
     if (id === 'profile' || id === 'bag') return 'profile';
     return 'train';
@@ -13018,7 +13544,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -13126,6 +13652,8 @@
     if (id === 'workout') renderWorkoutPanel();
     if (id === 'group-lobby') renderGroupLobby();
     if (id === 'group-round') renderGroupRoundPanel();
+    if (id === 'practice') renderPracticeLanding();
+    if (id === 'range-session') renderRangeSession();
 
     // Phase 2: live subscription lifecycle. Start the onSnapshot listener
     // when entering a group panel; tear it down when leaving. Idempotent
@@ -13163,10 +13691,11 @@
   function syncMobileBottomNav(panelId) {
     const activeKey = mobileActiveTab(panelId);
     const items = {
-      train:   document.getElementById('mnav-train'),
-      play:    document.getElementById('mnav-play'),
-      social:  document.getElementById('mnav-social'),
-      profile: document.getElementById('mnav-profile')
+      train:    document.getElementById('mnav-train'),
+      play:     document.getElementById('mnav-play'),
+      practice: document.getElementById('mnav-practice'),
+      social:   document.getElementById('mnav-social'),
+      profile:  document.getElementById('mnav-profile')
     };
     Object.entries(items).forEach(([key, el]) => {
       if (!el) return;
@@ -16017,6 +16546,7 @@
         loadRoutines(),
         loadMyGroupRounds(),
         loadGroupRoundInvites(),
+        loadInProgressPracticeSession(),
         loadInProgressSession()
       ]);
       if (inProgressSession) {
@@ -16052,6 +16582,10 @@
         try { groupRoundState.unsubscribe(); } catch (_) {}
         groupRoundState.unsubscribe = null;
       }
+      // Clear practice session state — no resume across users
+      practiceSessionState.docId = null;
+      practiceSessionState.doc = null;
+      practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '' };
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       // Not signed in — vacuously "loaded" (no doc to read). Setting these
@@ -18637,6 +19171,537 @@
     roundSummaryState.roundId = roundId;
     showPanel('round-summary', null);
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // Practice section — range, putting, chipping work
+  // ─────────────────────────────────────────────────────────────
+  // Practice is distinct from Play (rounds at courses). Practice sessions
+  // do NOT count toward handicap and do NOT appear in round history. They
+  // live in their own Firestore collection at users/{uid}/practiceSessions.
+  // The landing page surfaces practice types as cards; tapping a card
+  // either opens an in-progress session of that type (if one exists)
+  // or starts a new one.
+  function renderPracticeLanding() {
+    const mount = document.getElementById('practice-landing-mount');
+    if (!mount) return;
+
+    // If there's an in-progress range session, surface a prominent
+    // "Continue" card at the top. Mirrors the Play hero's resume pattern.
+    const inProgressBanner = (() => {
+      if (!isRangeSessionActive()) return '';
+      const shots = practiceSessionState.doc.shots || [];
+      const shotCount = shots.length;
+      return `
+        <button class="practice-resume-card" onclick="showPanel('range-session', null)">
+          <div class="practice-resume-body">
+            <div class="practice-resume-eyebrow">Range Session In Progress</div>
+            <div class="practice-resume-title">${shotCount} shot${shotCount === 1 ? '' : 's'} logged</div>
+            <div class="practice-resume-desc">Tap to continue where you left off.</div>
+          </div>
+          <div class="practice-resume-arrow" aria-hidden="true">→</div>
+        </button>
+      `;
+    })();
+
+    // Range-card CTA label changes based on resume state. If in-progress,
+    // tapping the Range card also resumes (same destination).
+    const rangeCtaLabel = isRangeSessionActive() ? 'Continue Session' : 'Start Session';
+
+    mount.innerHTML = `
+      ${inProgressBanner}
+      <div class="practice-types">
+        <button class="practice-type-card" onclick="startRangeSession()">
+          <div class="practice-type-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="5"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="practice-type-body">
+            <div class="practice-type-eyebrow">Driving Range</div>
+            <div class="practice-type-title">Range Session</div>
+            <div class="practice-type-desc">Log shot-by-shot with club, swing %, and distance. Build your distance profile from launch monitor data.</div>
+          </div>
+          <div class="practice-type-arrow" aria-hidden="true">→</div>
+        </button>
+
+        <div class="practice-type-card practice-type-card-soon" aria-disabled="true">
+          <div class="practice-type-icon practice-type-icon-soon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="14" r="6"/>
+              <path d="M12 8V3M9 5h6"/>
+            </svg>
+          </div>
+          <div class="practice-type-body">
+            <div class="practice-type-eyebrow">Coming Soon</div>
+            <div class="practice-type-title">Putting Drills</div>
+            <div class="practice-type-desc">Track makes/misses by distance. Build a putting confidence profile.</div>
+          </div>
+        </div>
+
+        <div class="practice-type-card practice-type-card-soon" aria-disabled="true">
+          <div class="practice-type-icon practice-type-icon-soon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 21V3"/>
+              <path d="M5 4l11 2-3 4 3 4-11 2"/>
+            </svg>
+          </div>
+          <div class="practice-type-body">
+            <div class="practice-type-eyebrow">Coming Soon</div>
+            <div class="practice-type-title">Short Game</div>
+            <div class="practice-type-desc">Chip and pitch shots — track distance to pin, save percentage, club selection.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Range session — state + persistence + UI
+  // ─────────────────────────────────────────────────────────────
+  // State shape:
+  //   docId    — the Firestore doc id for the active session, null if none
+  //   doc      — the session record (startTime, shots[], status, etc.)
+  //   draft    — the in-flight shot being composed {clubId, swingPct, distance}
+  const practiceSessionState = {
+    docId: null,
+    doc: null,
+    draft: {
+      clubId: null,      // selected club from user's bag
+      swingPct: 100,     // 100 / 75 / 50 / 25
+      distance: '',      // string, validated + cast on submit
+    },
+  };
+
+  let __practiceSessionSaveTimer = null;
+  let __practiceSessionSaveInFlight = false;
+  let practiceSessionsLoaded = false;
+
+  function isRangeSessionActive() {
+    return !!(practiceSessionState.docId && practiceSessionState.doc);
+  }
+
+  // Load any in-progress practice session for resume. Called on auth.
+  async function loadInProgressPracticeSession() {
+    practiceSessionsLoaded = false;
+    if (!currentUser || !window.fb) {
+      practiceSessionState.docId = null;
+      practiceSessionState.doc = null;
+      practiceSessionsLoaded = true;
+      return;
+    }
+    try {
+      const list = await window.fb.listPracticeSessions(currentUser.uid, 'in-progress');
+      if (list && list.length > 0) {
+        // Most recent startTime wins — shouldn't typically have multiple
+        // but defensive
+        const active = list.reduce((a, b) =>
+          (a.startTime || 0) > (b.startTime || 0) ? a : b
+        );
+        practiceSessionState.docId = active.id;
+        practiceSessionState.doc = active;
+      } else {
+        practiceSessionState.docId = null;
+        practiceSessionState.doc = null;
+      }
+      practiceSessionsLoaded = true;
+    } catch (err) {
+      console.error('Failed to load practice sessions:', err);
+      practiceSessionState.docId = null;
+      practiceSessionState.doc = null;
+    }
+  }
+
+  // Start a new range session. If one's already in progress, just open it.
+  // Requires at least one club in the user's bag — otherwise prompts to
+  // set one up first since shots are club-tagged.
+  async function startRangeSession() {
+    if (!currentUser) {
+      showToast('Sign in to save range sessions', true);
+      return;
+    }
+    if (!window.fb) return;
+
+    // Resume if there's already one in flight
+    if (isRangeSessionActive()) {
+      showPanel('range-session', null);
+      return;
+    }
+
+    // Need a bag
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    if (bag.length === 0) {
+      const ok = await confirmDialog({
+        eyebrow: 'Set Up Your Bag',
+        title: 'Add your clubs first',
+        message: 'Range sessions log shots by club. Add your clubs (and their typical distances) in Profile → My Bag, then come back to start a session.',
+        confirmText: 'Open My Bag',
+        cancelText: 'Cancel',
+      });
+      if (ok) showPanel('bag', null);
+      return;
+    }
+
+    // Default draft club to the first club in the bag (usually driver)
+    practiceSessionState.draft = {
+      clubId: bag[0].id || bag[0].name || null,
+      swingPct: 100,
+      distance: '',
+    };
+
+    const startMs = Date.now();
+    const pad = (n) => String(n).padStart(2, '0');
+    const dStart = new Date(startMs);
+    const dateKey = `${dStart.getFullYear()}-${pad(dStart.getMonth() + 1)}-${pad(dStart.getDate())}`;
+    const payload = {
+      type: 'range',
+      status: 'in-progress',
+      startTime: startMs,
+      dateKey,
+      shots: [],
+    };
+
+    try {
+      const id = await window.fb.createPracticeSession(currentUser.uid, payload);
+      practiceSessionState.docId = id;
+      practiceSessionState.doc = { id, ...payload };
+      showPanel('range-session', null);
+    } catch (err) {
+      console.error('Failed to start range session:', err);
+      showToast('Could not start session — see console', true);
+    }
+  }
+
+  // Persist the current session's shots to Firestore. Debounced so
+  // rapid-fire edits (add/undo/add) don't spam writes.
+  function queueSavePracticeSession() {
+    if (__practiceSessionSaveTimer) clearTimeout(__practiceSessionSaveTimer);
+    __practiceSessionSaveTimer = setTimeout(() => {
+      __practiceSessionSaveTimer = null;
+      savePracticeSessionNow();
+    }, 600);
+  }
+  async function savePracticeSessionNow() {
+    if (!isRangeSessionActive() || !currentUser || !window.fb) return;
+    __practiceSessionSaveInFlight = true;
+    try {
+      await window.fb.updatePracticeSession(
+        currentUser.uid,
+        practiceSessionState.docId,
+        { shots: practiceSessionState.doc.shots || [] }
+      );
+    } catch (err) {
+      console.error('Failed to save practice session:', err);
+      showToast('Shot not saved — check connection', true);
+    } finally {
+      __practiceSessionSaveInFlight = false;
+    }
+  }
+
+  // Draft mutators — called from the shot-entry form's inputs
+  function practiceSelectClub(clubId) {
+    practiceSessionState.draft.clubId = clubId;
+    renderRangeSession();
+  }
+  function practiceSelectSwingPct(pct) {
+    practiceSessionState.draft.swingPct = pct;
+    renderRangeSession();
+  }
+  function practiceSetDistance(val) {
+    // Keep the raw string so "1" → "12" typing feels natural; validate on add
+    practiceSessionState.draft.distance = val;
+    // No re-render — typing shouldn't replace the input (kills keyboard focus
+    // on mobile). The submit button enabled-state updates via CSS + the
+    // minimal event on button state will reflect stored string.
+    updateAddShotButtonEnabled();
+  }
+  function updateAddShotButtonEnabled() {
+    const btn = document.getElementById('practice-add-shot-btn');
+    if (!btn) return;
+    btn.disabled = !canAddShot();
+  }
+  function canAddShot() {
+    const d = practiceSessionState.draft;
+    if (!d.clubId) return false;
+    const dist = parseInt(d.distance, 10);
+    return Number.isFinite(dist) && dist > 0 && dist < 500;
+  }
+
+  // Add the currently-drafted shot to the session + persist
+  function practiceAddShot() {
+    if (!isRangeSessionActive()) return;
+    if (!canAddShot()) return;
+    const d = practiceSessionState.draft;
+    const shot = {
+      clubId: d.clubId,
+      swingPct: d.swingPct,
+      distance: parseInt(d.distance, 10),
+      capturedAt: Date.now(),
+    };
+    const doc = practiceSessionState.doc;
+    doc.shots = [...(doc.shots || []), shot];
+    // Reset distance but keep club + swingPct so next shot flows quickly
+    // (most range reps are "same club, same swing, repeat").
+    practiceSessionState.draft.distance = '';
+    queueSavePracticeSession();
+    renderRangeSession();
+  }
+
+  // Remove the last shot — undo button. Instant local + queued write.
+  function practiceRemoveLastShot() {
+    if (!isRangeSessionActive()) return;
+    const doc = practiceSessionState.doc;
+    if (!doc.shots || doc.shots.length === 0) return;
+    doc.shots = doc.shots.slice(0, -1);
+    queueSavePracticeSession();
+    renderRangeSession();
+  }
+
+  // Remove a specific shot by its index in the list.
+  function practiceRemoveShotAt(idx) {
+    if (!isRangeSessionActive()) return;
+    const doc = practiceSessionState.doc;
+    if (!doc.shots || idx < 0 || idx >= doc.shots.length) return;
+    doc.shots = doc.shots.filter((_, i) => i !== idx);
+    queueSavePracticeSession();
+    renderRangeSession();
+  }
+
+  // End the current session — confirm, flip status to completed, navigate
+  // back to practice landing. If no shots were logged, just delete the doc.
+  async function endRangeSession() {
+    if (!isRangeSessionActive() || !currentUser || !window.fb) return;
+    const shotCount = (practiceSessionState.doc.shots || []).length;
+    if (shotCount === 0) {
+      const ok = await confirmDialog({
+        eyebrow: 'End Session',
+        eyebrowStyle: 'warning',
+        title: 'Discard empty session?',
+        message: "No shots logged, so nothing will be saved.",
+        confirmText: 'Discard',
+        cancelText: 'Keep Session',
+        destructive: true,
+      });
+      if (!ok) return;
+      try {
+        await window.fb.deletePracticeSession(
+          currentUser.uid,
+          practiceSessionState.docId
+        );
+      } catch (err) {
+        console.error('Failed to delete empty session:', err);
+      }
+      practiceSessionState.docId = null;
+      practiceSessionState.doc = null;
+      showPanel('practice', null);
+      return;
+    }
+
+    const ok = await confirmDialog({
+      eyebrow: 'End Session',
+      title: `Save ${shotCount}-shot session?`,
+      message: 'Your session will be saved. You can start a new one any time.',
+      confirmText: 'End Session',
+      cancelText: 'Keep Going',
+    });
+    if (!ok) return;
+
+    // Flush pending writes
+    if (__practiceSessionSaveTimer) {
+      clearTimeout(__practiceSessionSaveTimer);
+      __practiceSessionSaveTimer = null;
+    }
+    await savePracticeSessionNow();
+
+    try {
+      await window.fb.updatePracticeSession(
+        currentUser.uid,
+        practiceSessionState.docId,
+        { status: 'completed', endTime: Date.now() }
+      );
+    } catch (err) {
+      console.error('Failed to mark session completed:', err);
+    }
+    practiceSessionState.docId = null;
+    practiceSessionState.doc = null;
+    showPanel('practice', null);
+  }
+
+  // Compute session totals — used in the status strip
+  function computeSessionTotals(shots) {
+    const count = (shots || []).length;
+    if (count === 0) return { count: 0, avg: 0, max: 0, lastDistance: null };
+    const distances = shots.map(s => s.distance || 0);
+    const sum = distances.reduce((a, b) => a + b, 0);
+    const max = Math.max(...distances);
+    return {
+      count,
+      avg: Math.round(sum / count),
+      max,
+      lastDistance: distances[distances.length - 1],
+    };
+  }
+
+  // Resolve a club id back to its display name from the user's bag.
+  function resolveClubName(clubId) {
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    const club = bag.find(c => (c.id || c.name) === clubId);
+    return club ? (club.name || 'Club') : 'Club';
+  }
+
+  // Main render — branches on "active session?" and routes accordingly.
+  function renderRangeSession() {
+    const mount = document.getElementById('range-session-mount');
+    if (!mount) return;
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Sign in to track range sessions</h2>
+          <p class="panel-desc">Session data syncs to your account so you can build a distance profile over time.</p>
+        </div>
+        <button class="btn btn-outline" onclick="showPanel('practice', null)">← Back to Practice</button>
+      `;
+      return;
+    }
+
+    if (!isRangeSessionActive()) {
+      // No session in flight — shouldn't normally land here (startRangeSession
+      // creates one and navigates), but handle defensively.
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>No active session</h2>
+          <p class="panel-desc">Head back to Practice to start a new range session.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPanel('practice', null)">← Back to Practice</button>
+      `;
+      return;
+    }
+
+    const doc = practiceSessionState.doc;
+    const shots = doc.shots || [];
+    const totals = computeSessionTotals(shots);
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    const d = practiceSessionState.draft;
+    const selectedClub = bag.find(c => (c.id || c.name) === d.clubId);
+    const selectedClubName = selectedClub ? selectedClub.name : 'Select…';
+
+    // Club options for the <select> — value is id (or name as fallback)
+    const clubOptions = bag.map(c => {
+      const val = c.id || c.name;
+      const sel = val === d.clubId ? 'selected' : '';
+      return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(c.name || 'Club')}</option>`;
+    }).join('');
+
+    // Swing-pct segmented control — 100/75/50/25
+    const swingOptions = [100, 75, 50, 25];
+    const swingHtml = swingOptions.map(p => `
+      <button class="range-swing-btn ${p === d.swingPct ? 'active' : ''}"
+              onclick="practiceSelectSwingPct(${p})">${p}%</button>
+    `).join('');
+
+    // Shot list — newest on top for quick glance at what you just logged
+    const shotListHtml = shots.length === 0
+      ? `<div class="range-shotlist-empty">No shots yet. Log your first shot above.</div>`
+      : shots.slice().reverse().map((s, revIdx) => {
+          const realIdx = shots.length - 1 - revIdx;
+          const clubName = resolveClubName(s.clubId);
+          return `
+            <div class="range-shot-row">
+              <div class="range-shot-num">#${realIdx + 1}</div>
+              <div class="range-shot-club">${escapeHtml(clubName)}</div>
+              <div class="range-shot-swing">${s.swingPct}%</div>
+              <div class="range-shot-distance">${s.distance}<span>${distanceUnit()}</span></div>
+              <button class="range-shot-delete" onclick="practiceRemoveShotAt(${realIdx})" aria-label="Remove shot ${realIdx + 1}">×</button>
+            </div>
+          `;
+        }).join('');
+
+    mount.innerHTML = `
+      <!-- Status strip — session stats on the right, label on the left -->
+      <div class="round-status">
+        <div class="round-status-side">
+          <div class="round-status-eyebrow">Range Session</div>
+          <div class="round-status-meta">${totals.count} shot${totals.count === 1 ? '' : 's'} · Avg ${totals.avg}${distanceUnit()} · Max ${totals.max}${distanceUnit()}</div>
+        </div>
+        <div class="round-status-side round-status-right">
+          <div class="round-status-eyebrow">Last</div>
+          <div class="round-status-score">${totals.lastDistance != null ? totals.lastDistance : '—'} <span>${distanceUnit()}</span></div>
+        </div>
+      </div>
+
+      <!-- Shot entry card — mirrors the round-card style from the round screen -->
+      <div class="round-card range-entry-card">
+        <div class="range-entry-label">Next Shot</div>
+
+        <div class="range-field">
+          <label class="label-text" for="range-club-select">Club</label>
+          <select id="range-club-select" class="select range-club-select"
+                  onchange="practiceSelectClub(this.value)">
+            ${clubOptions}
+          </select>
+        </div>
+
+        <div class="range-field">
+          <label class="label-text">Swing</label>
+          <div class="range-swing-row">
+            ${swingHtml}
+          </div>
+        </div>
+
+        <div class="range-field">
+          <label class="label-text" for="range-distance-input">Distance (${distanceUnit()})</label>
+          <input id="range-distance-input" type="number" inputmode="numeric"
+                 class="input range-distance-input"
+                 min="1" max="500"
+                 value="${escapeHtml(d.distance || '')}"
+                 placeholder="e.g. 225"
+                 oninput="practiceSetDistance(this.value)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();practiceAddShot();}">
+        </div>
+
+        <div class="round-actions">
+          <button id="practice-add-shot-btn" class="round-btn round-btn-primary"
+                  onclick="practiceAddShot()" ${canAddShot() ? '' : 'disabled'}>
+            + Add Shot
+          </button>
+          <div class="round-actions-secondary">
+            ${shots.length > 0 ? `<button class="round-btn-link" onclick="practiceRemoveLastShot()">↶ Undo Last</button>` : ''}
+            <button class="round-btn-link round-btn-end" onclick="endRangeSession()">End Session</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shot list — reverse-chronological for recency -->
+      <div class="range-shotlist-section">
+        <div class="range-shotlist-head">
+          <div class="range-shotlist-label">Shots</div>
+        </div>
+        <div class="range-shotlist">
+          ${shotListHtml}
+        </div>
+      </div>
+    `;
+
+    // After render, restore focus to the distance input if that's the
+    // natural next action (club + swing both already set, distance empty).
+    // Doesn't steal focus if the user is actively in another field.
+    const distInput = document.getElementById('range-distance-input');
+    if (distInput && document.activeElement !== distInput) {
+      // Only auto-focus on initial render or after an Add Shot — we
+      // detect this by checking if distance field is currently empty
+      // AND there's no other active input.
+      const active = document.activeElement;
+      const isAnotherInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
+      if (!isAnotherInput && d.distance === '') {
+        distInput.focus();
+      }
+    }
+  }
+
 
   // ─────────────────────────────────────────────────────────────
   // Play landing — dynamic content (resume banner, stats, recent rounds)
