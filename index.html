@@ -11216,9 +11216,17 @@
   // page reloads. browserLocalPersistence is the Firebase default but we
   // set it explicitly to be resilient to Safari's aggressive storage
   // clearing — some versions default to session persistence on iOS.
-  setPersistence(auth, browserLocalPersistence).catch((err) => {
-    console.warn('Failed to set auth persistence:', err);
-  });
+  //
+  // CRITICAL: setPersistence MUST resolve before getRedirectResult runs,
+  // or the redirect callback writes the session with whatever the current
+  // persistence is (sometimes sessionStorage on mobile Safari) — which
+  // evaporates the moment the tab reloads. That's the classic symptom of
+  // "mobile sign-in works, then doesn't". We expose a promise for the
+  // auth-readiness so all later code paths can await it.
+  const __authReady = setPersistence(auth, browserLocalPersistence)
+    .catch((err) => {
+      console.warn('Failed to set auth persistence:', err);
+    });
 
   // Detect iOS standalone PWA mode (app launched from Home Screen bookmark).
   // Firebase Auth's redirect flow is broken in this mode on iOS because
@@ -11260,7 +11268,12 @@
   // just came back from Google's auth flow, this resolves with a UserCredential;
   // onAuthStateChanged will then fire the rest of the app's auth-aware logic.
   // If there's no redirect in flight, it resolves with null — harmless.
-  getRedirectResult(auth).catch((err) => {
+  //
+  // Chained behind __authReady so the persistence mode is locked in before
+  // the redirect result is consumed. Without this, mobile Safari/Chrome
+  // sometimes write the session to the wrong storage and the sign-in
+  // appears to "not stick" after returning from Google.
+  __authReady.then(() => getRedirectResult(auth)).catch((err) => {
     // Suppress the benign "no pending result" errors; surface real ones.
     if (err?.code !== 'auth/no-auth-event') {
       console.error('Redirect sign-in returned an error:', err);
@@ -11336,6 +11349,10 @@
       return;
     }
     try {
+      // Make sure persistence is set BEFORE signing in, or the session
+      // lands in whichever storage mode Firebase was in at the moment.
+      // On fast networks this race isn't visible; on mobile it is.
+      await __authReady;
       const credential = GoogleAuthProvider.credential(response.credential);
       await signInWithCredential(auth, credential);
       // Firebase will now fire onAuthStateChanged; the rest of the app
@@ -11354,15 +11371,26 @@
     // offer an alternative entry path. Read once at module load; the
     // value doesn't change during the session.
     isIosStandalonePwa: isIosStandalonePwa(),
+    // Live function (not a frozen value) — viewport width changes with
+    // rotation + resize, so we re-check on each call. The main script
+    // uses this to decide whether to render the GIS button or the
+    // Firebase popup button.
+    shouldUseRedirect,
     // Google Client ID — exposed so the main script can detect whether
     // native sign-in was actually configured (vs. left at the placeholder).
     googleClientIdConfigured: !GOOGLE_CLIENT_ID.includes('PLACEHOLDER'),
     // Render the GIS button into a container element. Used in iOS PWA
     // mode where the regular Firebase sign-in flow doesn't work.
     renderGoogleSignInButton,
-    signIn: () => shouldUseRedirect()
-      ? signInWithRedirect(auth, provider)
-      : signInWithPopup(auth, provider),
+    signIn: async () => {
+      // Await the persistence promise before kicking off auth — otherwise
+      // the redirect flow can race the persistence write on mobile and
+      // land the session in sessionStorage (gone on reload).
+      await __authReady;
+      return shouldUseRedirect()
+        ? signInWithRedirect(auth, provider)
+        : signInWithPopup(auth, provider);
+    },
     signOut: () => signOut(auth),
     // Firestore helpers — wrapped so the main script doesn't have to import.
     setDoc: (path, data) => setDoc(doc(db, path), data),
@@ -14001,10 +14029,22 @@
   // Returns HTML to embed in any sign-in CTA. The GIS button needs to be
   // rendered AFTER the HTML is in the DOM, so we also kick off the render
   // from a microtask-deferred follow-up.
+  //
+  // GIS is preferred on ALL mobile browsers — not just iOS PWA — because
+  // Firebase's redirect flow has racey session-persistence bugs on mobile
+  // Safari, Chrome iOS, and Android browsers. Symptom: user completes
+  // Google auth but returns to a signed-out page (session lands in the
+  // wrong storage and evaporates). GIS uses a popup/modal that returns
+  // an ID token synchronously — no redirect, no race, no broken sign-in.
+  // Desktop stays on the Firebase popup path since it works reliably there.
   function renderSignInButton() {
-    const useGis = window.fb &&
-                   window.fb.isIosStandalonePwa &&
-                   window.fb.googleClientIdConfigured;
+    if (!window.fb) {
+      return `<button class="btn-cta" disabled>Loading…</button>`;
+    }
+    // Use GIS on: iOS standalone PWA, any mobile browser, or narrow
+    // viewports. Desktop browsers get the regular Firebase popup flow.
+    const useGis = window.fb.googleClientIdConfigured &&
+                   (window.fb.isIosStandalonePwa || window.fb.shouldUseRedirect());
     if (useGis) {
       // GIS button mounts into a container we render here. After the DOM
       // is ready, schedule the actual button render.
@@ -14018,7 +14058,7 @@
       }, 0);
       return `<div id="${containerId}" class="gsi-button-container"></div>`;
     }
-    // Fallback / desktop / regular mobile Safari
+    // Desktop path — Firebase popup works reliably here
     return `<button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>`;
   }
 
