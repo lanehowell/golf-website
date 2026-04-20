@@ -26,6 +26,126 @@
 <link rel="stylesheet" href="design-system.css">
 <style>
   /* ══════════════════════════════════════════════════════════════
+     SPLASH SCREEN — mobile-only initial loader
+     ══════════════════════════════════════════════════════════════
+     Full-viewport overlay that covers the app shell during the
+     initial Firebase auth + prefs load window. Hidden on desktop
+     (>820px viewport) where the load flicker is less jarring and
+     the user is more likely to be multitasking. Kept at the TOP
+     of the stylesheet so it paints on first frame — a splash that
+     appears late defeats its purpose.
+
+     Styling uses literal color values (not CSS variables) because
+     this paints before the design-system.css is even guaranteed
+     to have resolved its @import. Intentional.
+     ══════════════════════════════════════════════════════════════ */
+
+  .app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;              /* above all app chrome */
+    display: none;                /* default hidden — mobile-only MQ below */
+    align-items: center;
+    justify-content: center;
+    background: #FFFDF7;          /* cream-50 literal */
+    color: #0D0D0D;               /* black literal */
+    opacity: 1;
+    transition: opacity 300ms ease;
+    pointer-events: auto;
+  }
+  .app-splash.fading {
+    opacity: 0;
+    pointer-events: none;         /* don't block clicks during fade */
+  }
+  /* When fade finishes, the JS sets .hidden and we fully remove
+     the element from layout (display:none) so it can't catch taps
+     or consume memory. */
+  .app-splash.hidden {
+    display: none !important;
+  }
+
+  .app-splash-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 24px;
+    text-align: center;
+    /* Nudge the content up from center — matches the eye-level
+       positioning in most splash screens; dead-center feels low. */
+    transform: translateY(-8%);
+  }
+
+  .app-splash-logo {
+    width: 84px;
+    height: 84px;
+    color: #E85D04;               /* orange accent */
+    /* Subtle breathing animation so the screen doesn't feel frozen */
+    animation: app-splash-pulse 2s ease-in-out infinite;
+  }
+  @keyframes app-splash-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
+  }
+
+  .app-splash-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #0D0D0D;
+    margin: 0;
+    max-width: 11ch;
+  }
+  .app-splash-title em {
+    font-style: italic;
+    color: #E85D04;
+  }
+
+  .app-splash-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(13, 13, 13, 0.15);
+    border-top-color: #E85D04;
+    border-radius: 50%;
+    animation: app-splash-spin 0.7s linear infinite;
+    margin-top: 12px;
+  }
+  @keyframes app-splash-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Dark mode — dark brown-gray background, warm off-white text */
+  html.dark .app-splash {
+    background: #1F1C17;
+    color: #FFF8EC;
+  }
+  html.dark .app-splash-title {
+    color: #FFF8EC;
+  }
+  html.dark .app-splash-spinner {
+    border-color: rgba(255, 248, 236, 0.15);
+    border-top-color: #FF7A25;
+  }
+
+  /* Mobile-only: show the splash by default on narrow screens.
+     We treat "mobile" as the same ≤820px threshold the sign-in
+     redirect logic uses, so behavior matches between them. */
+  @media (max-width: 820px) {
+    .app-splash { display: flex; }
+  }
+  /* Users who prefer reduced motion: no pulse, no spin. Keep the
+     splash itself (it still serves its "wait for auth" purpose),
+     just drop the animations. */
+  @media (prefers-reduced-motion: reduce) {
+    .app-splash-logo,
+    .app-splash-spinner {
+      animation: none;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      PAGE-SPECIFIC STYLES — extends design-system.css
      ══════════════════════════════════════════════════════════════ */
 
@@ -8026,6 +8146,29 @@
 </head>
 <body>
 
+<!-- SPLASH SCREEN (mobile only). Full-viewport overlay shown on initial
+     page load. Covers the first ~800ms–3s so Firebase Auth can restore
+     the user and Firestore can complete its token handshake before the
+     main UI appears. Without this, users see a brief flash of default/
+     signed-out state before their real data loads. Dismissed via JS in
+     the main init sequence — see hideSplash() below. -->
+<div id="app-splash" class="app-splash" aria-hidden="true">
+  <div class="app-splash-inner">
+    <!-- Inline SVG — no external fetch, renders instantly -->
+    <svg class="app-splash-logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Golf flag on a stick -->
+      <path d="M18 52 L18 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M18 12 L18 28 L42 20 Z" fill="currentColor"/>
+      <!-- Ground / green -->
+      <ellipse cx="32" cy="52" rx="18" ry="3" fill="currentColor" opacity="0.15"/>
+      <!-- Golf ball next to the flag -->
+      <circle cx="36" cy="50" r="3" fill="currentColor"/>
+    </svg>
+    <div class="app-splash-title">Play <em>Better</em> Golf</div>
+    <div class="app-splash-spinner" aria-hidden="true"></div>
+  </div>
+</div>
+
 <!-- SESSION BANNER (shown when workout in progress). The whole inner area
      is clickable and resumes the session; the buttons stopPropagation so
      they trigger their own actions without double-firing resume. -->
@@ -9056,7 +9199,9 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+    getRedirectResult, signOut, onAuthStateChanged, browserLocalPersistence,
+    setPersistence
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, orderBy, limit,
@@ -9077,11 +9222,48 @@
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
+  // Persist the auth session locally so the user stays signed in across
+  // page reloads. browserLocalPersistence is the Firebase default but we
+  // set it explicitly to be resilient to Safari's aggressive storage
+  // clearing — some versions default to session persistence on iOS.
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn('Failed to set auth persistence:', err);
+  });
+
+  // Decide between popup and redirect sign-in based on platform. Popups
+  // work great on desktop but are unreliable on mobile Safari and in-app
+  // browsers (Instagram, Twitter, etc.) — iOS either blocks them outright,
+  // silently fails to return focus, or intermittently drops the auth
+  // callback. Firebase's official guidance is: use redirect on mobile.
+  //
+  // Detection: any touch device + narrow viewport. Not perfect (iPads in
+  // landscape might get desktop mode) but covers the actual broken case
+  // (phones). Desktop users with touch screens go to the popup path,
+  // which is fine.
+  function shouldUseRedirect() {
+    const isMobileUA = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '');
+    const isNarrow = window.innerWidth <= 820;
+    return isMobileUA || isNarrow;
+  }
+
+  // Process any pending redirect result as early as possible. If the user
+  // just came back from Google's auth flow, this resolves with a UserCredential;
+  // onAuthStateChanged will then fire the rest of the app's auth-aware logic.
+  // If there's no redirect in flight, it resolves with null — harmless.
+  getRedirectResult(auth).catch((err) => {
+    // Suppress the benign "no pending result" errors; surface real ones.
+    if (err?.code !== 'auth/no-auth-event') {
+      console.error('Redirect sign-in returned an error:', err);
+    }
+  });
+
   // Expose a tiny API on window for the main (non-module) script to use.
   window.fb = {
     auth,
     db,
-    signIn: () => signInWithPopup(auth, provider),
+    signIn: () => shouldUseRedirect()
+      ? signInWithRedirect(auth, provider)
+      : signInWithPopup(auth, provider),
     signOut: () => signOut(auth),
     // Firestore helpers — wrapped so the main script doesn't have to import.
     setDoc: (path, data) => setDoc(doc(db, path), data),
@@ -9344,6 +9526,47 @@
 </script>
 
 <script>
+  // ─────────────────────────────────────────────────────────────
+  // Splash screen — mobile-only initial loader
+  // ─────────────────────────────────────────────────────────────
+  // The splash element is rendered in the markup and shown by default
+  // via CSS on mobile. Here we handle dismissal: a minimum display time
+  // (so the splash doesn't flash on fast loads), the actual auth/load
+  // signal, and a hard-timeout safety net (so a stuck network doesn't
+  // trap the user staring at a spinner forever).
+
+  // Timestamp at which the splash became visible. Used to enforce the
+  // minimum display duration so a near-instant load still shows it for
+  // a moment (otherwise the user sees a flash that looks broken).
+  const splashStartTime = Date.now();
+  const SPLASH_MIN_MS = 800;   // must be visible at least this long
+  const SPLASH_MAX_MS = 3000;  // hide no matter what after this long
+  let splashHidden = false;
+
+  function hideSplash() {
+    if (splashHidden) return;
+    splashHidden = true;
+    const el = document.getElementById('app-splash');
+    if (!el) return;
+    // Respect the minimum display time. If we're dismissing too soon,
+    // defer with a timeout so the splash is at least seen.
+    const elapsed = Date.now() - splashStartTime;
+    const delay = Math.max(0, SPLASH_MIN_MS - elapsed);
+    setTimeout(() => {
+      el.classList.add('fading');
+      // After the fade-out transition (300ms, matches CSS), fully remove
+      // from layout so it can't swallow taps or consume paint cycles.
+      setTimeout(() => {
+        el.classList.add('hidden');
+      }, 320);
+    }, delay);
+  }
+
+  // Safety net: even if the loaders never fire (offline, Firebase down,
+  // auth stuck), don't leave the splash up indefinitely. After SPLASH_MAX_MS
+  // force-dismiss so the user can at least see the signed-out app state.
+  setTimeout(() => hideSplash(), SPLASH_MAX_MS);
+
   // ─────────────────────────────────────────────────────────────
   // Program configuration
   // ─────────────────────────────────────────────────────────────
@@ -10417,6 +10640,12 @@
   // Triggered by the sign-in CTAs on Profile, Settings, and History panels
   // for signed-out users. Just launches the Google sign-in flow; when
   // signed-in users need account actions they visit the Profile tab.
+  // Tracks whether a sign-in attempt is in flight. Prevents the double-tap
+  // that produces Firebase's `auth/cancelled-popup-request` error when a
+  // user taps Sign In twice in quick succession (e.g. after a perceived
+  // unresponsive popup).
+  let signInInFlight = false;
+
   function handleAuthClick(event) {
     if (!window.fb) {
       alert('Firebase is still loading. Give it a second and try again.');
@@ -10426,18 +10655,45 @@
       // Already signed in — no-op. Sign-out lives in the Profile panel.
       return;
     }
+    if (signInInFlight) {
+      // Ignore the second tap. No alert — the first attempt is still
+      // resolving, spamming a message would just add noise.
+      return;
+    }
+    signInInFlight = true;
+    // Dim the button while the auth flow is happening so users don't
+    // think nothing's happened and tap again.
+    const btn = event?.currentTarget;
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.prevLabel = btn.textContent;
+      btn.textContent = 'Signing in…';
+    }
+    const restoreBtn = () => {
+      signInInFlight = false;
+      if (btn) {
+        btn.disabled = false;
+        if (btn.dataset.prevLabel) btn.textContent = btn.dataset.prevLabel;
+      }
+    };
     window.fb.signIn().catch(err => {
       console.error('Sign in failed:', err);
+      restoreBtn();
       if (err.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Allow popups for this site and try again.');
       } else if (err.code === 'auth/unauthorized-domain') {
         alert('This domain isn\'t authorized in Firebase. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        // User canceled — stay quiet.
+      } else if (err.code === 'auth/popup-closed-by-user' ||
+                 err.code === 'auth/cancelled-popup-request') {
+        // User canceled or there was already a pending popup — stay quiet.
       } else {
         alert('Sign in failed: ' + (err.message || err.code));
       }
     });
+    // Note: on successful sign-in (popup path), onAuthStateChanged fires
+    // and we don't need to explicitly restore the button — the whole
+    // sign-in card unmounts. On redirect path, the whole page navigates
+    // away anyway. restoreBtn is really just for the error paths.
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -10689,28 +10945,64 @@
         localStorage.removeItem(PREFS_CACHE_PREFIX + lastUid);
       } catch (e) {}
     }
-    try {
-      const path = `users/${currentUser.uid}/preferences/main`;
-      const data = await window.fb.getDoc(path);
-      if (data) {
-        // Merge with defaults so missing fields fall back to known-good values.
-        prefs = {
-          ...JSON.parse(JSON.stringify(DEFAULT_PREFS)),
-          ...data,
-          scheduleOverride: data.scheduleOverride || DEFAULT_PREFS.scheduleOverride
-        };
-      } else {
-        prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+
+    // Do we have a cached copy for the current user? If so, a null read
+    // from Firestore is treated as suspect — either we lost the real doc
+    // (unlikely) or more likely Firestore hasn't finished its post-auth
+    // handshake and the read is returning null prematurely. In that case
+    // we retry rather than overwriting cached data with defaults, which
+    // would both hide the real data AND poison the local cache.
+    const hasCachedForUser = !!readCachedPrefs(currentUser.uid);
+
+    // Retry up to 3 times with backoff if a null read contradicts our
+    // cached copy. Real new users (no cache) accept null on the first read.
+    let data = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
+    const path = `users/${currentUser.uid}/preferences/main`;
+    while (attempts < MAX_ATTEMPTS) {
+      attempts++;
+      try {
+        data = await window.fb.getDoc(path);
+      } catch (err) {
+        console.error(`Failed to load preferences (attempt ${attempts}):`, err);
+        data = null;
       }
+      if (data) break;
+      // Null result — if we have cached data, retry. Otherwise accept it
+      // as a genuine "new user, no prefs yet" result.
+      if (!hasCachedForUser) break;
+      if (attempts < MAX_ATTEMPTS) {
+        // 200ms, 500ms — gives Firestore time to finish the post-redirect
+        // auth handshake without making the user wait too long.
+        await new Promise(r => setTimeout(r, attempts === 1 ? 200 : 500));
+      }
+    }
+
+    if (data) {
+      // Merge with defaults so missing fields fall back to known-good values.
+      prefs = {
+        ...JSON.parse(JSON.stringify(DEFAULT_PREFS)),
+        ...data,
+        scheduleOverride: data.scheduleOverride || DEFAULT_PREFS.scheduleOverride
+      };
       prefsLoaded = true;
       // Refresh cache with server-authoritative data, keyed by this uid.
       writeCachedPrefs(currentUser.uid, prefs);
-    } catch (err) {
-      console.error('Failed to load preferences:', err);
+    } else if (hasCachedForUser) {
+      // Read kept returning null despite a cached copy existing. Trust the
+      // cache: keep the in-memory prefs (seeded at module load) and LEAVE
+      // prefsLoaded false so no writes can happen. The user can reload to
+      // retry. Don't wipe data just because Firestore's being flaky.
+      console.warn('Firestore returned null for cached user — not overwriting local data. Reload to retry.');
+      showToast('Trouble syncing with server — reload to retry', true);
+    } else {
+      // Genuine new user: no cache, no server doc. Use defaults.
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
-      // Leave prefsLoaded as false — don't risk writing defaults to a doc
-      // we couldn't read. User will need to retry by reloading.
+      prefsLoaded = true;
+      writeCachedPrefs(currentUser.uid, prefs);
     }
+
     resetPendingSchedule();
     applyTheme();
   }
@@ -12004,6 +12296,10 @@
     renderPlayLanding();
     // Re-render Social if it's the current panel (shows friends after login)
     if (currentPanelId === 'social') renderSocial();
+    // Dismiss the splash now that auth state is resolved and any user data
+    // has loaded. This is the primary dismissal path — the safety-net
+    // timeout (3s) is a backstop for when things stall.
+    hideSplash();
   });
 
   // ─────────────────────────────────────────────────────────────
