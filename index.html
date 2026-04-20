@@ -24,6 +24,15 @@
   })();
 </script>
 <link rel="stylesheet" href="design-system.css">
+
+<!-- Google Identity Services — required for native (no-redirect) Google sign-in.
+     This is the modern Google Sign-In library. We use it specifically as a
+     fallback for iOS standalone PWAs, where Firebase's redirect-based auth
+     doesn't return properly to the standalone window. The GIS library
+     authenticates inside the page via iframe/API calls and hands back an
+     ID token, which we then exchange with Firebase via signInWithCredential.
+     Loaded async + defer so it doesn't block first paint. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   /* ══════════════════════════════════════════════════════════════
      SPLASH SCREEN — mobile-only initial loader
@@ -5371,6 +5380,24 @@
     transform: translateY(-2px);
   }
 
+  /* Container for the Google Identity Services-rendered button. The button
+     itself is rendered (and styled) by Google's library; we only control
+     the container layout. Center it within whatever CTA card it sits in
+     and give it a min-height so the CTA doesn't shift when the button
+     finishes rendering async. */
+  .gsi-button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 44px;
+    margin-top: var(--space-2);
+  }
+  .gsi-button-container > div {
+    /* Google's outer wrapper — make sure it doesn't have weird side gaps
+       on narrow viewports */
+    max-width: 100%;
+  }
+
   /* Toast for save confirmations / errors */
   .toast {
     position: fixed;
@@ -9201,7 +9228,7 @@
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
     getRedirectResult, signOut, onAuthStateChanged, browserLocalPersistence,
-    setPersistence
+    setPersistence, signInWithCredential
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, orderBy, limit,
@@ -9277,6 +9304,85 @@
     }
   });
 
+  // ─── Google Identity Services (native) sign-in ───────────────────
+  //
+  // Firebase Auth's redirect flow is broken inside iOS standalone PWAs
+  // (Home Screen bookmarks). The official workaround is to use Google's
+  // own JavaScript library to obtain an ID token, then exchange it with
+  // Firebase via signInWithCredential. Everything happens inside the
+  // current page — no popup, no redirect — so it works in standalone PWA.
+  //
+  // Setup required: a Web Client ID from Google Cloud Console (the same
+  // OAuth client Firebase auto-created when Google Sign-In was enabled
+  // for the project). Authorized JavaScript Origins must include the
+  // app's URL.
+  const GOOGLE_CLIENT_ID = '905202969291-pgns58hiu26mbubts4huedbqs41tg2fp.apps.googleusercontent.com';
+
+  // Render the Google Sign-In button into a container element. The button
+  // is rendered by Google's library — we don't control its visual; we
+  // can only configure it. Auto-detects light/dark theme from the page.
+  // On successful credential return, exchanges with Firebase.
+  function renderGoogleSignInButton(container) {
+    if (!container) return;
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+      // Library hasn't loaded yet (slow network, blocked, etc.).
+      // Show a placeholder + retry hint.
+      container.innerHTML = `
+        <div style="font-family: var(--font-body); font-size: 0.875rem; color: var(--text-muted); text-align: center; padding: 1rem;">
+          Loading Google Sign-In…
+        </div>`;
+      // Try again in 500ms — give the deferred script time to load.
+      setTimeout(() => renderGoogleSignInButton(container), 500);
+      return;
+    }
+    try {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredentialResponse,
+        ux_mode: 'popup',           // 'popup' uses an in-page modal; 'redirect' navigates away
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      // Clear any prior render attempt
+      container.innerHTML = '';
+      const isDark = document.documentElement.classList.contains('dark');
+      google.accounts.id.renderButton(container, {
+        type: 'standard',
+        theme: isDark ? 'filled_black' : 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'pill',
+        logo_alignment: 'left',
+        width: Math.min(280, container.offsetWidth || 280),
+      });
+    } catch (err) {
+      console.error('Failed to render Google sign-in button:', err);
+      container.innerHTML = `
+        <div style="font-family: var(--font-body); font-size: 0.875rem; color: var(--color-orange-dark); text-align: center; padding: 1rem;">
+          Couldn't load Google Sign-In. Try refreshing.
+        </div>`;
+    }
+  }
+
+  // Handle the Google credential callback — receives an ID token, exchanges
+  // it with Firebase to produce a real Firebase user session. On success,
+  // onAuthStateChanged fires and the app proceeds normally.
+  async function handleGoogleCredentialResponse(response) {
+    if (!response || !response.credential) {
+      console.error('Google sign-in returned no credential');
+      return;
+    }
+    try {
+      const credential = GoogleAuthProvider.credential(response.credential);
+      await signInWithCredential(auth, credential);
+      // Firebase will now fire onAuthStateChanged; the rest of the app
+      // picks up from there. No further action needed here.
+    } catch (err) {
+      console.error('Failed to exchange Google credential with Firebase:', err);
+      alert('Sign-in failed: ' + (err.message || err.code || 'unknown error'));
+    }
+  }
+
   // Expose a tiny API on window for the main (non-module) script to use.
   window.fb = {
     auth,
@@ -9285,6 +9391,12 @@
     // offer an alternative entry path. Read once at module load; the
     // value doesn't change during the session.
     isIosStandalonePwa: isIosStandalonePwa(),
+    // Google Client ID — exposed so the main script can detect whether
+    // native sign-in was actually configured (vs. left at the placeholder).
+    googleClientIdConfigured: !GOOGLE_CLIENT_ID.includes('PLACEHOLDER'),
+    // Render the GIS button into a container element. Used in iOS PWA
+    // mode where the regular Firebase sign-in flow doesn't work.
+    renderGoogleSignInButton,
     signIn: () => shouldUseRedirect()
       ? signInWithRedirect(auth, provider)
       : signInWithPopup(auth, provider),
@@ -10750,6 +10862,37 @@
   // updated the desktop auth chip (now removed) plus the mobile nav avatar;
   // now just delegates to the mobile avatar renderer since that's the only
   // remaining auth-state surface that needs imperative updates.
+  // Render the appropriate sign-in surface for the current environment.
+  // - iOS standalone PWA + GIS configured: render Google Identity Services
+  //   button (works in PWA where Firebase redirect doesn't).
+  // - Anywhere else: render a regular button that calls handleAuthClick
+  //   (which uses Firebase popup or redirect as appropriate).
+  // Returns HTML to embed in any sign-in CTA. The GIS button needs to be
+  // rendered AFTER the HTML is in the DOM, so we also kick off the render
+  // from a microtask-deferred follow-up.
+  function renderSignInButton() {
+    const useGis = window.fb &&
+                   window.fb.isIosStandalonePwa &&
+                   window.fb.googleClientIdConfigured;
+    if (useGis) {
+      // GIS button mounts into a container we render here. After the DOM
+      // is ready, schedule the actual button render.
+      const containerId = `gsi-button-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      // Schedule the GIS render after the HTML lands in the DOM
+      setTimeout(() => {
+        const container = document.getElementById(containerId);
+        if (container && window.fb && window.fb.renderGoogleSignInButton) {
+          window.fb.renderGoogleSignInButton(container);
+        }
+      }, 0);
+      return `<div id="${containerId}" class="gsi-button-container"></div>`;
+    }
+    // Fallback / desktop / regular mobile Safari
+    return `<button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>`;
+  }
+
+  // Centering wrapper for the GIS button — ensures the rendered button
+  // sits in the middle of the CTA card like the regular sign-in button.
   function renderAuthChip() {
     renderMobileNavAvatar();
   }
@@ -12366,7 +12509,7 @@
         <div class="history-empty">
           <div class="history-empty-title">Sign in to see your history</div>
           <div class="history-empty-sub">Your completed workouts sync across devices once you sign in. Nothing to see here until then.</div>
-          <button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>
+          ${renderSignInButton()}
         </div>`;
       return;
     }
@@ -12407,7 +12550,7 @@
         <div class="settings-signin-cta">
           <div class="settings-signin-cta-title">Sign in to view your profile</div>
           <div class="settings-signin-cta-sub">Your account, training schedule, and preferences sync across devices once you're signed in.</div>
-          <button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>
+          ${renderSignInButton()}
         </div>`;
       return;
     }
@@ -15019,7 +15162,7 @@
         <div class="settings-signin-cta">
           <div class="settings-signin-cta-title">Sign in to connect with friends</div>
           <div class="settings-signin-cta-sub">See what your golf buddies are shooting and share your rounds.</div>
-          <button class="btn-cta" onclick="handleAuthClick(event)">Sign in with Google</button>
+          ${renderSignInButton()}
         </div>`;
       return;
     }
