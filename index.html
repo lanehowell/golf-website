@@ -11632,6 +11632,18 @@
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     },
 
+    // Subscribe to the user's incoming friend requests collection. Fires
+    // on any change — add, remove, update. Callback receives the full
+    // current list sorted newest-first. Returns an unsubscribe function.
+    subscribeFriendRequests: (myUid, onUpdate) => {
+      const ref = collection(db, `users/${myUid}/friendRequests`);
+      const q = query(ref, orderBy('sentAt', 'desc'));
+      return onSnapshot(q, (snap) => {
+        const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        onUpdate(requests);
+      });
+    },
+
     // Batch writer for syncing a round to the public mirror (or removing
     // it) alongside other writes. Used when toggling a round's visibility
     // or flipping profile visibility en masse.
@@ -15529,11 +15541,72 @@
     }
     try {
       friendRequests = await window.fb.listFriendRequests(currentUser.uid);
+      // Seed the seen set so the live subscription (which fires shortly
+      // after) doesn't toast on already-known requests.
+      __seenFriendRequestIds = new Set(friendRequests.map(r => r.from));
       updateSocialBadge();
     } catch (err) {
       console.error('Failed to load friend requests:', err);
       friendRequests = [];
     }
+  }
+
+  // Live friend-request subscription. Same shape as invites: seed silently
+  // on first fire, toast net-new arrivals, always refresh the badge +
+  // Social panel if visible. No Today banner — just toast + badge.
+  let __friendRequestsUnsub = null;
+  let __seenFriendRequestIds = null;
+
+  function startFriendRequestsSubscription() {
+    if (!currentUser || !window.fb) return;
+    if (__friendRequestsUnsub) return;
+    try {
+      __friendRequestsUnsub = window.fb.subscribeFriendRequests(
+        currentUser.uid,
+        (fresh) => handleFriendRequestsSnapshot(fresh)
+      );
+    } catch (err) {
+      console.error('Failed to start friend requests subscription:', err);
+    }
+  }
+
+  function stopFriendRequestsSubscription() {
+    if (!__friendRequestsUnsub) return;
+    try { __friendRequestsUnsub(); } catch (_) {}
+    __friendRequestsUnsub = null;
+    __seenFriendRequestIds = null;
+  }
+
+  function handleFriendRequestsSnapshot(freshRequests) {
+    const freshIds = new Set(freshRequests.map(r => r.from));
+
+    // First snapshot — seed silently, no toasts for already-known requests
+    if (__seenFriendRequestIds === null) {
+      __seenFriendRequestIds = freshIds;
+      friendRequests = freshRequests;
+      updateSocialBadge();
+      if (currentPanelId === 'social') renderSocial();
+      return;
+    }
+
+    // Net-new arrivals — in fresh, not in seen
+    const newlyArrived = freshRequests.filter(r =>
+      !__seenFriendRequestIds.has(r.from)
+    );
+
+    friendRequests = freshRequests;
+    __seenFriendRequestIds = freshIds;
+
+    for (const req of newlyArrived) {
+      const fromName = req.fromDisplayName
+        || req.fromUsernameDisplay
+        || req.fromUsername
+        || 'Someone';
+      showToast(`${fromName} sent you a friend request`);
+    }
+
+    updateSocialBadge();
+    if (currentPanelId === 'social') renderSocial();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -15874,6 +15947,7 @@
       // so new invites arriving while the user is online surface
       // without a page refresh.
       startGroupRoundInvitesSubscription();
+      startFriendRequestsSubscription();
       // Phase 3 seed: after all loads complete, check whether this user
       // needs their starter routines. Safe to call every session — the
       // function is idempotent. Runs in the background; UI doesn't wait.
@@ -15881,6 +15955,7 @@
     } else {
       // Signed out — clear caches and revert to default prefs
       stopGroupRoundInvitesSubscription();
+      stopFriendRequestsSubscription();
       recentSessions = [];
       recentRounds = [];
       friendsList = [];
