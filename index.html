@@ -5789,6 +5789,266 @@
     }
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     SHORT GAME — SETUP + SESSION
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Setup card — min/max input side-by-side with a →  separator.
+     Mirrors the range session entry-card pattern for visual consistency. */
+  .shortgame-setup-card {
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    margin-top: var(--space-5);
+  }
+  .shortgame-setup-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-4);
+  }
+  .shortgame-setup-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .shortgame-setup-sep {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    color: var(--text-muted);
+    padding-bottom: var(--space-3);
+    text-align: center;
+    font-style: italic;
+  }
+  .shortgame-range-input {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    text-align: center;
+    padding: var(--space-4);
+    letter-spacing: -0.01em;
+  }
+  .shortgame-range-input::placeholder {
+    font-family: var(--font-body);
+    font-weight: var(--weight-regular);
+    font-size: var(--text-md);
+    color: var(--text-muted);
+  }
+  .shortgame-setup-hint {
+    margin-bottom: var(--space-5);
+  }
+
+  /* Target display card — the star of the session page. Dramatic
+     centerpiece with the big random target yardage. */
+  .shortgame-target-card {
+    text-align: center;
+    padding: var(--space-6) var(--space-5);
+    margin-top: var(--space-5);
+    margin-bottom: var(--space-5);
+    background: linear-gradient(135deg,
+      var(--color-orange-dark) 0%,
+      var(--color-orange) 50%,
+      var(--color-orange-light) 100%);
+    color: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-accent);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Subtle bullseye watermark in the corner — echoes the Practice
+     tab's target icon. */
+  .shortgame-target-card::after {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 0 0 20px transparent,
+      inset 0 0 0 21px rgba(255, 255, 255, 0.06),
+      inset 0 0 0 42px transparent,
+      inset 0 0 0 43px rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  .shortgame-target-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: var(--space-3);
+    position: relative;
+    z-index: 1;
+  }
+  .shortgame-target-value {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 14vw, 5.5rem);
+    font-weight: var(--weight-black);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-white);
+    position: relative;
+    z-index: 1;
+  }
+  .shortgame-target-value span {
+    font-family: var(--font-mono);
+    font-size: 0.3em;
+    font-weight: var(--weight-regular);
+    color: rgba(255, 255, 255, 0.75);
+    margin-left: var(--space-2);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  /* "Just logged" delta flash — appears after a shot is logged, between
+     the status strip and the target card. Auto-dismisses on next render
+     (cleared when user starts typing again). */
+  .shortgame-last-delta {
+    padding: var(--space-3) var(--space-4);
+    margin-top: var(--space-4);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-align: center;
+    animation: fadeUp 0.4s ease both;
+  }
+  .shortgame-last-delta.is-bullseye {
+    background: #2D6E34;
+    color: var(--color-cream-50);
+  }
+  .shortgame-last-delta.is-long {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+    border: 1px solid rgba(232, 93, 4, 0.3);
+  }
+  .shortgame-last-delta.is-short {
+    background: var(--color-cream-200);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+  }
+
+  /* Shot row — richer than range-shot-row because we have 2 distances
+     + delta. Two-row layout: top = club + target, bottom = actual + delta. */
+  .shortgame-shot-row {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast);
+    animation: fadeUp 0.3s ease both;
+  }
+  .shortgame-shot-row:hover {
+    border-color: var(--color-orange);
+  }
+  .shortgame-shot-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .shortgame-shot-top,
+  .shortgame-shot-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .shortgame-shot-club {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .shortgame-shot-target {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shortgame-shot-target small,
+  .shortgame-shot-actual small {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    opacity: 0.7;
+    margin-left: 1px;
+  }
+  .shortgame-shot-actual {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .shortgame-shot-delta {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    min-width: 48px;
+    text-align: center;
+  }
+  .shortgame-shot-delta.is-bullseye {
+    background: #2D6E34;
+    color: var(--color-cream-50);
+  }
+  .shortgame-shot-delta.is-long {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+  }
+  .shortgame-shot-delta.is-short {
+    background: var(--color-cream-200);
+    color: var(--text-secondary);
+  }
+
+  /* Dark-mode adjustments for the delta badges */
+  html.dark .shortgame-shot-delta.is-bullseye,
+  html.dark .shortgame-last-delta.is-bullseye {
+    background: rgba(45, 110, 52, 0.3);
+    color: #7FC088;
+  }
+  html.dark .shortgame-shot-delta.is-long,
+  html.dark .shortgame-last-delta.is-long {
+    background: rgba(232, 93, 4, 0.18);
+    color: var(--color-orange);
+  }
+  html.dark .shortgame-shot-delta.is-short,
+  html.dark .shortgame-last-delta.is-short {
+    background: rgba(13, 13, 13, 0.25);
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 560px) {
+    .shortgame-setup-grid {
+      grid-template-columns: 1fr auto 1fr;
+      gap: var(--space-2);
+    }
+    .shortgame-setup-sep {
+      font-size: var(--text-xl);
+    }
+    .shortgame-target-card {
+      padding: var(--space-5) var(--space-4);
+    }
+    .shortgame-shot-row {
+      grid-template-columns: 32px 1fr;
+      gap: var(--space-2);
+      padding: var(--space-3);
+    }
+  }
+
   /* ── Callout boxes ────────────────────────────────────────── */
   .callout {
     padding: var(--space-5) var(--space-6);
@@ -11655,6 +11915,16 @@
       <div id="range-session-detail-mount"></div>
     </section>
 
+    <!-- ═══════════════ SHORT GAME SETUP ═══════════════ -->
+    <section class="panel" id="panel-shortgame-setup">
+      <div id="shortgame-setup-mount"></div>
+    </section>
+
+    <!-- ═══════════════ SHORT GAME SESSION ═══════════════ -->
+    <section class="panel" id="panel-shortgame-session">
+      <div id="shortgame-session-mount"></div>
+    </section>
+
     <!-- ═══════════════ SOCIAL ═══════════════ -->
     <section class="panel" id="panel-social">
       <div class="panel-head">
@@ -13807,6 +14077,8 @@
     if (id === 'range-session')  return 'Range Session';
     if (id === 'range-history')  return 'Range History';
     if (id === 'range-session-detail') return 'Session Detail';
+    if (id === 'shortgame-setup')      return 'Short Game';
+    if (id === 'shortgame-session')    return 'Short Game';
     if (id === 'social')         return 'Social';
     if (id === 'profile')        return 'Profile';
     if (id === 'courses')        return 'Courses';
@@ -13835,7 +14107,8 @@
         id === 'round' || id === 'round-summary' || id === 'rounds' ||
         id === 'quick-score') return 'play';
     if (id === 'practice' || id === 'range-session' ||
-        id === 'range-history' || id === 'range-session-detail') return 'practice';
+        id === 'range-history' || id === 'range-session-detail' ||
+        id === 'shortgame-setup' || id === 'shortgame-session') return 'practice';
     if (id === 'social' || id === 'user-profile' || id === 'public-round')  return 'social';
     if (id === 'profile' || id === 'bag') return 'profile';
     return 'train';
@@ -13846,7 +14119,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'shortgame-setup', 'shortgame-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -13958,6 +14231,8 @@
     if (id === 'range-session') renderRangeSession();
     if (id === 'range-history') renderRangeHistory();
     if (id === 'range-session-detail') renderRangeSessionDetail();
+    if (id === 'shortgame-setup') renderShortGameSetup();
+    if (id === 'shortgame-session') renderShortGameSession();
 
     // Phase 2: live subscription lifecycle. Start the onSnapshot listener
     // when entering a group panel; tear it down when leaving. Idempotent
@@ -19489,16 +19764,21 @@
     const mount = document.getElementById('practice-landing-mount');
     if (!mount) return;
 
-    // If there's an in-progress range session, surface a prominent
-    // "Continue" card at the top. Mirrors the Play hero's resume pattern.
+    // If there's an in-progress practice session (any type), surface a
+    // prominent "Continue" card at the top. Copy + destination vary by
+    // session type. Mirrors the Play hero's resume pattern.
     const inProgressBanner = (() => {
-      if (!isRangeSessionActive()) return '';
-      const shots = practiceSessionState.doc.shots || [];
+      if (!isAnyPracticeSessionActive()) return '';
+      const doc = practiceSessionState.doc;
+      const shots = doc.shots || [];
       const shotCount = shots.length;
+      const isShort = doc.type === 'shortgame';
+      const eyebrow = isShort ? 'Short Game Session In Progress' : 'Range Session In Progress';
+      const target = isShort ? 'shortgame-session' : 'range-session';
       return `
-        <button class="practice-resume-card" onclick="showPanel('range-session', null)">
+        <button class="practice-resume-card" onclick="showPanel('${target}', null)">
           <div class="practice-resume-body">
-            <div class="practice-resume-eyebrow">Range Session In Progress</div>
+            <div class="practice-resume-eyebrow">${eyebrow}</div>
             <div class="practice-resume-title">${shotCount} shot${shotCount === 1 ? '' : 's'} logged</div>
             <div class="practice-resume-desc">Tap to continue where you left off.</div>
           </div>
@@ -19506,10 +19786,6 @@
         </button>
       `;
     })();
-
-    // Range-card CTA label changes based on resume state. If in-progress,
-    // tapping the Range card also resumes (same destination).
-    const rangeCtaLabel = isRangeSessionActive() ? 'Continue Session' : 'Start Session';
 
     mount.innerHTML = `
       ${inProgressBanner}
@@ -19530,6 +19806,21 @@
           <div class="practice-type-arrow" aria-hidden="true">→</div>
         </button>
 
+        <button class="practice-type-card" onclick="startShortGameSession()">
+          <div class="practice-type-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 21V3"/>
+              <path d="M5 4l11 2-3 4 3 4-11 2"/>
+            </svg>
+          </div>
+          <div class="practice-type-body">
+            <div class="practice-type-eyebrow">Random Target Drill</div>
+            <div class="practice-type-title">Short Game</div>
+            <div class="practice-type-desc">Set a distance range. Hit to a random target each shot, log how close you got. Build feel and proximity under variance.</div>
+          </div>
+          <div class="practice-type-arrow" aria-hidden="true">→</div>
+        </button>
+
         <div class="practice-type-card practice-type-card-soon" aria-disabled="true">
           <div class="practice-type-icon practice-type-icon-soon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -19541,20 +19832,6 @@
             <div class="practice-type-eyebrow">Coming Soon</div>
             <div class="practice-type-title">Putting Drills</div>
             <div class="practice-type-desc">Track makes/misses by distance. Build a putting confidence profile.</div>
-          </div>
-        </div>
-
-        <div class="practice-type-card practice-type-card-soon" aria-disabled="true">
-          <div class="practice-type-icon practice-type-icon-soon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 21V3"/>
-              <path d="M5 4l11 2-3 4 3 4-11 2"/>
-            </svg>
-          </div>
-          <div class="practice-type-body">
-            <div class="practice-type-eyebrow">Coming Soon</div>
-            <div class="practice-type-title">Short Game</div>
-            <div class="practice-type-desc">Chip and pitch shots — track distance to pin, save percentage, club selection.</div>
           </div>
         </div>
       </div>
@@ -19575,15 +19852,26 @@
   // ─────────────────────────────────────────────────────────────
   // State shape:
   //   docId    — the Firestore doc id for the active session, null if none
-  //   doc      — the session record (startTime, shots[], status, etc.)
-  //   draft    — the in-flight shot being composed {clubId, swingPct, distance}
+  //   doc      — the session record (startTime, shots[], status, type, ...)
+  //   draft    — the in-flight shot being composed
+  //                range:     {clubId, swingPct, distance}
+  //                shortgame: {clubId, actualDistance, currentTarget, minYards, maxYards}
+  //
+  // practiceSessionState is shared across session types; the `type` on
+  // the active doc tells us which flow to render.
   const practiceSessionState = {
     docId: null,
     doc: null,
     draft: {
-      clubId: null,      // selected club from user's bag
-      swingPct: 100,     // 100 / 75 / 50 / 25
-      distance: '',      // string, validated + cast on submit
+      // Range session draft fields
+      clubId: null,
+      swingPct: 100,
+      distance: '',
+      // Short game draft fields (added when starting a short game session)
+      actualDistance: '',
+      currentTarget: null,
+      // Last computed proximity for the "just logged" ephemeral flash
+      lastDelta: null,
     },
   };
 
@@ -19603,8 +19891,24 @@
     session: null,  // hydrated record
   };
 
-  function isRangeSessionActive() {
+  // True when ANY practice session is active (range or short game).
+  // Used by the banner + resume surfaces. Callers that care about the
+  // specific type should check practiceSessionState.doc?.type.
+  function isAnyPracticeSessionActive() {
     return !!(practiceSessionState.docId && practiceSessionState.doc);
+  }
+
+  // True only when an active RANGE session is in flight. The original
+  // helper — kept for existing callers that specifically render the
+  // range UI. Short game has its own equivalent below.
+  function isRangeSessionActive() {
+    return isAnyPracticeSessionActive()
+        && practiceSessionState.doc?.type === 'range';
+  }
+
+  function isShortGameSessionActive() {
+    return isAnyPracticeSessionActive()
+        && practiceSessionState.doc?.type === 'shortgame';
   }
 
   // Load any in-progress practice session for resume. Called on auth.
@@ -19648,9 +19952,23 @@
     }
     if (!window.fb) return;
 
-    // Resume if there's already one in flight
+    // Resume if there's already a range session in flight
     if (isRangeSessionActive()) {
       showPanel('range-session', null);
+      return;
+    }
+
+    // Different session type active — tell the user to finish it first
+    if (isShortGameSessionActive()) {
+      const ok = await confirmDialog({
+        eyebrow: 'Session In Progress',
+        eyebrowStyle: 'warning',
+        title: 'Finish your short game session first',
+        message: "You have an active short game session. End it before starting a range session.",
+        confirmText: 'Go to Short Game',
+        cancelText: 'Cancel',
+      });
+      if (ok) showPanel('shortgame-session', null);
       return;
     }
 
@@ -20178,6 +20496,497 @@
         <button class="btn btn-outline range-detail-delete" onclick="deleteRangeSession('${escapeHtml(s.id)}')">Delete Session</button>
       </div>
     `;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Short Game — random-target proximity drill
+  // ─────────────────────────────────────────────────────────────
+  // Drill flow: user enters a distance range (min/max). We pick a random
+  // integer in that range and show it. User hits the shot, logs actual
+  // carry distance. We compute a signed delta (actual - target) and
+  // roll a new target. Repeat until End Session.
+  //
+  // Session data shape:
+  //   type:      'shortgame'
+  //   minYards, maxYards
+  //   shots:     [{ targetDistance, actualDistance, clubId, delta, capturedAt }]
+  //
+  // Signed delta makes "I'm consistently 4 yards long on wedges" queryable.
+
+  // Tiny helper — random int in inclusive range.
+  function randomTargetYards(min, max) {
+    const lo = Math.min(min, max);
+    const hi = Math.max(min, max);
+    return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+  }
+
+  // Kick off a short game session. Shows the setup panel where the user
+  // enters min/max. Same session-type-exclusivity guards as startRangeSession.
+  async function startShortGameSession() {
+    if (!currentUser) {
+      showToast('Sign in to save short game sessions', true);
+      return;
+    }
+    if (!window.fb) return;
+
+    // Resume if there's already one active
+    if (isShortGameSessionActive()) {
+      showPanel('shortgame-session', null);
+      return;
+    }
+    if (isRangeSessionActive()) {
+      const ok = await confirmDialog({
+        eyebrow: 'Session In Progress',
+        eyebrowStyle: 'warning',
+        title: 'Finish your range session first',
+        message: "You have an active range session. End it before starting a short game session.",
+        confirmText: 'Go to Range',
+        cancelText: 'Cancel',
+      });
+      if (ok) showPanel('range-session', null);
+      return;
+    }
+
+    // Need a bag
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    if (bag.length === 0) {
+      const ok = await confirmDialog({
+        eyebrow: 'Set Up Your Bag',
+        title: 'Add your clubs first',
+        message: 'Short game drills log shots by club. Add your clubs in Profile → My Bag, then come back.',
+        confirmText: 'Open My Bag',
+        cancelText: 'Cancel',
+      });
+      if (ok) showPanel('bag', null);
+      return;
+    }
+
+    // Show the setup panel — actual session creation happens on Start click
+    showPanel('shortgame-setup', null);
+  }
+
+  // Draft mutators for setup inputs. Simple string bucket — validated on
+  // Start click, not on every keystroke, so the mobile keyboard stays put.
+  const shortGameSetupDraft = { min: '', max: '' };
+  function setShortGameMin(val) { shortGameSetupDraft.min = val; updateShortGameStartEnabled(); }
+  function setShortGameMax(val) { shortGameSetupDraft.max = val; updateShortGameStartEnabled(); }
+  function canStartShortGame() {
+    const lo = parseInt(shortGameSetupDraft.min, 10);
+    const hi = parseInt(shortGameSetupDraft.max, 10);
+    return Number.isFinite(lo) && Number.isFinite(hi)
+        && lo > 0 && hi > 0
+        && lo < hi
+        && hi - lo >= 5  // min range width so "75 to 76" doesn't get through
+        && hi <= 400;
+  }
+  function updateShortGameStartEnabled() {
+    const btn = document.getElementById('shortgame-start-btn');
+    if (btn) btn.disabled = !canStartShortGame();
+  }
+
+  async function commitShortGameStart() {
+    if (!canStartShortGame()) return;
+    const minYards = parseInt(shortGameSetupDraft.min, 10);
+    const maxYards = parseInt(shortGameSetupDraft.max, 10);
+
+    // Default draft club to first bag entry
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    practiceSessionState.draft = {
+      clubId: bag[0]?.id || bag[0]?.name || null,
+      swingPct: 100,        // unused for short game, kept for shape parity
+      distance: '',         // unused for short game, kept for shape parity
+      actualDistance: '',
+      currentTarget: randomTargetYards(minYards, maxYards),
+      lastDelta: null,
+    };
+
+    const startMs = Date.now();
+    const pad = (n) => String(n).padStart(2, '0');
+    const dStart = new Date(startMs);
+    const dateKey = `${dStart.getFullYear()}-${pad(dStart.getMonth() + 1)}-${pad(dStart.getDate())}`;
+    const payload = {
+      type: 'shortgame',
+      status: 'in-progress',
+      startTime: startMs,
+      dateKey,
+      minYards,
+      maxYards,
+      shots: [],
+    };
+
+    try {
+      const id = await window.fb.createPracticeSession(currentUser.uid, payload);
+      practiceSessionState.docId = id;
+      practiceSessionState.doc = { id, ...payload };
+      // Reset setup draft for next session
+      shortGameSetupDraft.min = '';
+      shortGameSetupDraft.max = '';
+      updateRoundBanner();
+      showPanel('shortgame-session', null);
+    } catch (err) {
+      console.error('Failed to start short game session:', err);
+      showToast('Could not start session — see console', true);
+    }
+  }
+
+  // Short game draft mutators — called from the session UI inputs
+  function shortGameSelectClub(clubId) {
+    practiceSessionState.draft.clubId = clubId;
+    renderShortGameSession();
+  }
+  function shortGameSetActualDistance(val) {
+    practiceSessionState.draft.actualDistance = val;
+    updateShortGameLogButtonEnabled();
+  }
+  function canLogShortGameShot() {
+    const d = practiceSessionState.draft;
+    if (!d.clubId) return false;
+    const dist = parseInt(d.actualDistance, 10);
+    return Number.isFinite(dist) && dist > 0 && dist < 500
+        && Number.isFinite(d.currentTarget);
+  }
+  function updateShortGameLogButtonEnabled() {
+    const btn = document.getElementById('shortgame-log-btn');
+    if (btn) btn.disabled = !canLogShortGameShot();
+  }
+
+  // Log the current shot + roll a new random target. Same debounced-save
+  // pattern as range session.
+  function logShortGameShot() {
+    if (!isShortGameSessionActive()) return;
+    if (!canLogShortGameShot()) return;
+    const d = practiceSessionState.draft;
+    const target = d.currentTarget;
+    const actual = parseInt(d.actualDistance, 10);
+    const delta = actual - target;  // signed: positive = long, negative = short
+    const shot = {
+      targetDistance: target,
+      actualDistance: actual,
+      clubId: d.clubId,
+      delta,
+      capturedAt: Date.now(),
+    };
+    const doc = practiceSessionState.doc;
+    doc.shots = [...(doc.shots || []), shot];
+
+    // Roll a new target, keep club selected, clear actual input
+    d.currentTarget = randomTargetYards(doc.minYards, doc.maxYards);
+    d.actualDistance = '';
+    d.lastDelta = delta;  // for the "just logged" flash
+
+    queueSavePracticeSession();  // reuses existing range save path — same doc type agnostic
+    renderShortGameSession();
+  }
+
+  function undoLastShortGameShot() {
+    if (!isShortGameSessionActive()) return;
+    const doc = practiceSessionState.doc;
+    if (!doc.shots || doc.shots.length === 0) return;
+    // Restore the undone shot's target as the current target so the user
+    // can re-hit it if the undo was because they mis-entered.
+    const last = doc.shots[doc.shots.length - 1];
+    practiceSessionState.draft.currentTarget = last.targetDistance;
+    practiceSessionState.draft.actualDistance = '';
+    practiceSessionState.draft.lastDelta = null;
+    doc.shots = doc.shots.slice(0, -1);
+    queueSavePracticeSession();
+    renderShortGameSession();
+  }
+
+  async function endShortGameSession() {
+    if (!isShortGameSessionActive() || !currentUser || !window.fb) return;
+    const shotCount = (practiceSessionState.doc.shots || []).length;
+    if (shotCount === 0) {
+      const ok = await confirmDialog({
+        eyebrow: 'End Session',
+        eyebrowStyle: 'warning',
+        title: 'Discard empty session?',
+        message: "No shots logged, so nothing will be saved.",
+        confirmText: 'Discard',
+        cancelText: 'Keep Session',
+        destructive: true,
+      });
+      if (!ok) return;
+      try {
+        await window.fb.deletePracticeSession(currentUser.uid, practiceSessionState.docId);
+      } catch (err) {
+        console.error('Failed to delete empty session:', err);
+      }
+      practiceSessionState.docId = null;
+      practiceSessionState.doc = null;
+      updateRoundBanner();
+      showPanel('practice', null);
+      return;
+    }
+
+    const ok = await confirmDialog({
+      eyebrow: 'End Session',
+      title: `Save ${shotCount}-shot session?`,
+      message: 'Your session will be saved. You can review it in Practice history.',
+      confirmText: 'End Session',
+      cancelText: 'Keep Going',
+    });
+    if (!ok) return;
+
+    if (__practiceSessionSaveTimer) {
+      clearTimeout(__practiceSessionSaveTimer);
+      __practiceSessionSaveTimer = null;
+    }
+    await savePracticeSessionNow();
+
+    try {
+      await window.fb.updatePracticeSession(
+        currentUser.uid,
+        practiceSessionState.docId,
+        { status: 'completed', endTime: Date.now() }
+      );
+    } catch (err) {
+      console.error('Failed to mark session completed:', err);
+    }
+    practiceSessionState.docId = null;
+    practiceSessionState.doc = null;
+    updateRoundBanner();
+    rangeSessionsHistoryLoaded = false;  // invalidate — cache won't see new session otherwise
+    showPanel('practice', null);
+  }
+
+  // Format a signed delta into a short human string.
+  // +4 → "4 yd long", -4 → "4 yd short", 0 → "On the number"
+  function formatShortGameDelta(delta) {
+    if (delta === 0) return 'On the number';
+    const absDelta = Math.abs(delta);
+    const unit = distanceUnit();
+    return delta > 0
+      ? `${absDelta} ${unit} long`
+      : `${absDelta} ${unit} short`;
+  }
+
+  // Setup panel renderer — min/max inputs + Start button.
+  function renderShortGameSetup() {
+    const mount = document.getElementById('shortgame-setup-mount');
+    if (!mount) return;
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Sign in to run short game drills</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showPanel('practice', null)">← Back to Practice</button>
+      `;
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Random Target Drill</span>
+        <h2>Short <em>Game</em></h2>
+        <p class="panel-desc">Enter a distance range. We'll pick a random target in that range for each shot. Hit it as close as you can.</p>
+      </div>
+
+      <div class="round-card shortgame-setup-card">
+        <div class="shortgame-setup-label">Distance Range (${distanceUnit()})</div>
+
+        <div class="shortgame-setup-grid">
+          <div class="range-field">
+            <label class="label-text" for="shortgame-min-input">Min</label>
+            <input id="shortgame-min-input" type="number" inputmode="numeric"
+                   class="input shortgame-range-input"
+                   min="1" max="400"
+                   value="${escapeHtml(shortGameSetupDraft.min || '')}"
+                   placeholder="40"
+                   oninput="setShortGameMin(this.value)">
+          </div>
+          <div class="shortgame-setup-sep" aria-hidden="true">→</div>
+          <div class="range-field">
+            <label class="label-text" for="shortgame-max-input">Max</label>
+            <input id="shortgame-max-input" type="number" inputmode="numeric"
+                   class="input shortgame-range-input"
+                   min="1" max="400"
+                   value="${escapeHtml(shortGameSetupDraft.max || '')}"
+                   placeholder="100"
+                   oninput="setShortGameMax(this.value)"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();commitShortGameStart();}">
+          </div>
+        </div>
+
+        <div class="field-hint shortgame-setup-hint">Min must be at least 5 ${distanceUnit()} less than max.</div>
+
+        <div class="round-actions">
+          <button id="shortgame-start-btn" class="round-btn round-btn-primary"
+                  onclick="commitShortGameStart()"
+                  ${canStartShortGame() ? '' : 'disabled'}>
+            Start Session →
+          </button>
+          <div class="round-actions-secondary">
+            <button class="round-btn-link" onclick="showPanel('practice', null)">← Back to Practice</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Summary stats for the status strip — session-level rollups
+  function shortGameSessionStats(shots) {
+    const count = (shots || []).length;
+    if (count === 0) {
+      return { count: 0, avgAbsDelta: 0, bestAbsDelta: null, avgSignedDelta: 0 };
+    }
+    const absTotal = shots.reduce((s, sh) => s + Math.abs(sh.delta || 0), 0);
+    const signedTotal = shots.reduce((s, sh) => s + (sh.delta || 0), 0);
+    const bestAbs = Math.min(...shots.map(sh => Math.abs(sh.delta || 0)));
+    return {
+      count,
+      avgAbsDelta: Math.round(absTotal / count),
+      bestAbsDelta: bestAbs,
+      avgSignedDelta: Math.round(signedTotal / count),
+    };
+  }
+
+  function renderShortGameSession() {
+    const mount = document.getElementById('shortgame-session-mount');
+    if (!mount) return;
+    updateRoundBanner();
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="panel-head"><h2>Sign in required</h2></div>
+        <button class="btn btn-outline" onclick="showPanel('practice', null)">← Back</button>
+      `;
+      return;
+    }
+    if (!isShortGameSessionActive()) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>No active short game session</h2>
+          <p class="panel-desc">Head back to Practice to start a new one.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPanel('practice', null)">← Back to Practice</button>
+      `;
+      return;
+    }
+
+    const doc = practiceSessionState.doc;
+    const shots = doc.shots || [];
+    const stats = shortGameSessionStats(shots);
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    const d = practiceSessionState.draft;
+
+    const clubOptions = bag.map(c => {
+      const val = c.id || c.name;
+      const sel = val === d.clubId ? 'selected' : '';
+      return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(c.name || 'Club')}</option>`;
+    }).join('');
+
+    // "Just logged" delta flash — shows briefly after logging a shot
+    const lastDeltaLabel = (d.lastDelta !== null && d.lastDelta !== undefined)
+      ? `<div class="shortgame-last-delta ${d.lastDelta === 0 ? 'is-bullseye' : (d.lastDelta > 0 ? 'is-long' : 'is-short')}">
+           Last shot: ${formatShortGameDelta(d.lastDelta)}
+         </div>`
+      : '';
+
+    // Shot list — reverse chronological
+    const shotListHtml = shots.length === 0
+      ? `<div class="range-shotlist-empty">No shots yet. Hit the first one above.</div>`
+      : shots.slice().reverse().map((s, revIdx) => {
+          const realIdx = shots.length - 1 - revIdx;
+          const clubName = resolveClubName(s.clubId);
+          const deltaClass = s.delta === 0 ? 'is-bullseye' : (s.delta > 0 ? 'is-long' : 'is-short');
+          return `
+            <div class="shortgame-shot-row">
+              <div class="range-shot-num">#${realIdx + 1}</div>
+              <div class="shortgame-shot-body">
+                <div class="shortgame-shot-top">
+                  <span class="shortgame-shot-club">${escapeHtml(clubName)}</span>
+                  <span class="shortgame-shot-target">Target ${s.targetDistance}<small>${distanceUnit()}</small></span>
+                </div>
+                <div class="shortgame-shot-bottom">
+                  <span class="shortgame-shot-actual">Hit ${s.actualDistance}<small>${distanceUnit()}</small></span>
+                  <span class="shortgame-shot-delta ${deltaClass}">${s.delta === 0 ? 'On' : (s.delta > 0 ? '+' : '')}${s.delta}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+    mount.innerHTML = `
+      <!-- Status strip -->
+      <div class="round-status">
+        <div class="round-status-side">
+          <div class="round-status-eyebrow">Short Game · ${doc.minYards}–${doc.maxYards} ${distanceUnit()}</div>
+          <div class="round-status-meta">${stats.count} shot${stats.count === 1 ? '' : 's'}${stats.count > 0 ? ` · Avg ±${stats.avgAbsDelta} ${distanceUnit()}` : ''}</div>
+        </div>
+        <div class="round-status-side round-status-right">
+          <div class="round-status-eyebrow">Best</div>
+          <div class="round-status-score">${stats.bestAbsDelta !== null ? `±${stats.bestAbsDelta}` : '—'}</div>
+        </div>
+      </div>
+
+      ${lastDeltaLabel}
+
+      <!-- Target display -->
+      <div class="shortgame-target-card">
+        <div class="shortgame-target-eyebrow">Next Target</div>
+        <div class="shortgame-target-value">${d.currentTarget}<span>${distanceUnit()}</span></div>
+      </div>
+
+      <!-- Shot entry -->
+      <div class="round-card range-entry-card">
+        <div class="range-entry-label">Log Your Shot</div>
+
+        <div class="range-field">
+          <label class="label-text" for="shortgame-club-select">Club</label>
+          <select id="shortgame-club-select" class="select range-club-select"
+                  onchange="shortGameSelectClub(this.value)">
+            ${clubOptions}
+          </select>
+        </div>
+
+        <div class="range-field">
+          <label class="label-text" for="shortgame-actual-input">Actual Distance (${distanceUnit()})</label>
+          <input id="shortgame-actual-input" type="number" inputmode="numeric"
+                 class="input range-distance-input"
+                 min="1" max="500"
+                 value="${escapeHtml(d.actualDistance || '')}"
+                 placeholder="${d.currentTarget}"
+                 oninput="shortGameSetActualDistance(this.value)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();logShortGameShot();}">
+        </div>
+
+        <div class="round-actions">
+          <button id="shortgame-log-btn" class="round-btn round-btn-primary"
+                  onclick="logShortGameShot()" ${canLogShortGameShot() ? '' : 'disabled'}>
+            Log Shot & Next Target →
+          </button>
+          <div class="round-actions-secondary">
+            ${shots.length > 0 ? `<button class="round-btn-link" onclick="undoLastShortGameShot()">↶ Undo Last</button>` : ''}
+            <button class="round-btn-link round-btn-end" onclick="endShortGameSession()">End Session</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shot list -->
+      <div class="range-shotlist-section">
+        <div class="range-shotlist-head">
+          <div class="range-shotlist-label">Shots</div>
+        </div>
+        <div class="range-shotlist">
+          ${shotListHtml}
+        </div>
+      </div>
+    `;
+
+    // Focus the actual-distance input if it's empty (ready for next shot)
+    const actualInput = document.getElementById('shortgame-actual-input');
+    if (actualInput && document.activeElement !== actualInput) {
+      const active = document.activeElement;
+      const isOtherInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
+      if (!isOtherInput && d.actualDistance === '') {
+        actualInput.focus();
+      }
+    }
   }
 
   // Main render — branches on "active session?" and routes accordingly.
@@ -20891,6 +21700,16 @@
       return;
     }
 
+    // Short game session — same banner surface, different title.
+    if (isShortGameSessionActive()) {
+      const doc = practiceSessionState.doc;
+      const shotCount = (doc.shots || []).length;
+      titleEl.textContent = `Short Game · ${doc.minYards}–${doc.maxYards}`;
+      progressEl.textContent = `${shotCount} shot${shotCount === 1 ? '' : 's'}`;
+      document.body.classList.add('round-active');
+      return;
+    }
+
     document.body.classList.remove('round-active');
   }
 
@@ -20903,6 +21722,11 @@
     // Range session — resume opens the practice range-session panel.
     if (isRangeSessionActive()) {
       showPanel('range-session', null);
+      return;
+    }
+    // Short game session — resume opens the short game session panel.
+    if (isShortGameSessionActive()) {
+      showPanel('shortgame-session', null);
       return;
     }
     const inProgress = findInProgressRound();
@@ -20928,6 +21752,11 @@
     // Range session — route through its own completion flow.
     if (isRangeSessionActive()) {
       await endRangeSession();
+      return;
+    }
+    // Short game session — same deal.
+    if (isShortGameSessionActive()) {
+      await endShortGameSession();
       return;
     }
 
