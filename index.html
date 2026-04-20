@@ -5513,6 +5513,282 @@
     }
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     RANGE HISTORY + SESSION DETAIL
+     ══════════════════════════════════════════════════════════════ */
+
+  /* "View Range History" link at the bottom of the Practice landing.
+     Minimal treatment — not a primary CTA, just a navigation option. */
+  .practice-history-link-wrap {
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-light);
+  }
+  .practice-history-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .practice-history-link:hover {
+    background: var(--bg-surface);
+    color: var(--color-orange);
+  }
+  .practice-history-link-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .practice-history-link-arrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--text-muted);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .practice-history-link:hover .practice-history-link-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+
+  /* History list container */
+  .range-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  /* Each history card — compact summary with 3 quick stats.
+     Visually echoes the .round-card pattern but with a stats-row
+     baked in for scannability. */
+  .range-history-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-6);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                transform var(--transition-spring);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .range-history-card:hover {
+    border-color: var(--color-orange);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .range-history-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-1);
+  }
+  .range-history-card-date {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .range-history-card-arrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--text-muted);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .range-history-card:hover .range-history-card-arrow {
+    color: var(--color-orange);
+    transform: translateX(3px);
+  }
+  .range-history-card-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-4);
+  }
+  .range-history-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+  .range-history-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .range-history-stat-value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .range-history-stat-value span {
+    font-family: var(--font-mono);
+    font-size: 0.55em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 3px;
+  }
+  .range-history-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Empty state for the history list */
+  .range-history-empty {
+    text-align: center;
+    padding: var(--space-16) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+  }
+  .range-history-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+    color: var(--text-primary);
+  }
+  .range-history-empty-text {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 40ch;
+    margin: 0 auto var(--space-6);
+    line-height: var(--leading-normal);
+  }
+  .range-history-loading {
+    text-align: center;
+    padding: var(--space-12);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* ── Session detail page ──────────────────────────────────── */
+
+  .range-detail-section-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-3);
+  }
+
+  /* Per-club breakdown rows — one row per club, showing count + avg
+     + min/max range. Compact enough to scan quickly on mobile. */
+  .range-detail-by-club {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .range-detail-club-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .range-detail-club-name {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    flex-shrink: 0;
+    min-width: 70px;
+  }
+  .range-detail-club-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .range-detail-club-count {
+    color: var(--color-orange);
+    font-weight: var(--weight-semibold);
+  }
+  .range-detail-club-sep {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+  .range-detail-club-avg,
+  .range-detail-club-range {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+  .range-detail-club-stats small {
+    font-size: 0.78em;
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+    margin-left: 1px;
+  }
+
+  .range-detail-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-light);
+    flex-wrap: wrap;
+  }
+  .range-detail-delete {
+    color: var(--color-orange-dark);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  .range-detail-delete:hover {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+  }
+
+  @media (max-width: 560px) {
+    .range-detail-club-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+    .range-detail-club-stats {
+      justify-content: flex-start;
+    }
+    .range-detail-actions {
+      flex-direction: column;
+    }
+    .range-detail-actions .btn {
+      width: 100%;
+    }
+  }
+
   /* ── Callout boxes ────────────────────────────────────────── */
   .callout {
     padding: var(--space-5) var(--space-6);
@@ -11363,6 +11639,22 @@
       <div id="range-session-mount"></div>
     </section>
 
+    <!-- ═══════════════ RANGE HISTORY ═══════════════ -->
+    <section class="panel" id="panel-range-history">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Practice History</span>
+        <h2>Range <em>Sessions</em></h2>
+        <p class="panel-desc">Every completed range session, most recent first. Tap any card to see shot-by-shot detail.</p>
+      </div>
+      <div id="range-history-mount"></div>
+    </section>
+
+    <!-- ═══════════════ RANGE SESSION DETAIL ═══════════════ -->
+    <section class="panel" id="panel-range-session-detail">
+      <div id="range-session-detail-mount"></div>
+    </section>
+
     <!-- ═══════════════ SOCIAL ═══════════════ -->
     <section class="panel" id="panel-social">
       <div class="panel-head">
@@ -13506,6 +13798,8 @@
     if (id === 'play')           return 'Play';
     if (id === 'practice')       return 'Practice';
     if (id === 'range-session')  return 'Range Session';
+    if (id === 'range-history')  return 'Range History';
+    if (id === 'range-session-detail') return 'Session Detail';
     if (id === 'social')         return 'Social';
     if (id === 'profile')        return 'Profile';
     if (id === 'courses')        return 'Courses';
@@ -13533,7 +13827,8 @@
     if (id === 'play' || id === 'courses' || id === 'course-detail' ||
         id === 'round' || id === 'round-summary' || id === 'rounds' ||
         id === 'quick-score') return 'play';
-    if (id === 'practice' || id === 'range-session') return 'practice';
+    if (id === 'practice' || id === 'range-session' ||
+        id === 'range-history' || id === 'range-session-detail') return 'practice';
     if (id === 'social' || id === 'user-profile' || id === 'public-round')  return 'social';
     if (id === 'profile' || id === 'bag') return 'profile';
     return 'train';
@@ -13544,7 +13839,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -13654,6 +13949,8 @@
     if (id === 'group-round') renderGroupRoundPanel();
     if (id === 'practice') renderPracticeLanding();
     if (id === 'range-session') renderRangeSession();
+    if (id === 'range-history') renderRangeHistory();
+    if (id === 'range-session-detail') renderRangeSessionDetail();
 
     // Phase 2: live subscription lifecycle. Start the onSnapshot listener
     // when entering a group panel; tear it down when leaving. Idempotent
@@ -19254,6 +19551,15 @@
           </div>
         </div>
       </div>
+
+      ${currentUser ? `
+        <div class="practice-history-link-wrap">
+          <button class="practice-history-link" onclick="openRangeHistory()">
+            <span class="practice-history-link-label">View Range History</span>
+            <span class="practice-history-link-arrow">→</span>
+          </button>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -19277,6 +19583,18 @@
   let __practiceSessionSaveTimer = null;
   let __practiceSessionSaveInFlight = false;
   let practiceSessionsLoaded = false;
+
+  // Completed range sessions — loaded lazily the first time the user
+  // visits the history panel. Also refreshed after a session completes.
+  let rangeSessionsHistory = [];
+  let rangeSessionsHistoryLoaded = false;
+
+  // Which session's detail view is currently being shown. Set when the
+  // user taps a history card; cleared on panel exit.
+  const rangeSessionDetailState = {
+    sessionId: null,
+    session: null,  // hydrated record
+  };
 
   function isRangeSessionActive() {
     return !!(practiceSessionState.docId && practiceSessionState.doc);
@@ -19366,6 +19684,7 @@
       const id = await window.fb.createPracticeSession(currentUser.uid, payload);
       practiceSessionState.docId = id;
       practiceSessionState.doc = { id, ...payload };
+      updateRoundBanner();
       showPanel('range-session', null);
     } catch (err) {
       console.error('Failed to start range session:', err);
@@ -19494,6 +19813,7 @@
       }
       practiceSessionState.docId = null;
       practiceSessionState.doc = null;
+      updateRoundBanner();
       showPanel('practice', null);
       return;
     }
@@ -19525,6 +19845,10 @@
     }
     practiceSessionState.docId = null;
     practiceSessionState.doc = null;
+    updateRoundBanner();
+    // Invalidate history cache so next visit shows the newly-completed
+    // session. Cheaper to just nuke the cache flag than re-fetch here.
+    rangeSessionsHistoryLoaded = false;
     showPanel('practice', null);
   }
 
@@ -19550,10 +19874,313 @@
     return club ? (club.name || 'Club') : 'Club';
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Range session history — list + detail view
+  // ─────────────────────────────────────────────────────────────
+
+  // Load all completed range sessions. Called on first history view +
+  // whenever we know the list changed (e.g. after End Session or Delete).
+  async function loadRangeSessionsHistory() {
+    rangeSessionsHistoryLoaded = false;
+    if (!currentUser || !window.fb) {
+      rangeSessionsHistory = [];
+      rangeSessionsHistoryLoaded = true;
+      return;
+    }
+    try {
+      const list = await window.fb.listPracticeSessions(currentUser.uid, 'completed');
+      // listPracticeSessions doesn't filter by type, so do it client-side
+      // — putting/short-game sessions will land here eventually and we
+      // don't want them mixed in with range sessions.
+      rangeSessionsHistory = (list || []).filter(s => s.type === 'range');
+      rangeSessionsHistoryLoaded = true;
+    } catch (err) {
+      console.error('Failed to load range history:', err);
+      rangeSessionsHistory = [];
+      rangeSessionsHistoryLoaded = true;
+    }
+  }
+
+  // Navigate from Practice landing into history. Loads on demand.
+  async function openRangeHistory() {
+    showPanel('range-history', null);
+    if (!rangeSessionsHistoryLoaded) {
+      await loadRangeSessionsHistory();
+      renderRangeHistory();  // re-render once data lands
+    }
+  }
+
+  // Open a specific session's detail view. Pulls fresh from Firestore
+  // (history list might be stale after a shot-edit round-trip). Shows
+  // loading state while fetching.
+  async function openRangeSessionDetail(sessionId) {
+    rangeSessionDetailState.sessionId = sessionId;
+    // Start with the cached record if we have it — gives instant visual
+    // feedback while the fresh fetch runs.
+    const cached = rangeSessionsHistory.find(s => s.id === sessionId);
+    rangeSessionDetailState.session = cached || null;
+    showPanel('range-session-detail', null);
+    try {
+      const fresh = await window.fb.getPracticeSession(currentUser.uid, sessionId);
+      if (fresh && rangeSessionDetailState.sessionId === sessionId) {
+        rangeSessionDetailState.session = fresh;
+        renderRangeSessionDetail();
+      }
+    } catch (err) {
+      console.error('Failed to fetch session detail:', err);
+    }
+  }
+
+  // Delete a completed session from history. Confirms first.
+  async function deleteRangeSession(sessionId) {
+    if (!currentUser || !window.fb) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Session',
+      eyebrowStyle: 'warning',
+      title: 'Delete this range session?',
+      message: "The session and all of its shots will be permanently removed. This can't be undone.",
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await window.fb.deletePracticeSession(currentUser.uid, sessionId);
+      rangeSessionsHistory = rangeSessionsHistory.filter(s => s.id !== sessionId);
+      // If we were viewing this session's detail, bounce back to history
+      if (rangeSessionDetailState.sessionId === sessionId) {
+        rangeSessionDetailState.sessionId = null;
+        rangeSessionDetailState.session = null;
+        showPanel('range-history', null);
+      } else {
+        renderRangeHistory();
+      }
+      showToast('Session deleted');
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      showToast('Delete failed', true);
+    }
+  }
+
+  // Session-card stats — lightweight rollup for the list view. More
+  // detail (per-club breakdowns, distance histograms) lives on the
+  // detail page.
+  function sessionSummaryStats(session) {
+    const shots = session.shots || [];
+    const count = shots.length;
+    if (count === 0) {
+      return { count: 0, avg: 0, max: 0, clubCount: 0, durationMin: 0 };
+    }
+    const distances = shots.map(s => s.distance || 0);
+    const avg = Math.round(distances.reduce((a, b) => a + b, 0) / count);
+    const max = Math.max(...distances);
+    // Unique clubs hit
+    const clubIds = new Set(shots.map(s => s.clubId).filter(Boolean));
+    // Duration — startTime → endTime, in minutes. Falls back to 0 if
+    // either is missing (older sessions or mid-completion snapshots).
+    let durationMin = 0;
+    if (session.startTime && session.endTime) {
+      durationMin = Math.max(1, Math.round((session.endTime - session.startTime) / 60000));
+    }
+    return { count, avg, max, clubCount: clubIds.size, durationMin };
+  }
+
+  // Group shots by club and compute per-club summary stats. Used on
+  // the detail page's "By Club" section. Sorted by shot count desc
+  // so the most-practiced club sits at the top.
+  function shotsByClub(shots) {
+    const map = new Map();
+    for (const s of shots) {
+      const key = s.clubId || '__unknown';
+      const bucket = map.get(key) || { clubId: s.clubId, shots: [] };
+      bucket.shots.push(s);
+      map.set(key, bucket);
+    }
+    const groups = Array.from(map.values()).map(g => {
+      const distances = g.shots.map(s => s.distance || 0);
+      const avg = distances.length > 0
+        ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
+        : 0;
+      const max = distances.length > 0 ? Math.max(...distances) : 0;
+      const min = distances.length > 0 ? Math.min(...distances) : 0;
+      return { ...g, count: g.shots.length, avg, max, min };
+    });
+    groups.sort((a, b) => b.count - a.count);
+    return groups;
+  }
+
+  function renderRangeHistory() {
+    const mount = document.getElementById('range-history-mount');
+    if (!mount) return;
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="range-history-empty">
+          <div class="range-history-empty-title">Sign in to see your session history</div>
+          <div class="range-history-empty-text">Your sessions sync to your account so you can build a distance profile over time.</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (!rangeSessionsHistoryLoaded) {
+      mount.innerHTML = `<div class="range-history-loading">Loading sessions…</div>`;
+      return;
+    }
+
+    if (rangeSessionsHistory.length === 0) {
+      mount.innerHTML = `
+        <div class="range-history-empty">
+          <div class="range-history-empty-title">No completed sessions yet</div>
+          <div class="range-history-empty-text">Range sessions show up here after you end them. Head back to Practice to start your first one.</div>
+          <button class="btn btn-primary" onclick="showPanel('practice', null)">← Back to Practice</button>
+        </div>
+      `;
+      return;
+    }
+
+    const cards = rangeSessionsHistory.map(s => {
+      const stats = sessionSummaryStats(s);
+      const dateStr = formatRoundDate(s.startTime);
+      const durationStr = stats.durationMin > 0
+        ? `${stats.durationMin} min · `
+        : '';
+      return `
+        <button class="range-history-card" onclick="openRangeSessionDetail('${escapeHtml(s.id)}')">
+          <div class="range-history-card-head">
+            <div class="range-history-card-date">${escapeHtml(dateStr)}</div>
+            <div class="range-history-card-arrow">→</div>
+          </div>
+          <div class="range-history-card-meta">${durationStr}${stats.clubCount} club${stats.clubCount === 1 ? '' : 's'} worked</div>
+          <div class="range-history-card-stats">
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.count}</div>
+              <div class="range-history-stat-label">Shots</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.avg}<span>${distanceUnit()}</span></div>
+              <div class="range-history-stat-label">Avg</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.max}<span>${distanceUnit()}</span></div>
+              <div class="range-history-stat-label">Max</div>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    mount.innerHTML = `<div class="range-history-list">${cards}</div>`;
+  }
+
+  function renderRangeSessionDetail() {
+    const mount = document.getElementById('range-session-detail-mount');
+    if (!mount) return;
+    const s = rangeSessionDetailState.session;
+    if (!s) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Session not found</h2>
+          <p class="panel-desc">It may have been deleted, or the page loaded before data synced.</p>
+        </div>
+        <button class="btn btn-outline" onclick="showPanel('range-history', null)">← Back to History</button>
+      `;
+      return;
+    }
+
+    const shots = s.shots || [];
+    const stats = sessionSummaryStats(s);
+    const dateStr = formatRoundDate(s.startTime);
+    const durationStr = stats.durationMin > 0
+      ? `${stats.durationMin} min`
+      : '—';
+
+    // By-club breakdown
+    const byClub = shotsByClub(shots);
+    const clubRowsHtml = byClub.map(g => {
+      const name = resolveClubName(g.clubId);
+      return `
+        <div class="range-detail-club-row">
+          <div class="range-detail-club-name">${escapeHtml(name)}</div>
+          <div class="range-detail-club-stats">
+            <span class="range-detail-club-count">${g.count} shot${g.count === 1 ? '' : 's'}</span>
+            <span class="range-detail-club-sep">·</span>
+            <span class="range-detail-club-avg">Avg ${g.avg}<small>${distanceUnit()}</small></span>
+            <span class="range-detail-club-sep">·</span>
+            <span class="range-detail-club-range">${g.min}–${g.max}<small>${distanceUnit()}</small></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Full shot list — chronological (as they were hit)
+    const shotRowsHtml = shots.map((shot, idx) => {
+      const clubName = resolveClubName(shot.clubId);
+      return `
+        <div class="range-shot-row">
+          <div class="range-shot-num">#${idx + 1}</div>
+          <div class="range-shot-club">${escapeHtml(clubName)}</div>
+          <div class="range-shot-swing">${shot.swingPct}%</div>
+          <div class="range-shot-distance">${shot.distance}<span>${distanceUnit()}</span></div>
+        </div>
+      `;
+    }).join('');
+
+    mount.innerHTML = `
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Range Session</span>
+        <h2>${escapeHtml(dateStr)}</h2>
+      </div>
+
+      <!-- Stat totals — mirrors the round-summary layout -->
+      <div class="round-summary-totals">
+        <div class="round-summary-stat round-summary-stat-primary">
+          <div class="round-summary-stat-value">${stats.count}</div>
+          <div class="round-summary-stat-label">Shots</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${stats.avg}</div>
+          <div class="round-summary-stat-label">Avg ${distanceUnit()}</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${stats.max}</div>
+          <div class="round-summary-stat-label">Max ${distanceUnit()}</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${durationStr.replace(' min', '')}</div>
+          <div class="round-summary-stat-label">${stats.durationMin > 0 ? 'Minutes' : 'Duration'}</div>
+        </div>
+      </div>
+
+      ${byClub.length > 0 ? `
+        <div class="range-detail-section-label">By Club</div>
+        <div class="range-detail-by-club">${clubRowsHtml}</div>
+      ` : ''}
+
+      ${shots.length > 0 ? `
+        <div class="range-detail-section-label">All Shots</div>
+        <div class="range-shotlist">${shotRowsHtml}</div>
+      ` : `
+        <div class="range-shotlist-empty">No shots logged in this session.</div>
+      `}
+
+      <div class="range-detail-actions">
+        <button class="btn btn-ghost" onclick="showPanel('range-history', null)">← Back to History</button>
+        <button class="btn btn-outline range-detail-delete" onclick="deleteRangeSession('${escapeHtml(s.id)}')">Delete Session</button>
+      </div>
+    `;
+  }
+
   // Main render — branches on "active session?" and routes accordingly.
   function renderRangeSession() {
     const mount = document.getElementById('range-session-mount');
     if (!mount) return;
+    // Any call path that re-renders the range session also has had its
+    // state mutated — refresh the persistent banner so shot-count stays
+    // in sync. Cheap no-op if the banner isn't showing anyway.
+    updateRoundBanner();
 
     if (!currentUser) {
       mount.innerHTML = `
@@ -20233,25 +20860,42 @@
       return;
     }
 
+    // Solo round next.
     const inProgress = findInProgressRound();
-    if (!inProgress) {
-      document.body.classList.remove('round-active');
+    if (inProgress) {
+      const course = getCourse(inProgress.courseId);
+      const courseName = course ? course.name : (inProgress.courseName || 'Round');
+      const teeName = inProgress.teeName || '';
+      const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
+      const totalHoles = course ? course.holes.length : 18;
+      titleEl.textContent = teeName ? `${courseName} · ${teeName}` : courseName;
+      progressEl.textContent = `${holesPlayed}/${totalHoles}`;
+      document.body.classList.add('round-active');
       return;
     }
-    const course = getCourse(inProgress.courseId);
-    const courseName = course ? course.name : (inProgress.courseName || 'Round');
-    const teeName = inProgress.teeName || '';
-    const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
-    const totalHoles = course ? course.holes.length : 18;
-    titleEl.textContent = teeName ? `${courseName} · ${teeName}` : courseName;
-    progressEl.textContent = `${holesPlayed}/${totalHoles}`;
-    document.body.classList.add('round-active');
+
+    // Range session — no course, but same banner surface. "Range Session"
+    // title + shot count in the progress slot.
+    if (isRangeSessionActive()) {
+      const shotCount = (practiceSessionState.doc.shots || []).length;
+      titleEl.textContent = 'Range Session';
+      progressEl.textContent = `${shotCount} shot${shotCount === 1 ? '' : 's'}`;
+      document.body.classList.add('round-active');
+      return;
+    }
+
+    document.body.classList.remove('round-active');
   }
 
   // Resume the active in-progress round from the banner button.
   function resumeActiveRound() {
     if (isGroupRoundActive()) {
       openActiveGroupRound();
+      return;
+    }
+    // Range session — resume opens the practice range-session panel.
+    if (isRangeSessionActive()) {
+      showPanel('range-session', null);
       return;
     }
     const inProgress = findInProgressRound();
@@ -20272,6 +20916,11 @@
     // to personal rounds and preserves the round for other players.
     if (isGroupRoundActive()) {
       await confirmCompleteMyGroupRound();
+      return;
+    }
+    // Range session — route through its own completion flow.
+    if (isRangeSessionActive()) {
+      await endRangeSession();
       return;
     }
 
