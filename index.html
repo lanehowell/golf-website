@@ -249,6 +249,74 @@
     border-color: var(--color-black);
   }
 
+  /* Today card — same "dramatic dark card" design issue as Play hero.
+     In light mode it's a black card with cream text (by design). When
+     --color-black flips to warm off-white in dark mode, the whole card
+     becomes cream — which is wrong, AND the hardcoded white child colors
+     (.today-btn-ghost, .today-stat-label, the stats border) fade to
+     invisible on cream. Fix: make the card a slightly-sunken surface
+     (darker than page), repoint child colors through tokens that
+     resolve correctly. Rest-day variant isn't affected — it uses cream
+     styling which reads fine in both modes. */
+  html.dark .today-card:not(.rest) {
+    background: #161310;                       /* deeper than page (#1F1C17) */
+    color: var(--color-black);                 /* warm off-white */
+    border: 1px solid var(--color-cream-300);
+  }
+  html.dark .today-card:not(.rest) .today-title { color: var(--color-black); }
+  html.dark .today-card:not(.rest) .today-sub   { color: var(--color-black-80); }
+  html.dark .today-card:not(.rest) .today-stats {
+    border-top-color: var(--color-cream-300);
+  }
+  html.dark .today-card:not(.rest) .today-stat-value {
+    color: var(--color-black);
+  }
+  html.dark .today-card:not(.rest) .today-stat-label {
+    color: var(--color-black-60);
+  }
+  html.dark .today-card:not(.rest) .today-btn-ghost {
+    color: var(--color-black);
+    border-color: rgba(245, 237, 216, 0.25);
+  }
+  html.dark .today-card:not(.rest) .today-btn-ghost:hover {
+    background: rgba(245, 237, 216, 0.08);
+    color: var(--color-black);
+    border-color: var(--color-black);
+  }
+  /* Quick-swap toggle inside the card + swap option buttons */
+  html.dark .today-card:not(.rest) .swap-toggle {
+    color: var(--color-black-60);
+  }
+  html.dark .today-card:not(.rest) .swap-toggle:hover {
+    color: var(--color-black);
+  }
+  html.dark .today-card:not(.rest) .swap-option-btn {
+    background: rgba(245, 237, 216, 0.04);
+    border-color: rgba(245, 237, 216, 0.15);
+    color: var(--color-black);
+  }
+  html.dark .today-card:not(.rest) .swap-option-btn:hover {
+    background: rgba(245, 237, 216, 0.10);
+    border-color: var(--color-orange);
+  }
+  html.dark .today-card:not(.rest) .swap-option-btn.current {
+    border-color: var(--color-orange);
+  }
+  html.dark .today-card:not(.rest) .swap-option-num {
+    color: var(--color-orange);
+  }
+  html.dark .today-card:not(.rest) .swap-option-name {
+    color: var(--color-black);
+  }
+
+  /* Desktop sticky nav — hardcoded cream background doesn't flip in dark
+     mode. Swap to a dark translucent surface that matches the page while
+     keeping the blur effect. */
+  html.dark .training-nav {
+    background: rgba(31, 28, 23, 0.92);   /* --color-cream-50 (#1F1C17) at 92% */
+    border-bottom-color: var(--color-cream-300);
+  }
+
   /* Round tool dock / caddie — the dock pill uses --bg-elevated which
      resolves correctly in dark mode, but several inner surfaces also use
      --bg-elevated which makes them disappear against the pill. In dark
@@ -9915,6 +9983,12 @@
 
     <!-- ═══════════════ PLAY ═══════════════ -->
     <section class="panel" id="panel-play">
+      <!-- Signed-out banner: visible only when there's no authenticated user.
+           Emphasizes round tracking + handicap over the general Today banner
+           copy — Play has more at stake data-wise (rounds disappear without
+           auth). Rendered by renderPlaySigninBanner(). -->
+      <div id="play-signin-banner-mount"></div>
+
       <!-- Primary CTA — dynamic hero card. Renders one of two states:
            1. No round in progress → "Start a Round" (→ course picker)
            2. Round in progress → "Continue Round" (→ resumes the round) -->
@@ -11934,41 +12008,69 @@
   // ─────────────────────────────────────────────────────────────
   // Render the Today card
   // ─────────────────────────────────────────────────────────────
-  // Signed-out banner at the top of the Today page. Shown only when there's
-  // no authenticated user. Explains the value of signing in — routines,
-  // workout history, friends, round tracking — so new users understand
-  // what they get before building data they'd otherwise lose.
+  // Signed-out banner — shown at the top of Today and Play when there's
+  // no authenticated user. Explains the value of signing in so new users
+  // understand what they get before building data they'd otherwise lose.
   //
-  // Dismissible via the × button; session-scoped dismissal (not persisted)
-  // because we want re-entry to re-surface this for users who might have
-  // closed it accidentally. If they're committed to staying signed out,
-  // dismissing once per session is a reasonable floor.
-  let __signinBannerDismissed = false;
-  function dismissSigninBanner() {
-    __signinBannerDismissed = true;
-    renderSigninBanner();
+  // Dismissible via the × button. Dismissal is keyed per-surface so the
+  // user can dismiss Today's banner but still see Play's (different
+  // surface, different value prop). Session-scoped — not persisted.
+  // If dismissed, a fresh reload brings it back.
+  const __signinBannerDismissed = { today: false, play: false };
+  function dismissSigninBanner(surface) {
+    if (!surface || !(surface in __signinBannerDismissed)) return;
+    __signinBannerDismissed[surface] = true;
+    if (surface === 'today') renderSigninBanner();
+    else if (surface === 'play') renderPlaySigninBanner();
   }
-  function renderSigninBanner() {
-    const mount = document.getElementById('signin-banner-mount');
-    if (!mount) return;
-    // Clear + exit if signed in or dismissed
-    if (currentUser || __signinBannerDismissed) {
-      mount.innerHTML = '';
-      return;
-    }
-    mount.innerHTML = `
+
+  // Build the banner HTML. `surface` identifies which surface is rendering
+  // (for per-surface dismiss state); `copy` controls the text. Returning
+  // HTML lets both mount points share the implementation.
+  function buildSigninBannerHtml(surface, copy) {
+    return `
       <div class="signin-banner" role="region" aria-label="Sign in prompt">
-        <button class="signin-banner-dismiss" onclick="dismissSigninBanner()" aria-label="Dismiss">×</button>
+        <button class="signin-banner-dismiss" onclick="dismissSigninBanner('${surface}')" aria-label="Dismiss">×</button>
         <div class="signin-banner-head">
-          <span class="signin-banner-eyebrow">Get the full experience</span>
-          <h3 class="signin-banner-title">Sign in to save your <em>progress</em></h3>
+          <span class="signin-banner-eyebrow">${escapeHtml(copy.eyebrow)}</span>
+          <h3 class="signin-banner-title">${copy.title}</h3>
         </div>
-        <p class="signin-banner-desc">Build custom routines, track workout history, follow friends, and log every round you play. All your data syncs across devices.</p>
+        <p class="signin-banner-desc">${escapeHtml(copy.desc)}</p>
         <div class="signin-banner-cta">
           ${renderSignInButton()}
         </div>
       </div>
     `;
+  }
+
+  function renderSigninBanner() {
+    const mount = document.getElementById('signin-banner-mount');
+    if (!mount) return;
+    if (currentUser || __signinBannerDismissed.today) {
+      mount.innerHTML = '';
+      return;
+    }
+    mount.innerHTML = buildSigninBannerHtml('today', {
+      eyebrow: 'Get the full experience',
+      title: 'Sign in to save your <em>progress</em>',
+      desc: "Build custom routines, track workout history, follow friends, and log every round you play. All your data syncs across devices."
+    });
+  }
+
+  // Play variant — different copy emphasizing round tracking + handicap.
+  // Otherwise identical shape.
+  function renderPlaySigninBanner() {
+    const mount = document.getElementById('play-signin-banner-mount');
+    if (!mount) return;
+    if (currentUser || __signinBannerDismissed.play) {
+      mount.innerHTML = '';
+      return;
+    }
+    mount.innerHTML = buildSigninBannerHtml('play', {
+      eyebrow: 'Track every round',
+      title: 'Sign in to <em>save your rounds</em>',
+      desc: "Log scores hole-by-hole, watch your handicap evolve, and share rounds with friends. Unsaved rounds disappear when you close the page."
+    });
   }
 
   function renderTodayCard() {
@@ -16314,6 +16416,7 @@
   // Play landing — dynamic content (resume banner, stats, recent rounds)
   // ─────────────────────────────────────────────────────────────
   function renderPlayLanding() {
+    renderPlaySigninBanner();
     renderPlayHero();
     renderResumeBanner();
     renderPlayStats();
