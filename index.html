@@ -9230,6 +9230,26 @@
     console.warn('Failed to set auth persistence:', err);
   });
 
+  // Detect iOS standalone PWA mode (app launched from Home Screen bookmark).
+  // Firebase Auth's redirect flow is broken in this mode on iOS because
+  // Safari's redirect return doesn't propagate back to the standalone
+  // web app window — the auth completes in external Safari but the PWA
+  // never sees it. This is a known iOS limitation, not a Firebase bug.
+  //
+  // When detected, we show a dedicated "open in Safari" path instead of
+  // the normal sign-in button, which at least lets users sign in somewhere
+  // even if the PWA itself can't auth directly.
+  function isIosStandalonePwa() {
+    // iOS Safari sets navigator.standalone to true when running from
+    // Home Screen. Modern browsers also support display-mode media query.
+    // We check both because iOS has been inconsistent across versions.
+    const iosStandalone = window.navigator && window.navigator.standalone === true;
+    const displayStandalone = window.matchMedia &&
+                              window.matchMedia('(display-mode: standalone)').matches;
+    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    return isIos && (iosStandalone || displayStandalone);
+  }
+
   // Decide between popup and redirect sign-in based on platform. Popups
   // work great on desktop but are unreliable on mobile Safari and in-app
   // browsers (Instagram, Twitter, etc.) — iOS either blocks them outright,
@@ -9261,6 +9281,10 @@
   window.fb = {
     auth,
     db,
+    // Platform quirk flag — surfaced so the sign-in UI can warn and
+    // offer an alternative entry path. Read once at module load; the
+    // value doesn't change during the session.
+    isIosStandalonePwa: isIosStandalonePwa(),
     signIn: () => shouldUseRedirect()
       ? signInWithRedirect(auth, provider)
       : signInWithPopup(auth, provider),
@@ -10653,6 +10677,29 @@
     }
     if (currentUser) {
       // Already signed in — no-op. Sign-out lives in the Profile panel.
+      return;
+    }
+    // iOS standalone PWA (Home Screen bookmark) has a known issue where
+    // Firebase Auth's redirect flow doesn't return properly — the auth
+    // completes in external Safari but never propagates back to the
+    // standalone window. Rather than silently failing, offer the user
+    // a way out: open the site in Safari proper where auth works, with
+    // a short explanation of why.
+    if (window.fb.isIosStandalonePwa) {
+      const ok = confirm(
+        "Sign-in doesn't work inside the Home Screen app on iOS (an Apple limitation).\n\n" +
+        "Tap OK to open this site in Safari, sign in there, then come back to the Home Screen app."
+      );
+      if (ok) {
+        // Opening with target=_blank from standalone PWA breaks out to
+        // Safari on iOS. Use location.href as a fallback if popup blocked.
+        const url = window.location.href;
+        try {
+          window.open(url, '_blank');
+        } catch (e) {
+          window.location.href = url;
+        }
+      }
       return;
     }
     if (signInInFlight) {
