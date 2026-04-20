@@ -12443,13 +12443,20 @@
 
     // List the user's practice sessions. Filter arg is optional — pass
     // 'in-progress' to find a resumable session, or omit for all.
+    // List the user's practice sessions, sorted newest-first. No server-
+    // side status filter — that would require a composite index on
+    // (status, startTime) which silently fails until you create it.
+    // Volume is tiny (dozens per user lifetime), so we just pull all
+    // and let callers filter client-side. The statusFilter arg is
+    // applied here in JS land for the same call ergonomics.
     listPracticeSessions: async (myUid, statusFilter) => {
       const ref = collection(db, `users/${myUid}/practiceSessions`);
-      const q = statusFilter
-        ? query(ref, where('status', '==', statusFilter), orderBy('startTime', 'desc'))
-        : query(ref, orderBy('startTime', 'desc'));
+      const q = query(ref, orderBy('startTime', 'desc'));
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return statusFilter
+        ? all.filter(s => s.status === statusFilter)
+        : all;
     },
 
     // Delete a practice session. Used for abandon-on-empty and for
