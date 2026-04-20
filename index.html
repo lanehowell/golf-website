@@ -12715,9 +12715,9 @@
 <nav class="training-nav">
   <div class="training-container">
     <div class="training-nav-inner">
-      <button class="nav-tab" id="nav-play" onclick="showPanel('play', this)">Play</button>
+      <button class="nav-tab active" id="nav-play" onclick="showPanel('play', this)">Play</button>
       <button class="nav-tab" id="nav-practice" onclick="showPanel('practice', this)">Practice</button>
-      <button class="nav-tab active" id="nav-train" onclick="showPanel('today', this)">Train</button>
+      <button class="nav-tab" id="nav-train" onclick="showPanel('today', this)">Train</button>
       <button class="nav-tab" id="nav-social" onclick="showPanel('social', this)">Social</button>
       <button class="nav-tab" id="nav-profile" onclick="showPanel('profile', this)">Profile</button>
     </div>
@@ -12728,7 +12728,7 @@
   <div class="training-container">
 
     <!-- ═══════════════ TODAY (DASHBOARD) ═══════════════ -->
-    <section class="panel active" id="panel-today">
+    <section class="panel" id="panel-today">
       <!-- Signed-out banner: visible only when there's no authenticated user.
            Explains the value of signing in so people don't build routines
            they'll lose. Rendered dynamically by renderSigninBanner(). -->
@@ -12863,7 +12863,7 @@
     </section>
 
     <!-- ═══════════════ PLAY ═══════════════ -->
-    <section class="panel" id="panel-play">
+    <section class="panel active" id="panel-play">
       <!-- Signed-out banner: visible only when there's no authenticated user.
            Emphasizes round tracking + handicap over the general Today banner
            copy — Play has more at stake data-wise (rounds disappear without
@@ -13250,7 +13250,7 @@
      Four slots: Today / Stretch / Library / Account. Icons + labels.
      Stays fixed at the bottom; safe-area-padded for home-indicator. -->
 <nav class="mobile-bottomnav" id="mobile-bottomnav" role="tablist" aria-label="Main navigation">
-  <button class="mobile-navitem" id="mnav-play" onclick="mobileNavTap('play', this)" role="tab" aria-selected="false">
+  <button class="mobile-navitem active" id="mnav-play" onclick="mobileNavTap('play', this)" role="tab" aria-selected="true">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <!-- Golf flag icon -->
       <path d="M5 21V3"/>
@@ -13269,7 +13269,7 @@
     <span class="mobile-navlabel">Practice</span>
     <span class="mobile-navindicator" aria-hidden="true"></span>
   </button>
-  <button class="mobile-navitem active" id="mnav-train" onclick="mobileNavTap('train', this)" role="tab" aria-selected="true">
+  <button class="mobile-navitem" id="mnav-train" onclick="mobileNavTap('train', this)" role="tab" aria-selected="false">
     <svg class="mobile-navicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <!-- Dumbbell icon -->
       <path d="M6.5 6.5h11M6.5 17.5h11"/>
@@ -15183,7 +15183,7 @@
   // Only updated when the user navigates between top-level panels — not
   // when programmatically restoring state.
   let previousPanelId = null;
-  let currentPanelId = 'today';
+  let currentPanelId = 'play';
 
   // Track mobile mode dynamically via matchMedia so JS can make layout-aware
   // decisions (scroll math, transitions) without duplicating the media query.
@@ -15505,7 +15505,7 @@
   // Back button on any sub-page. Uses the logical parent map first, then
   // falls back to the most recent previous panel, then to Today.
   function goBack() {
-    const target = PANEL_PARENTS[currentPanelId] || previousPanelId || 'today';
+    const target = PANEL_PARENTS[currentPanelId] || previousPanelId || 'play';
     // Force left-slide direction so the mobile transition mirrors the
     // forward navigation that got us here, regardless of panel order.
     showPanel(target, null, { direction: 'left' });
@@ -30229,11 +30229,11 @@
   renderPreferencePanels();
   renderPlayLanding();
   updatePlayCoursesCount();
-  // Seed mobile shell state based on the initial active panel ("today")
-  document.body.dataset.currentPanel = currentPanelId || 'today';
+  // Seed mobile shell state based on the initial active panel ("play")
+  document.body.dataset.currentPanel = currentPanelId || 'play';
   const initialTitle = document.getElementById('mobile-topbar-title');
-  if (initialTitle) initialTitle.textContent = mobilePanelTitle(currentPanelId || 'today');
-  syncMobileBottomNav(currentPanelId || 'today');
+  if (initialTitle) initialTitle.textContent = mobilePanelTitle(currentPanelId || 'play');
+  syncMobileBottomNav(currentPanelId || 'play');
   renderMobileNavAvatar();
 </script>
 </body>
