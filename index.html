@@ -558,6 +558,97 @@
      DASHBOARD (Home panel)
      ══════════════════════════════════════════════════════════════ */
 
+  /* ── Sign-in banner (signed-out only, top of Today page) ─────
+     Warm, friendly orange-tinted card. Not alarming — the goal is to
+     invite sign-in, not gate functionality. Dismissible via the × in
+     the corner (session-scoped; re-shows on reload). */
+  .signin-banner {
+    position: relative;
+    background: var(--bg-accent-tint);
+    border: 1px solid rgba(232, 93, 4, 0.3);
+    border-left: 4px solid var(--color-orange);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6) var(--space-8);
+    margin-bottom: var(--space-6);
+    animation: fadeUp 0.4s ease both;
+  }
+  @media (max-width: 560px) {
+    .signin-banner {
+      padding: var(--space-5) var(--space-5);
+    }
+  }
+  .signin-banner-dismiss {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 22px;
+    line-height: 1;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .signin-banner-dismiss:hover {
+    background: var(--color-cream-200);
+    color: var(--text-primary);
+  }
+  .signin-banner-head {
+    padding-right: var(--space-8); /* keep title clear of the × button */
+    margin-bottom: var(--space-3);
+  }
+  .signin-banner-eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-2);
+  }
+  .signin-banner-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .signin-banner-title em {
+    font-style: italic;
+    color: var(--color-orange);
+  }
+  .signin-banner-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
+    margin: 0 0 var(--space-5);
+    max-width: 52ch;
+  }
+  .signin-banner-cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  /* The embedded sign-in button (renderSignInButton) comes back as either
+     a <button class="btn-cta"> OR a GIS container div. Neutralize any
+     margin from either so the layout stays tight. */
+  .signin-banner-cta .btn-cta {
+    margin: 0;
+  }
+
   /* ── Today card (the main event) ──────────────────────────── */
   .today-card {
     position: relative;
@@ -9693,6 +9784,11 @@
 
     <!-- ═══════════════ TODAY (DASHBOARD) ═══════════════ -->
     <section class="panel active" id="panel-today">
+      <!-- Signed-out banner: visible only when there's no authenticated user.
+           Explains the value of signing in so people don't build routines
+           they'll lose. Rendered dynamically by renderSigninBanner(). -->
+      <div id="signin-banner-mount"></div>
+
       <!-- Today / Up Next card — rendered dynamically by JS -->
       <div id="today-card-mount"></div>
 
@@ -11838,6 +11934,43 @@
   // ─────────────────────────────────────────────────────────────
   // Render the Today card
   // ─────────────────────────────────────────────────────────────
+  // Signed-out banner at the top of the Today page. Shown only when there's
+  // no authenticated user. Explains the value of signing in — routines,
+  // workout history, friends, round tracking — so new users understand
+  // what they get before building data they'd otherwise lose.
+  //
+  // Dismissible via the × button; session-scoped dismissal (not persisted)
+  // because we want re-entry to re-surface this for users who might have
+  // closed it accidentally. If they're committed to staying signed out,
+  // dismissing once per session is a reasonable floor.
+  let __signinBannerDismissed = false;
+  function dismissSigninBanner() {
+    __signinBannerDismissed = true;
+    renderSigninBanner();
+  }
+  function renderSigninBanner() {
+    const mount = document.getElementById('signin-banner-mount');
+    if (!mount) return;
+    // Clear + exit if signed in or dismissed
+    if (currentUser || __signinBannerDismissed) {
+      mount.innerHTML = '';
+      return;
+    }
+    mount.innerHTML = `
+      <div class="signin-banner" role="region" aria-label="Sign in prompt">
+        <button class="signin-banner-dismiss" onclick="dismissSigninBanner()" aria-label="Dismiss">×</button>
+        <div class="signin-banner-head">
+          <span class="signin-banner-eyebrow">Get the full experience</span>
+          <h3 class="signin-banner-title">Sign in to save your <em>progress</em></h3>
+        </div>
+        <p class="signin-banner-desc">Build custom routines, track workout history, follow friends, and log every round you play. All your data syncs across devices.</p>
+        <div class="signin-banner-cta">
+          ${renderSignInButton()}
+        </div>
+      </div>
+    `;
+  }
+
   function renderTodayCard() {
     const resolution = resolveToday();
     const mount = document.getElementById('today-card-mount');
@@ -14842,6 +14975,7 @@
     // Re-render any panels affected by these changes
     renderHistory();
     renderPreferencePanels();
+    renderSigninBanner();
     renderTodayCard();
     renderWeekStrip();
     renderPlayLanding();
@@ -21533,6 +21667,7 @@
   // ─────────────────────────────────────────────────────────────
   // Init
   // ─────────────────────────────────────────────────────────────
+  renderSigninBanner();
   renderTodayCard();
   renderWeekStrip();
   renderHistory();
