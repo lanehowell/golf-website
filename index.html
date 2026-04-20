@@ -5529,6 +5529,9 @@
     margin-top: var(--space-8);
     padding-top: var(--space-6);
     border-top: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
   }
   .practice-history-link {
     display: flex;
@@ -6302,6 +6305,59 @@
     font-weight: var(--weight-regular);
     color: var(--text-muted);
     margin-left: 2px;
+  }
+
+  /* Tendency callout — a pill shown on the short game session detail
+     page telling the user whether they generally hit long, short, or
+     on the number. Color-coded to match the in-session delta chips. */
+  .shortgame-tendency-callout {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6);
+    text-align: center;
+  }
+  .shortgame-tendency-callout.is-bullseye {
+    background: #2D6E34;
+    color: var(--color-cream-50);
+  }
+  .shortgame-tendency-callout.is-long {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+    border: 1px solid rgba(232, 93, 4, 0.3);
+  }
+  .shortgame-tendency-callout.is-short {
+    background: var(--color-cream-200);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+  }
+  .shortgame-tendency-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .shortgame-tendency-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+  }
+  html.dark .shortgame-tendency-callout.is-bullseye {
+    background: rgba(45, 110, 52, 0.3);
+    color: #7FC088;
+  }
+  html.dark .shortgame-tendency-callout.is-long {
+    background: rgba(232, 93, 4, 0.18);
+    color: var(--color-orange);
+  }
+  html.dark .shortgame-tendency-callout.is-short {
+    background: rgba(13, 13, 13, 0.25);
+    color: var(--text-secondary);
   }
 
   /* Secondary actions row — sits below the play card, above the shot
@@ -12238,6 +12294,22 @@
       <div id="shortgame-session-mount"></div>
     </section>
 
+    <!-- ═══════════════ SHORT GAME HISTORY ═══════════════ -->
+    <section class="panel" id="panel-shortgame-history">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Practice History</span>
+        <h2>Short Game <em>Sessions</em></h2>
+        <p class="panel-desc">Every completed short game session, most recent first. Tap any card to see shot-by-shot detail.</p>
+      </div>
+      <div id="shortgame-history-mount"></div>
+    </section>
+
+    <!-- ═══════════════ SHORT GAME SESSION DETAIL ═══════════════ -->
+    <section class="panel" id="panel-shortgame-session-detail">
+      <div id="shortgame-session-detail-mount"></div>
+    </section>
+
     <!-- ═══════════════ SOCIAL ═══════════════ -->
     <section class="panel" id="panel-social">
       <div class="panel-head">
@@ -14392,6 +14464,8 @@
     if (id === 'range-session-detail') return 'Session Detail';
     if (id === 'shortgame-setup')      return 'Short Game';
     if (id === 'shortgame-session')    return 'Short Game';
+    if (id === 'shortgame-history')    return 'Short Game History';
+    if (id === 'shortgame-session-detail') return 'Session Detail';
     if (id === 'social')         return 'Social';
     if (id === 'profile')        return 'Profile';
     if (id === 'courses')        return 'Courses';
@@ -14421,7 +14495,8 @@
         id === 'quick-score') return 'play';
     if (id === 'practice' || id === 'range-session' ||
         id === 'range-history' || id === 'range-session-detail' ||
-        id === 'shortgame-setup' || id === 'shortgame-session') return 'practice';
+        id === 'shortgame-setup' || id === 'shortgame-session' ||
+        id === 'shortgame-history' || id === 'shortgame-session-detail') return 'practice';
     if (id === 'social' || id === 'user-profile' || id === 'public-round')  return 'social';
     if (id === 'profile' || id === 'bag') return 'profile';
     return 'train';
@@ -14432,7 +14507,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'shortgame-setup', 'shortgame-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -14546,6 +14621,8 @@
     if (id === 'range-session-detail') renderRangeSessionDetail();
     if (id === 'shortgame-setup') renderShortGameSetup();
     if (id === 'shortgame-session') renderShortGameSession();
+    if (id === 'shortgame-history') renderShortGameHistory();
+    if (id === 'shortgame-session-detail') renderShortGameSessionDetail();
 
     // Phase 2: live subscription lifecycle. Start the onSnapshot listener
     // when entering a group panel; tear it down when leaving. Idempotent
@@ -20155,6 +20232,10 @@
             <span class="practice-history-link-label">View Range History</span>
             <span class="practice-history-link-arrow">→</span>
           </button>
+          <button class="practice-history-link" onclick="openShortGameHistory()">
+            <span class="practice-history-link-label">View Short Game History</span>
+            <span class="practice-history-link-arrow">→</span>
+          </button>
         </div>
       ` : ''}
     `;
@@ -20197,11 +20278,20 @@
   let rangeSessionsHistory = [];
   let rangeSessionsHistoryLoaded = false;
 
+  // Same pattern for short game sessions — separate cache because they
+  // live as separate pages, filtered by type client-side.
+  let shortGameSessionsHistory = [];
+  let shortGameSessionsHistoryLoaded = false;
+
   // Which session's detail view is currently being shown. Set when the
   // user taps a history card; cleared on panel exit.
   const rangeSessionDetailState = {
     sessionId: null,
     session: null,  // hydrated record
+  };
+  const shortGameSessionDetailState = {
+    sessionId: null,
+    session: null,
   };
 
   // True when ANY practice session is active (range or short game).
@@ -21064,7 +21154,7 @@
     practiceSessionState.docId = null;
     practiceSessionState.doc = null;
     updateRoundBanner();
-    rangeSessionsHistoryLoaded = false;  // invalidate — cache won't see new session otherwise
+    shortGameSessionsHistoryLoaded = false;  // invalidate — cache won't see new session otherwise
     showPanel('practice', null);
   }
 
@@ -21375,6 +21465,306 @@
         actualInput.focus();
       }
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Short game session history — list + detail view
+  // ─────────────────────────────────────────────────────────────
+  // Mirrors the range history pattern. Separate cache and panels so the
+  // two practice types stay clearly distinct.
+
+  async function loadShortGameSessionsHistory() {
+    shortGameSessionsHistoryLoaded = false;
+    if (!currentUser || !window.fb) {
+      shortGameSessionsHistory = [];
+      shortGameSessionsHistoryLoaded = true;
+      return;
+    }
+    try {
+      const list = await window.fb.listPracticeSessions(currentUser.uid, 'completed');
+      // Filter client-side: only short game sessions. listPracticeSessions
+      // returns all practice sessions regardless of type.
+      shortGameSessionsHistory = (list || []).filter(s => s.type === 'shortgame');
+      shortGameSessionsHistoryLoaded = true;
+    } catch (err) {
+      console.error('Failed to load short game history:', err);
+      shortGameSessionsHistory = [];
+      shortGameSessionsHistoryLoaded = true;
+    }
+  }
+
+  async function openShortGameHistory() {
+    showPanel('shortgame-history', null);
+    if (!shortGameSessionsHistoryLoaded) {
+      await loadShortGameSessionsHistory();
+      renderShortGameHistory();
+    }
+  }
+
+  async function openShortGameSessionDetail(sessionId) {
+    shortGameSessionDetailState.sessionId = sessionId;
+    const cached = shortGameSessionsHistory.find(s => s.id === sessionId);
+    shortGameSessionDetailState.session = cached || null;
+    showPanel('shortgame-session-detail', null);
+    try {
+      const fresh = await window.fb.getPracticeSession(currentUser.uid, sessionId);
+      if (fresh && shortGameSessionDetailState.sessionId === sessionId) {
+        shortGameSessionDetailState.session = fresh;
+        renderShortGameSessionDetail();
+      }
+    } catch (err) {
+      console.error('Failed to fetch short game session detail:', err);
+    }
+  }
+
+  async function deleteShortGameSession(sessionId) {
+    if (!currentUser || !window.fb) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Session',
+      eyebrowStyle: 'warning',
+      title: 'Delete this short game session?',
+      message: "The session and all of its shots will be permanently removed. This can't be undone.",
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await window.fb.deletePracticeSession(currentUser.uid, sessionId);
+      shortGameSessionsHistory = shortGameSessionsHistory.filter(s => s.id !== sessionId);
+      if (shortGameSessionDetailState.sessionId === sessionId) {
+        shortGameSessionDetailState.sessionId = null;
+        shortGameSessionDetailState.session = null;
+        showPanel('shortgame-history', null);
+      } else {
+        renderShortGameHistory();
+      }
+      showToast('Session deleted');
+    } catch (err) {
+      console.error('Failed to delete short game session:', err);
+      showToast('Delete failed', true);
+    }
+  }
+
+  // Per-wedge rollup for the detail page. Same shape as shotsByClub
+  // (range detail's equivalent) but computes short-game-specific stats:
+  // avg |delta|, avg signed delta, best. Sorted by count desc.
+  function shortGameShotsByClub(shots) {
+    const map = new Map();
+    for (const s of shots) {
+      const key = s.clubId || '__unknown';
+      const bucket = map.get(key) || { clubId: s.clubId, shots: [] };
+      bucket.shots.push(s);
+      map.set(key, bucket);
+    }
+    const groups = Array.from(map.values()).map(g => {
+      const deltas = g.shots.map(s => s.delta || 0);
+      const absSum = deltas.reduce((a, b) => a + Math.abs(b), 0);
+      const signedSum = deltas.reduce((a, b) => a + b, 0);
+      const bestAbs = Math.min(...deltas.map(v => Math.abs(v)));
+      return {
+        ...g,
+        count: g.shots.length,
+        avgAbsDelta: Math.round(absSum / g.shots.length),
+        avgSignedDelta: Math.round(signedSum / g.shots.length),
+        bestAbsDelta: bestAbs,
+      };
+    });
+    groups.sort((a, b) => b.count - a.count);
+    return groups;
+  }
+
+  function renderShortGameHistory() {
+    const mount = document.getElementById('shortgame-history-mount');
+    if (!mount) return;
+
+    if (!currentUser) {
+      mount.innerHTML = `
+        <div class="range-history-empty">
+          <div class="range-history-empty-title">Sign in to see your session history</div>
+          <div class="range-history-empty-text">Your sessions sync to your account so you can build a proximity profile over time.</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (!shortGameSessionsHistoryLoaded) {
+      mount.innerHTML = `<div class="range-history-loading">Loading sessions…</div>`;
+      return;
+    }
+
+    if (shortGameSessionsHistory.length === 0) {
+      mount.innerHTML = `
+        <div class="range-history-empty">
+          <div class="range-history-empty-title">No completed sessions yet</div>
+          <div class="range-history-empty-text">Short game sessions show up here after you end them. Head back to Practice to start your first one.</div>
+          <button class="btn btn-primary" onclick="showPanel('practice', null)">← Back to Practice</button>
+        </div>
+      `;
+      return;
+    }
+
+    const cards = shortGameSessionsHistory.map(s => {
+      const shots = s.shots || [];
+      const count = shots.length;
+      const stats = shortGameSessionStats(shots);
+      const dateStr = formatRoundDate(s.startTime);
+      const rangeStr = `${s.minYards}–${s.maxYards} ${distanceUnit()}`;
+      return `
+        <button class="range-history-card" onclick="openShortGameSessionDetail('${escapeHtml(s.id)}')">
+          <div class="range-history-card-head">
+            <div class="range-history-card-date">${escapeHtml(dateStr)}</div>
+            <div class="range-history-card-arrow">→</div>
+          </div>
+          <div class="range-history-card-meta">${escapeHtml(rangeStr)}</div>
+          <div class="range-history-card-stats">
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${count}</div>
+              <div class="range-history-stat-label">Shots</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">±${stats.avgAbsDelta}<span>${distanceUnit()}</span></div>
+              <div class="range-history-stat-label">Avg</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.bestAbsDelta !== null ? `±${stats.bestAbsDelta}` : '—'}${stats.bestAbsDelta !== null ? `<span>${distanceUnit()}</span>` : ''}</div>
+              <div class="range-history-stat-label">Best</div>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    mount.innerHTML = `<div class="range-history-list">${cards}</div>`;
+  }
+
+  function renderShortGameSessionDetail() {
+    const mount = document.getElementById('shortgame-session-detail-mount');
+    if (!mount) return;
+    const s = shortGameSessionDetailState.session;
+    if (!s) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Session not found</h2>
+          <p class="panel-desc">It may have been deleted, or the page loaded before data synced.</p>
+        </div>
+        <button class="btn btn-outline" onclick="showPanel('shortgame-history', null)">← Back to History</button>
+      `;
+      return;
+    }
+
+    const shots = s.shots || [];
+    const stats = shortGameSessionStats(shots);
+    const dateStr = formatRoundDate(s.startTime);
+    const rangeStr = `${s.minYards}–${s.maxYards} ${distanceUnit()}`;
+
+    // Tendency label — derived from avg signed delta. Tells the user if
+    // they're generally long, short, or on. Threshold of 2 yards avoids
+    // flagging noise.
+    let tendencyLabel = 'On the number';
+    let tendencyClass = 'is-bullseye';
+    if (stats.avgSignedDelta > 2) {
+      tendencyLabel = `${stats.avgSignedDelta} ${distanceUnit()} long`;
+      tendencyClass = 'is-long';
+    } else if (stats.avgSignedDelta < -2) {
+      tendencyLabel = `${Math.abs(stats.avgSignedDelta)} ${distanceUnit()} short`;
+      tendencyClass = 'is-short';
+    }
+
+    // Per-wedge breakdown
+    const byClub = shortGameShotsByClub(shots);
+    const clubRowsHtml = byClub.map(g => {
+      const name = resolveClubName(g.clubId);
+      const signedLabel = g.avgSignedDelta === 0
+        ? 'On'
+        : (g.avgSignedDelta > 0 ? `+${g.avgSignedDelta}` : `${g.avgSignedDelta}`);
+      return `
+        <div class="range-detail-club-row">
+          <div class="range-detail-club-name">${escapeHtml(name)}</div>
+          <div class="range-detail-club-stats">
+            <span class="range-detail-club-count">${g.count} shot${g.count === 1 ? '' : 's'}</span>
+            <span class="range-detail-club-sep">·</span>
+            <span class="range-detail-club-avg">Avg ±${g.avgAbsDelta}<small>${distanceUnit()}</small></span>
+            <span class="range-detail-club-sep">·</span>
+            <span class="range-detail-club-range">${signedLabel} tendency</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Full shot list — chronological
+    const shotRowsHtml = shots.map((shot, idx) => {
+      const clubName = resolveClubName(shot.clubId);
+      const deltaClass = shot.delta === 0 ? 'is-bullseye' : (shot.delta > 0 ? 'is-long' : 'is-short');
+      return `
+        <div class="shortgame-shot-row">
+          <div class="range-shot-num">#${idx + 1}</div>
+          <div class="shortgame-shot-body">
+            <div class="shortgame-shot-top">
+              <span class="shortgame-shot-club">${escapeHtml(clubName)}</span>
+              <span class="shortgame-shot-target">Target ${shot.targetDistance}<small>${distanceUnit()}</small></span>
+            </div>
+            <div class="shortgame-shot-bottom">
+              <span class="shortgame-shot-actual">Hit ${shot.actualDistance}<small>${distanceUnit()}</small></span>
+              <span class="shortgame-shot-delta ${deltaClass}">${shot.delta === 0 ? 'On' : (shot.delta > 0 ? '+' : '')}${shot.delta}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    mount.innerHTML = `
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Short Game Session · ${escapeHtml(rangeStr)}</span>
+        <h2>${escapeHtml(dateStr)}</h2>
+      </div>
+
+      <!-- Stat totals -->
+      <div class="round-summary-totals">
+        <div class="round-summary-stat round-summary-stat-primary">
+          <div class="round-summary-stat-value">${stats.count}</div>
+          <div class="round-summary-stat-label">Shots</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">±${stats.avgAbsDelta}</div>
+          <div class="round-summary-stat-label">Avg ${distanceUnit()}</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${stats.bestAbsDelta !== null ? `±${stats.bestAbsDelta}` : '—'}</div>
+          <div class="round-summary-stat-label">Best ${distanceUnit()}</div>
+        </div>
+        <div class="round-summary-stat">
+          <div class="round-summary-stat-value">${stats.avgSignedDelta === 0 ? 'On' : (stats.avgSignedDelta > 0 ? '+' : '') + stats.avgSignedDelta}</div>
+          <div class="round-summary-stat-label">Tendency</div>
+        </div>
+      </div>
+
+      ${stats.count > 0 ? `
+        <div class="shortgame-tendency-callout ${tendencyClass}">
+          <span class="shortgame-tendency-label">Overall you were</span>
+          <span class="shortgame-tendency-value">${escapeHtml(tendencyLabel)}</span>
+        </div>
+      ` : ''}
+
+      ${byClub.length > 0 ? `
+        <div class="range-detail-section-label">By Wedge</div>
+        <div class="range-detail-by-club">${clubRowsHtml}</div>
+      ` : ''}
+
+      ${shots.length > 0 ? `
+        <div class="range-detail-section-label">All Shots</div>
+        <div class="range-shotlist">${shotRowsHtml}</div>
+      ` : `
+        <div class="range-shotlist-empty">No shots logged in this session.</div>
+      `}
+
+      <div class="range-detail-actions">
+        <button class="btn btn-ghost" onclick="showPanel('shortgame-history', null)">← Back to History</button>
+        <button class="btn btn-outline range-detail-delete" onclick="deleteShortGameSession('${escapeHtml(s.id)}')">Delete Session</button>
+      </div>
+    `;
   }
 
   // Main render — branches on "active session?" and routes accordingly.
