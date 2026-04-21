@@ -4521,6 +4521,99 @@
     flex-shrink: 0;
   }
 
+  /* Wind block — sits between distance input and recommendations.
+     3-button toggle (Into / Calm / Helping) + live "plays like" math.
+     Hidden when active round's course has no coords. */
+  .caddie-wind {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .caddie-wind-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .caddie-wind-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .caddie-wind-status {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .caddie-wind-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-1);
+    margin-bottom: var(--space-1);
+  }
+  .caddie-wind-btn {
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .caddie-wind-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .caddie-wind-btn.is-active {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+  }
+  /* "Plays like" line — appears only when wind is non-calm AND we have
+     both a target distance and a wind speed. */
+  .caddie-plays-like {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+  }
+  .caddie-plays-like-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .caddie-plays-like-value {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-tight);
+  }
+  .caddie-plays-like-delta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
   /* The recommendation area — top pick prominent, alternates below */
   .caddie-recs { }
 
@@ -22780,6 +22873,7 @@
     activeTool: null,       // e.g. 'caddie'
     caddie: {
       targetDistance: null, // canonical yards, or null
+      wind: 'calm',         // 'into' | 'calm' | 'helping' — affects play-distance calc
     },
     // Transient flag — true for exactly one render after a user-initiated
     // expand, so the slide-up animation plays. Any subsequent re-render
@@ -22949,6 +23043,66 @@
     dockState.caddie.targetDistance = distanceFromInput(displayValue);
     const recsMount = document.getElementById('caddie-recs-mount');
     if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+    // Wind block depends on target distance for the "plays like" calc,
+    // so refresh it too. Skip if no wind block on screen (e.g., no
+    // course coords for the active round).
+    const windMount = document.getElementById('caddie-wind-mount');
+    if (windMount) windMount.innerHTML = renderCaddieWindBlock();
+  }
+
+  // Tap a wind direction button (into / calm / helping). Re-renders
+  // both the wind block (button states) and recommendations (which
+  // now use the wind-adjusted distance).
+  function setCaddieWind(direction) {
+    if (direction !== 'into' && direction !== 'calm' && direction !== 'helping') return;
+    dockState.caddie.wind = direction;
+    const recsMount = document.getElementById('caddie-recs-mount');
+    if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+    const windMount = document.getElementById('caddie-wind-mount');
+    if (windMount) windMount.innerHTML = renderCaddieWindBlock();
+  }
+
+  // Convert raw yardage + wind context → effective "plays like" yardage.
+  // Rule of thumb used by amateur golf coaches:
+  //   Into the wind: ~1.5% per mph (asymmetry: hitting harder adds spin
+  //                  which kills more distance than the headwind alone).
+  //   Helping wind:  ~0.7% per mph (less help than hurt — physics).
+  // These are conservative — the tool errs slightly toward "more club"
+  // since amateurs tend to under-club anyway.
+  function applyWindAdjustment(targetYards, windMph, direction) {
+    if (!targetYards || !windMph || direction === 'calm') return targetYards;
+    if (direction === 'into')    return targetYards * (1 + 0.015 * windMph);
+    if (direction === 'helping') return targetYards * (1 - 0.007 * windMph);
+    return targetYards;
+  }
+
+  // Read the current wind speed (mph) from the cached weather for the
+  // active round's course. Returns null if no course coords or no
+  // cached weather. Triggers a background fetch if missing — caller
+  // gets a re-render via the cache settling.
+  function getCaddieWindSpeed() {
+    const ctx = getCurrentRoundContext();
+    if (!ctx) return null;
+    const course = getCourse(ctx.courseId);
+    if (!course || typeof course.lat !== 'number') return null;
+    const cached = weatherCache.get(weatherCacheKey(course.lat, course.lng));
+    if (cached && cached.status === 'ok') {
+      const w = cached.data?.current?.wind_speed_10m;
+      return typeof w === 'number' ? w : null;
+    }
+    // No cache — fire a fetch in the background, repaint when ready
+    if (!cached) {
+      fetchWeather(course.lat, course.lng).then(() => {
+        // Only re-paint if caddie is still active
+        if (dockState.expanded && dockState.activeTool === 'caddie') {
+          const windMount = document.getElementById('caddie-wind-mount');
+          if (windMount) windMount.innerHTML = renderCaddieWindBlock();
+          const recsMount = document.getElementById('caddie-recs-mount');
+          if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+        }
+      });
+    }
+    return null;
   }
 
   // Main dock render. Rebuilds the dock mount based on state.
@@ -23492,6 +23646,79 @@
   }
 
   // The Club Caddie surface: yardage input + recommendations.
+  // Wind block — sits between the distance input and recommendations.
+  // Three-button toggle (Into / Calm / Helping) plus the live "plays
+  // like" math. Hidden when the active round's course has no coords
+  // (no way to fetch weather).
+  function renderCaddieWindBlock() {
+    const ctx = getCurrentRoundContext();
+    const course = ctx ? getCourse(ctx.courseId) : null;
+    // Hide entirely if no course or no coords — feature requires both
+    // a current round AND a mappable course to be useful.
+    if (!course || typeof course.lat !== 'number') return '';
+
+    const windMph = getCaddieWindSpeed();
+    const target = dockState.caddie.targetDistance;
+    const dir = dockState.caddie.wind || 'calm';
+    const unit = distanceUnit();
+
+    // Status line: shows the wind speed source. Three states:
+    //   - speed available → "8 mph wind"
+    //   - fetch in progress → "Loading wind…"
+    //   - fetch failed / not yet → "Wind unavailable"
+    let statusText;
+    if (windMph != null) {
+      statusText = `${Math.round(windMph)} mph wind`;
+    } else {
+      const cached = weatherCache.get(weatherCacheKey(course.lat, course.lng));
+      statusText = cached && cached.status === 'error'
+        ? 'Wind unavailable'
+        : 'Loading wind…';
+    }
+
+    // Plays-like math. Only meaningful when we have BOTH a target and
+    // a non-calm direction with wind speed.
+    let playsLikeHtml = '';
+    if (target != null && target > 0 && windMph != null && dir !== 'calm') {
+      const adjustedYards = applyWindAdjustment(target, windMph, dir);
+      const adjustedDisplay = distanceToDisplay(adjustedYards);
+      const targetDisplay = distanceToDisplay(target);
+      const diff = Math.round(adjustedDisplay - targetDisplay);
+      const diffSign = diff >= 0 ? '+' : '';
+      playsLikeHtml = `
+        <div class="caddie-plays-like">
+          <span class="caddie-plays-like-label">Plays like</span>
+          <span class="caddie-plays-like-value">${Math.round(adjustedDisplay)} ${unit}</span>
+          <span class="caddie-plays-like-delta">${diffSign}${diff} ${unit} from wind</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="caddie-wind">
+        <div class="caddie-wind-head">
+          <span class="caddie-wind-label">Wind</span>
+          <span class="caddie-wind-status">${escapeHtml(statusText)}</span>
+        </div>
+        <div class="caddie-wind-buttons" role="group" aria-label="Wind direction relative to shot">
+          <button class="caddie-wind-btn${dir === 'into' ? ' is-active' : ''}"
+                  onclick="setCaddieWind('into')" aria-pressed="${dir === 'into'}">
+            Into
+          </button>
+          <button class="caddie-wind-btn${dir === 'calm' ? ' is-active' : ''}"
+                  onclick="setCaddieWind('calm')" aria-pressed="${dir === 'calm'}">
+            Calm
+          </button>
+          <button class="caddie-wind-btn${dir === 'helping' ? ' is-active' : ''}"
+                  onclick="setCaddieWind('helping')" aria-pressed="${dir === 'helping'}">
+            Helping
+          </button>
+        </div>
+        ${playsLikeHtml}
+      </div>
+    `;
+  }
+
   function renderCaddie() {
     // Context hint: show the current hole's par/yardage if we have it.
     // Works for both solo and group rounds via the unified context reader.
@@ -23530,6 +23757,7 @@
                  aria-label="Distance to target">
           <span class="caddie-input-unit">${unit}</span>
         </div>
+        <div id="caddie-wind-mount">${renderCaddieWindBlock()}</div>
         <div id="caddie-recs-mount">${renderCaddieRecommendations()}</div>
       </div>`;
   }
@@ -23569,7 +23797,16 @@
         </div>`;
     }
 
-    const { topPick, alternates, outOfRange } = getCaddieRecommendations(target, bag);
+    // Apply wind adjustment if we have wind data and a non-calm direction.
+    // The recommendation engine receives the "plays like" yardage so it
+    // picks a club for the actual flight distance, not the geometric one.
+    const windDir = dockState.caddie.wind || 'calm';
+    const windMph = getCaddieWindSpeed();
+    const effectiveTarget = (windMph != null && windDir !== 'calm')
+      ? applyWindAdjustment(target, windMph, windDir)
+      : target;
+
+    const { topPick, alternates, outOfRange } = getCaddieRecommendations(effectiveTarget, bag);
     if (!topPick) {
       return `
         <div class="caddie-placeholder">No matching clubs found.</div>`;
@@ -23577,8 +23814,12 @@
 
     const unit = distanceUnit();
     const topDist = distanceToDisplay(topPick.distance);
-    const diffYd = topPick.distance - target;  // canonical yards
-    const diffDisp = Math.abs(distanceToDisplay(topPick.distance) - distanceToDisplay(target));
+    // Diff is against the EFFECTIVE target (wind-adjusted), since that's
+    // the distance the club has to actually carry. Otherwise users would
+    // see the club described as "+12 long" because we picked a longer
+    // club for the headwind, but the diff was against the geometric target.
+    const diffYd = topPick.distance - effectiveTarget;
+    const diffDisp = Math.abs(distanceToDisplay(topPick.distance) - distanceToDisplay(effectiveTarget));
     const diffText = diffYd === 0
       ? 'Exact match'
       : `${diffYd > 0 ? '+' : '-'}${diffDisp} ${unit} ${diffYd > 0 ? 'long' : 'short'}`;
@@ -23604,8 +23845,8 @@
 
     const altsHtml = alternates.map(c => {
       const cDist = distanceToDisplay(c.distance);
-      const cDiffYd = c.distance - target;
-      const cDiffDisp = Math.abs(distanceToDisplay(c.distance) - distanceToDisplay(target));
+      const cDiffYd = c.distance - effectiveTarget;
+      const cDiffDisp = Math.abs(distanceToDisplay(c.distance) - distanceToDisplay(effectiveTarget));
       const cDiffText = cDiffYd === 0 ? 'even' : `${cDiffYd > 0 ? '+' : '-'}${cDiffDisp}`;
       return `
         <div class="caddie-alt">
