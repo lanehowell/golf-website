@@ -240,6 +240,17 @@
   html.dark .play-hero-title   { color: var(--color-black); }
   html.dark .play-hero-sub     { color: var(--color-black-80); }
   html.dark .play-hero-meta    { color: var(--color-black-60); }
+  /* Continue-Round progress panel — the tokens it uses (--color-cream-50
+     and --color-cream-300) flip to dark browns in dark mode, making the
+     numbers and labels invisible against the already-dark hero card.
+     Repoint at the warm off-white chain used elsewhere in dark mode. */
+  html.dark .play-hero-progress {
+    background: rgba(245, 237, 216, 0.05);
+    border-color: rgba(245, 237, 216, 0.12);
+  }
+  html.dark .play-hero-progress-value       { color: var(--color-black); }
+  html.dark .play-hero-progress-value span  { color: var(--color-black-60); }
+  html.dark .play-hero-progress-label       { color: var(--color-black-60); }
   html.dark .play-hero-btn-ghost {
     color: var(--color-black);
     border-color: rgba(245, 237, 216, 0.25);
@@ -347,20 +358,14 @@
      (same approach the orange-pale token already uses in dark mode).
      Text colors get brightened so they keep legibility against dark. */
   html.dark .round-card-step-display.score-eagle,
-  html.dark .round-card-step-display.score-birdie,
-  html.dark .stat-chip.hit {
+  html.dark .round-card-step-display.score-birdie {
     background: rgba(45, 110, 52, 0.18);        /* translucent green */
     border-color: rgba(136, 200, 145, 0.45);
   }
   html.dark .round-card-step-display.score-eagle .round-card-step-tag,
   html.dark .round-card-step-display.score-birdie .round-card-step-tag,
-  html.dark .stat-chip.hit .stat-chip-label,
   html.dark .rs-cell-hit {
     color: #7FC088;                              /* brightened leaf-green */
-  }
-  html.dark .stat-chip.hit .stat-chip-icon {
-    background: #7FC088;
-    color: var(--color-cream-50);
   }
 
   html.dark .round-card-step-display.score-doublebogey,
@@ -3179,12 +3184,119 @@
     color: var(--color-orange-dark);
   }
 
-  /* Chips row inside the card — same layout as before but without the
-     big bottom margin since the card divider handles separation. */
-  .round-card-chips {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  /* ── Tristate stat rows — Fairway + Green entry, three states each.
+     · unset (default) / ✓ hit / ✗ miss. Tapping ✗ opens a modal to
+     record the miss direction. A small text annotation under the row
+     echoes the recorded direction when present. Rows stack vertically;
+     label on the left, button group on the right. */
+  .round-card-stat-rows {
+    display: flex;
+    flex-direction: column;
     gap: var(--space-3);
+  }
+  .tristate-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: 4px;
+  }
+  .tristate-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .tristate-buttons {
+    display: inline-grid;
+    grid-template-columns: repeat(2, 44px);
+    gap: var(--space-2);
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .tristate-btn {
+    width: 44px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tristate-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .tristate-btn:active { transform: scale(0.95); }
+
+  /* Active state colors:
+     - hit (✓) is-active → green fill
+     - miss (✗) is-active → orange fill */
+  .tristate-hit.is-active {
+    background: #2D6E34;
+    border-color: #2D6E34;
+    color: var(--color-white);
+  }
+  .tristate-miss.is-active {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+  }
+
+  /* Disabled row (par-3 fairway) — non-interactive, muted */
+  .tristate-row.is-disabled .tristate-label { color: var(--text-muted); opacity: 0.6; }
+  .tristate-btn.is-disabled {
+    background: var(--bg-surface);
+    border-color: var(--border-light);
+    color: var(--text-muted);
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+    font-size: var(--text-sm);
+  }
+
+  /* Direction annotation — now a tappable button so users can edit
+     the recorded direction without toggling ✗ state. Right-aligned
+     under the buttons. */
+  .tristate-dir-note {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
+    padding: 2px var(--space-2);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-orange-dark);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tristate-dir-note:hover {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+  }
+  html.dark .tristate-dir-note { color: var(--color-orange); }
+  html.dark .tristate-dir-note:hover {
+    background: rgba(232, 93, 4, 0.15);
   }
 
   /* Compact putts row — label left, stepper right */
@@ -3241,83 +3353,146 @@
     text-align: center;
   }
 
-  /* Miss-direction row — appears below FIR/GIR chips when the chip
-     is set to "miss". Compact 4-button grid arranged in a horizontal
-     row. The label sits above so the buttons get the visual weight. */
-  .round-card-miss-row {
+  /* ── Miss-direction modal — slides up from bottom when user taps ✗.
+     2x2 grid of direction buttons + "Not sure" skip below. */
+  .miss-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 10);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .miss-modal-backdrop.opening,
+  .miss-modal-backdrop.closing {
+    opacity: 0;
+  }
+  .miss-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 11);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .miss-modal.opening,
+  .miss-modal.closing {
+    transform: translateY(100%);
+  }
+  .miss-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .miss-modal-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .miss-modal-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .miss-modal-close:hover {
+    background: var(--color-cream-100);
+    color: var(--text-primary);
+  }
+  html.dark .miss-modal-close:hover {
+    background: var(--bg-surface);
+  }
+  .miss-modal-body {
+    padding: var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-    padding: var(--space-3);
-    background: var(--color-orange-pale);
-    border: 1px solid rgba(232, 93, 4, 0.25);
-    border-radius: var(--radius-md);
-    animation: missRowFadeIn 200ms ease;
+    gap: var(--space-3);
   }
-  html.dark .round-card-miss-row {
-    background: rgba(232, 93, 4, 0.12);
-    border-color: rgba(232, 93, 4, 0.3);
-  }
-  @keyframes missRowFadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .round-card-miss-label {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    color: var(--color-orange-dark);
-  }
-  html.dark .round-card-miss-label {
-    color: var(--color-orange);
-  }
-  .round-card-miss-buttons {
+  .miss-modal-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
   }
-  .round-card-miss-btn {
+  .miss-modal-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    padding: var(--space-2);
+    gap: var(--space-1);
+    padding: var(--space-4);
     background: var(--bg-elevated);
     border: 1.5px solid var(--border-light);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
-    color: var(--text-secondary);
+    min-height: 80px;
   }
-  .round-card-miss-btn:hover {
+  .miss-modal-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
-  .round-card-miss-btn.is-active {
+  .miss-modal-btn:active { transform: scale(0.97); }
+  .miss-modal-btn.is-active {
     background: var(--color-orange);
     border-color: var(--color-orange);
     color: var(--color-white);
   }
-  .round-card-miss-btn:active {
-    transform: scale(0.95);
-  }
-  .round-card-miss-arrow {
+  .miss-modal-btn-glyph {
     font-family: var(--font-display);
-    font-size: var(--text-lg);
+    font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
     line-height: 1;
   }
-  .round-card-miss-label-text {
+  .miss-modal-btn-label {
     font-family: var(--font-body);
-    font-size: 0.65rem;
+    font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
+  }
+  .miss-modal-skip {
+    padding: var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .miss-modal-skip:hover {
+    border-color: var(--border-medium);
+    color: var(--text-primary);
   }
 
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
@@ -3434,87 +3609,6 @@
   .round-btn-end { color: var(--text-muted); font-size: var(--text-xs); }
   .round-btn-end:hover { color: var(--color-orange-dark); }
 
-  /* FIR / GIR chip row — sits between strokes and putts steppers.
-     Two chips side by side; tap to toggle hit/miss. Par 3s: FIR chip
-     gets the .disabled state with an em-dash icon (no fairway to hit). */
-  .stat-chips {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-3);
-    margin-bottom: var(--space-8);
-  }
-  .stat-chip {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-3);
-    background: var(--bg-elevated);
-    border: 2px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    font-family: inherit;
-    transition: all var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-  }
-  .stat-chip:active { transform: scale(0.97); }
-  .stat-chip-icon {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-bold);
-    line-height: 1;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all var(--transition-fast);
-  }
-  .stat-chip-label {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--text-primary);
-  }
-  /* Hit state — green accent (reuses alert-success palette) */
-  .stat-chip.hit {
-    background: #EFF8F0;
-    border-color: #88c891;
-  }
-  .stat-chip.hit .stat-chip-icon {
-    background: #2D6E34;
-    color: var(--color-white);
-  }
-  .stat-chip.hit .stat-chip-label {
-    color: #2D6E34;
-  }
-  /* Miss state — neutral cream with muted styling so it doesn't
-     read as error-angry. Missing a green isn't a failure, it's data. */
-  .stat-chip.miss {
-    background: var(--bg-elevated);
-    border-color: var(--border-medium);
-  }
-  .stat-chip.miss .stat-chip-icon {
-    background: var(--color-black-80);
-    color: var(--color-cream-50);
-  }
-  .stat-chip.miss .stat-chip-label {
-    color: var(--text-secondary);
-  }
-  /* Disabled state (par 3 FIR) — muted, non-tappable */
-  .stat-chip.disabled {
-    opacity: 0.45;
-    cursor: default;
-    pointer-events: none;
-  }
-  .stat-chip.disabled .stat-chip-icon {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1.5px dashed var(--border-medium);
-  }
-
   /* Mobile tweaks for round entry */
   @media (max-width: 480px) {
     .round-card { padding: var(--space-5) var(--space-4); }
@@ -3554,60 +3648,95 @@
     display: none !important;
   }
 
-  /* Backdrop click catcher — completely transparent. Exists only to
-     capture tap-outside-to-dismiss. No visual dimming; the user's
-     focus comes from the dock pill itself growing to fill more space. */
-  .round-dock-scrim {
-    position: fixed;
-    inset: 0;
-    background: transparent;
-    z-index: calc(var(--z-raised) - 1);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
+  /* ══════════════════════════════════════════════════════════════
+     ROUND ACTION BAR + TOOLS SHEET
+     Bottom action bar: compact Tools button (bottom-left) + full-width
+     Save & Next pill. Always visible during a round.
+     Tools sheet: bottom modal that slides up when Tools is tapped.
+     Two modes: list (default) and tool-body (after tool selection).
+     ══════════════════════════════════════════════════════════════ */
 
-  /* Outer container — a floating pill centered near the bottom of the
-     viewport. Always fully rounded (oval shape) with breathing room on
-     all sides, so it's clearly a discrete object separate from the
-     page content behind it. Fixed positioning means it stays pinned
-     to the viewport regardless of scroll. */
-  .round-dock {
+  /* Bottom action bar — fixed to viewport, side-by-side layout.
+     Tools button on left is compact, Save fills the rest. Safe-area
+     inset so iOS home-indicator doesn't crash into the buttons. */
+  .round-action-bar {
     position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-    width: min(calc(100% - var(--space-5) * 2), 520px);
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: var(--z-raised);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-xl);
-    box-shadow: 0 8px 24px rgba(13, 13, 13, 0.12), 0 2px 6px rgba(13, 13, 13, 0.08);
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: box-shadow var(--transition-base);
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      var(--bg-base) 0%,
+      var(--bg-base) 60%,
+      rgba(255, 253, 249, 0) 100%
+    );
+    pointer-events: none;  /* let page behind scroll; children opt back in */
   }
-  .round-dock.expanded {
-    box-shadow: 0 20px 48px rgba(13, 13, 13, 0.22), 0 4px 12px rgba(13, 13, 13, 0.12);
+  html.dark .round-action-bar {
+    background: linear-gradient(
+      to top,
+      var(--bg-base) 0%,
+      var(--bg-base) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+  .round-action-bar > * { pointer-events: auto; }
+
+  /* Tools button — compact, icon + label. Elevated card feel. */
+  .round-tools-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(13, 13, 13, 0.10), 0 1px 3px rgba(13, 13, 13, 0.06);
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    min-height: 52px;
+  }
+  .round-tools-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .round-tools-btn.is-active {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    color: var(--color-orange-dark);
+  }
+  .round-tools-btn-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .round-tools-btn-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
   }
 
-  /* ── Save & Next pill ────────────────────────────────────────
-     Sticky pill pinned above the dock, always thumb-reachable.
-     Same horizontal centering + width formula as the dock so the
-     two pills line up cleanly. Same border-radius (--radius-xl) as
-     the dock so the two pills read as a matched pair, not as
-     mismatched shapes. Hidden when the dock is expanded. */
-  .round-save-pill {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Sit just above the dock — dock occupies ~70px (its bar is
-       ~56px content + ~14px padding/border) starting at space-4
-       from the bottom, plus a comfortable visual gap. */
-    bottom: calc(var(--space-4) + 78px + env(safe-area-inset-bottom, 0px));
-    width: min(calc(100% - var(--space-5) * 2), 520px);
-    z-index: var(--z-raised);
-    padding: var(--space-4) var(--space-6);
+  /* Save & Next — orange primary pill filling remaining row. Same
+     rounded corners as the Tools button for visual harmony. */
+  .round-save-btn {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-3) var(--space-5);
     background: var(--color-orange);
     color: var(--color-white);
     border: 2px solid var(--color-orange);
@@ -3618,170 +3747,234 @@
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     cursor: pointer;
+    min-height: 52px;
     box-shadow:
       0 8px 24px var(--color-orange-glow),
       0 2px 6px rgba(13, 13, 13, 0.12);
     transition:
       transform var(--transition-spring),
-      opacity var(--transition-base),
       background var(--transition-fast),
       box-shadow var(--transition-base);
     -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .round-save-pill:hover {
+  .round-save-btn:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
     box-shadow:
       0 10px 28px var(--color-orange-glow),
       0 3px 8px rgba(13, 13, 13, 0.18);
   }
-  .round-save-pill:active {
-    transform: translateX(-50%) scale(0.98);
+  .round-save-btn:active {
+    transform: scale(0.98);
   }
-  /* Final hole — slightly darker treatment for "this commits the round" */
-  .round-save-pill.is-final {
+  /* Final hole — slightly darker "this commits the round" treatment */
+  .round-save-btn.is-final {
     background: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
   }
-  .round-save-pill.is-final:hover {
+  .round-save-btn.is-final:hover {
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
-  /* Hidden state when dock expands — fades + scales down so the
-     dock surface gets full focus during a tool interaction. */
-  .round-save-pill.is-hidden {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.92) translateY(8px);
-    pointer-events: none;
-  }
 
-  /* Reserve space at the bottom of the round panel content so the
-     dock never obscures Save & Next / other footer buttons. The dock
-     pill sits ~space-4 from the bottom and is ~70px tall. Above the
-     dock sits the sticky Save pill (~52px tall + ~12px gap), so we
-     need to reserve enough so the inline secondary actions clear
-     both pills. */
+  /* Reserve space at the bottom of round panel content so the action
+     bar never obscures the last hole card / secondary actions. */
   #panel-round,
   #panel-group-round {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* The expandable tool surface sits above the dock bar. Wrapped in a
-     grid container whose row template animates from 0fr to 1fr, which
-     is the cleanest way to animate to/from intrinsic content height.
-     Works in modern browsers; no JS height measurement needed.
-     Inner child has overflow:hidden so content doesn't spill during
-     the transition. */
-  /* Expanding wrapper — grid-template-rows animates from 0fr to 1fr
-     (or vice versa) which is the cleanest way to transition to/from
-     intrinsic content height. Default state is fully expanded; the
-     .collapsing modifier shrinks it. The .opening modifier is the
-     *starting* state for a newly-mounted surface: it begins at 0fr,
-     then the class is removed on the next animation frame so the
-     transition plays toward 1fr. Same shape of animation in both
-     directions — the surface truly slides up from and down into
-     the bar. */
-  .round-dock-surface-wrap {
-    display: grid;
-    grid-template-rows: 1fr;
-    transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* ── Tools sheet: semi-transparent backdrop + sliding bottom sheet.
+     Backdrop catches taps-outside to dismiss; sheet is a rounded-top
+     card that grows to ~75vh max. */
+  .tools-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 13, 13, 0.35);
+    z-index: calc(var(--z-raised) + 1);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    animation: toolsBackdropFadeIn 220ms ease forwards;
   }
-  .round-dock-surface-wrap.collapsing,
-  .round-dock-surface-wrap.opening {
-    grid-template-rows: 0fr;
-  }
-  .round-dock-surface-wrap > .round-dock-surface {
-    overflow: hidden;
-    min-height: 0;
-    padding: var(--space-5) var(--space-5) var(--space-5);
-    border-bottom: 1px solid var(--color-cream-200);
-    transition: opacity 200ms ease, padding 260ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .round-dock-surface-wrap.collapsing > .round-dock-surface,
-  .round-dock-surface-wrap.opening > .round-dock-surface {
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-bottom-color: transparent;
+  @keyframes toolsBackdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
-  /* The always-visible dock bar — horizontal strip of tool entries */
-  .round-dock-bar {
+  .tools-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 2);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Initial and exit states for the slide-up/down animation */
+  .tools-sheet.opening,
+  .tools-sheet.closing {
+    transform: translateY(100%);
+  }
+
+  /* Sheet header — flex layout so title can't get squeezed.
+     In list mode, a spacer matches the close button's width on the
+     left, keeping the title visually centered. In tool mode, the
+     back button replaces the spacer. The close button sits at the
+     right edge with alignment matching the tool-row arrows below. */
+  .tools-sheet-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    min-height: 56px;
-  }
-  .round-dock-tools {
-    display: flex;
     gap: var(--space-2);
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    position: relative;
+    min-height: 52px;
+  }
+  .tools-sheet-handle {
+    /* small pill sitting centered at top of header — iOS-style drag indicator */
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    background: var(--border-medium);
+    border-radius: 2px;
+  }
+  .tools-sheet-title {
     flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     min-width: 0;
   }
-  .round-dock-tools::-webkit-scrollbar { display: none; }
-
-  /* Individual tool button in the dock bar — pill with icon + label */
-  .round-dock-tool {
+  /* Invisible spacer for list mode — preserves title centering by
+     matching the close button's footprint on the opposite side. */
+  .tools-sheet-spacer {
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-pill);
-    background: var(--color-cream-100);
-    border: 1.5px solid var(--border-light);
-    color: var(--text-secondary);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-    white-space: nowrap;
   }
-  .round-dock-tool:hover {
-    background: var(--bg-elevated);
-    border-color: var(--border-medium);
-    color: var(--text-primary);
-  }
-  .round-dock-tool.active {
-    background: var(--color-orange-pale);
-    border-color: var(--color-orange);
-    color: var(--color-orange-dark);
-  }
-  .round-dock-tool-icon {
-    font-size: 1rem;
-    line-height: 1;
-  }
-
-  /* The close (×) / expand (▲) indicator on the right of the bar */
-  .round-dock-indicator {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
+  .tools-sheet-close,
+  .tools-sheet-back {
+    background: transparent;
+    border: none;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: none;
     color: var(--text-muted);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-medium);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-regular);
     line-height: 1;
     cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
   }
-  .round-dock-indicator:hover {
+  .tools-sheet-close:hover,
+  .tools-sheet-back:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
+  }
+  html.dark .tools-sheet-close:hover,
+  html.dark .tools-sheet-back:hover {
+    background: var(--bg-surface);
+  }
+
+  /* Sheet body — scrollable container for either the list or the
+     active tool's content. Max height constrained by the sheet
+     itself; this just overflows internally. */
+  .tools-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-4);
+  }
+
+  /* ── Tools list view — one row per tool */
+  .tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .tools-list-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    min-height: 72px;
+  }
+  .tools-list-row:hover {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+  }
+  .tools-list-row:active {
+    transform: scale(0.99);
+  }
+  .tools-list-row-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 40px;
+    text-align: center;
+  }
+  .tools-list-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tools-list-row-label {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .tools-list-row-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+  .tools-list-row-arrow {
+    font-size: 1rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .tools-list-row:hover .tools-list-row-arrow {
+    color: var(--color-orange);
+    transform: translateX(4px);
   }
 
   /* ── Caddie tool ─────────────────────────────────────────── */
@@ -3809,184 +4002,6 @@
   /* ══════════════════════════════════════════════════════════════
      WEATHER — landing widget + dock tool
      ══════════════════════════════════════════════════════════════ */
-
-  /* ── Landing widget — compact card on the play landing page.
-     Sits between the hero CTA and the stats strip. Lazy-fetches
-     when rendered; paints skeleton then real content. */
-  .play-weather {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-5);
-    margin-bottom: var(--space-6);
-    box-shadow: var(--shadow-sm);
-  }
-  .play-weather-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-  }
-  .play-weather-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .play-weather-refresh {
-    background: transparent;
-    border: 1px solid var(--border-light);
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
-    -webkit-tap-highlight-color: transparent;
-  }
-  .play-weather-refresh:hover {
-    background: var(--color-orange-pale);
-    color: var(--color-orange);
-    border-color: var(--color-orange);
-  }
-  .play-weather-refresh:active { transform: rotate(180deg); }
-
-  .play-weather-now {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: var(--space-4);
-    margin-bottom: var(--space-3);
-  }
-  .play-weather-icon {
-    font-size: 2.25rem;
-    line-height: 1;
-  }
-  .play-weather-temp-block { min-width: 0; }
-  .play-weather-temp {
-    font-family: var(--font-display);
-    font-size: var(--text-3xl);
-    font-weight: var(--weight-black);
-    color: var(--text-primary);
-    line-height: 1;
-    letter-spacing: var(--tracking-tight);
-  }
-  .play-weather-unit {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    font-weight: var(--weight-regular);
-    color: var(--text-muted);
-    margin-left: 1px;
-  }
-  .play-weather-label {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-top: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* Wind cluster on landing widget — compact arrow + speed. */
-  .play-weather-wind {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
-  .play-weather-wind-arrow {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    color: var(--color-orange);
-    line-height: 1;
-    transform-origin: center;
-    transition: transform var(--transition-base);
-  }
-  .play-weather-wind-text { text-align: right; }
-  .play-weather-wind-speed {
-    font-family: var(--font-display);
-    font-size: var(--text-md);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    letter-spacing: var(--tracking-tight);
-    line-height: 1;
-  }
-  .play-weather-wind-dir {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  /* Hourly preview row — 4 hours, scrollable on narrow widths */
-  .play-weather-hourly {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-2);
-    padding-top: var(--space-3);
-    border-top: 1px solid var(--border-light);
-  }
-  .play-weather-hour {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-  .play-weather-hour-time {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .play-weather-hour-icon { font-size: 1.05rem; line-height: 1; }
-  .play-weather-hour-temp {
-    font-family: var(--font-display);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-  }
-  .play-weather-hour-rain {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: var(--text-muted);
-  }
-
-  /* Loading + error states for landing widget */
-  .play-weather-loading {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) 0;
-  }
-  .play-weather-loading-text {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
-  .play-weather-error {
-    cursor: pointer;
-  }
-  .play-weather-error-body {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    padding: var(--space-2) 0;
-  }
 
   /* ── Dock weather surface — more detail than landing widget */
   .weather-header {
@@ -4768,21 +4783,8 @@
     color: var(--color-orange-dark);
   }
 
-  /* Mobile tweaks for the dock — the pill keeps its floating, fully
-     rounded shape at all screen sizes (the base .round-dock rules
-     apply); only the inner content density changes for small viewports. */
-  @media (max-width: 560px) {
-    .round-dock {
-      /* Slightly tighter horizontal margins on small screens so the pill
-         doesn't feel cramped, but still has breathing room on all sides
-         to read as a distinct floating object. */
-      width: calc(100% - var(--space-4) * 2);
-    }
-  }
-
+  /* Mobile-specific content density tweaks */
   @media (max-width: 480px) {
-    .round-dock-bar { padding: var(--space-3); }
-    .round-dock-surface { padding: var(--space-4); }
     .caddie-input { font-size: var(--text-3xl); }
     .caddie-top-pick-name { font-size: var(--text-lg); }
   }
@@ -14883,11 +14885,6 @@
            2. Round in progress → "Continue Round" (→ resumes the round) -->
       <div id="play-hero-mount"></div>
 
-      <!-- Weather widget — auto-fetched for the closest course (or
-           most recent if no location). Renders empty when no course
-           with coords is available. -->
-      <div id="play-weather-mount"></div>
-
       <!-- Stats strip — dynamic based on completed rounds -->
       <div class="home-section-label">Your Game</div>
       <div id="play-stats-mount"></div>
@@ -15339,6 +15336,11 @@
      when the round panel is active; when it renders empty, there's
      nothing visible. -->
 <div id="round-dock-mount"></div>
+
+<!-- MISS-DIRECTION MODAL mount — populated by renderMissModal() when
+     a user taps ✗ on FIR or GIR. Lives at body level for the same
+     reasons as the dock mount (escape ancestor transforms). -->
+<div id="miss-modal-mount"></div>
 
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
@@ -17031,25 +17033,6 @@
     return (deg + 180) % 360;
   }
 
-  // Pick the course to show weather for on the landing page.
-  // Priority: closest course (if user location available) → most
-  // recently played course → first course in catalog.
-  function pickWeatherCourse() {
-    const distList = getCoursesWithDistance();
-    if (distList && distList.length > 0) {
-      return distList[0].course;
-    }
-    // Most recently played
-    const completed = (recentRounds || []).filter(r => r.status === 'completed');
-    if (completed.length > 0) {
-      const latest = completed.reduce((a, b) => (a.startTime || 0) > (b.startTime || 0) ? a : b);
-      const c = getCourse(latest.courseId);
-      if (c && typeof c.lat === 'number') return c;
-    }
-    // First course with coords
-    return COURSES.find(c => typeof c.lat === 'number') || null;
-  }
-
   // ─────────────────────────────────────────────────────────────
   // Find today's or next scheduled workout
   // ─────────────────────────────────────────────────────────────
@@ -17729,7 +17712,7 @@
     // leaving either to anywhere else clears the dock.
     if (id !== 'round' && id !== 'group-round') {
       if (typeof dockState !== 'undefined') {
-        dockState.expanded = false;
+        dockState.sheetOpen = false;
         dockState.activeTool = null;
         dockState._animateNext = false;
       }
@@ -18527,15 +18510,20 @@
     }
   }
 
-  // Escape closes the modal, or collapses the round dock if open
+  // Escape closes whichever overlay is currently open. Priority:
+  // log modal > miss-direction modal > tools sheet.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (document.getElementById('log-modal').classList.contains('open')) {
       closeLog();
       return;
     }
-    if (dockState && dockState.expanded) {
-      collapseDock();
+    if (missModalState && missModalState.open) {
+      closeMissModal();
+      return;
+    }
+    if (dockState && dockState.sheetOpen) {
+      closeToolsSheet();
     }
   });
 
@@ -21867,17 +21855,20 @@
       me.scores[holeNum] = {
         strokes: hole.par,
         putts: 2,
-        fir: isPar3 ? null : true,
-        gir: true
+        // Null = "not recorded". See solo round init for rationale —
+        // never silently count untouched holes as hits.
+        fir: null,
+        gir: null
       };
     } else {
       // Backfill missing fields with defaults
       const s = me.scores[holeNum];
       if (s.strokes == null) s.strokes = hole.par;
       if (s.putts == null) s.putts = 2;
-      if (s.fir == null && !isPar3) s.fir = true;
-      if (s.fir != null && isPar3) s.fir = null;
-      if (s.gir == null) s.gir = true;
+      // Don't auto-fill fir/gir here either — keep them null until
+      // explicitly recorded by the user. Par 3s have fir forced to
+      // null below regardless.
+      if (s.fir !== undefined && isPar3) s.fir = null;
     }
     return { entry: me.scores[holeNum], hole, isPar3, holeNum, me };
   }
@@ -21941,20 +21932,6 @@
     if (next > entry.strokes) next = entry.strokes;
     if (next > 10) next = 10;
     entry.putts = next;
-    renderGroupRoundPanel();
-    queueSaveMyGroupScores();
-  }
-  function grToggleFir() {
-    const ctx = getOrInitGroupHoleEntry();
-    if (!ctx || ctx.isPar3) return;
-    ctx.entry.fir = !ctx.entry.fir;
-    renderGroupRoundPanel();
-    queueSaveMyGroupScores();
-  }
-  function grToggleGir() {
-    const ctx = getOrInitGroupHoleEntry();
-    if (!ctx) return;
-    ctx.entry.gir = !ctx.entry.gir;
     renderGroupRoundPanel();
     queueSaveMyGroupScores();
   }
@@ -22032,12 +22009,15 @@
       const hd = course.holes.find(h => h.number === hn);
       if (hd) {
         parTotal += hd.par;
-        if (hd.par > 3) {
+        // Null fir/gir = not recorded — exclude from eligible denominator
+        if (hd.par > 3 && (e.fir === true || e.fir === false)) {
           firEligible += 1;
           if (e.fir === true) firHit += 1;
         }
-        girEligible += 1;
-        if (e.gir === true) girHit += 1;
+        if (e.gir === true || e.gir === false) {
+          girEligible += 1;
+          if (e.gir === true) girHit += 1;
+        }
       }
     }
     return {
@@ -22459,6 +22439,8 @@
     const putts   = entry.putts;
     const fir     = entry.fir;
     const gir     = entry.gir;
+    const firMiss = entry.firMiss ?? null;
+    const girMiss = entry.girMiss ?? null;
 
     const diff = strokes - hole.par;
     let scoreClass = 'par';
@@ -22517,12 +22499,6 @@
             </div>`;
         }).join('');
 
-    const firChipClass = isPar3 ? 'stat-chip disabled' : (fir ? 'stat-chip hit' : 'stat-chip miss');
-    const firChipIcon  = isPar3 ? '—' : (fir ? '✓' : '✗');
-    const firChipOnclick = isPar3 ? '' : 'onclick="grToggleFir()"';
-    const girChipClass = gir ? 'stat-chip hit' : 'stat-chip miss';
-    const girChipIcon  = gir ? '✓' : '✗';
-
     const atLastHole = groupRoundState.yourHoleIndex === course.holes.length - 1;
 
     mount.innerHTML = `
@@ -22577,15 +22553,12 @@
 
         <div class="round-card-divider"></div>
 
-        <div class="round-card-chips">
-          <button class="${firChipClass}" ${firChipOnclick} aria-label="Toggle fairway in regulation">
-            <span class="stat-chip-icon">${firChipIcon}</span>
-            <span class="stat-chip-label">Fairway</span>
-          </button>
-          <button class="${girChipClass}" onclick="grToggleGir()" aria-label="Toggle green in regulation">
-            <span class="stat-chip-icon">${girChipIcon}</span>
-            <span class="stat-chip-label">Green</span>
-          </button>
+        <!-- FIR / GIR tristate rows. Group round uses the same renderer
+             as solo; kind is 'fir-gr' / 'gir-gr' to route taps to group
+             handlers instead of solo handlers. -->
+        <div class="round-card-stat-rows">
+          ${renderTristateRow('fir-gr', 'Fairway', fir, firMiss, isPar3)}
+          ${renderTristateRow('gir-gr', 'Green', gir, girMiss, false)}
         </div>
 
         <div class="round-card-divider"></div>
@@ -22686,13 +22659,15 @@
     //   strokes = par, putts = 2, fir = true (optimistic), gir = true.
     // For par 3s, fir is forced to null — fairways don't apply on par 3s.
     const isPar3 = hole.par === 3;
-    const defaultFir = isPar3 ? null : true;
     const stored = roundState.scores[holeNum];
     const entry = {
       strokes: stored?.strokes ?? hole.par,
       putts: stored?.putts ?? 2,
-      fir: isPar3 ? null : (stored?.fir ?? true),
-      gir: stored?.gir ?? true,
+      // FIR/GIR default to null ("not recorded") so an untouched hole
+      // doesn't silently count as a hit. Par 3s are always null — FIR
+      // doesn't apply. Users must tap yes/no explicitly to count.
+      fir: isPar3 ? null : (stored?.fir ?? null),
+      gir: stored?.gir ?? null,
       // Phase 1 diagnostic fields. Default to null/0 so they don't
       // pollute the data when the user doesn't bother to set them —
       // null means "not recorded" (excluded from miss-direction stats),
@@ -22731,13 +22706,6 @@
     const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
     const throughCount = playedHoles.length;
 
-    // Chip state labels + classes
-    const firChipClass = isPar3 ? 'stat-chip disabled' : (fir ? 'stat-chip hit' : 'stat-chip miss');
-    const firChipIcon = isPar3 ? '—' : (fir ? '✓' : '✗');
-    const firChipOnclick = isPar3 ? '' : 'onclick="toggleFir()"';
-    const girChipClass = gir ? 'stat-chip hit' : 'stat-chip miss';
-    const girChipIcon = gir ? '✓' : '✗';
-
     mount.innerHTML = `
       <!-- Status strip — slim context bar above the card -->
       <div class="round-status">
@@ -22775,45 +22743,14 @@
 
         <div class="round-card-divider"></div>
 
-        <!-- FIR / GIR chips — tap to toggle. Defaults optimistic (both hit). -->
-        <div class="round-card-chips">
-          <button class="${firChipClass}" ${firChipOnclick} aria-label="Toggle fairway in regulation">
-            <span class="stat-chip-icon">${firChipIcon}</span>
-            <span class="stat-chip-label">Fairway</span>
-          </button>
-          <button class="${girChipClass}" onclick="toggleGir()" aria-label="Toggle green in regulation">
-            <span class="stat-chip-icon">${girChipIcon}</span>
-            <span class="stat-chip-label">Green</span>
-          </button>
+        <!-- FIR / GIR tristate rows — three states (unset · / hit ✓ / miss ✗).
+             Defaults to unset so untouched holes don't skew stats. Tap ✗ to
+             open the miss-direction modal. Par 3s have FIR row disabled
+             (fairway in regulation doesn't apply to par 3s). -->
+        <div class="round-card-stat-rows">
+          ${renderTristateRow('fir', 'Fairway', fir, firMiss, isPar3)}
+          ${renderTristateRow('gir', 'Green', gir, girMiss, false)}
         </div>
-
-        <!-- FIR miss direction — shown only when fairway was missed.
-             Recording the miss direction unlocks pattern detection
-             ("you miss right 70% of the time") in the Stats page. -->
-        ${!isPar3 && fir === false ? `
-          <div class="round-card-miss-row">
-            <div class="round-card-miss-label">Missed where?</div>
-            <div class="round-card-miss-buttons">
-              ${renderMissDirButton('left', firMiss, 'fir', '←', 'Left')}
-              ${renderMissDirButton('right', firMiss, 'fir', '→', 'Right')}
-              ${renderMissDirButton('short', firMiss, 'fir', '↓', 'Short')}
-              ${renderMissDirButton('long', firMiss, 'fir', '↑', 'Long')}
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- GIR miss direction — shown only when green was missed. -->
-        ${gir === false ? `
-          <div class="round-card-miss-row">
-            <div class="round-card-miss-label">Green missed where?</div>
-            <div class="round-card-miss-buttons">
-              ${renderMissDirButton('left', girMiss, 'gir', '←', 'Left')}
-              ${renderMissDirButton('right', girMiss, 'gir', '→', 'Right')}
-              ${renderMissDirButton('short', girMiss, 'gir', '↓', 'Short')}
-              ${renderMissDirButton('long', girMiss, 'gir', '↑', 'Long')}
-            </div>
-          </div>
-        ` : ''}
 
         <div class="round-card-divider"></div>
 
@@ -22848,7 +22785,7 @@
       </div>
 
       <!-- Action footer — secondary actions only. Primary "Save & Next"
-           lives in the sticky pill (round-save-pill) above the dock. -->
+           lives in the bottom action bar (.round-action-bar). -->
       <div class="round-actions">
         <div class="round-actions-secondary">
           <button class="round-btn-link" onclick="goPreviousHole()" ${roundState.holeIndex === 0 ? 'disabled' : ''}>← Previous Hole</button>
@@ -22869,15 +22806,15 @@
   // Dock state lives in memory only (no persistence). Each tool gets its
   // own nested object so different tools can hold their own UI state.
   const dockState = {
-    expanded: false,
-    activeTool: null,       // e.g. 'caddie'
+    sheetOpen: false,        // bottom sheet visible?
+    activeTool: null,         // null = tools list, 'caddie'|'scorecard'|... = tool content
     caddie: {
-      targetDistance: null, // canonical yards, or null
-      wind: 'calm',         // 'into' | 'calm' | 'helping' — affects play-distance calc
+      targetDistance: null,  // canonical yards, or null
+      wind: 'calm',          // 'into' | 'calm' | 'helping' — affects play-distance calc
     },
     // Transient flag — true for exactly one render after a user-initiated
-    // expand, so the slide-up animation plays. Any subsequent re-render
-    // (e.g. after adjusting strokes) leaves the surface static.
+    // open, so the slide-up animation plays. Swapping tools within an
+    // already-open sheet doesn't retrigger.
     _animateNext: false,
   };
 
@@ -22890,58 +22827,115 @@
     { id: 'bag',       label: 'My Bag',      icon: '⛳' },
   ];
 
-  // Toggle expansion of a specific tool. Tapping the already-active tool
-  // collapses the dock (animated). Tapping a different tool while
-  // expanded swaps content instantly (no collapse animation — it stays
-  // open with new content). Tapping any tool while collapsed expands.
-  function toggleDockTool(toolId) {
-    if (dockState.expanded && dockState.activeTool === toolId) {
-      collapseDock();
-      return;
-    }
-    const wasExpanded = dockState.expanded;
-    dockState.expanded = true;
-    dockState.activeTool = toolId;
-    // Only animate when opening from collapsed. Swapping tools shows the
-    // new content instantly — the shell is already in place.
-    dockState._animateNext = !wasExpanded;
+  // ─────────────────────────────────────────────────────────────
+  // Tools sheet — bottom-sheet modal that replaces the old inline
+  // dock. Two modes: list (default) and tool (after tapping one).
+  // Close dismisses the sheet entirely; back inside a tool returns
+  // to the list without closing the sheet.
+  // ─────────────────────────────────────────────────────────────
+
+  // Open the sheet on the list view.
+  function openToolsSheet() {
+    if (dockState.sheetOpen) return;
+    dockState.sheetOpen = true;
+    dockState.activeTool = null;
+    dockState._animateNext = true;
     renderRoundDock();
-    // Tool-specific mount hooks. Weather kicks off an async fetch when
-    // the tool opens; the renderer paints a skeleton first and re-paints
-    // when data arrives. Cached fetches resolve immediately, so most
-    // opens are seamless.
-    if (toolId === 'weather') weatherToolMounted();
   }
 
-  // Dismiss the dock entirely — called from the × button in the expanded
-  // state, or by tapping the currently-active tool chip. Plays a height
-  // collapse animation first, then swaps to the collapsed state. If the
-  // dock is already collapsed (shouldn't happen but defensive), no-op.
-  function collapseDock() {
-    if (!dockState.expanded) return;
-    const wrap = document.querySelector('.round-dock-surface-wrap');
-    if (!wrap) {
-      // No wrap element (edge case); do it instantly
-      dockState.expanded = false;
+  // Tap a tool in the list — switch sheet body to that tool's content.
+  function selectTool(toolId) {
+    animateSheetHeightChange(() => {
+      dockState.activeTool = toolId;
+      renderRoundDock();
+      // Tool-specific mount hook — weather kicks off a fetch.
+      if (toolId === 'weather') weatherToolMounted();
+    });
+  }
+
+  // Back arrow inside a tool — return to the list view without
+  // closing the sheet.
+  function backToToolsList() {
+    animateSheetHeightChange(() => {
+      dockState.activeTool = null;
+      renderRoundDock();
+    });
+  }
+
+  // Height-morph animation: before changing sheet content, capture its
+  // current height; after the content swap, pin the old height as an
+  // inline style, force reflow, then transition to the new natural
+  // height. When the transition ends, clear the inline height so the
+  // sheet goes back to responsive auto-sizing.
+  //
+  // This solves the "snap to new height" problem — the CSS `height`
+  // property doesn't natively transition between auto values, so we
+  // resolve auto to a pixel value ourselves for the duration of the
+  // animation and then hand control back to auto.
+  function animateSheetHeightChange(mutateFn) {
+    const sheet = document.querySelector('.tools-sheet');
+    if (!sheet) {
+      // No sheet in DOM — just do the state change without animation.
+      mutateFn();
+      return;
+    }
+    const oldHeight = sheet.getBoundingClientRect().height;
+    // Perform the state mutation + re-render
+    mutateFn();
+    // Re-query since renderRoundDock may have replaced the node
+    const newSheet = document.querySelector('.tools-sheet');
+    if (!newSheet) return;
+    const newHeight = newSheet.getBoundingClientRect().height;
+    if (Math.abs(oldHeight - newHeight) < 2) return;  // no-op if nearly identical
+    // Pin to old height, force reflow, then transition to new height.
+    // Preserve the existing transform transition (used by slide up/down)
+    // by including it in the inline transition list — otherwise a
+    // rapid tap during the sheet's open animation could break the slide.
+    newSheet.style.height = `${oldHeight}px`;
+    newSheet.style.transition = 'height 260ms cubic-bezier(0.2, 0, 0, 1), transform 260ms cubic-bezier(0.4, 0, 0.2, 1)';
+    // Force reflow so the browser commits the starting height
+    void newSheet.offsetHeight;
+    newSheet.style.height = `${newHeight}px`;
+    const onDone = () => {
+      newSheet.removeEventListener('transitionend', onDone);
+      // Only clear height if we're still on the same sheet instance
+      // and the transition was ours (the height one, not the transform
+      // slide-up/down). transitionend fires per-property.
+      newSheet.style.height = '';
+      newSheet.style.transition = '';
+    };
+    newSheet.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'height') onDone();
+    });
+    // Safety net — if transitionend doesn't fire (reduced motion,
+    // race with DOM change), clean up after the expected duration.
+    setTimeout(onDone, 320);
+  }
+
+  // Close the sheet entirely (× button, backdrop tap, after
+  // save-and-next if user prefers). Plays a slide-down animation.
+  function closeToolsSheet() {
+    if (!dockState.sheetOpen) return;
+    const sheet = document.querySelector('.tools-sheet');
+    if (!sheet) {
+      // Edge case — sheet node missing, just update state
+      dockState.sheetOpen = false;
       dockState.activeTool = null;
       renderRoundDock();
       return;
     }
-    wrap.classList.remove('opening');
-    // Force reflow so the following class-add triggers a transition
-    void wrap.offsetHeight;
-    wrap.classList.add('collapsing');
+    sheet.classList.add('closing');
     const onDone = () => {
-      wrap.removeEventListener('transitionend', onDone);
-      dockState.expanded = false;
+      sheet.removeEventListener('transitionend', onDone);
+      dockState.sheetOpen = false;
       dockState.activeTool = null;
       renderRoundDock();
     };
-    wrap.addEventListener('transitionend', onDone);
-    // Safety net — if transitionend doesn't fire (e.g. reduced motion),
-    // still clean up after the expected animation duration.
+    sheet.addEventListener('transitionend', onDone);
+    // Safety net — if transitionend doesn't fire, clean up after the
+    // expected animation duration.
     setTimeout(() => {
-      if (wrap.classList.contains('collapsing')) onDone();
+      if (sheet.classList.contains('closing')) onDone();
     }, 320);
   }
 
@@ -23094,11 +23088,13 @@
     if (!cached) {
       fetchWeather(course.lat, course.lng).then(() => {
         // Only re-paint if caddie is still active
-        if (dockState.expanded && dockState.activeTool === 'caddie') {
-          const windMount = document.getElementById('caddie-wind-mount');
-          if (windMount) windMount.innerHTML = renderCaddieWindBlock();
-          const recsMount = document.getElementById('caddie-recs-mount');
-          if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+        if (dockState.sheetOpen && dockState.activeTool === 'caddie') {
+          animateSheetHeightChange(() => {
+            const windMount = document.getElementById('caddie-wind-mount');
+            if (windMount) windMount.innerHTML = renderCaddieWindBlock();
+            const recsMount = document.getElementById('caddie-recs-mount');
+            if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
+          });
         }
       });
     }
@@ -23114,47 +23110,22 @@
     const mount = document.getElementById('round-dock-mount');
     if (!mount) return;
 
-    // Mount the dock on BOTH round surfaces — solo and group. Same tools
-    // (Caddie / Scorecard / My Bag) work in both contexts thanks to the
-    // unified getCurrentRoundContext() reader.
+    // Mount on BOTH round surfaces — solo and group. Same tools work
+    // in both thanks to the unified getCurrentRoundContext() reader.
     if (currentPanelId !== 'round' && currentPanelId !== 'group-round') {
-      // Not on a round screen — clear the mount and bail. Also reset
-      // any lingering expanded state so the next visit starts collapsed.
       if (mount.innerHTML) mount.innerHTML = '';
       return;
     }
 
-    const surfaceHtml = dockState.expanded ? renderDockSurface() : '';
-
-    const toolsHtml = DOCK_TOOLS.map(tool => {
-      const active = dockState.expanded && dockState.activeTool === tool.id;
-      return `
-        <button class="round-dock-tool${active ? ' active' : ''}"
-                onclick="toggleDockTool('${tool.id}')"
-                aria-pressed="${active}">
-          <span class="round-dock-tool-icon" aria-hidden="true">${tool.icon}</span>
-          <span>${tool.label}</span>
-        </button>`;
-    }).join('');
-
-    // Indicator: × when expanded, ▲ when collapsed (hint that it opens upward)
-    const indicator = dockState.expanded
-      ? `<button class="round-dock-indicator" onclick="collapseDock()" aria-label="Close tool">×</button>`
-      : `<button class="round-dock-indicator" onclick="toggleDockTool('${DOCK_TOOLS[0].id}')" aria-label="Open tools">▲</button>`;
-
-    // ── Save & Next pill. Sticky pill pinned just above the dock.
-    //    Solves "scroll to find Save" by keeping the primary action
-    //    always thumb-reachable. Hidden when the dock is expanded so
-    //    the tool surface gets full focus and the two pills don't
-    //    visually compete during a tool interaction.
+    // Save button label + function based on context (solo vs group)
+    // and whether this is the final hole of the round.
     const isGroup = currentPanelId === 'group-round';
     const saveFn = isGroup ? 'grSaveAndNext()' : 'saveAndNext()';
     let isFinalHole = false;
     let saveLabel = 'Save & Next →';
     try {
       if (isGroup && groupRoundState.doc) {
-        const gr = groupRoundState.doc;
-        const course = getCourse(gr.courseId);
+        const course = getCourse(groupRoundState.doc.courseId);
         if (course) {
           isFinalHole = groupRoundState.yourHoleIndex >= course.holes.length - 1;
           saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
@@ -23168,47 +23139,54 @@
       }
     } catch (_) { /* defensive — fall through with default label */ }
 
-    const savePillHtml = `
-      <button class="round-save-pill${isFinalHole ? ' is-final' : ''}${dockState.expanded ? ' is-hidden' : ''}"
-              onclick="${saveFn}">
-        ${escapeHtml(saveLabel)}
-      </button>
+    // Bottom action bar — always visible during a round. Tools button
+    // on the left (compact, icon + label), Save & Next pill filling
+    // the rest of the row. Thumb reaches both.
+    const actionBarHtml = `
+      <div class="round-action-bar">
+        <button class="round-tools-btn${dockState.sheetOpen ? ' is-active' : ''}"
+                onclick="${dockState.sheetOpen ? 'closeToolsSheet()' : 'openToolsSheet()'}"
+                aria-label="${dockState.sheetOpen ? 'Close tools' : 'Open tools'}"
+                aria-expanded="${dockState.sheetOpen}">
+          <span class="round-tools-btn-icon" aria-hidden="true">⋯</span>
+          <span class="round-tools-btn-label">Tools</span>
+        </button>
+        <button class="round-save-btn${isFinalHole ? ' is-final' : ''}"
+                onclick="${saveFn}">
+          ${escapeHtml(saveLabel)}
+        </button>
+      </div>
     `;
 
-    mount.innerHTML = `
-      ${dockState.expanded ? `<div class="round-dock-scrim" onclick="collapseDock()" aria-hidden="true"></div>` : ''}
-      ${savePillHtml}
-      <div class="round-dock${dockState.expanded ? ' expanded' : ''}">
-        ${surfaceHtml}
-        <div class="round-dock-bar">
-          <div class="round-dock-tools">${toolsHtml}</div>
-          ${indicator}
-        </div>
-      </div>`;
-
-    // If we just rendered the surface with the .opening class (which
-    // paints it collapsed at grid-template-rows: 0fr), peel that class
-    // off on the next frame so the CSS transition fires and grows the
-    // surface from 0fr → 1fr. Same animation as collapse, played in
-    // reverse — the surface slides up out of the bar.
-    const wrap = mount.querySelector('.round-dock-surface-wrap.opening');
-    if (wrap) {
-      // Force a reflow so the initial 0fr state is committed before
-      // we remove the class. Without this the browser would coalesce
-      // the mount + class-removal into a single paint and skip the
-      // transition.
-      void wrap.offsetHeight;
-      requestAnimationFrame(() => {
-        wrap.classList.remove('opening');
-      });
+    // Sheet contents — if open, render list view or active tool.
+    let sheetHtml = '';
+    let backdropHtml = '';
+    if (dockState.sheetOpen) {
+      backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
+      sheetHtml = renderToolsSheet();
     }
 
-    // If the caddie just opened and we have no target yet, focus the input.
-    // Use a short delay so the opening animation can start — focusing an
-    // element while its wrapper is still at grid-template-rows: 0fr means
-    // the input has zero height at that instant, which confuses mobile
-    // keyboards trying to scroll the field into view.
-    if (dockState.expanded && dockState.activeTool === 'caddie') {
+    mount.innerHTML = `${backdropHtml}${sheetHtml}${actionBarHtml}`;
+
+    // If we just opened the sheet, let the CSS animation run. The
+    // sheet renders with .opening so CSS paints its initial
+    // off-screen state, then we remove the class on next frame to
+    // trigger the transition.
+    if (dockState._animateNext) {
+      dockState._animateNext = false;
+      const sheet = mount.querySelector('.tools-sheet.opening');
+      if (sheet) {
+        void sheet.offsetHeight;  // force reflow
+        requestAnimationFrame(() => {
+          sheet.classList.remove('opening');
+        });
+      }
+    }
+
+    // Auto-focus the caddie input when the caddie tool becomes active
+    // and no distance is set yet. Short delay so the slide animation
+    // can start before the keyboard tries to pop up.
+    if (dockState.sheetOpen && dockState.activeTool === 'caddie') {
       setTimeout(() => {
         const input = document.getElementById('caddie-input');
         if (input && dockState.caddie.targetDistance == null) {
@@ -23218,29 +23196,86 @@
     }
   }
 
-  // Render the expanded tool surface based on activeTool.
-  // Render the expanded tool surface, wrapped in the grid container
-  // that enables height-collapse animation. The wrapper gets an
-  // "opening" class on first render so the content fades in; subsequent
-  // re-renders (e.g. from content updates) don't re-animate.
-  function renderDockSurface() {
-    const opening = dockState._animateNext;
-    dockState._animateNext = false;
-    const wrapClass = opening ? 'round-dock-surface-wrap opening' : 'round-dock-surface-wrap';
-    let inner = '';
-    if (dockState.activeTool === 'caddie') inner = renderCaddie();
-    else if (dockState.activeTool === 'bag') inner = renderDockBag();
-    else if (dockState.activeTool === 'scorecard') inner = renderDockScorecard();
-    else if (dockState.activeTool === 'weather') inner = renderDockWeather();
-    return `<div class="${wrapClass}">${inner}</div>`;
+  // Render the full sheet — header + body. Body is either the tool
+  // list or the active tool's content.
+  function renderToolsSheet() {
+    const animClass = dockState._animateNext ? ' opening' : '';
+    const activeTool = dockState.activeTool;
+
+    // Header varies based on whether we're on list or in a tool.
+    // List mode uses an invisible spacer in place of the back button
+    // to keep the title visually centered.
+    let headerHtml;
+    if (activeTool) {
+      const toolMeta = DOCK_TOOLS.find(t => t.id === activeTool);
+      const toolLabel = toolMeta ? toolMeta.label : 'Tool';
+      headerHtml = `
+        <div class="tools-sheet-header">
+          <button class="tools-sheet-back" onclick="backToToolsList()" aria-label="Back to tools list">←</button>
+          <div class="tools-sheet-title">${escapeHtml(toolLabel)}</div>
+          <button class="tools-sheet-close" onclick="closeToolsSheet()" aria-label="Close">×</button>
+        </div>
+      `;
+    } else {
+      headerHtml = `
+        <div class="tools-sheet-header">
+          <div class="tools-sheet-handle" aria-hidden="true"></div>
+          <div class="tools-sheet-spacer" aria-hidden="true"></div>
+          <div class="tools-sheet-title">Tools</div>
+          <button class="tools-sheet-close" onclick="closeToolsSheet()" aria-label="Close">×</button>
+        </div>
+      `;
+    }
+
+    const bodyHtml = activeTool ? renderToolSurface(activeTool) : renderToolsList();
+
+    return `
+      <div class="tools-sheet${animClass}" role="dialog" aria-modal="true" aria-label="Tools">
+        ${headerHtml}
+        <div class="tools-sheet-body">${bodyHtml}</div>
+      </div>
+    `;
+  }
+
+  // Default sheet body — list of tools as tappable rows.
+  function renderToolsList() {
+    // Short descriptions help discoverability. Kept to one line each.
+    const DESCRIPTIONS = {
+      scorecard: 'See your running scorecard',
+      weather:   'Conditions at the course',
+      caddie:    'Get a club suggestion',
+      bag:       'Reference your club distances',
+    };
+    const rows = DOCK_TOOLS.map(tool => `
+      <button class="tools-list-row" onclick="selectTool('${tool.id}')">
+        <span class="tools-list-row-icon" aria-hidden="true">${tool.icon}</span>
+        <span class="tools-list-row-body">
+          <span class="tools-list-row-label">${escapeHtml(tool.label)}</span>
+          <span class="tools-list-row-desc">${escapeHtml(DESCRIPTIONS[tool.id] || '')}</span>
+        </span>
+        <span class="tools-list-row-arrow" aria-hidden="true">→</span>
+      </button>
+    `).join('');
+    return `<div class="tools-list">${rows}</div>`;
+  }
+
+  // Dispatch for individual tool content inside the sheet.
+  // Each tool's renderer still returns the full tool markup; we just
+  // use them as-is (the old `.round-dock-surface` wrapper is now
+  // the sheet body itself).
+  function renderToolSurface(toolId) {
+    if (toolId === 'caddie')    return renderCaddie();
+    if (toolId === 'bag')       return renderDockBag();
+    if (toolId === 'scorecard') return renderDockScorecard();
+    if (toolId === 'weather')   return renderDockWeather();
+    return '';
   }
 
   // My Bag surface — a compact read-only view of the user's clubs and
-  // distances, surfaced in the dock so players can glance at their numbers
+  // distances, surfaced in the sheet so players can glance at their numbers
   // mid-round without leaving the scoring screen. Reuses the bag-view
   // component classes so it matches the Profile → My Bag page exactly.
-  // Partials are nested under each club, same as elsewhere. Scrolls
-  // internally if the list exceeds the dock's natural height.
+  // Partials are nested under each club, same as elsewhere.
   function renderDockBag() {
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const unit = distanceUnit();
@@ -23331,11 +23366,21 @@
     if (!ctx) return;
     const course = getCourse(ctx.courseId);
     if (!course || typeof course.lat !== 'number') return;
+    // Check cache synchronously so we know if this fetch will be instant.
+    // Cache hit → renderDockWeather already showed full content; re-render
+    // would be a no-op. Cache miss → the sheet just rendered the "Fetching
+    // forecast…" placeholder; when data arrives, we need to animate the
+    // sheet's height from "loading" (short) to "content" (tall) so it
+    // doesn't snap.
+    const cached = weatherCache.get(weatherCacheKey(course.lat, course.lng));
+    const wasCacheFresh = cached && cached.status === 'ok'
+      && Date.now() - cached.fetchedAt < WEATHER_CACHE_MS;
+
     fetchWeather(course.lat, course.lng).then(() => {
-      // Re-render only if we're still on weather (user might have switched)
-      if (dockState.expanded && dockState.activeTool === 'weather') {
-        renderRoundDock();
-      }
+      if (!dockState.sheetOpen || dockState.activeTool !== 'weather') return;
+      if (wasCacheFresh) return;  // nothing to re-render; content was already shown
+      // Animate the sheet's height morph from loading state → full content.
+      animateSheetHeightChange(() => renderRoundDock());
     });
   }
 
@@ -23882,8 +23927,13 @@
     const entry = {
       strokes: stored?.strokes ?? hole.par,
       putts: stored?.putts ?? 2,
-      fir: isPar3 ? null : (stored?.fir ?? true),
-      gir: stored?.gir ?? true,
+      // FIR/GIR default to null = "not recorded". Critical: do NOT
+      // auto-fill to true here — if we did, any stepper/toggle action
+      // on another field (strokes, putts) would flip both FIR and GIR
+      // to "hit" just because they hadn't been touched yet. The user
+      // must tap ✓ or ✗ explicitly for a hole to count.
+      fir: isPar3 ? null : (stored?.fir ?? null),
+      gir: stored?.gir ?? null,
       // Diagnostic fields — preserved through stepper/toggle actions
       // so they don't get wiped if the user adjusts other inputs after
       // setting them.
@@ -23919,45 +23969,267 @@
     entry.putts = next;
     renderRound();
   }
-  // Toggle FIR (fairway in regulation). No-op on par 3s where FIR doesn't apply.
-  function toggleFir() {
-    const ctx = getOrInitHoleEntry();
-    if (!ctx || ctx.isPar3) return;
-    ctx.entry.fir = !ctx.entry.fir;
-    // If the user just flipped FROM miss TO hit, clear any recorded
-    // miss direction — there's no miss to characterize anymore.
-    if (ctx.entry.fir === true) ctx.entry.firMiss = null;
-    renderRound();
-  }
-  // Toggle GIR (green in regulation).
-  function toggleGir() {
-    const ctx = getOrInitHoleEntry();
-    if (!ctx) return;
-    ctx.entry.gir = !ctx.entry.gir;
-    if (ctx.entry.gir === true) ctx.entry.girMiss = null;
-    renderRound();
+
+  // ─────────────────────────────────────────────────────────────
+  // Tristate FIR / GIR row — new UI (Nov 2026 redesign)
+  //
+  // Three buttons per stat: unset (·) / hit (✓) / miss (✗). Unset is
+  // the default — replacing the old "optimistic hit" default — so
+  // untouched holes don't inflate percentage stats. Tapping ✗ opens
+  // a miss-direction modal. Tapping ✓ clears any recorded direction.
+  // Tapping the currently-selected state is a no-op except for ✗,
+  // which re-opens the modal so users can correct the direction.
+  // ─────────────────────────────────────────────────────────────
+
+  // Render a single FIR/GIR row — ✓ hit + ✗ miss, each a toggle.
+  // kind is one of:
+  //   'fir'    — solo round fairway
+  //   'gir'    — solo round green
+  //   'fir-gr' — group round fairway
+  //   'gir-gr' — group round green
+  // Par 3 FIR is rendered disabled (no taps).
+  //
+  // Behavior:
+  //   - value=null (default): both buttons unselected = "not recorded"
+  //   - tap ✓ when unselected → records hit
+  //   - tap ✗ when unselected → records miss AND opens direction modal
+  //   - tap either button when already selected → clears back to null
+  //   - miss direction annotation (if recorded) is tappable and re-opens
+  //     the modal pre-populated with the current direction, so users
+  //     can correct without toggling the miss state.
+  function renderTristateRow(kind, label, value, missDir, disabled) {
+    const stateHit = value === true;
+    const stateMiss = value === false;
+
+    // Direction annotation — tappable link to re-open the modal
+    const dirGlyph = { left: '← Left', right: '→ Right', short: '↓ Short', long: '↑ Long' };
+    const dirNote = (stateMiss && missDir && dirGlyph[missDir])
+      ? `<button class="tristate-dir-note" onclick="openMissModal('${kind}', '${missDir}')"
+                 aria-label="Edit miss direction">${dirGlyph[missDir]}</button>`
+      : '';
+
+    if (disabled) {
+      return `
+        <div class="tristate-row is-disabled">
+          <div class="tristate-label">${escapeHtml(label)}</div>
+          <div class="tristate-buttons">
+            <div class="tristate-btn is-disabled" aria-hidden="true">—</div>
+            <div class="tristate-btn is-disabled" aria-hidden="true">—</div>
+          </div>
+        </div>`;
+    }
+
+    // Each tap resolves to the new state. Tapping the currently-active
+    // button clears it (back to null); tapping the inactive one sets it.
+    const hitNextValue = stateHit ? 'null' : 'true';
+    const missNextValue = stateMiss ? 'null' : 'false';
+
+    return `
+      <div class="tristate-row">
+        <div class="tristate-label">${escapeHtml(label)}</div>
+        <div class="tristate-buttons" role="group" aria-label="${escapeHtml(label)} result">
+          <button class="tristate-btn tristate-hit${stateHit ? ' is-active' : ''}"
+                  onclick="setTristate('${kind}', ${hitNextValue})"
+                  aria-label="Hit" aria-pressed="${stateHit}">
+            ✓
+          </button>
+          <button class="tristate-btn tristate-miss${stateMiss ? ' is-active' : ''}"
+                  onclick="setTristate('${kind}', ${missNextValue})"
+                  aria-label="Miss" aria-pressed="${stateMiss}">
+            ✗
+          </button>
+        </div>
+        ${dirNote}
+      </div>
+    `;
   }
 
-  // Set or clear the miss direction for FIR / GIR. Tapping the same
-  // direction button twice clears it (acts as a toggle), so the user
-  // can quickly correct a mis-tap without a separate "clear" button.
-  function setHoleMissDirection(kind, direction) {
-    const ctx = getOrInitHoleEntry();
-    if (!ctx) return;
-    if (kind === 'fir') {
-      // No-op on par 3s — FIR doesn't apply
-      if (ctx.isPar3) return;
-      // Setting a miss direction implicitly means "this was a miss" —
-      // make sure the FIR boolean reflects that, even if the user
-      // jumped straight to a direction button without first tapping
-      // the FIR chip. Defensive but matches user intent.
-      if (ctx.entry.fir !== false) ctx.entry.fir = false;
-      ctx.entry.firMiss = ctx.entry.firMiss === direction ? null : direction;
-    } else if (kind === 'gir') {
-      if (ctx.entry.gir !== false) ctx.entry.gir = false;
-      ctx.entry.girMiss = ctx.entry.girMiss === direction ? null : direction;
+  // Set the tristate value and trigger the appropriate side effects.
+  //   null  → clear value AND clear miss direction
+  //   true  → set hit; clear miss direction (hit can't have a direction)
+  //   false → set miss; open miss-direction modal so user can specify.
+  //           (If they cancel the modal, state stays at "miss with no
+  //           direction" — their tap was intentional.)
+  function setTristate(kind, newValue) {
+    const isGroup = kind.endsWith('-gr');
+    const statKey = kind.startsWith('fir') ? 'fir' : 'gir';
+    const missKey = statKey + 'Miss';
+
+    // Get the right entry reference for solo vs group
+    let entry;
+    if (isGroup) {
+      const gr = groupRoundState.doc;
+      if (!gr || !currentUser) return;
+      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
+      if (!me) return;
+      const holeIdx = groupRoundState.yourHoleIndex;
+      const course = getCourse(gr.courseId);
+      if (!course) return;
+      const holeNum = course.holes[holeIdx].number;
+      entry = me.scores[holeNum];
+      if (!entry) return;
+      // Guard: par 3 fir no-op
+      if (statKey === 'fir' && course.holes[holeIdx].par === 3) return;
+    } else {
+      const ctx = getOrInitHoleEntry();
+      if (!ctx) return;
+      if (statKey === 'fir' && ctx.isPar3) return;
+      entry = ctx.entry;
     }
-    renderRound();
+
+    entry[statKey] = newValue;
+    if (newValue === null || newValue === true) {
+      entry[missKey] = null;
+    }
+
+    // Re-render the appropriate round surface
+    if (isGroup) grRenderRound();
+    else renderRound();
+
+    // If the user just selected "miss", pop the direction modal so
+    // they can specify where they missed. Current recorded direction
+    // (if any) pre-highlights in the modal.
+    if (newValue === false) {
+      openMissModal(kind, entry[missKey]);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Miss-direction modal — replaces the old inline miss row.
+  //
+  // Slides up when user taps ✗. Four buttons in a 2x2 grid + "Not
+  // sure" dismiss. Picking records the direction and closes. Any
+  // dismiss (backdrop, ×, "Not sure", Esc) closes without changing
+  // the miss state — the ✗ tap stands on its own as a recorded miss.
+  // ─────────────────────────────────────────────────────────────
+  const missModalState = {
+    open: false,
+    kind: null,      // 'fir' | 'gir' | 'fir-gr' | 'gir-gr'
+    current: null,   // pre-selected direction if user is editing
+  };
+
+  function openMissModal(kind, currentDirection) {
+    missModalState.open = true;
+    missModalState.kind = kind;
+    missModalState.current = currentDirection || null;
+    renderMissModal();
+  }
+
+  function closeMissModal() {
+    if (!missModalState.open) return;
+    const el = document.querySelector('.miss-modal');
+    const backdrop = document.querySelector('.miss-modal-backdrop');
+    if (!el || !backdrop) {
+      missModalState.open = false;
+      renderMissModal();
+      return;
+    }
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    const onDone = () => {
+      el.removeEventListener('transitionend', onDone);
+      missModalState.open = false;
+      missModalState.kind = null;
+      missModalState.current = null;
+      renderMissModal();
+    };
+    el.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'transform') onDone();
+    });
+    setTimeout(() => {
+      if (el.classList.contains('closing')) onDone();
+    }, 320);
+  }
+
+  // Record the picked direction + close the modal.
+  function pickMissDirection(direction) {
+    const kind = missModalState.kind;
+    if (!kind) { closeMissModal(); return; }
+    const isGroup = kind.endsWith('-gr');
+    const statKey = kind.startsWith('fir') ? 'fir' : 'gir';
+    const missKey = statKey + 'Miss';
+
+    let entry;
+    if (isGroup) {
+      const gr = groupRoundState.doc;
+      if (!gr || !currentUser) { closeMissModal(); return; }
+      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
+      if (!me) { closeMissModal(); return; }
+      const course = getCourse(gr.courseId);
+      if (!course) { closeMissModal(); return; }
+      const holeNum = course.holes[groupRoundState.yourHoleIndex].number;
+      entry = me.scores[holeNum];
+    } else {
+      const ctx = getOrInitHoleEntry();
+      if (!ctx) { closeMissModal(); return; }
+      entry = ctx.entry;
+    }
+    if (!entry) { closeMissModal(); return; }
+    // Defensive: also set the miss state to false (user is recording a
+    // direction → clearly a miss). Normally already set by setTristate
+    // before the modal opened, but makes the function robust if called
+    // directly.
+    entry[statKey] = false;
+    entry[missKey] = direction;
+
+    if (isGroup) grRenderRound();
+    else renderRound();
+    closeMissModal();
+  }
+
+  function renderMissModal() {
+    const mount = document.getElementById('miss-modal-mount');
+    if (!mount) return;
+    if (!missModalState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const kind = missModalState.kind;
+    const isFir = kind && kind.startsWith('fir');
+    const title = isFir ? 'Fairway missed where?' : 'Green missed where?';
+    const current = missModalState.current;
+
+    const btn = (dir, glyph, label) => {
+      const active = current === dir;
+      return `
+        <button class="miss-modal-btn${active ? ' is-active' : ''}"
+                onclick="pickMissDirection('${dir}')"
+                aria-label="${escapeHtml(label)}" aria-pressed="${active}">
+          <span class="miss-modal-btn-glyph">${glyph}</span>
+          <span class="miss-modal-btn-label">${escapeHtml(label)}</span>
+        </button>
+      `;
+    };
+
+    mount.innerHTML = `
+      <div class="miss-modal-backdrop opening" onclick="closeMissModal()" aria-hidden="true"></div>
+      <div class="miss-modal opening" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+        <div class="miss-modal-header">
+          <div class="miss-modal-title">${escapeHtml(title)}</div>
+          <button class="miss-modal-close" onclick="closeMissModal()" aria-label="Close">×</button>
+        </div>
+        <div class="miss-modal-body">
+          <div class="miss-modal-grid">
+            ${btn('long',  '↑', 'Long')}
+            ${btn('short', '↓', 'Short')}
+            ${btn('left',  '←', 'Left')}
+            ${btn('right', '→', 'Right')}
+          </div>
+          <button class="miss-modal-skip" onclick="closeMissModal()">Not sure — skip</button>
+        </div>
+      </div>
+    `;
+
+    // Kick off the slide-up animation on next frame
+    const modal = mount.querySelector('.miss-modal.opening');
+    const backdrop = mount.querySelector('.miss-modal-backdrop.opening');
+    if (modal) {
+      void modal.offsetHeight;  // force reflow
+      requestAnimationFrame(() => {
+        modal.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
   }
 
   // Adjust penalty stroke count. Penalties don't add to strokes
@@ -23974,22 +24246,6 @@
     if (next > 6) next = 6;  // sanity ceiling — even disaster holes rarely exceed
     ctx.entry.penalties = next;
     renderRound();
-  }
-
-  // Render a single direction button for the miss-direction row.
-  // Used inline in the hole card render. Active state shows orange
-  // border + filled background.
-  function renderMissDirButton(direction, current, kind, arrow, label) {
-    const isActive = current === direction;
-    return `
-      <button class="round-card-miss-btn${isActive ? ' is-active' : ''}"
-              onclick="setHoleMissDirection('${kind}', '${direction}')"
-              aria-label="${escapeHtml(label)}"
-              aria-pressed="${isActive}">
-        <span class="round-card-miss-arrow">${arrow}</span>
-        <span class="round-card-miss-label-text">${escapeHtml(label)}</span>
-      </button>
-    `;
   }
 
   // Save the current hole + advance, OR finish the round on hole 18.
@@ -27021,450 +27277,9 @@
     renderPlaySigninBanner();
     renderPlayHero();
     renderResumeBanner();
-    renderPlayWeather();
     renderPlayStats();
     renderRecentRounds();
   }
-
-  // Landing-page weather widget. Picks the most relevant course
-  // (closest by GPS, then most recently played, then catalog default)
-  // and renders a compact glance: icon + temp + wind + 4-hour preview.
-  // Async fetch — paints a skeleton first, then re-renders when data
-  // arrives. Caching means subsequent landing visits are instant
-  // unless the 15-min cache expires.
-  function renderPlayWeather() {
-    const mount = document.getElementById('play-weather-mount');
-    if (!mount) return;
-    const course = pickWeatherCourse();
-    if (!course) { mount.innerHTML = ''; return; }
-
-    const cacheKey = weatherCacheKey(course.lat, course.lng);
-    const cached = weatherCache.get(cacheKey);
-
-    if (cached && cached.status === 'ok' && Date.now() - cached.fetchedAt < WEATHER_CACHE_MS) {
-      mount.innerHTML = buildWeatherWidgetHtml(course, cached.data);
-      return;
-    }
-
-    // No cache (or stale) — paint skeleton, fetch, repaint
-    mount.innerHTML = buildWeatherSkeletonHtml(course);
-    fetchWeather(course.lat, course.lng).then(result => {
-      // Course might have changed by the time we got data (user navigated
-      // away then back). Re-pick to make sure we render for the right one.
-      const stillRelevant = pickWeatherCourse();
-      if (!stillRelevant || stillRelevant.id !== course.id) return;
-      const m = document.getElementById('play-weather-mount');
-      if (!m) return;
-      if (result.status === 'ok') {
-        m.innerHTML = buildWeatherWidgetHtml(course, result.data);
-      } else {
-        m.innerHTML = buildWeatherErrorHtml(course);
-      }
-    });
-  }
-
-  function buildWeatherSkeletonHtml(course) {
-    return `
-      <div class="play-weather play-weather-skeleton">
-        <div class="play-weather-head">
-          <div class="play-weather-eyebrow">Weather at ${escapeHtml(course.name)}</div>
-        </div>
-        <div class="play-weather-loading">
-          <div class="spinner" aria-hidden="true"></div>
-          <span class="play-weather-loading-text">Loading conditions…</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function buildWeatherErrorHtml(course) {
-    // Quiet failure — no big red banner, just a small note. Tapping
-    // forces a refetch (busts cache).
-    return `
-      <div class="play-weather play-weather-error" onclick="(()=>{invalidateWeather(${course.lat}, ${course.lng}); renderPlayWeather();})()">
-        <div class="play-weather-head">
-          <div class="play-weather-eyebrow">Weather at ${escapeHtml(course.name)}</div>
-        </div>
-        <div class="play-weather-error-body">
-          Couldn't load weather. Tap to retry.
-        </div>
-      </div>
-    `;
-  }
-
-  // Map current+forecast data to compact HTML. Two rows:
-  //   Row 1 — icon, temp, label, wind, rain probability
-  //   Row 2 — next 4 hours: hour / temp / icon / rain%
-  function buildWeatherWidgetHtml(course, data) {
-    const cur = data.current || {};
-    const meta = weatherCodeMeta(cur.weather_code, cur.is_day);
-    const temp = cur.temperature_2m != null ? Math.round(cur.temperature_2m) : '—';
-    const feels = cur.apparent_temperature != null ? Math.round(cur.apparent_temperature) : null;
-    const windSpeed = cur.wind_speed_10m != null ? Math.round(cur.wind_speed_10m) : null;
-    const windDir = windDirectionLabel(cur.wind_direction_10m);
-    const windRot = windArrowRotation(cur.wind_direction_10m);
-
-    // Hourly slice: pick the next 4 hours starting from "now" forward.
-    // Hourly arrays are aligned: time[i], temperature_2m[i], etc.
-    const hourly = data.hourly || {};
-    const times = hourly.time || [];
-    const nowMs = Date.now();
-    let startIdx = times.findIndex(t => new Date(t).getTime() > nowMs);
-    if (startIdx === -1) startIdx = 0;
-    const slice = [];
-    for (let i = startIdx; i < Math.min(startIdx + 4, times.length); i++) {
-      slice.push({
-        time: times[i],
-        temp: hourly.temperature_2m?.[i],
-        precipProb: hourly.precipitation_probability?.[i],
-        code: hourly.weather_code?.[i],
-      });
-    }
-
-    function formatHour(iso) {
-      const d = new Date(iso);
-      const h = d.getHours();
-      const ampm = h >= 12 ? 'p' : 'a';
-      const h12 = h % 12 || 12;
-      return `${h12}${ampm}`;
-    }
-
-    const hourlyHtml = slice.map(h => {
-      const m = weatherCodeMeta(h.code, true);  // assume day for forecast icons
-      return `
-        <div class="play-weather-hour">
-          <div class="play-weather-hour-time">${formatHour(h.time)}</div>
-          <div class="play-weather-hour-icon">${m.icon}</div>
-          <div class="play-weather-hour-temp">${h.temp != null ? Math.round(h.temp) : '—'}°</div>
-          <div class="play-weather-hour-rain">${h.precipProb != null ? Math.round(h.precipProb) : 0}%</div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="play-weather">
-        <div class="play-weather-head">
-          <div class="play-weather-eyebrow">Weather at ${escapeHtml(course.name)}</div>
-          <button class="play-weather-refresh" onclick="invalidateWeather(${course.lat}, ${course.lng}); renderPlayWeather();" aria-label="Refresh weather">↻</button>
-        </div>
-        <div class="play-weather-now">
-          <div class="play-weather-icon">${meta.icon}</div>
-          <div class="play-weather-temp-block">
-            <div class="play-weather-temp">${temp}°<span class="play-weather-unit">F</span></div>
-            <div class="play-weather-label">${escapeHtml(meta.label)}${feels != null && Math.abs(feels - temp) >= 3 ? ` · feels ${feels}°` : ''}</div>
-          </div>
-          <div class="play-weather-wind">
-            <div class="play-weather-wind-arrow" style="transform: rotate(${windRot}deg);">↑</div>
-            <div class="play-weather-wind-text">
-              <div class="play-weather-wind-speed">${windSpeed != null ? windSpeed : '—'} mph</div>
-              <div class="play-weather-wind-dir">from ${escapeHtml(windDir)}</div>
-            </div>
-          </div>
-        </div>
-        ${slice.length > 0 ? `<div class="play-weather-hourly">${hourlyHtml}</div>` : ''}
-      </div>
-    `;
-  }
-
-  // Play hero — renders the primary CTA card. Two states:
-  //   1. No round in progress → "Start a Round" invites the user to begin
-  //   2. Round in progress → "Continue Round" with course/tee/progress meta
-  // This swaps based on findInProgressRound() so it always reflects current state.
-  // ─────────────────────────────────────────────────────────────
-  // Group round lobby + shared round rendering (Layer B)
-  // ─────────────────────────────────────────────────────────────
-
-  // Lobby: pre-round assembly. Organizer sees a friend-invite picker +
-  // current players list + Start Round button. Non-organizer players
-  // see the players list + a "waiting for organizer" message. Invitees
-  // who haven't accepted yet aren't in the players list; they're in
-  // the organizer's invitedUids and will see the invite on Social.
-  function renderGroupLobby() {
-    const mount = document.getElementById('group-lobby-mount');
-    if (!mount) return;
-    const gr = groupRoundState.doc;
-    if (!gr) {
-      mount.innerHTML = `
-        <div class="panel-head">
-          <span class="accent-line"></span>
-          <h2>No Active Lobby</h2>
-          <p class="panel-desc">Head back to Play to start a new group round.</p>
-        </div>
-        <button class="today-btn today-btn-primary" onclick="showPanel('play', null)">Back to Play →</button>`;
-      return;
-    }
-    const course = getCourse(gr.courseId);
-    const courseName = course ? course.name : 'Round';
-    const isOrganizer = currentUser && gr.organizerUid === currentUser.uid;
-    const myPlayer = (gr.players || []).find(p => p.uid === currentUser?.uid);
-    const myTee = myPlayer?.tee || '';
-
-    // Players accepted (in the players array)
-    const playersHtml = (gr.players || []).map(p => `
-      <div class="group-lobby-player">
-        <div class="group-lobby-player-avatar">${escapeHtml((p.username || '?').charAt(0).toUpperCase())}</div>
-        <div class="group-lobby-player-info">
-          <div class="group-lobby-player-name">${escapeHtml(p.username || 'Player')}${p.uid === gr.organizerUid ? ' <span class="group-lobby-badge">Host</span>' : ''}${p.uid === currentUser?.uid ? ' <span class="group-lobby-badge-you">You</span>' : ''}</div>
-          <div class="group-lobby-player-meta">${escapeHtml(p.tee || '—')} tees</div>
-        </div>
-      </div>
-    `).join('');
-
-    // Invite picker — only shown to organizer. Each friend has a button
-    // that toggles between Invite/Invited/Joined based on current state.
-    let inviteSection = '';
-    if (isOrganizer) {
-      const players = gr.players || [];
-      const invited = gr.invitedUids || [];
-      const friendButtons = (friendsList || []).map(f => {
-        const isPlayer = players.some(p => p.uid === f.uid);
-        const isInvited = invited.includes(f.uid);
-        let btn;
-        if (isPlayer) {
-          btn = `<button class="group-lobby-friend-btn joined" disabled>Joined</button>`;
-        } else if (isInvited) {
-          btn = `<button class="group-lobby-friend-btn invited" onclick="cancelGroupInvite('${escapeHtml(f.uid)}')">Invited · Cancel</button>`;
-        } else {
-          btn = `<button class="group-lobby-friend-btn" onclick="sendGroupInvite('${escapeHtml(f.uid)}')">Invite</button>`;
-        }
-        return `
-          <div class="group-lobby-friend-row">
-            <div class="group-lobby-friend-avatar">${escapeHtml((f.username || '?').charAt(0).toUpperCase())}</div>
-            <div class="group-lobby-friend-name">${escapeHtml(f.usernameDisplay || f.username || 'Friend')}</div>
-            ${btn}
-          </div>
-        `;
-      }).join('');
-      inviteSection = `
-        <div class="group-lobby-section">
-          <div class="group-lobby-section-title">Invite friends</div>
-          ${(friendsList || []).length === 0
-            ? '<p class="group-lobby-empty">Add friends on the Social page to invite them here.</p>'
-            : `<div class="group-lobby-friends">${friendButtons}</div>`}
-        </div>
-      `;
-    }
-
-    const startAction = isOrganizer ? `
-      <button class="group-lobby-start-btn" onclick="startGroupRound()">Start Round (${(gr.players || []).length} player${(gr.players || []).length === 1 ? '' : 's'})</button>
-      <button class="group-lobby-cancel-btn" onclick="cancelGroupLobby()">Cancel Round</button>
-    ` : `
-      <div class="group-lobby-waiting">Waiting for <strong>${escapeHtml((gr.players || []).find(p => p.uid === gr.organizerUid)?.username || 'the host')}</strong> to start the round…</div>
-      <button class="group-lobby-cancel-btn" onclick="leaveGroupLobby()">Leave Lobby</button>
-    `;
-
-    mount.innerHTML = `
-      <div class="panel-head">
-        <span class="accent-line"></span>
-        <span class="label">Play Together · Lobby</span>
-        <h2>${escapeHtml(courseName)}</h2>
-        <p class="panel-desc">${isOrganizer ? "Invite friends, then tap Start Round when everyone's ready." : "Waiting in the lobby. You'll start playing once the host taps Start."}</p>
-      </div>
-
-      <div class="group-lobby-section">
-        <div class="group-lobby-section-title">Players · ${(gr.players || []).length}</div>
-        <div class="group-lobby-players">${playersHtml}</div>
-      </div>
-
-      ${inviteSection}
-
-      <div class="group-lobby-refresh-row">
-        <button class="group-lobby-refresh-btn" onclick="refreshGroupRound()">↻ Refresh</button>
-        <span class="group-lobby-refresh-hint">Pull-to-refresh to see new joiners (live updates coming soon)</span>
-      </div>
-
-      <div class="group-lobby-actions">
-        ${startAction}
-      </div>
-    `;
-  }
-
-  // Send an invite to a friend. Creates a doc in their groupRoundInvites
-  // subcollection and appends their uid to our invitedUids array.
-  async function sendGroupInvite(recipientUid) {
-    if (!currentUser || !groupRoundState.docId) return;
-    const gr = groupRoundState.doc;
-    if (gr.organizerUid !== currentUser.uid) {
-      showToast('Only the host can invite', true);
-      return;
-    }
-    // Build a snapshot of the round so the recipient can see what they're
-    // being invited to without needing to read the groupRounds doc first
-    // (they can't — not a player yet, no read access).
-    const course = getCourse(gr.courseId);
-    const payload = {
-      groupRoundId: groupRoundState.docId,
-      fromUid: currentUser.uid,
-      fromUsername: prefs.usernameDisplay || prefs.username || 'Player',
-      courseId: gr.courseId,
-      courseName: course?.name || 'Round',
-      startTime: gr.startTime,
-      sentAt: Date.now()
-    };
-    try {
-      await window.fb.sendGroupRoundInvite(recipientUid, payload);
-      // Update local cached doc + server
-      await window.fb.updateGroupRoundFields(groupRoundState.docId, {
-        invitedUids: arrayUnionLocal(gr.invitedUids || [], recipientUid)
-      });
-      groupRoundState.doc = {
-        ...gr,
-        invitedUids: [...(gr.invitedUids || []), recipientUid]
-      };
-      renderGroupLobby();
-      showToast('Invite sent');
-    } catch (err) {
-      console.error('Invite failed:', err);
-      showToast('Invite failed — are you friends?', true);
-    }
-  }
-
-  // Local-only arrayUnion helper (we can't use Firestore's in the same
-  // update that writes other fields — this mirrors behavior client-side).
-  function arrayUnionLocal(arr, value) {
-    if ((arr || []).includes(value)) return arr;
-    return [...(arr || []), value];
-  }
-
-  // Cancel a pending invite (organizer only, before acceptance).
-  async function cancelGroupInvite(recipientUid) {
-    if (!currentUser || !groupRoundState.docId) return;
-    const gr = groupRoundState.doc;
-    if (gr.organizerUid !== currentUser.uid) return;
-    try {
-      await window.fb.cancelGroupRoundInvite(recipientUid, groupRoundState.docId);
-      await window.fb.updateGroupRoundFields(groupRoundState.docId, {
-        invitedUids: (gr.invitedUids || []).filter(u => u !== recipientUid)
-      });
-      groupRoundState.doc = {
-        ...gr,
-        invitedUids: (gr.invitedUids || []).filter(u => u !== recipientUid)
-      };
-      renderGroupLobby();
-      showToast('Invite canceled');
-    } catch (err) {
-      console.error('Cancel invite failed:', err);
-      showToast('Cancel failed', true);
-    }
-  }
-
-  // Organizer starts the round — transitions status lobby → in-progress
-  // and navigates into the shared scorecard.
-  async function startGroupRound() {
-    if (!currentUser || !groupRoundState.docId) return;
-    const gr = groupRoundState.doc;
-    if (gr.organizerUid !== currentUser.uid) return;
-    try {
-      await window.fb.updateGroupRoundFields(groupRoundState.docId, {
-        status: 'in-progress'
-      });
-      groupRoundState.doc = { ...gr, status: 'in-progress' };
-      // Also cancel any unaccepted invites — if a friend didn't accept
-      // before tee-off, they can't join mid-round (simplifies Phase 1).
-      const unaccepted = (gr.invitedUids || []).filter(u =>
-        !(gr.players || []).some(p => p.uid === u)
-      );
-      for (const u of unaccepted) {
-        try { await window.fb.cancelGroupRoundInvite(u, groupRoundState.docId); } catch (_) {}
-      }
-      showPanel('group-round', null);
-    } catch (err) {
-      console.error('Start round failed:', err);
-      showToast('Start failed — see console', true);
-    }
-  }
-
-  // Organizer cancels the whole round from lobby (before start). Effectively
-  // deletes by marking status and clearing players — since Firestore rules
-  // block deletes, we set status='cancelled' and drop local state.
-  async function cancelGroupLobby() {
-    if (!currentUser || !groupRoundState.docId) return;
-    const gr = groupRoundState.doc;
-    if (gr.organizerUid !== currentUser.uid) return;
-    const ok = await confirmDialog({
-      eyebrow: 'Cancel Round',
-      eyebrowStyle: 'warning',
-      title: 'Cancel this group round?',
-      message: 'All invites will be revoked and the round will be abandoned.',
-      confirmText: 'Cancel Round',
-      cancelText: 'Keep Round',
-      destructive: true
-    });
-    if (!ok) return;
-    try {
-      // Cancel each outstanding invite
-      for (const u of (gr.invitedUids || [])) {
-        try { await window.fb.cancelGroupRoundInvite(u, groupRoundState.docId); } catch (_) {}
-      }
-      // Mark round cancelled — this takes it out of the lobby/in-progress
-      // query so resume detection and history both ignore it.
-      await window.fb.updateGroupRoundFields(groupRoundState.docId, {
-        status: 'cancelled',
-        endTime: Date.now()
-      });
-      // Clear local state
-      const id = groupRoundState.docId;
-      groupRoundState.docId = null;
-      groupRoundState.doc = null;
-      myGroupRounds = myGroupRounds.filter(r => r.id !== id);
-      showToast('Round cancelled');
-      showPanel('play', null);
-    } catch (err) {
-      console.error('Cancel failed:', err);
-      showToast('Cancel failed', true);
-    }
-  }
-
-  // Non-organizer leaves the lobby before round starts.
-  async function leaveGroupLobby() {
-    const ok = await confirmDialog({
-      eyebrow: 'Leave Lobby',
-      title: 'Leave this group round?',
-      message: "You'll drop out of the round. The host can re-invite you anytime.",
-      confirmText: 'Leave',
-      cancelText: 'Stay'
-    });
-    if (!ok) return;
-    await leaveActiveGroupRound();
-    showToast('Left the lobby');
-    showPanel('play', null);
-  }
-
-  // Pull-to-refresh the current group round doc.
-  async function refreshGroupRound() {
-    if (!groupRoundState.docId) return;
-    try {
-      const fresh = await window.fb.getGroupRound(groupRoundState.docId);
-      if (fresh) {
-        groupRoundState.doc = fresh;
-        // Re-render whichever panel is currently visible
-        if (currentPanelId === 'group-lobby') renderGroupLobby();
-        else if (currentPanelId === 'group-round') renderGroupRoundPanel();
-      }
-    } catch (err) {
-      console.error('Refresh failed:', err);
-      showToast('Refresh failed', true);
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Phase 2 — Live updates via onSnapshot
-  // ─────────────────────────────────────────────────────────────
-  // When the user is on the lobby or shared scorecard panel, subscribe
-  // to the group round doc so changes from OTHER players (new joiners,
-  // score updates, status transitions) push to this client in real time
-  // without needing to tap Refresh.
-  //
-  // The subscription lives on groupRoundState.unsubscribe (scaffolded in
-  // Layer A). Started by startGroupRoundSubscription(), ended by
-  // stopGroupRoundSubscription(). Both are idempotent and safe to call
-  // multiple times.
-  //
-  // Race condition handling: if an incoming snapshot arrives while the
-  // local user has a pending score write (the debounced timer is set),
-  // we preserve their in-flight edits on `me.scores` and merge only the
-  // OTHER players' data from the snapshot. This prevents a concurrent
-  // read during editing from clobbering uncommitted local changes.
 
   function startGroupRoundSubscription() {
     if (!groupRoundState.docId || !window.fb) return;
@@ -28512,15 +28327,15 @@
           puttsTracked = true;
         }
         if (h.par > 3) {
-          firEligible++;
-          if (src.fir === true)  { e.fir = true; firHit++; }
-          else if (src.fir === false) { e.fir = false; }
+          // Only count toward eligible when user recorded a value.
+          // Matches live-round logic: null/undefined = not recorded, excluded.
+          if (src.fir === true)  { e.fir = true;  firEligible++; firHit++; }
+          else if (src.fir === false) { e.fir = false; firEligible++; }
           // undefined = not tracked for this hole — leave off
         }
-        // GIR applies to every hole
-        girEligible++;
-        if (src.gir === true)  { e.gir = true; girHit++; }
-        else if (src.gir === false) { e.gir = false; }
+        // GIR applies to every hole, same null-excluded treatment
+        if (src.gir === true)  { e.gir = true;  girEligible++; girHit++; }
+        else if (src.gir === false) { e.gir = false; girEligible++; }
         totalStrokes += src.strokes;
         scoresOut[h.number] = e;
       }
@@ -30784,9 +30599,9 @@
           ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
           : '';
         const firCell = (hd?.par === 3) ? '<span class="rs-cell-dim">—</span>' :
-          (e.fir === undefined ? '<span class="rs-cell-dim">—</span>' :
+          (e.fir == null ? '<span class="rs-cell-dim">—</span>' :
            e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
-        const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
+        const girCell = e.gir == null ? '<span class="rs-cell-dim">—</span>' :
           e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
         // Penalty indicator on the score cell — small superscript dot
         // count if the user logged any penalties for this hole. Tasteful
@@ -33991,9 +33806,9 @@
           ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
           : '';
         const firCell = hd.par === 3 ? '<span class="rs-cell-dim">—</span>' :
-          (e.fir === undefined ? '<span class="rs-cell-dim">—</span>' :
+          (e.fir == null ? '<span class="rs-cell-dim">—</span>' :
            e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
-        const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
+        const girCell = e.gir == null ? '<span class="rs-cell-dim">—</span>' :
           e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
         // Penalty marker on the score cell. Compact warning glyph
         // shows count when > 1; just the icon when 1. Title attribute
