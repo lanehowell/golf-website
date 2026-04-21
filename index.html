@@ -2596,6 +2596,49 @@
     text-align: center;
   }
 
+  /* Badge sits next to the player name — "Organizer" (orange) or
+     "You" (neutral). Compact pill with mono font. */
+  .lobby-player-badge {
+    display: inline-block;
+    margin-left: var(--space-2);
+    padding: 2px var(--space-2);
+    background: var(--color-orange);
+    color: var(--color-white);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+    vertical-align: middle;
+  }
+  /* Tee chip — secondary metadata, muted color to step back from the name. */
+  .lobby-player-tee {
+    display: inline-block;
+    margin-left: var(--space-2);
+    padding: 2px var(--space-2);
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+    border-radius: var(--radius-sm);
+    vertical-align: middle;
+    border: 1px solid var(--border-light);
+  }
+  /* Start-round replacement text — when the organizer's Start button
+     isn't available yet (zero players, etc.) or when non-organizers
+     are waiting for the organizer to start. Centered, muted. */
+  .lobby-start-hint {
+    padding: var(--space-4);
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
   .lobby-actions {
     display: flex;
     flex-direction: column;
@@ -3174,6 +3217,27 @@
     border-radius: var(--radius-xl);
     padding: var(--space-6) var(--space-5);
     box-shadow: var(--shadow-sm);
+  }
+
+  /* Hole transition animations — a short slide-in on the card when
+     the user advances to the next hole (forward) or goes back to the
+     previous one (back). Direction-specific so the motion matches the
+     conceptual direction: forward = enters from the right, back =
+     enters from the left. Subtle fade paired with the translate so
+     it reads as "the hole changed" without being distracting. */
+  .round-card.is-slide-forward {
+    animation: round-card-slide-forward 260ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  .round-card.is-slide-back {
+    animation: round-card-slide-back 260ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  @keyframes round-card-slide-forward {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes round-card-slide-back {
+    from { opacity: 0; transform: translateX(-24px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
 
   /* Hole header section (inside the card) */
@@ -3936,6 +4000,17 @@
   #panel-round,
   #panel-group-round {
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    /* Contain the hole-card slide-in animation (translateX from 24px
+       off-screen) so it can't trigger a horizontal scrollbar or
+       viewport reflow. Without this, iOS Safari would sometimes
+       reflow the viewport mid-animation, stranding the fixed-position
+       action bar in the wrong spot.
+       Using `clip` (iOS 16+, Chrome 90+) so no scroll container is
+       created; `hidden` is the fallback for older browsers — it
+       works equally well for this case since we never want to
+       scroll sideways within the round. */
+    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* ── Tools sheet: semi-transparent backdrop + sliding bottom sheet.
@@ -14793,7 +14868,8 @@
     /* On the round panel, the bottom nav hides but banner + topbar stay.
        Just remove the bottom-nav-reserved padding so content can extend
        to the real bottom of the viewport. */
-    body[data-current-panel="round"] {
+    body[data-current-panel="round"],
+    body[data-current-panel="group-round"] {
       padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     }
     /* Neutralize the heavy vertical padding desktop needed around main */
@@ -14825,72 +14901,159 @@
     }
 
     /* ── Round-panel focus mode ──────────────────────────────
-       While the round screen is active, we hide chrome so the
-       hole card gets the full visual weight. Specifically:
-       - The "Round in progress" orange banner is suppressed (you're
-         already on the round; having "Resume" / "End" buttons pointing
-         at the thing you're currently looking at is redundant).
-       - The topbar title ("Round") is hidden; only the back arrow
-         remains. This is a deliberate minimalist treatment — the
-         hole card inside the panel already makes context obvious.
-       - All the top-padding math the body uses to reserve room for
-         the banner gets collapsed so the back-arrow sits right
-         under the safe area.
-       Swap the panel attribute to anything else and the chrome
-       comes back — this is fully toggleable via data-current-panel. */
-    body[data-current-panel="round"] {
+       While the round screen is active (solo OR group), we hide chrome
+       so the hole card gets the full visual weight. Applies to both
+       'round' and 'group-round' panel ids — same treatment. */
+    body[data-current-panel="round"],
+    body[data-current-panel="group-round"] {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
     }
-    body[data-current-panel="round"] #round-banner {
+    body[data-current-panel="round"] #round-banner,
+    body[data-current-panel="group-round"] #round-banner {
       display: none !important;
     }
-    body[data-current-panel="round"] .mobile-topbar {
+    body[data-current-panel="round"] .mobile-topbar,
+    body[data-current-panel="group-round"] .mobile-topbar {
       top: 0 !important;
       border-bottom: none;
       background: transparent;
     }
-    body[data-current-panel="round"] .mobile-topbar-title {
+    body[data-current-panel="round"] .mobile-topbar-title,
+    body[data-current-panel="group-round"] .mobile-topbar-title {
       display: none;
     }
-    /* On the round screen, swap the back arrow for a circled-X glyph.
-       The HTML still renders a <span>←</span>, so we hide the text
-       node (font-size: 0) and paint a centered SVG via background-image
-       on the button itself. SVG is drawn as a single path at 24×24
-       (circle + two diagonal strokes) so stroke width and centering
-       are geometrically perfect — no font metrics or line-height
-       shifting the glyph. The SVG uses currentColor so it picks up
-       the button's color from the parent. */
-    body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow {
+    /* Swap the back arrow for a circled-X glyph on both round screens.
+       The button's <span> holds an ← character in HTML; we blank it
+       out via font-size: 0 and paint a centered SVG via background
+       image. Drawing the X as SVG (not a font glyph) keeps centering
+       and stroke thickness geometrically perfect. Two color variants
+       for light and dark modes. */
+    body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow,
+    body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow {
       font-size: 0;
       line-height: 0;
     }
-    body[data-current-panel="round"] .mobile-topbar-back {
+    body[data-current-panel="round"] .mobile-topbar-back,
+    body[data-current-panel="group-round"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
       background-size: 28px 28px;
     }
-    html.dark body[data-current-panel="round"] .mobile-topbar-back {
+    html.dark body[data-current-panel="round"] .mobile-topbar-back,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
     }
-    /* Touch feedback: slight darken on press (reuses existing bg rule
-       territory). We skip hover because of the global hover-suppression
-       on touch devices. */
-    body[data-current-panel="round"] .mobile-topbar-back:active {
-      opacity: 0.7;
+    body[data-current-panel="round"] .mobile-topbar-back:active,
+    body[data-current-panel="group-round"] .mobile-topbar-back:active {
+      opacity: 0.6;
+    }
+    /* Live indicator — right-aligned in the topbar, visible only on
+       round screens (solo OR group). Pulsing orange dot + "LIVE" label
+       signals that a round is actively being tracked. */
+    .mobile-topbar-live {
+      display: none;
+      align-items: center;
+      gap: var(--space-2);
+      position: absolute;
+      right: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--weight-semibold);
+      letter-spacing: var(--tracking-widest);
+      text-transform: uppercase;
+      color: var(--color-orange);
+      pointer-events: none;
+    }
+    body[data-current-panel="round"] .mobile-topbar-live,
+    body[data-current-panel="group-round"] .mobile-topbar-live {
+      display: inline-flex;
+    }
+    .mobile-topbar-live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-orange);
+      box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.5);
+      animation: topbar-live-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes topbar-live-pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.55);
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(232, 93, 4, 0);
+      }
     }
 
-    /* Shift round-panel content to the very top — no scrolling beyond
-       the content itself. The default .panel padding adds vertical room
-       that's unnecessary here since we've already trimmed the chrome
-       above. Combined with the fact that we killed bottom padding
-       earlier (for the action bar safe area), this lets the full hole
-       card sit within one viewport on typical phones. */
-    body[data-current-panel="round"] #panel-round {
-      padding-top: 0;
+    /* Top-level tab panels — the bottom nav already labels which tab
+       you're on, so the redundant topbar title just eats vertical
+       space. Hide the title text, back button, border, and background
+       on Play/Practice/Train(Today)/Social/Profile so the topbar strip
+       visually disappears. Topbar node stays in the DOM to reserve the
+       safe-area inset at the top (prevents content from running under
+       the notch / status bar). Drilling into a sub-panel brings the
+       chrome back automatically. */
+    body[data-current-panel="play"] .mobile-topbar-title,
+    body[data-current-panel="practice"] .mobile-topbar-title,
+    body[data-current-panel="today"] .mobile-topbar-title,
+    body[data-current-panel="social"] .mobile-topbar-title,
+    body[data-current-panel="profile"] .mobile-topbar-title,
+    body[data-current-panel="play"] .mobile-topbar-back,
+    body[data-current-panel="practice"] .mobile-topbar-back,
+    body[data-current-panel="today"] .mobile-topbar-back,
+    body[data-current-panel="social"] .mobile-topbar-back,
+    body[data-current-panel="profile"] .mobile-topbar-back {
+      display: none;
     }
-    body[data-current-panel="round"] #round-mount > :first-child {
-      margin-top: 0;
+    body[data-current-panel="play"] .mobile-topbar,
+    body[data-current-panel="practice"] .mobile-topbar,
+    body[data-current-panel="today"] .mobile-topbar,
+    body[data-current-panel="social"] .mobile-topbar,
+    body[data-current-panel="profile"] .mobile-topbar {
+      border-bottom: none;
+      background: transparent;
+    }
+    /* Since the topbar on top-level tabs is now visually empty, collapse
+       the reserved topbar-height padding down to just the safe-area
+       inset. If a session/round banner is active, its height is still
+       reserved (banner is fixed at the top and we want content below). */
+    body[data-current-panel="play"]:not(.round-active):not(.session-active),
+    body[data-current-panel="practice"]:not(.round-active):not(.session-active),
+    body[data-current-panel="today"]:not(.round-active):not(.session-active),
+    body[data-current-panel="social"]:not(.round-active):not(.session-active),
+    body[data-current-panel="profile"]:not(.round-active):not(.session-active) {
+      padding-top: env(safe-area-inset-top, 0px) !important;
+    }
+    body[data-current-panel="play"].round-active,
+    body[data-current-panel="practice"].round-active,
+    body[data-current-panel="today"].round-active,
+    body[data-current-panel="social"].round-active,
+    body[data-current-panel="profile"].round-active,
+    body[data-current-panel="play"].session-active,
+    body[data-current-panel="practice"].session-active,
+    body[data-current-panel="today"].session-active,
+    body[data-current-panel="social"].session-active,
+    body[data-current-panel="profile"].session-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+    }
+    body[data-current-panel="play"].round-active.session-active,
+    body[data-current-panel="practice"].round-active.session-active,
+    body[data-current-panel="today"].round-active.session-active,
+    body[data-current-panel="social"].round-active.session-active,
+    body[data-current-panel="profile"].round-active.session-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+    }
+    /* Trim the default panel top padding on top-level tabs for a slight
+       extra nudge upward. */
+    body[data-current-panel="play"] .panel.active,
+    body[data-current-panel="practice"] .panel.active,
+    body[data-current-panel="today"] .panel.active,
+    body[data-current-panel="social"] .panel.active,
+    body[data-current-panel="profile"] .panel.active {
+      padding-top: var(--space-3);
     }
 
     /* --- Top title bar --- */
@@ -15172,6 +15335,13 @@
       <span class="mobile-topbar-back-arrow">←</span>
     </button>
     <h1 class="mobile-topbar-title" id="mobile-topbar-title">Today</h1>
+    <!-- Live indicator — shown only on the round panel (via CSS). A pulsing
+         orange dot with "LIVE" label, right-aligned, signals the user is
+         currently in a live round. Decorative; taps fall through. -->
+    <div class="mobile-topbar-live" aria-hidden="true">
+      <span class="mobile-topbar-live-dot"></span>
+      <span class="mobile-topbar-live-label">Live</span>
+    </div>
     <span class="mobile-topbar-spacer" aria-hidden="true"></span>
   </div>
 </header>
@@ -22125,6 +22295,144 @@
   // Track invites we've sent this session for UX feedback
   const __groupRoundInvitesSent = new Set();
 
+  // ─────────────────────────────────────────────────────────────
+  // Group-round lobby render — populates #group-lobby-mount with the
+  // pre-round assembly UI. Shown after createGroupRoundFromCourse
+  // creates the doc, after invitees accept an invite, and any time
+  // the user navigates to the 'group-lobby' panel.
+  //
+  // Layout:
+  //   - Status header: course + tee + date
+  //   - Players list (organizer highlighted, kick button on others
+  //     if current user is organizer)
+  //   - Invite Friends section (delegated to renderLobbyFriendsList)
+  //   - Start Round CTA (organizer-only; flips status to in-progress
+  //     and navigates to the group-round panel)
+  //   - Leave Round link (all players)
+  //
+  // Called on: panel entry, after invite-send, after kick, after
+  // the realtime subscription fires an updated doc.
+  // ─────────────────────────────────────────────────────────────
+  function renderGroupLobby() {
+    const mount = document.getElementById('group-lobby-mount');
+    if (!mount) return;
+    const gr = groupRoundState.doc;
+    if (!gr) {
+      // No active lobby — bounce back to Play landing.
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>No group round in progress</h2>
+          <p class="panel-desc">Start one from a course page.</p>
+        </div>
+        <button class="course-detail-cta" onclick="showPanel('play', null)">Go to Play →</button>`;
+      return;
+    }
+
+    const course = getCourse(gr.courseId);
+    const courseName = course ? course.name : (gr.courseName || 'Course');
+    const isOrganizer = gr.organizerUid === currentUser?.uid;
+    const players = Array.isArray(gr.players) ? gr.players : [];
+    const playerUidsSet = new Set(players.map(p => p.uid));
+
+    // Format the round date/time naturally. Firestore stores startTime
+    // as a millisecond timestamp; display as local time-of-day.
+    let timeStr = '';
+    try {
+      const d = new Date(gr.startTime);
+      timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch (_) { /* fall through */ }
+
+    // Player rows — organizer badge, my-self label, kick button for
+    // others when current user is organizer.
+    const playerRows = players.map(p => {
+      const isMe = p.uid === currentUser?.uid;
+      const isOrg = p.uid === gr.organizerUid;
+      const name = p.usernameDisplay || p.username || p.displayName || 'Player';
+      const teeLabel = p.tee ? `<span class="lobby-player-tee">${escapeHtml(p.tee)}</span>` : '';
+      const orgBadge = isOrg ? `<span class="lobby-player-badge">Organizer</span>` : '';
+      const meBadge = isMe && !isOrg ? `<span class="lobby-player-badge">You</span>` : '';
+      // Kick button: only if I'm the organizer AND the player isn't me.
+      const kickBtn = (isOrganizer && !isMe)
+        ? `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`
+        : '';
+      return `
+        <div class="lobby-player-row">
+          <div class="lobby-player-info">
+            <span class="lobby-player-name">${escapeHtml(name)}</span>
+            ${orgBadge}
+            ${meBadge}
+            ${teeLabel}
+          </div>
+          ${kickBtn}
+        </div>`;
+    }).join('');
+
+    // Start button visibility: only organizer can start, and only
+    // when at least one player (the organizer themselves) exists.
+    // Status check guards against double-start clicks racing with
+    // the subscription callback.
+    const canStart = isOrganizer && gr.status === 'lobby' && players.length >= 1;
+    const startBtnHtml = canStart
+      ? `<button class="course-detail-cta" onclick="startGroupRoundFromLobby()">Start Round →</button>`
+      : (isOrganizer
+          ? `<div class="lobby-start-hint">Waiting for players…</div>`
+          : `<div class="lobby-start-hint">Waiting for organizer to start</div>`);
+
+    mount.innerHTML = `
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Group Round Lobby</span>
+        <h2>${escapeHtml(courseName)}</h2>
+        <p class="panel-desc">${timeStr ? 'Starting ' + escapeHtml(timeStr) + ' · ' : ''}${players.length} player${players.length === 1 ? '' : 's'} joined</p>
+      </div>
+
+      <div class="lobby-section">
+        <div class="lobby-section-label">Players</div>
+        <div class="lobby-players">${playerRows}</div>
+      </div>
+
+      ${renderLobbyFriendsList(playerUidsSet)}
+
+      <div class="lobby-actions">
+        ${startBtnHtml}
+        <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">Leave Round</button>
+      </div>
+    `;
+  }
+
+  // Organizer-only: flip the group round from 'lobby' to 'in-progress'
+  // and navigate to the live scorecard. The doc-level status change
+  // fan-outs to all other players via the onSnapshot subscription,
+  // so their lobby automatically transitions to the in-progress view.
+  async function startGroupRoundFromLobby() {
+    if (!currentUser || !isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (gr.organizerUid !== currentUser.uid) {
+      showToast('Only the organizer can start the round', true);
+      return;
+    }
+    if (gr.status !== 'lobby') {
+      // Already started (possibly by another tab / a racing click).
+      // Just navigate to the in-progress view.
+      groupRoundState.yourHoleIndex = 0;
+      showPanel('group-round', null);
+      return;
+    }
+    try {
+      await window.fb.updateGroupRoundFields(gr.id, { status: 'in-progress' });
+      // Optimistically mutate the local copy so the next render
+      // picks up the new status without waiting for the snapshot.
+      groupRoundState.doc = { ...gr, status: 'in-progress' };
+      groupRoundState.yourHoleIndex = 0;
+      updateRoundBanner();
+      showPanel('group-round', null);
+    } catch (err) {
+      console.error('Failed to start group round:', err);
+      showToast('Could not start round', true);
+    }
+  }
+
   function renderLobbyFriendsList(playerUidsSet) {
     if (!friendsList || friendsList.length === 0) {
       return `
@@ -22441,6 +22749,9 @@
     if (groupRoundState.yourHoleIndex < course.holes.length - 1) {
       groupRoundState.yourHoleIndex += 1;
       saveGroupRoundCursor();
+      // Slide-animation hint for the next render. 'forward' = new hole
+      // slides in from the right, same as solo round.
+      groupRoundState._holeSlideDirection = 'forward';
       renderGroupRoundPanel();
     } else {
       // Last hole — prompt to finish YOUR round. Others continue playing.
@@ -22459,6 +22770,8 @@
       }
       groupRoundState.yourHoleIndex -= 1;
       saveGroupRoundCursor();
+      // Slide-in from the left when going back, matching the solo path.
+      groupRoundState._holeSlideDirection = 'back';
       renderGroupRoundPanel();
     }
   }
@@ -22905,6 +23218,18 @@
       groupRoundState.yourHoleIndex = 0;
     }
 
+    // Read and clear the hole-transition direction hint set by
+    // grSaveAndNext / grGoPreviousHole. Drives the same slide-in
+    // animation on the hole card as the solo round. Cleared
+    // immediately so in-hole re-renders (steppers, toggles) don't
+    // re-trigger the animation.
+    const holeSlideClass = groupRoundState._holeSlideDirection === 'forward'
+      ? ' is-slide-forward'
+      : groupRoundState._holeSlideDirection === 'back'
+      ? ' is-slide-back'
+      : '';
+    groupRoundState._holeSlideDirection = null;
+
     // Branch on view mode — scorecard is a full grid, one-hole is the
     // per-hole card UI. Both share the same data, just render differently.
     if (groupRoundState.viewMode === 'scorecard') {
@@ -23018,7 +23343,7 @@
       </div>
 
       <!-- Unified hole card — matches solo round's layout -->
-      <div class="round-card">
+      <div class="round-card${holeSlideClass}">
         <div class="round-card-head">
           <div class="round-hole-num">Hole ${holeNum}</div>
           <div class="round-hole-meta">
@@ -23192,6 +23517,18 @@
     const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
     const throughCount = playedHoles.length;
 
+    // Read and clear the hole-transition direction hint set by
+    // saveAndNext / goPreviousHole. The class drives a short slide-in
+    // animation on the card so the user sees the hole change. We clear
+    // immediately so subsequent in-hole renders (stepper taps, toggles)
+    // don't re-trigger the animation.
+    const holeSlideClass = roundState._holeSlideDirection === 'forward'
+      ? ' is-slide-forward'
+      : roundState._holeSlideDirection === 'back'
+      ? ' is-slide-back'
+      : '';
+    roundState._holeSlideDirection = null;
+
     mount.innerHTML = `
       <!-- Status strip — slim context bar above the card -->
       <div class="round-status">
@@ -23206,7 +23543,7 @@
       </div>
 
       <!-- Unified hole card — contains all entry controls for this hole -->
-      <div class="round-card">
+      <div class="round-card${holeSlideClass}">
         <!-- Hole header section (inside the card) -->
         <div class="round-card-head">
           <div class="round-hole-num">Hole ${holeNum}</div>
@@ -24962,6 +25299,11 @@
       // Caddie target is hole-specific — reset for the new hole. Dock
       // stays open/closed based on user's expansion state.
       dockState.caddie.targetDistance = null;
+      // Hint for the renderer to add a slide-in animation on the hole
+      // card so the user sees the transition. 'forward' = card slides in
+      // from the right; 'back' = slides in from the left. Consumed and
+      // cleared inside renderRound.
+      roundState._holeSlideDirection = 'forward';
       renderRound();
       autoSaveRound(); // fire-and-forget; render doesn't wait on network
     } else {
@@ -24979,6 +25321,7 @@
     if (roundState.holeIndex > 0) {
       roundState.holeIndex -= 1;
       dockState.caddie.targetDistance = null;
+      roundState._holeSlideDirection = 'back';
       renderRound();
     }
   }
