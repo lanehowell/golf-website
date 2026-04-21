@@ -17042,10 +17042,43 @@
     // Also adds the uid to the top-level playerUids array so queries
     // and rules can use it.
     addGroupRoundPlayer: async (groupRoundId, player) => {
+      // Upsert via transaction: if a player record with this uid
+      // already exists (e.g. they joined, left mid-round, then got
+      // re-invited and accepted), MERGE that record's progress into
+      // the new join — scores + handicap + leftAtHole are preserved
+      // so the player picks up where they left off rather than
+      // starting fresh. The new record's identity fields (joinedAt,
+      // photoURL, etc.) win — the player may have updated their
+      // profile in the interim.
       const ref = doc(db, `groupRounds/${groupRoundId}`);
-      await updateDoc(ref, {
-        players: arrayUnion(player),
-        playerUids: arrayUnion(player.uid)
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw new Error('Group round not found');
+        const data = snap.data();
+        const existing = (data.players || []).find(p => p.uid === player.uid);
+        // Merge: start with the new join record, then overlay any
+        // preserved progress from the prior record (if any).
+        const merged = existing
+          ? {
+              ...player,
+              scores: existing.scores || {},
+              // Keep the original joinedAt so timeline + ordering
+              // reflect when they FIRST joined, not the re-join time.
+              joinedAt: existing.joinedAt || player.joinedAt,
+              // Re-joining always flips status back to 'active'
+              status: 'active',
+              // Clear leftAtHole on rejoin — they're back in
+              leftAtHole: null,
+            }
+          : player;
+        const others = (data.players || []).filter(p => p.uid !== player.uid);
+        const players = [...others, merged];
+        const playerUids = data.playerUids || [];
+        const update = { players };
+        if (!playerUids.includes(player.uid)) {
+          update.playerUids = [...playerUids, player.uid];
+        }
+        tx.update(ref, update);
       });
     },
 
@@ -22724,7 +22757,31 @@
       // at the hole you were last on. No explicit refresh needed —
       // showPanel will start the onSnapshot subscription which fires
       // an initial callback with the current doc state.
-      groupRoundState.yourHoleIndex = loadGroupRoundCursor();
+      //
+      // Edge case: a player who left and rejoined (or accepted from
+      // a different device than they originally played on) will have
+      // a stale/missing localStorage cursor. Fall back to the highest
+      // hole number they've actually scored — that's the natural
+      // "next hole" to land on.
+      const stored = loadGroupRoundCursor();
+      const me = getMyGroupRoundPlayer();
+      const course = getCourse(groupRoundState.doc.courseId);
+      let cursor = stored;
+      if (me && course) {
+        const playedHoleNums = Object.keys(me.scores || {}).map(Number).filter(n => !isNaN(n));
+        if (playedHoleNums.length) {
+          const maxPlayed = Math.max(...playedHoleNums);
+          // Hole numbers are 1-based; cursor is 0-based course.holes index.
+          const nextIdx = Math.min(maxPlayed, course.holes.length - 1);
+          // Use the max of stored and derived — whichever is further
+          // along. Protects both the rejoin case (stored=0, derived
+          // points at last played) AND the normal case (stored is
+          // accurate, derived might be lower if the user scored hole
+          // 5 then jumped back to hole 3 to fix a typo).
+          cursor = Math.max(stored, nextIdx);
+        }
+      }
+      groupRoundState.yourHoleIndex = cursor;
       showPanel('group-round', null);
     }
   }
@@ -22878,7 +22935,14 @@
     const courseLocation = course ? course.location : '';
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
-    const playerUidsSet = new Set(players.map(p => p.uid));
+    // Only ACTIVE players count as "in the round" for invite purposes.
+    // A friend who joined and then left should be invitable again — we
+    // don't want to lock them out just because their player record is
+    // still in the array (with status: 'left'). Same for 'completed'
+    // (their personal round is done; they're not playing anymore).
+    const playerUidsSet = new Set(
+      players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
+    );
 
     // Format the round date/time naturally. Firestore stores startTime
     // as a millisecond timestamp; display as local time-of-day.
@@ -26153,7 +26217,11 @@
     }
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
-    const playerUidsSet = new Set(players.map(p => p.uid));
+    // Only ACTIVE players count as "in the round" — a friend who left
+    // mid-round should be invitable again. (Same logic as the lobby.)
+    const playerUidsSet = new Set(
+      players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
+    );
 
     // Player rows — same shape as the lobby's, but only the organizer
     // sees the kick affordance, and not against themselves.
