@@ -14852,6 +14852,46 @@
     body[data-current-panel="round"] .mobile-topbar-title {
       display: none;
     }
+    /* On the round screen, swap the back arrow for a circled-X glyph.
+       The HTML still renders a <span>←</span>, so we hide the text
+       node (font-size: 0) and paint a centered SVG via background-image
+       on the button itself. SVG is drawn as a single path at 24×24
+       (circle + two diagonal strokes) so stroke width and centering
+       are geometrically perfect — no font metrics or line-height
+       shifting the glyph. The SVG uses currentColor so it picks up
+       the button's color from the parent. */
+    body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow {
+      font-size: 0;
+      line-height: 0;
+    }
+    body[data-current-panel="round"] .mobile-topbar-back {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 28px 28px;
+    }
+    html.dark body[data-current-panel="round"] .mobile-topbar-back {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
+    }
+    /* Touch feedback: slight darken on press (reuses existing bg rule
+       territory). We skip hover because of the global hover-suppression
+       on touch devices. */
+    body[data-current-panel="round"] .mobile-topbar-back:active {
+      opacity: 0.7;
+    }
+
+    /* Shift round-panel content to the very top — no scrolling beyond
+       the content itself. The default .panel padding adds vertical room
+       that's unnecessary here since we've already trimmed the chrome
+       above. Combined with the fact that we killed bottom padding
+       earlier (for the action bar safe area), this lets the full hole
+       card sit within one viewport on typical phones. */
+    body[data-current-panel="round"] #panel-round {
+      padding-top: 0;
+    }
+    body[data-current-panel="round"] #round-mount > :first-child {
+      margin-top: 0;
+    }
 
     /* --- Top title bar --- */
     .mobile-topbar {
