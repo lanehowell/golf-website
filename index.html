@@ -3138,6 +3138,148 @@
     text-align: center;
   }
 
+  /* Miss-direction row — appears below FIR/GIR chips when the chip
+     is set to "miss". Compact 4-button grid arranged in a horizontal
+     row. The label sits above so the buttons get the visual weight. */
+  .round-card-miss-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-orange-pale);
+    border: 1px solid rgba(232, 93, 4, 0.25);
+    border-radius: var(--radius-md);
+    animation: missRowFadeIn 200ms ease;
+  }
+  html.dark .round-card-miss-row {
+    background: rgba(232, 93, 4, 0.12);
+    border-color: rgba(232, 93, 4, 0.3);
+  }
+  @keyframes missRowFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .round-card-miss-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange-dark);
+  }
+  html.dark .round-card-miss-label {
+    color: var(--color-orange);
+  }
+  .round-card-miss-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+  }
+  .round-card-miss-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--space-2);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    color: var(--text-secondary);
+  }
+  .round-card-miss-btn:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .round-card-miss-btn.is-active {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+  }
+  .round-card-miss-btn:active {
+    transform: scale(0.95);
+  }
+  .round-card-miss-arrow {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+  }
+  .round-card-miss-label-text {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  /* Penalties row — collapsed (just an "+ Add penalty" link) by default
+     to stay out of the way on clean holes; expands to a full stepper
+     once the user records any penalty stroke. */
+  .round-card-penalties {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--border-light);
+  }
+  .round-card-penalties.is-active {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .round-card-penalties-add {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-card-penalties-add:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  html.dark .round-card-penalties-add:hover {
+    background: rgba(232, 93, 4, 0.12);
+  }
+  .round-card-penalties-label {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange-dark);
+  }
+  html.dark .round-card-penalties-label {
+    color: var(--color-orange);
+  }
+  .round-card-penalties-step {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .round-card-penalties-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    min-width: 28px;
+    text-align: center;
+  }
+
   /* Footer actions — primary CTA + secondary nav */
   .round-actions {
     margin-top: var(--space-8);
@@ -3346,12 +3488,79 @@
     box-shadow: 0 20px 48px rgba(13, 13, 13, 0.22), 0 4px 12px rgba(13, 13, 13, 0.12);
   }
 
+  /* ── Save & Next pill ────────────────────────────────────────
+     Sticky pill pinned above the dock, always thumb-reachable.
+     Same horizontal centering + width formula as the dock so the
+     two pills line up cleanly. Same border-radius (--radius-xl) as
+     the dock so the two pills read as a matched pair, not as
+     mismatched shapes. Hidden when the dock is expanded. */
+  .round-save-pill {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Sit just above the dock — dock occupies ~70px (its bar is
+       ~56px content + ~14px padding/border) starting at space-4
+       from the bottom, plus a comfortable visual gap. */
+    bottom: calc(var(--space-4) + 78px + env(safe-area-inset-bottom, 0px));
+    width: min(calc(100% - var(--space-5) * 2), 520px);
+    z-index: var(--z-raised);
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: 2px solid var(--color-orange);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow:
+      0 8px 24px var(--color-orange-glow),
+      0 2px 6px rgba(13, 13, 13, 0.12);
+    transition:
+      transform var(--transition-spring),
+      opacity var(--transition-base),
+      background var(--transition-fast),
+      box-shadow var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-save-pill:hover {
+    background: var(--color-orange-light);
+    border-color: var(--color-orange-light);
+    box-shadow:
+      0 10px 28px var(--color-orange-glow),
+      0 3px 8px rgba(13, 13, 13, 0.18);
+  }
+  .round-save-pill:active {
+    transform: translateX(-50%) scale(0.98);
+  }
+  /* Final hole — slightly darker treatment for "this commits the round" */
+  .round-save-pill.is-final {
+    background: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+  }
+  .round-save-pill.is-final:hover {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+  }
+  /* Hidden state when dock expands — fades + scales down so the
+     dock surface gets full focus during a tool interaction. */
+  .round-save-pill.is-hidden {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.92) translateY(8px);
+    pointer-events: none;
+  }
+
   /* Reserve space at the bottom of the round panel content so the
      dock never obscures Save & Next / other footer buttons. The dock
-     pill sits ~space-4 from the bottom and is ~56px tall, so we need
-     that plus its bottom offset plus safe-area. */
-  #panel-round {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+     pill sits ~space-4 from the bottom and is ~70px tall. Above the
+     dock sits the sticky Save pill (~52px tall + ~12px gap), so we
+     need to reserve enough so the inline secondary actions clear
+     both pills. */
+  #panel-round,
+  #panel-group-round {
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   }
 
   /* The expandable tool surface sits above the dock bar. Wrapped in a
@@ -4318,6 +4527,949 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     MY STATS PAGE — aggregate stats dashboard
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Filter bar — time-window pills + course select */
+  .stats-filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  .stats-time-bar {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .stats-time-pill {
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stats-time-pill:hover {
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+  .stats-time-pill.is-active {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+  }
+  .stats-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .stats-filter-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-filter-select {
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+    max-width: 320px;
+  }
+  .stats-filter-select:focus {
+    outline: none;
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px var(--color-orange-glow);
+  }
+
+  /* Sample size note above the cards — sets context for "based on" */
+  .stats-sample-note {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-regular);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    margin-bottom: var(--space-5);
+  }
+
+  /* Empty state when filters return no rounds */
+  .stats-empty-filtered {
+    text-align: center;
+    padding: var(--space-12) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+  }
+  .stats-empty-filtered-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .stats-empty-filtered-sub {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  /* Big stat cards — 4-up grid */
+  .stats-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-10);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     At-a-glance strip — compact 4-stat row that lives between
+     the filter bar and the tab bar. Always visible regardless
+     of selected tab so the headline numbers are never more than
+     a glance away.
+     ────────────────────────────────────────────────────────── */
+  .stats-glance {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+  }
+  .stats-glance-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    text-align: left;
+  }
+  .stats-glance-item + .stats-glance-item {
+    border-left: 1px solid var(--border-light);
+    padding-left: var(--space-3);
+  }
+  .stats-glance-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-glance-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stats-glance-suffix {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+  }
+  @media (max-width: 480px) {
+    .stats-glance {
+      padding: var(--space-3);
+    }
+    .stats-glance-item + .stats-glance-item {
+      padding-left: var(--space-2);
+    }
+    .stats-glance-value {
+      font-size: var(--text-base);
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     Tab bar — five skill tabs (Overview / Driving / Approach /
+     Putting / Scoring). Horizontal scroll on narrow screens
+     so labels stay full-text. Sits below the at-a-glance strip.
+     ────────────────────────────────────────────────────────── */
+  .stats-tabbar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--space-5);
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .stats-tabbar::-webkit-scrollbar { display: none; }
+  .stats-tab {
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: -1px;  /* overlap the tabbar's bottom border */
+  }
+  .stats-tab:hover {
+    color: var(--text-primary);
+  }
+  .stats-tab.is-active {
+    color: var(--color-orange);
+    border-bottom-color: var(--color-orange);
+  }
+
+  /* Tab content grid — 2 columns on desktop, 1 on mobile.
+     Each tab's cards drop into this grid so the layout is
+     consistent across tabs and reuses existing card styles. */
+  .stats-tab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  @media (max-width: 640px) {
+    .stats-tab-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* In-tab section labels — when a tab needs to group sub-sections
+     (e.g., Scoring tab has cards + then Average-by-par tiles below). */
+  .stats-tab-section-label {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  /* Card warn variant — subtle orange left-border treatment for
+     stats that are flagged as needing attention (high 3-putt rate,
+     high bogey rate, high penalty average, low up-and-down). */
+  .stats-card-warn {
+    border-left: 3px solid var(--color-orange);
+  }
+  .stats-card-warn .stats-card-headline-value {
+    color: var(--color-orange);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     MOBILE BUCKET LAYOUT (.stats-mb-*)
+     Dense, scrollable bucket cards used in place of tabs on
+     mobile viewports. Each card encapsulates one skill area
+     (Driving / Approach / Putting / Scoring) with all relevant
+     stats inline — no nested cards, no tab navigation.
+     Trades visual padding for data density.
+     ────────────────────────────────────────────────────────── */
+  .stats-mb-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .stats-mb-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-4);
+    box-shadow: var(--shadow-sm);
+  }
+  /* Bucket header — title left, headline value right. Both on
+     one line so the most important number is always at thumb
+     height. */
+  .stats-mb-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-2);
+  }
+  .stats-mb-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .stats-mb-headline {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-black);
+    color: var(--color-orange);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .stats-mb-headline-unit {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+    margin-left: 2px;
+  }
+  /* Supporting one-liner — Recent + Best inline */
+  .stats-mb-supporting {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+  }
+  /* Subhead inside a bucket card — for "Miss patterns" or
+     "Average by par" sub-sections. Smaller than the main title. */
+  .stats-mb-subhead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .stats-mb-subhead-note {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-regular);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    text-transform: none;
+  }
+  .stats-mb-empty {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+    padding: var(--space-2) 0;
+    font-style: italic;
+  }
+  /* Compact miss-direction list inside a bucket card */
+  .stats-mb-miss-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .stats-mb-miss-row {
+    display: grid;
+    grid-template-columns: 14px 42px 1fr 32px;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+  }
+  .stats-mb-miss-arrow {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1;
+  }
+  .stats-mb-miss-label {
+    font-family: var(--font-body);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+  }
+  .stats-mb-miss-bar {
+    height: 6px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .stats-mb-miss-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-orange), var(--color-orange-light));
+    border-radius: var(--radius-pill);
+    transition: width var(--transition-slow);
+  }
+  .stats-mb-miss-pct {
+    font-family: var(--font-mono);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    text-align: right;
+  }
+  /* Mini stat tiles inside a bucket card — used for 1-putt/3-putt,
+     birdie/bogey/penalty — a tight 2- or 3-up grid */
+  .stats-mb-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+  .stats-mb-mini {
+    background: var(--bg-surface);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+    border-top: 2px solid transparent;
+  }
+  .stats-mb-mini.is-warn {
+    border-top-color: var(--color-orange);
+  }
+  .stats-mb-mini-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: 2px;
+  }
+  .stats-mb-mini.is-warn .stats-mb-mini-value {
+    color: var(--color-orange);
+  }
+  .stats-mb-mini-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  /* Per-par mini-tiles — three small squares for Par 3/4/5 */
+  .stats-mb-par-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+  }
+  .stats-mb-par-mini {
+    background: var(--bg-surface);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+    text-align: center;
+    border-top: 2px solid transparent;
+  }
+  .stats-mb-par-mini.is-under { border-top-color: #2D6E34; }
+  .stats-mb-par-mini.is-even  { border-top-color: var(--border-medium); }
+  .stats-mb-par-mini.is-over  { border-top-color: var(--color-orange); }
+  .stats-mb-par-mini-empty {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+  .stats-mb-par-mini-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-mb-par-mini-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .stats-mb-par-mini.is-under .stats-mb-par-mini-value { color: #2D6E34; }
+  .stats-mb-par-mini.is-over  .stats-mb-par-mini-value { color: var(--color-orange); }
+  .stats-mb-par-mini-vs {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .stats-mb-par-mini.is-under .stats-mb-par-mini-vs { color: #2D6E34; }
+  .stats-mb-par-mini.is-over  .stats-mb-par-mini-vs { color: var(--color-orange-dark); }
+  html.dark .stats-mb-par-mini.is-under .stats-mb-par-mini-value,
+  html.dark .stats-mb-par-mini.is-under .stats-mb-par-mini-vs { color: #7FC088; }
+
+
+  .stats-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .stats-card-primary {
+    border-color: rgba(232, 93, 4, 0.3);
+    background: linear-gradient(180deg, var(--color-orange-pale) 0%, var(--bg-elevated) 60%);
+  }
+  html.dark .stats-card-primary {
+    background: linear-gradient(180deg, rgba(232, 93, 4, 0.12) 0%, var(--bg-elevated) 60%);
+  }
+  .stats-card-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-card-headline {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .stats-card-headline-value {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-black);
+    line-height: 1;
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .stats-card-primary .stats-card-headline-value {
+    color: var(--color-orange);
+  }
+  .stats-card-headline-suffix {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+  }
+  .stats-card-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--space-3);
+  }
+  .stats-card-foot {
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .stats-card-foot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+  .stats-card-foot-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-card-foot-val {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .stats-card-foot-vs {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .stats-card-foot-best .stats-card-foot-label,
+  .stats-card-foot-best .stats-card-foot-val {
+    color: var(--color-orange);
+  }
+
+  /* Distribution / rate cards — second section */
+  .stats-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .stats-section-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+    flex-shrink: 0;
+  }
+  .stats-section-note {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: right;
+    min-width: 0;
+  }
+  @media (max-width: 560px) {
+    .stats-section-note {
+      text-align: left;
+      flex-basis: 100%;
+    }
+  }
+  .stats-rate-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .stats-rate-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+  }
+  .stats-rate-card-warn {
+    border-left: 3px solid var(--color-orange);
+  }
+  .stats-rate-value {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-black);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: var(--space-1);
+  }
+  .stats-rate-card-warn .stats-rate-value {
+    color: var(--color-orange);
+  }
+  .stats-rate-label {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .stats-rate-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     Average-by-par section. Three tiles in a row (Par 3 / 4 / 5)
+     each showing avg score, vs-par, and sample size. Tone tinted
+     by whether you score under / at / over par for that hole type.
+     ────────────────────────────────────────────────────────── */
+  .stats-par-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .stats-par-tile {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-left: 3px solid transparent;
+  }
+  .stats-par-tile.is-under {
+    border-left-color: #2D6E34;
+  }
+  .stats-par-tile.is-even {
+    border-left-color: var(--border-medium);
+  }
+  .stats-par-tile.is-over {
+    border-left-color: var(--color-orange);
+  }
+  .stats-par-tile-empty {
+    background: var(--bg-surface);
+    border-style: dashed;
+    box-shadow: none;
+    opacity: 0.6;
+  }
+  .stats-par-tile.is-low-sample {
+    opacity: 0.85;
+  }
+  .stats-par-tile-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stats-par-tile-value {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-black);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+    margin-top: 2px;
+  }
+  .stats-par-tile.is-under .stats-par-tile-value {
+    color: #2D6E34;
+  }
+  .stats-par-tile.is-over .stats-par-tile-value {
+    color: var(--color-orange);
+  }
+  html.dark .stats-par-tile.is-under .stats-par-tile-value {
+    color: #7FC088;
+  }
+  .stats-par-tile-vs {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .stats-par-tile.is-under .stats-par-tile-vs {
+    color: #2D6E34;
+  }
+  .stats-par-tile.is-over .stats-par-tile-vs {
+    color: var(--color-orange-dark);
+  }
+  html.dark .stats-par-tile.is-under .stats-par-tile-vs {
+    color: #7FC088;
+  }
+  html.dark .stats-par-tile.is-over .stats-par-tile-vs {
+    color: var(--color-orange);
+  }
+  .stats-par-tile-sub {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-regular);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+  }
+  @media (max-width: 480px) {
+    .stats-par-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-2);
+    }
+    .stats-par-tile {
+      padding: var(--space-3);
+    }
+    .stats-par-tile-value {
+      font-size: var(--text-2xl);
+    }
+  }
+
+  /* Miss-direction breakdown card — used in My Stats Miss Patterns
+     section. Renders 4 horizontal bars (left/right/short/long) with
+     percentage + count per direction. Distinct from the rate cards
+     because it's about distribution, not a single number. */
+  .stats-miss-dir-card {
+    grid-column: span 1;
+  }
+  .miss-dir-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+  .miss-dir-row {
+    display: grid;
+    grid-template-columns: 18px 50px 1fr 36px 24px;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+  }
+  .miss-dir-row-arrow {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .miss-dir-row-label {
+    font-family: var(--font-body);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .miss-dir-bar {
+    height: 8px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .miss-dir-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-orange), var(--color-orange-light));
+    border-radius: var(--radius-pill);
+    transition: width var(--transition-slow);
+  }
+  .miss-dir-row-pct {
+    font-family: var(--font-mono);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    text-align: right;
+  }
+  .miss-dir-row-n {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-align: right;
+  }
+  /* In-card sample note — sits at the bottom of each miss-pattern
+     card so the user always knows what % the bars are based on. */
+  .miss-dir-sample {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-regular);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+  }
+  /* Empty-state variant when no direction data is logged for this
+     category yet — shown beside a populated card so users see both
+     side-by-side. Visual contrast: dashed border, dimmer text. */
+  .stats-miss-dir-card-empty {
+    background: var(--bg-surface);
+    border-style: dashed;
+    border-color: var(--border-medium);
+    box-shadow: none;
+  }
+  .stats-miss-dir-empty-headline {
+    color: var(--text-muted);
+    font-weight: var(--weight-bold);
+  }
+  .stats-miss-dir-empty-msg {
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--border-light);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+
+  /* Entry button on the Rounds list — leads into My Stats */
+  .stats-entry-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--color-orange);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-5);
+    cursor: pointer;
+    text-align: left;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stats-entry-btn:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .stats-entry-btn-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    border-radius: var(--radius-sm);
+  }
+  html.dark .stats-entry-btn-icon {
+    background: rgba(232, 93, 4, 0.18);
+  }
+  .stats-entry-btn-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .stats-entry-btn-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .stats-entry-btn-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .stats-entry-btn-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+  .stats-entry-btn-arrow {
+    color: var(--color-orange);
+    font-size: var(--text-lg);
+    flex-shrink: 0;
+  }
+
+  /* Play landing "View detailed stats →" link below the 4-stat strip */
+  .play-stats-link {
+    display: inline-block;
+    margin-top: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .play-stats-link:hover {
+    color: var(--color-orange-light);
+  }
+
+  @media (max-width: 560px) {
+    .stats-card-grid,
+    .stats-rate-grid {
+      grid-template-columns: 1fr;
+    }
+    .stats-card-headline-value {
+      font-size: var(--text-3xl);
+    }
+    .stats-rate-value {
+      font-size: var(--text-2xl);
+    }
+    .stats-time-pill {
+      flex: 1 0 calc(50% - var(--space-1));
+      text-align: center;
+      padding: var(--space-3) var(--space-3);
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      QUICK SCORE FORM — backfill past rounds
      ══════════════════════════════════════════════════════════════ */
   .quick-score-form {
@@ -5256,6 +6408,35 @@
   }
   .rs-cell-dim {
     color: var(--text-muted);
+  }
+  /* Direction glyph after a miss — small arrow showing where the
+     fairway/green was missed. Slightly muted so it reads as metadata. */
+  .rs-cell-dir {
+    font-family: var(--font-display);
+    font-size: 0.85em;
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    margin-left: 1px;
+    opacity: 0.85;
+  }
+  /* Penalty marker — appended to the score cell. Compact warning glyph
+     paired with the count when more than one. */
+  .rs-cell-pen {
+    display: inline-block;
+    margin-left: var(--space-1);
+    padding: 0 4px;
+    background: rgba(232, 93, 4, 0.12);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.65em;
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange-dark);
+    vertical-align: middle;
+    cursor: help;
+  }
+  html.dark .rs-cell-pen {
+    background: rgba(232, 93, 4, 0.22);
+    color: var(--color-orange);
   }
 
   /* ── Quick jump grid ──────────────────────────────────────── */
@@ -13216,6 +14397,18 @@
       <div id="rounds-page-mount"></div>
     </section>
 
+    <!-- ═══════════════ MY STATS ═══════════════ -->
+    <section class="panel" id="panel-my-stats">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Performance</span>
+        <h2>My <em>Stats</em></h2>
+        <p class="panel-desc">Aggregate stats across every round you've played. Filter by course or time window to spot trends.</p>
+      </div>
+      <div id="my-stats-mount"></div>
+    </section>
+
     <!-- ═══════════════ PRACTICE ═══════════════ -->
     <section class="panel" id="panel-practice">
       <div class="panel-head">
@@ -15461,6 +16654,7 @@
       : 'Workout';
     if (id === 'bag')            return 'My Bag';
     if (id === 'rounds')         return 'All Rounds';
+    if (id === 'my-stats')       return 'My Stats';
     if (id === 'quick-score')    return quickScoreState.editingId ? 'Edit Round' : 'Quick Score';
     if (id === 'user-profile')   return 'Profile';
     if (id === 'public-round')   return 'Round';
@@ -15474,7 +16668,8 @@
   function mobileActiveTab(id) {
     if (id === 'play' || id === 'courses' || id === 'course-detail' ||
         id === 'round' || id === 'round-summary' || id === 'rounds' ||
-        id === 'quick-score') return 'play';
+        id === 'my-stats' ||
+        id === 'quick-score' || id === 'group-lobby' || id === 'group-round') return 'play';
     if (id === 'practice' || id === 'range-session' ||
         id === 'range-history' || id === 'range-session-detail' ||
         id === 'range-session-club-detail' ||
@@ -15491,7 +16686,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'my-stats', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'social', 'user-profile', 'public-round', 'profile', 'bag'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -15581,6 +16776,7 @@
     if (id === 'play') renderPlayLanding();
     if (id === 'bag') renderBagPage();
     if (id === 'rounds') renderRoundsPage();
+    if (id === 'my-stats') renderMyStatsPage();
     if (id === 'quick-score') {
       // Reset the form on every fresh entry so returning after a save
       // (or cancel) doesn't show stale values. But if editingId is set,
@@ -15666,6 +16862,7 @@
   function inferNavTab(panelId) {
     if (panelId === 'play' || panelId === 'courses' || panelId === 'course-detail' ||
         panelId === 'round' || panelId === 'round-summary' || panelId === 'rounds' ||
+        panelId === 'my-stats' ||
         panelId === 'quick-score' || panelId === 'group-lobby' || panelId === 'group-round') {
       return document.getElementById('nav-play');
     }
@@ -15708,6 +16905,8 @@
     'round-summary': 'play',
     // All-rounds history list — sibling to Courses under Play.
     rounds:          'play',
+    // My Stats — aggregate stats page, sub of Rounds.
+    'my-stats':      'rounds',
     // Quick Score backfill form — sibling to Courses under Play.
     'quick-score':   'play',
     // Group round lobby + live round — Play sub-pages
@@ -20384,10 +21583,9 @@
         </div>
       </div>
 
+      <!-- Action footer — secondary actions only. Primary "Save & Next"
+           lives in the sticky pill above the dock. -->
       <div class="round-actions">
-        <button class="round-btn round-btn-primary" onclick="grSaveAndNext()">
-          ${atLastHole ? 'Save Final Hole →' : 'Save & Next →'}
-        </button>
         <div class="round-actions-secondary">
           <button class="round-btn-link" onclick="grGoPreviousHole()" ${groupRoundState.yourHoleIndex === 0 ? 'disabled' : ''}>← Previous Hole</button>
           <button class="round-btn-link round-btn-end" onclick="confirmCompleteMyGroupRound()">End My Round</button>
@@ -20477,12 +21675,22 @@
       strokes: stored?.strokes ?? hole.par,
       putts: stored?.putts ?? 2,
       fir: isPar3 ? null : (stored?.fir ?? true),
-      gir: stored?.gir ?? true
+      gir: stored?.gir ?? true,
+      // Phase 1 diagnostic fields. Default to null/0 so they don't
+      // pollute the data when the user doesn't bother to set them —
+      // null means "not recorded" (excluded from miss-direction stats),
+      // 0 penalties is the implicit default.
+      firMiss: stored?.firMiss ?? null,   // 'left' | 'right' | 'short' | 'long' | null
+      girMiss: stored?.girMiss ?? null,
+      penalties: stored?.penalties ?? 0,
     };
     const strokes = entry.strokes;
     const putts = entry.putts;
     const fir = entry.fir;
     const gir = entry.gir;
+    const firMiss = entry.firMiss;
+    const girMiss = entry.girMiss;
+    const penalties = entry.penalties;
 
     // Score-vs-par classification for the strokes card color
     const diff = strokes - hole.par;
@@ -20562,6 +21770,34 @@
           </button>
         </div>
 
+        <!-- FIR miss direction — shown only when fairway was missed.
+             Recording the miss direction unlocks pattern detection
+             ("you miss right 70% of the time") in the Stats page. -->
+        ${!isPar3 && fir === false ? `
+          <div class="round-card-miss-row">
+            <div class="round-card-miss-label">Missed where?</div>
+            <div class="round-card-miss-buttons">
+              ${renderMissDirButton('left', firMiss, 'fir', '←', 'Left')}
+              ${renderMissDirButton('right', firMiss, 'fir', '→', 'Right')}
+              ${renderMissDirButton('short', firMiss, 'fir', '↓', 'Short')}
+              ${renderMissDirButton('long', firMiss, 'fir', '↑', 'Long')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- GIR miss direction — shown only when green was missed. -->
+        ${gir === false ? `
+          <div class="round-card-miss-row">
+            <div class="round-card-miss-label">Green missed where?</div>
+            <div class="round-card-miss-buttons">
+              ${renderMissDirButton('left', girMiss, 'gir', '←', 'Left')}
+              ${renderMissDirButton('right', girMiss, 'gir', '→', 'Right')}
+              ${renderMissDirButton('short', girMiss, 'gir', '↓', 'Short')}
+              ${renderMissDirButton('long', girMiss, 'gir', '↑', 'Long')}
+            </div>
+          </div>
+        ` : ''}
+
         <div class="round-card-divider"></div>
 
         <!-- Putts — compact horizontal row with label on the left, stepper on the right -->
@@ -20573,13 +21809,30 @@
             <button class="round-card-putts-btn" onclick="adjustPutts(1)" aria-label="Increase putts">+</button>
           </div>
         </div>
+
+        <!-- Penalties — collapsed when 0, expands to a stepper when any
+             are added. Penalty strokes are often the silent killer of
+             a scorecard; surfacing them as a distinct field separates
+             "hit it badly" from "lost a ball." -->
+        <div class="round-card-penalties${penalties > 0 ? ' is-active' : ''}">
+          ${penalties > 0 ? `
+            <div class="round-card-penalties-label">Penalties</div>
+            <div class="round-card-penalties-step">
+              <button class="round-card-putts-btn" onclick="adjustPenalties(-1)" aria-label="Decrease penalties">−</button>
+              <div class="round-card-penalties-value">${penalties}</div>
+              <button class="round-card-putts-btn" onclick="adjustPenalties(1)" aria-label="Increase penalties">+</button>
+            </div>
+          ` : `
+            <button class="round-card-penalties-add" onclick="adjustPenalties(1)">
+              + Add penalty stroke
+            </button>
+          `}
+        </div>
       </div>
 
-      <!-- Action footer -->
+      <!-- Action footer — secondary actions only. Primary "Save & Next"
+           lives in the sticky pill (round-save-pill) above the dock. -->
       <div class="round-actions">
-        <button class="round-btn round-btn-primary" onclick="saveAndNext()">
-          ${roundState.holeIndex < course.holes.length - 1 ? 'Save & Next →' : 'Save & Finish →'}
-        </button>
         <div class="round-actions-secondary">
           <button class="round-btn-link" onclick="goPreviousHole()" ${roundState.holeIndex === 0 ? 'disabled' : ''}>← Previous Hole</button>
           <button class="round-btn-link round-btn-end" onclick="endRoundEarly()">End Round Early</button>
@@ -20805,8 +22058,42 @@
       ? `<button class="round-dock-indicator" onclick="collapseDock()" aria-label="Close tool">×</button>`
       : `<button class="round-dock-indicator" onclick="toggleDockTool('${DOCK_TOOLS[0].id}')" aria-label="Open tools">▲</button>`;
 
+    // ── Save & Next pill. Sticky pill pinned just above the dock.
+    //    Solves "scroll to find Save" by keeping the primary action
+    //    always thumb-reachable. Hidden when the dock is expanded so
+    //    the tool surface gets full focus and the two pills don't
+    //    visually compete during a tool interaction.
+    const isGroup = currentPanelId === 'group-round';
+    const saveFn = isGroup ? 'grSaveAndNext()' : 'saveAndNext()';
+    let isFinalHole = false;
+    let saveLabel = 'Save & Next →';
+    try {
+      if (isGroup && groupRoundState.doc) {
+        const gr = groupRoundState.doc;
+        const course = getCourse(gr.courseId);
+        if (course) {
+          isFinalHole = groupRoundState.yourHoleIndex >= course.holes.length - 1;
+          saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
+        }
+      } else if (!isGroup) {
+        const course = getCourse(roundState.courseId);
+        if (course) {
+          isFinalHole = roundState.holeIndex >= course.holes.length - 1;
+          saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
+        }
+      }
+    } catch (_) { /* defensive — fall through with default label */ }
+
+    const savePillHtml = `
+      <button class="round-save-pill${isFinalHole ? ' is-final' : ''}${dockState.expanded ? ' is-hidden' : ''}"
+              onclick="${saveFn}">
+        ${escapeHtml(saveLabel)}
+      </button>
+    `;
+
     mount.innerHTML = `
       ${dockState.expanded ? `<div class="round-dock-scrim" onclick="collapseDock()" aria-hidden="true"></div>` : ''}
+      ${savePillHtml}
       <div class="round-dock${dockState.expanded ? ' expanded' : ''}">
         ${surfaceHtml}
         <div class="round-dock-bar">
@@ -21255,7 +22542,13 @@
       strokes: stored?.strokes ?? hole.par,
       putts: stored?.putts ?? 2,
       fir: isPar3 ? null : (stored?.fir ?? true),
-      gir: stored?.gir ?? true
+      gir: stored?.gir ?? true,
+      // Diagnostic fields — preserved through stepper/toggle actions
+      // so they don't get wiped if the user adjusts other inputs after
+      // setting them.
+      firMiss: stored?.firMiss ?? null,
+      girMiss: stored?.girMiss ?? null,
+      penalties: stored?.penalties ?? 0,
     };
     roundState.scores[hole.number] = entry;
     return { entry, hole, isPar3 };
@@ -21290,6 +22583,9 @@
     const ctx = getOrInitHoleEntry();
     if (!ctx || ctx.isPar3) return;
     ctx.entry.fir = !ctx.entry.fir;
+    // If the user just flipped FROM miss TO hit, clear any recorded
+    // miss direction — there's no miss to characterize anymore.
+    if (ctx.entry.fir === true) ctx.entry.firMiss = null;
     renderRound();
   }
   // Toggle GIR (green in regulation).
@@ -21297,7 +22593,62 @@
     const ctx = getOrInitHoleEntry();
     if (!ctx) return;
     ctx.entry.gir = !ctx.entry.gir;
+    if (ctx.entry.gir === true) ctx.entry.girMiss = null;
     renderRound();
+  }
+
+  // Set or clear the miss direction for FIR / GIR. Tapping the same
+  // direction button twice clears it (acts as a toggle), so the user
+  // can quickly correct a mis-tap without a separate "clear" button.
+  function setHoleMissDirection(kind, direction) {
+    const ctx = getOrInitHoleEntry();
+    if (!ctx) return;
+    if (kind === 'fir') {
+      // No-op on par 3s — FIR doesn't apply
+      if (ctx.isPar3) return;
+      // Setting a miss direction implicitly means "this was a miss" —
+      // make sure the FIR boolean reflects that, even if the user
+      // jumped straight to a direction button without first tapping
+      // the FIR chip. Defensive but matches user intent.
+      if (ctx.entry.fir !== false) ctx.entry.fir = false;
+      ctx.entry.firMiss = ctx.entry.firMiss === direction ? null : direction;
+    } else if (kind === 'gir') {
+      if (ctx.entry.gir !== false) ctx.entry.gir = false;
+      ctx.entry.girMiss = ctx.entry.girMiss === direction ? null : direction;
+    }
+    renderRound();
+  }
+
+  // Adjust penalty stroke count. Penalties don't add to strokes
+  // automatically — they're a separate field for analysis. (The user
+  // already adds the penalty stroke into their stroke total when they
+  // log the score.) This way the "penalties" field represents how
+  // many of those strokes were penalty-induced, useful for diagnosing
+  // "where am I bleeding strokes."
+  function adjustPenalties(delta) {
+    const ctx = getOrInitHoleEntry();
+    if (!ctx) return;
+    let next = (ctx.entry.penalties || 0) + delta;
+    if (next < 0) next = 0;
+    if (next > 6) next = 6;  // sanity ceiling — even disaster holes rarely exceed
+    ctx.entry.penalties = next;
+    renderRound();
+  }
+
+  // Render a single direction button for the miss-direction row.
+  // Used inline in the hole card render. Active state shows orange
+  // border + filled background.
+  function renderMissDirButton(direction, current, kind, arrow, label) {
+    const isActive = current === direction;
+    return `
+      <button class="round-card-miss-btn${isActive ? ' is-active' : ''}"
+              onclick="setHoleMissDirection('${kind}', '${direction}')"
+              aria-label="${escapeHtml(label)}"
+              aria-pressed="${isActive}">
+        <span class="round-card-miss-arrow">${arrow}</span>
+        <span class="round-card-miss-label-text">${escapeHtml(label)}</span>
+      </button>
+    `;
   }
 
   // Save the current hole + advance, OR finish the round on hole 18.
@@ -25978,7 +27329,14 @@
           <span class="play-stat-value">${bestRound}</span>
           <span class="play-stat-label">Best Round</span>
         </div>
-      </div>`;
+      </div>
+      ${roundsPlayed > 0 ? `
+        <a class="play-stats-link" role="button" tabindex="0"
+           onclick="showPanel('my-stats', null)"
+           onkeydown="if(event.key==='Enter'){showPanel('my-stats', null)}">
+          View detailed stats →
+        </a>
+      ` : ''}`;
   }
 
   // Recent rounds: empty state if no completed rounds, otherwise a list of
@@ -26219,7 +27577,7 @@
   //   3. If fairway% was worst → driver / accuracy
   //   4. If score was up but ball-striking was neutral/good → short game
   //   5. Nothing worse than baseline → solid-round acknowledgment
-  function pickInsightSuggestion(rows, roundStats) {
+  function pickInsightSuggestion(rows, roundStats, round) {
     const worseRows = rows.filter(r => r.direction === 'worse');
     if (worseRows.length === 0) {
       return {
@@ -26245,6 +27603,12 @@
     worseRows.sort((a, b) => normalize(b) - normalize(a));
     const worst = worseRows[0];
 
+    // ── Diagnostic-aware enrichment. When per-hole miss direction
+    //    data is logged, sharpen the suggestion with the dominant
+    //    direction. Falls back to the generic suggestion when the
+    //    round predates these fields or the user didn't log them.
+    const diag = round ? extractRoundDiagnostics(round) : null;
+
     // Score-was-worst but ball-striking was fine → likely short game /
     // scrambling. Check if other rows are neutral/better.
     if (worst.key === 'score') {
@@ -26252,27 +27616,62 @@
       const strikingFine = otherRows.length > 0
         && otherRows.every(r => r.direction !== 'worse');
       if (strikingFine) {
+        // If we have scrambling data and it was poor, name it specifically
+        if (diag && diag.scramblingAttempts >= 3 && diag.scramblingPct < 30) {
+          return {
+            tone: 'practice',
+            title: 'Short game cost you today',
+            body: `You scrambled on only ${diag.scramblingSaves} of ${diag.scramblingAttempts} missed greens (${Math.round(diag.scramblingPct)}%). Spend time around the practice green — chips, pitches, and 10–30 ft lag putting will pay off most.`,
+          };
+        }
         return {
           tone: 'practice',
           title: 'Short game likely cost you today',
-          body: 'Your ball-striking stats held up but the score was up. Scrambling and chip-and-run distance control are probably the issue. Try the Short Game drill or a few courses-practice holes focused on sub-100 yd shots.',
+          body: 'Your ball-striking stats held up but the score was up. Scrambling and chip-and-run distance control are probably the issue. Try the Short Game drill or a few course-practice holes focused on sub-100 yd shots.',
         };
       }
     }
 
     switch (worst.key) {
-      case 'fairway':
+      case 'fairway': {
+        // If we know the dominant miss direction, mention it
+        if (diag && diag.firDominantDir && diag.firMissesWithDir >= 3) {
+          const dirText = {
+            left: 'leaking left', right: 'leaking right',
+            short: 'coming up short', long: 'flying long',
+          }[diag.firDominantDir];
+          return {
+            tone: 'practice',
+            title: `Driving was off — mostly ${diag.firDominantDir}`,
+            body: `Of the missed fairways you logged direction on, ${diag.firDominantPct}% went ${diag.firDominantDir}. Your driver is ${dirText} today. A range session focused on driver — checking face angle and tempo — would help most.`,
+          };
+        }
         return {
           tone: 'practice',
           title: 'Driving accuracy was off today',
           body: 'Your fairway percentage was well below your recent baseline. A range session focused on driver — dialing in your stock shot shape — would help most.',
         };
-      case 'gir':
+      }
+      case 'gir': {
+        if (diag && diag.girDominantDir && diag.girMissesWithDir >= 3) {
+          const explanation = {
+            short: 'Missing short usually means under-clubbing or thin contact — try going one more club on similar approaches.',
+            long: 'Missing long usually means over-clubbing or hot strikes — consider one less club, especially with adrenaline.',
+            left: 'Consistent left misses point to a closing face — check grip pressure and your finish.',
+            right: 'Consistent right misses point to an open face or path-out — check setup alignment first.',
+          }[diag.girDominantDir];
+          return {
+            tone: 'practice',
+            title: `Approaches mostly missed ${diag.girDominantDir}`,
+            body: `${diag.girDominantPct}% of your missed greens (with logged direction) went ${diag.girDominantDir}. ${explanation}`,
+          };
+        }
         return {
           tone: 'practice',
           title: 'Approach play cost you shots today',
           body: 'You missed more greens than usual. Spend range time on your mid-to-short irons, or run a course-practice session to rehearse specific approach distances.',
         };
+      }
       case 'putts':
         return {
           tone: 'practice',
@@ -26280,12 +27679,86 @@
           body: 'You took more putts per hole than usual. Time on the practice green — lag putting from 30+ ft and 4-6 footers for confidence — would pay off next round.',
         };
       default:
+        // Penalty callout if the round had unusual penalty stroke counts
+        if (diag && diag.penaltyStrokes >= 3) {
+          return {
+            tone: 'practice',
+            title: `${diag.penaltyStrokes} penalty strokes hurt the score`,
+            body: `Penalties added ${diag.penaltyStrokes} strokes today across ${diag.penaltyHoles} hole${diag.penaltyHoles === 1 ? '' : 's'}. Course management — playing safer off the tee on tight holes — often saves more strokes than swing changes.`,
+          };
+        }
         return {
           tone: 'practice',
           title: 'Look at overall scoring',
           body: 'Score was above baseline. Review your hole-by-hole to spot the biggest damage holes.',
         };
     }
+  }
+
+  // Helper for pickInsightSuggestion — extracts per-hole diagnostic
+  // data (miss directions, scrambling, penalties) from a single round.
+  // Returns null if the round has no per-hole data (e.g., Quick Score),
+  // otherwise an object with the same shape used by the suggestion
+  // logic above. Sample sizes are small (single round) so the dominant
+  // direction thresholds are deliberately low.
+  function extractRoundDiagnostics(round) {
+    if (!round || !round.scores || typeof round.scores !== 'object') return null;
+    const course = getCourse(round.courseId);
+    if (!course) return null;
+    const firDirs = { left: 0, right: 0, short: 0, long: 0 };
+    const girDirs = { left: 0, right: 0, short: 0, long: 0 };
+    let firMissesWithDir = 0, girMissesWithDir = 0;
+    let scramblingAttempts = 0, scramblingSaves = 0;
+    let penaltyStrokes = 0, penaltyHoles = 0;
+    for (const hn of Object.keys(round.scores)) {
+      const e = round.scores[hn];
+      if (!e) continue;
+      const hd = course.holes.find(h => h.number === Number(hn));
+      if (!hd) continue;
+      if (hd.par > 3 && e.fir === false && e.firMiss && firDirs.hasOwnProperty(e.firMiss)) {
+        firDirs[e.firMiss] += 1;
+        firMissesWithDir += 1;
+      }
+      if (e.gir === false) {
+        if (e.girMiss && girDirs.hasOwnProperty(e.girMiss)) {
+          girDirs[e.girMiss] += 1;
+          girMissesWithDir += 1;
+        }
+        if (typeof e.strokes === 'number') {
+          scramblingAttempts += 1;
+          if (e.strokes - hd.par <= 0) scramblingSaves += 1;
+        }
+      }
+      if (typeof e.penalties === 'number' && e.penalties > 0) {
+        penaltyStrokes += e.penalties;
+        penaltyHoles += 1;
+      }
+    }
+    function dominant(dirs, total) {
+      if (total === 0) return { dir: null, pct: 0 };
+      let topDir = null, topN = 0;
+      for (const d of Object.keys(dirs)) {
+        if (dirs[d] > topN) { topN = dirs[d]; topDir = d; }
+      }
+      const pct = Math.round((topN / total) * 100);
+      // Require at least 40% concentration to call it "dominant"
+      return pct >= 40 ? { dir: topDir, pct } : { dir: null, pct };
+    }
+    const firDom = dominant(firDirs, firMissesWithDir);
+    const girDom = dominant(girDirs, girMissesWithDir);
+    return {
+      firMissesWithDir,
+      girMissesWithDir,
+      firDominantDir: firDom.dir,
+      firDominantPct: firDom.pct,
+      girDominantDir: girDom.dir,
+      girDominantPct: girDom.pct,
+      scramblingAttempts,
+      scramblingSaves,
+      scramblingPct: scramblingAttempts > 0 ? (scramblingSaves / scramblingAttempts) * 100 : 0,
+      penaltyStrokes,
+      penaltyHoles,
+    };
   }
 
   // Main insights-card renderer. Used on both round summary and
@@ -26316,7 +27789,7 @@
     }
 
     const rows = computeInsightRows(stats, baselines);
-    const suggestion = pickInsightSuggestion(rows, stats);
+    const suggestion = pickInsightSuggestion(rows, stats, round);
 
     const rowsHtml = rows.map(r => `
       <div class="round-insight-row is-${r.direction}">
@@ -26372,7 +27845,7 @@
       const bl = computeRoundBaselines(r.courseId, r.id);
       if (!bl) continue;
       const rows = computeInsightRows(stats, bl);
-      const suggestion = pickInsightSuggestion(rows, stats);
+      const suggestion = pickInsightSuggestion(rows, stats, r);
       if (suggestion.tone === 'positive') {
         suggestionTallies.positive += 1;
         suggestionKeyByRound.push('positive');
@@ -27818,16 +29291,32 @@
           else if (diff === 1)  scoreMarker = 'bogey';
           else                  scoreMarker = 'double';
         }
+        // Miss direction glyph appended to the miss icon when logged.
+        // Compact arrow that signals the direction without taking
+        // another column. Empty if direction wasn't recorded.
+        const dirGlyph = { left: '←', right: '→', short: '↓', long: '↑' };
+        const firDirSuffix = (e.fir === false && e.firMiss && dirGlyph[e.firMiss])
+          ? ` <span class="rs-cell-dir">${dirGlyph[e.firMiss]}</span>`
+          : '';
+        const girDirSuffix = (e.gir === false && e.girMiss && dirGlyph[e.girMiss])
+          ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
+          : '';
         const firCell = (hd?.par === 3) ? '<span class="rs-cell-dim">—</span>' :
           (e.fir === undefined ? '<span class="rs-cell-dim">—</span>' :
-           e.fir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>');
+           e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
         const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
-          e.gir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>';
+          e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
+        // Penalty indicator on the score cell — small superscript dot
+        // count if the user logged any penalties for this hole. Tasteful
+        // so it doesn't clutter clean holes.
+        const penaltyMark = (e.penalties > 0)
+          ? `<span class="rs-cell-pen" title="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}">⚠${e.penalties > 1 ? e.penalties : ''}</span>`
+          : '';
         return `
           <tr>
             <td>${hn}</td>
             <td>${par ?? '—'}</td>
-            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span></td>
+            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span>${penaltyMark}</td>
             <td>${e.putts ?? '—'}</td>
             <td>${firCell}</td>
             <td>${girCell}</td>
@@ -29459,12 +30948,1403 @@
     }
 
     mount.innerHTML = `
+      <button class="stats-entry-btn" onclick="showPanel('my-stats', null)">
+        <div class="stats-entry-btn-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 14l4-4 4 4 5-5"/>
+          </svg>
+        </div>
+        <div class="stats-entry-btn-body">
+          <div class="stats-entry-btn-title">View all stats</div>
+          <div class="stats-entry-btn-sub">Averages, trends, and best-rounds across your history</div>
+        </div>
+        <div class="stats-entry-btn-arrow" aria-hidden="true">→</div>
+      </button>
       ${renderAggregateInsightsBlock()}
       ${filterBar}
       <div class="rounds-count">${countText}</div>
       ${listHtml}
     `;
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // My Stats page — aggregate stats across rounds with course +
+  // time window filters. Pulls everything client-side from
+  // recentRounds; no Firestore changes needed.
+  // ─────────────────────────────────────────────────────────────
+
+  // Filter state — persisted at module level so navigating away and
+  // back keeps the user's filter selection (matches behavior of the
+  // Rounds page filter).
+  const myStatsState = {
+    courseFilter: 'all',  // 'all' | <courseId>
+    timeFilter: 'all',    // 'all' | '30d' | '90d' | '1y'
+    tab: 'overview',      // 'overview' | 'driving' | 'approach' | 'putting' | 'scoring'
+  };
+
+  // Apply filters. Always restricts to completed rounds.
+  function filterRoundsForStats(rounds, courseFilter, timeFilter) {
+    let filtered = (rounds || []).filter(r => r.status === 'completed');
+
+    if (courseFilter && courseFilter !== 'all') {
+      filtered = filtered.filter(r => r.courseId === courseFilter);
+    }
+
+    if (timeFilter && timeFilter !== 'all') {
+      const now = Date.now();
+      // Convert window keys to ms cutoffs
+      const windowMs = {
+        '30d': 30 * 24 * 60 * 60 * 1000,
+        '90d': 90 * 24 * 60 * 60 * 1000,
+        '1y':  365 * 24 * 60 * 60 * 1000,
+      }[timeFilter];
+      if (windowMs) {
+        const cutoff = now - windowMs;
+        filtered = filtered.filter(r => (r.startTime || 0) >= cutoff);
+      }
+    }
+
+    return filtered;
+  }
+
+  // Build the aggregate stat object from a round set. Returns null if
+  // there are no rounds in the set (caller handles empty state). The
+  // distribution rates (1-putt, 3-putt, birdie+, bogey+) require per-
+  // hole scores; rounds entered via Quick Score won't have those, so
+  // they're excluded from those rates but still count for averages.
+  function computeStatsAggregate(rounds) {
+    if (!rounds || rounds.length === 0) return null;
+
+    // Average aggregates use round-level totals — work for both live-
+    // tracked and Quick Score rounds.
+    let scoreSum = 0, scoreN = 0;
+    let vsParSum = 0, vsParN = 0;
+    let firHitSum = 0, firEligibleSum = 0;
+    let girHitSum = 0, girEligibleSum = 0;
+    let puttsSum = 0, holesPlayedSum = 0;
+
+    let bestVsPar = null, bestRound = null;
+    let bestFirRound = null, bestFirPct = -1;
+    let bestGirRound = null, bestGirPct = -1;
+    let lowestPuttsPerHole = null, bestPuttsRound = null;
+
+    // For per-round average putts: track each round's per-hole rate
+    // and surface the lowest.
+    //
+    // Important threshold: per-round metrics (avg score, average
+    // vs-par, best-of records) MUST gate on full 18-hole rounds. A
+    // 2-hole partial round of 8 strokes isn't comparable to an 18-hole
+    // round of 79 — including it would skew averages and falsely claim
+    // "best round" against rounds that played all 18. The hole-level
+    // aggregates below (FIR%, GIR%, putts/hole based on totals) still
+    // include partial rounds because each hole is a valid sample
+    // regardless of whether the round was completed.
+    const FULL_ROUND_THRESHOLD = 18;
+    for (const r of rounds) {
+      const t = r.totals || {};
+      const holes = t.holesPlayed || 0;
+      if (holes === 0) continue;
+      const isFullRound = holes >= FULL_ROUND_THRESHOLD;
+
+      // Score totals — only full 18s contribute. Including a partial
+      // round here would understate the average (low strokes count).
+      if (isFullRound && typeof t.strokes === 'number') {
+        scoreSum += t.strokes;
+        scoreN += 1;
+      }
+      if (isFullRound && typeof t.vsPar === 'number') {
+        vsParSum += t.vsPar;
+        vsParN += 1;
+        // Best round (vs-par) — also full-rounds-only. A 2-hole +0
+        // partial round shouldn't beat a real 18-hole +3.
+        if (bestVsPar === null || t.vsPar < bestVsPar) {
+          bestVsPar = t.vsPar;
+          bestRound = r;
+        }
+      }
+
+      // FIR — handles both live-tracked (firHit/firEligible) and Quick
+      // Score (fir/firMax) shapes. Hole-level totals (firHitSum /
+      // firEligibleSum) include partial rounds since each fairway is
+      // a valid sample. Best-FIR-pct only considers full rounds — a
+      // 2-hole 100% partial shouldn't beat a real 14/14.
+      const firHit = typeof t.firHit === 'number' ? t.firHit
+                    : typeof t.fir === 'number' ? t.fir : null;
+      const firElig = typeof t.firEligible === 'number' ? t.firEligible
+                     : typeof t.firMax === 'number' ? t.firMax : null;
+      if (firHit !== null && firElig !== null && firElig > 0) {
+        firHitSum += firHit;
+        firEligibleSum += firElig;
+        if (isFullRound) {
+          const pct = (firHit / firElig) * 100;
+          if (pct > bestFirPct) { bestFirPct = pct; bestFirRound = r; }
+        }
+      }
+
+      // GIR — same treatment as FIR
+      const girHit = typeof t.girHit === 'number' ? t.girHit
+                    : typeof t.gir === 'number' ? t.gir : null;
+      const girElig = typeof t.girEligible === 'number' ? t.girEligible
+                     : typeof t.girMax === 'number' ? t.girMax : null;
+      if (girHit !== null && girElig !== null && girElig > 0) {
+        girHitSum += girHit;
+        girEligibleSum += girElig;
+        if (isFullRound) {
+          const pct = (girHit / girElig) * 100;
+          if (pct > bestGirPct) { bestGirPct = pct; bestGirRound = r; }
+        }
+      }
+
+      // Putts — hole-level totals include partials (each putt is a
+      // valid sample), but lowest-putts-per-hole record only counts
+      // full rounds (a 2-hole round at 1.0 putts/hole isn't comparable).
+      if (typeof t.putts === 'number' && holes > 0) {
+        puttsSum += t.putts;
+        holesPlayedSum += holes;
+        if (isFullRound) {
+          const perHole = t.putts / holes;
+          if (lowestPuttsPerHole === null || perHole < lowestPuttsPerHole) {
+            lowestPuttsPerHole = perHole;
+            bestPuttsRound = r;
+          }
+        }
+      }
+    }
+
+    // Distribution rates — walk per-hole data from rounds that have it.
+    // Quick Score rounds (no `scores` object or empty) are skipped here
+    // but still counted in the averages above.
+    let onePuttHoles = 0, threePuttHoles = 0, holesWithPutts = 0;
+    let birdieOrBetterHoles = 0, bogeyOrWorseHoles = 0, holesWithScore = 0;
+
+    // Phase 1 diagnostic tallies.
+    // Miss-direction breakdowns. Each maps direction -> count. The
+    // "with-direction" totals let us compute "of holes where I logged a
+    // direction, X% were left" rather than "X% of all missed fairways"
+    // (which would be misleading when older rounds didn't capture the
+    // direction). Backward-compatible: rounds before this feature have
+    // no firMiss/girMiss fields and contribute zero to these tallies
+    // but still count in the overall miss totals via fir/gir booleans.
+    const firMissDirCounts = { left: 0, right: 0, short: 0, long: 0 };
+    const girMissDirCounts = { left: 0, right: 0, short: 0, long: 0 };
+    let firMissesWithDirection = 0;
+    let girMissesWithDirection = 0;
+    let firMissesTotal = 0;  // includes legacy rounds without direction
+    let girMissesTotal = 0;
+
+    // Up-and-down (scrambling) — auto-derived from existing data, so
+    // it works on every round (old and new). A scramble is: missed GIR
+    // AND completed the hole at par or better.
+    let scramblingAttempts = 0;
+    let scramblingSaves = 0;
+
+    // Penalty totals — only counted on rounds that have the penalties
+    // field populated. Rounds without it (legacy) don't contribute.
+    let penaltyStrokes = 0;
+    let penaltyHoles = 0;        // holes with at least one penalty
+    let holesWithPenaltyData = 0;  // sample size for penalty-rate calc
+
+    // Per-par scoring averages. Walks per-hole data so partial rounds
+    // contribute correctly — each hole is its own valid sample
+    // regardless of round completeness. Tracks both raw strokes and
+    // vs-par per par-type (3, 4, 5) so the UI can show whichever frames
+    // the question better.
+    const parTotals = { 3: { strokes: 0, holes: 0 }, 4: { strokes: 0, holes: 0 }, 5: { strokes: 0, holes: 0 } };
+
+    for (const r of rounds) {
+      if (!r.scores || typeof r.scores !== 'object') continue;
+      const course = getCourse(r.courseId);
+      if (!course) continue;
+      const playedHoles = Object.keys(r.scores).map(Number);
+      for (const hn of playedHoles) {
+        const e = r.scores[hn];
+        if (!e) continue;
+        const hd = course.holes.find(h => h.number === hn);
+        if (!hd) continue;
+        if (typeof e.putts === 'number') {
+          holesWithPutts += 1;
+          if (e.putts === 1) onePuttHoles += 1;
+          if (e.putts >= 3) threePuttHoles += 1;
+        }
+        if (typeof e.strokes === 'number') {
+          holesWithScore += 1;
+          const diff = e.strokes - hd.par;
+          if (diff <= -1) birdieOrBetterHoles += 1;
+          if (diff >= 1) bogeyOrWorseHoles += 1;
+          // Per-par scoring tally — only standard pars (3/4/5).
+          // Skips edge cases like par-6 holes which exist on a handful
+          // of courses but would clutter the UI for negligible value.
+          if (parTotals[hd.par]) {
+            parTotals[hd.par].strokes += e.strokes;
+            parTotals[hd.par].holes += 1;
+          }
+        }
+
+        // FIR miss tally — only relevant on par-4 / par-5 holes
+        if (hd.par > 3 && e.fir === false) {
+          firMissesTotal += 1;
+          if (e.firMiss && firMissDirCounts.hasOwnProperty(e.firMiss)) {
+            firMissDirCounts[e.firMiss] += 1;
+            firMissesWithDirection += 1;
+          }
+        }
+        // GIR miss tally — relevant on every hole
+        if (e.gir === false) {
+          girMissesTotal += 1;
+          if (e.girMiss && girMissDirCounts.hasOwnProperty(e.girMiss)) {
+            girMissDirCounts[e.girMiss] += 1;
+            girMissesWithDirection += 1;
+          }
+          // Up-and-down: missed GIR + score net par or better.
+          // Auto-derives even on rounds before the feature shipped.
+          if (typeof e.strokes === 'number') {
+            scramblingAttempts += 1;
+            if (e.strokes - hd.par <= 0) scramblingSaves += 1;
+          }
+        }
+
+        // Penalties — only count on holes where the field exists.
+        if (typeof e.penalties === 'number') {
+          holesWithPenaltyData += 1;
+          if (e.penalties > 0) {
+            penaltyStrokes += e.penalties;
+            penaltyHoles += 1;
+          }
+        }
+      }
+    }
+
+    // Last-10 averages (recency-weighted snapshot, useful for trend)
+    const last10 = rounds.slice()
+      .sort((a, b) => (b.startTime || 0) - (a.startTime || 0))
+      .slice(0, 10);
+    const last10Stats = last10.length > 0 ? computeLast10Snapshot(last10) : null;
+
+    return {
+      sampleSize: rounds.length,
+      // How many of those rounds were full 18s — used by the sample
+      // note + Score card display so the user understands which numbers
+      // are based on what.
+      fullRoundsCount: scoreN,
+      avgScore: scoreN > 0 ? scoreSum / scoreN : null,
+      avgVsPar: vsParN > 0 ? vsParSum / vsParN : null,
+      avgFairwayPct: firEligibleSum > 0 ? (firHitSum / firEligibleSum) * 100 : null,
+      avgGirPct: girEligibleSum > 0 ? (girHitSum / girEligibleSum) * 100 : null,
+      avgPuttsPerHole: holesPlayedSum > 0 ? puttsSum / holesPlayedSum : null,
+
+      bestVsPar,
+      bestRound,
+      bestFirPct: bestFirPct >= 0 ? bestFirPct : null,
+      bestFirRound,
+      bestGirPct: bestGirPct >= 0 ? bestGirPct : null,
+      bestGirRound,
+      lowestPuttsPerHole,
+      bestPuttsRound,
+
+      // Distribution
+      onePuttRate: holesWithPutts > 0 ? (onePuttHoles / holesWithPutts) * 100 : null,
+      threePuttRate: holesWithPutts > 0 ? (threePuttHoles / holesWithPutts) * 100 : null,
+      birdieRate: holesWithScore > 0 ? (birdieOrBetterHoles / holesWithScore) * 100 : null,
+      bogeyRate: holesWithScore > 0 ? (bogeyOrWorseHoles / holesWithScore) * 100 : null,
+      holesWithPutts,
+      holesWithScore,
+
+      // Phase 1 diagnostics
+      // Miss-direction breakdowns. Returned as percentages of misses
+      // where direction was logged (not of all misses) so the numbers
+      // are honest about sample size.
+      firMissDirCounts,
+      girMissDirCounts,
+      firMissesWithDirection,
+      girMissesWithDirection,
+      firMissesTotal,
+      girMissesTotal,
+      // Scrambling — auto-derived, works on every round
+      scramblingAttempts,
+      scramblingSaves,
+      scramblingPct: scramblingAttempts > 0 ? (scramblingSaves / scramblingAttempts) * 100 : null,
+      // Penalty stats — only meaningful when penaltyHoles > 0 or
+      // holesWithPenaltyData > 0 (i.e., at least one round was logged
+      // with the field). Per-round average is the most useful number.
+      penaltyStrokes,
+      penaltyHoles,
+      holesWithPenaltyData,
+      avgPenaltiesPerRound: holesWithPenaltyData > 0
+        ? penaltyStrokes / Math.max(1, Math.ceil(holesWithPenaltyData / 18))
+        : null,
+
+      // Per-par scoring breakdown — average score and avg vs-par for
+      // each standard par. UI consumes this to build three side-by-side
+      // tiles. Keys are the par numbers as strings via JS object access.
+      parBreakdown: {
+        3: parTotals[3].holes > 0
+          ? { avg: parTotals[3].strokes / parTotals[3].holes, vsPar: (parTotals[3].strokes / parTotals[3].holes) - 3, holes: parTotals[3].holes }
+          : null,
+        4: parTotals[4].holes > 0
+          ? { avg: parTotals[4].strokes / parTotals[4].holes, vsPar: (parTotals[4].strokes / parTotals[4].holes) - 4, holes: parTotals[4].holes }
+          : null,
+        5: parTotals[5].holes > 0
+          ? { avg: parTotals[5].strokes / parTotals[5].holes, vsPar: (parTotals[5].strokes / parTotals[5].holes) - 5, holes: parTotals[5].holes }
+          : null,
+      },
+
+      last10: last10Stats,
+    };
+  }
+
+  // Lightweight snapshot of the most recent N rounds, just the headline
+  // stats. Used to surface the "recent" column on each big stat card.
+  function computeLast10Snapshot(rounds) {
+    let scoreSum = 0, scoreN = 0;
+    let vsParSum = 0, vsParN = 0;
+    let firHitSum = 0, firEligibleSum = 0;
+    let girHitSum = 0, girEligibleSum = 0;
+    let puttsSum = 0, holesPlayedSum = 0;
+    for (const r of rounds) {
+      const t = r.totals || {};
+      if (typeof t.strokes === 'number') { scoreSum += t.strokes; scoreN += 1; }
+      if (typeof t.vsPar === 'number') { vsParSum += t.vsPar; vsParN += 1; }
+      const firHit = typeof t.firHit === 'number' ? t.firHit
+                    : typeof t.fir === 'number' ? t.fir : null;
+      const firElig = typeof t.firEligible === 'number' ? t.firEligible
+                     : typeof t.firMax === 'number' ? t.firMax : null;
+      if (firHit !== null && firElig !== null) { firHitSum += firHit; firEligibleSum += firElig; }
+      const girHit = typeof t.girHit === 'number' ? t.girHit
+                    : typeof t.gir === 'number' ? t.gir : null;
+      const girElig = typeof t.girEligible === 'number' ? t.girEligible
+                     : typeof t.girMax === 'number' ? t.girMax : null;
+      if (girHit !== null && girElig !== null) { girHitSum += girHit; girEligibleSum += girElig; }
+      if (typeof t.putts === 'number' && t.holesPlayed) {
+        puttsSum += t.putts;
+        holesPlayedSum += t.holesPlayed;
+      }
+    }
+    return {
+      n: rounds.length,
+      avgScore: scoreN > 0 ? scoreSum / scoreN : null,
+      avgVsPar: vsParN > 0 ? vsParSum / vsParN : null,
+      avgFairwayPct: firEligibleSum > 0 ? (firHitSum / firEligibleSum) * 100 : null,
+      avgGirPct: girEligibleSum > 0 ? (girHitSum / girEligibleSum) * 100 : null,
+      avgPuttsPerHole: holesPlayedSum > 0 ? puttsSum / holesPlayedSum : null,
+    };
+  }
+
+  // Filter setters — called from the select/toggle handlers in the
+  // filter bar. Both re-render the whole page since stat values change.
+  function setStatsCourseFilter(value) {
+    myStatsState.courseFilter = value;
+    renderMyStatsPage();
+  }
+  function setStatsTimeFilter(value) {
+    myStatsState.timeFilter = value;
+    renderMyStatsPage();
+  }
+  function setStatsTab(value) {
+    myStatsState.tab = value;
+    renderMyStatsPage();
+  }
+
+  function renderMyStatsPage() {
+    const mount = document.getElementById('my-stats-mount');
+    if (!mount) return;
+
+    const allCompleted = (recentRounds || []).filter(r => r.status === 'completed');
+
+    if (allCompleted.length === 0) {
+      mount.innerHTML = `
+        <div class="play-empty">
+          <div class="play-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="M7 14l4-4 4 4 5-5"/>
+            </svg>
+          </div>
+          <div class="play-empty-title">No stats yet</div>
+          <div class="play-empty-sub">Play and log a round to start building your stats. Once you have a few rounds, this page will show your averages and trends.</div>
+        </div>`;
+      return;
+    }
+
+    // Distinct courses for the course filter (only show if 2+)
+    const distinctCourses = new Map();
+    allCompleted.forEach(r => {
+      if (!r.courseId) return;
+      if (!distinctCourses.has(r.courseId)) {
+        distinctCourses.set(r.courseId, { id: r.courseId, name: r.courseName || 'Unknown course' });
+      }
+    });
+    const courseOptions = Array.from(distinctCourses.values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const hasMultipleCourses = courseOptions.length >= 2;
+
+    // Apply current filters
+    const filtered = filterRoundsForStats(allCompleted, myStatsState.courseFilter, myStatsState.timeFilter);
+    const stats = computeStatsAggregate(filtered);
+
+    // Time-window pills (always shown)
+    const timeOptions = [
+      { value: 'all', label: 'All-time' },
+      { value: '1y',  label: '1 year' },
+      { value: '90d', label: '90 days' },
+      { value: '30d', label: '30 days' },
+    ];
+    const timeBar = `
+      <div class="stats-time-bar" role="tablist" aria-label="Time window">
+        ${timeOptions.map(o => `
+          <button class="stats-time-pill${myStatsState.timeFilter === o.value ? ' is-active' : ''}"
+                  role="tab"
+                  aria-selected="${myStatsState.timeFilter === o.value}"
+                  onclick="setStatsTimeFilter('${o.value}')">
+            ${escapeHtml(o.label)}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    const courseSelect = hasMultipleCourses ? `
+      <div class="stats-filter-group">
+        <label class="stats-filter-label" for="stats-course-filter">Course</label>
+        <select id="stats-course-filter" class="stats-filter-select"
+                onchange="setStatsCourseFilter(this.value)">
+          <option value="all"${myStatsState.courseFilter === 'all' ? ' selected' : ''}>All courses</option>
+          ${courseOptions.map(c =>
+            `<option value="${escapeHtml(c.id)}"${myStatsState.courseFilter === c.id ? ' selected' : ''}>${escapeHtml(c.name)}</option>`
+          ).join('')}
+        </select>
+      </div>
+    ` : '';
+
+    const filterBar = `
+      <div class="stats-filter-bar">
+        ${timeBar}
+        ${courseSelect}
+      </div>
+    `;
+
+    // Empty after filtering — distinct from "no rounds at all"
+    if (!stats || stats.sampleSize === 0) {
+      mount.innerHTML = `
+        ${filterBar}
+        <div class="stats-empty-filtered">
+          <div class="stats-empty-filtered-title">No rounds in this view</div>
+          <div class="stats-empty-filtered-sub">Try widening the time window or selecting "All courses".</div>
+        </div>
+      `;
+      return;
+    }
+
+    const sampleNote = `Based on ${stats.sampleSize} round${stats.sampleSize === 1 ? '' : 's'}${
+      myStatsState.courseFilter !== 'all'
+        ? ` at ${escapeHtml(distinctCourses.get(myStatsState.courseFilter)?.name || 'this course')}`
+        : ''
+    }.`;
+
+    // Big stat cards. Each shows: headline (lifetime/filtered avg),
+    // last-10 comparison (small, gray), and the best result (small, orange).
+    function fmtVsPar(n) {
+      if (n == null) return '—';
+      if (Math.abs(n) < 0.05) return 'E';
+      return n > 0 ? `+${n.toFixed(1).replace(/\.0$/, '')}` : n.toFixed(1).replace(/\.0$/, '');
+    }
+    function fmtPct(n) { return n == null ? '—' : `${Math.round(n)}%`; }
+    function fmtPutts(n) { return n == null ? '—' : n.toFixed(2); }
+    function fmtScore(n) { return n == null ? '—' : Math.round(n); }
+
+    const last10 = stats.last10 || {};
+    const showLast10 = stats.sampleSize > 10;  // only meaningful when filtered set is larger than the snapshot window
+
+    const cardScore = `
+      <div class="stats-card stats-card-primary">
+        <div class="stats-card-label">Score</div>
+        <div class="stats-card-headline">
+          <span class="stats-card-headline-value">${stats.avgScore != null ? fmtScore(stats.avgScore) : '—'}</span>
+          <span class="stats-card-headline-suffix">${stats.avgVsPar != null ? fmtVsPar(stats.avgVsPar) : ''}</span>
+        </div>
+        <div class="stats-card-sub">${stats.fullRoundsCount > 0
+          ? `Average across ${stats.fullRoundsCount} full round${stats.fullRoundsCount === 1 ? '' : 's'}`
+          : 'No full 18-hole rounds yet'}</div>
+        <div class="stats-card-foot">
+          ${showLast10 && last10.avgScore != null ? `
+            <div class="stats-card-foot-row">
+              <span class="stats-card-foot-label">Last ${last10.n}</span>
+              <span class="stats-card-foot-val">${fmtScore(last10.avgScore)} <span class="stats-card-foot-vs">${fmtVsPar(last10.avgVsPar)}</span></span>
+            </div>
+          ` : ''}
+          ${stats.bestRound ? `
+            <div class="stats-card-foot-row stats-card-foot-best">
+              <span class="stats-card-foot-label">Best</span>
+              <span class="stats-card-foot-val">${fmtScore(stats.bestRound.totals?.strokes)} <span class="stats-card-foot-vs">${fmtVsPar(stats.bestVsPar)}</span></span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    const cardPutts = `
+      <div class="stats-card">
+        <div class="stats-card-label">Putts/Hole</div>
+        <div class="stats-card-headline">
+          <span class="stats-card-headline-value">${fmtPutts(stats.avgPuttsPerHole)}</span>
+        </div>
+        <div class="stats-card-sub">Average per hole</div>
+        <div class="stats-card-foot">
+          ${showLast10 && last10.avgPuttsPerHole != null ? `
+            <div class="stats-card-foot-row">
+              <span class="stats-card-foot-label">Last ${last10.n}</span>
+              <span class="stats-card-foot-val">${fmtPutts(last10.avgPuttsPerHole)}</span>
+            </div>
+          ` : ''}
+          ${stats.lowestPuttsPerHole != null ? `
+            <div class="stats-card-foot-row stats-card-foot-best">
+              <span class="stats-card-foot-label">Best</span>
+              <span class="stats-card-foot-val">${fmtPutts(stats.lowestPuttsPerHole)}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    const cardFir = `
+      <div class="stats-card">
+        <div class="stats-card-label">Fairways</div>
+        <div class="stats-card-headline">
+          <span class="stats-card-headline-value">${fmtPct(stats.avgFairwayPct)}</span>
+        </div>
+        <div class="stats-card-sub">Average per round</div>
+        <div class="stats-card-foot">
+          ${showLast10 && last10.avgFairwayPct != null ? `
+            <div class="stats-card-foot-row">
+              <span class="stats-card-foot-label">Last ${last10.n}</span>
+              <span class="stats-card-foot-val">${fmtPct(last10.avgFairwayPct)}</span>
+            </div>
+          ` : ''}
+          ${stats.bestFirPct != null ? `
+            <div class="stats-card-foot-row stats-card-foot-best">
+              <span class="stats-card-foot-label">Best</span>
+              <span class="stats-card-foot-val">${fmtPct(stats.bestFirPct)}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    const cardGir = `
+      <div class="stats-card">
+        <div class="stats-card-label">Greens</div>
+        <div class="stats-card-headline">
+          <span class="stats-card-headline-value">${fmtPct(stats.avgGirPct)}</span>
+        </div>
+        <div class="stats-card-sub">Average per round</div>
+        <div class="stats-card-foot">
+          ${showLast10 && last10.avgGirPct != null ? `
+            <div class="stats-card-foot-row">
+              <span class="stats-card-foot-label">Last ${last10.n}</span>
+              <span class="stats-card-foot-val">${fmtPct(last10.avgGirPct)}</span>
+            </div>
+          ` : ''}
+          ${stats.bestGirPct != null ? `
+            <div class="stats-card-foot-row stats-card-foot-best">
+              <span class="stats-card-foot-label">Best</span>
+              <span class="stats-card-foot-val">${fmtPct(stats.bestGirPct)}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    // Distribution rates — only render if we have per-hole data
+    let distributionSection = '';
+    if (stats.holesWithPutts > 0 || stats.holesWithScore > 0) {
+      const distCards = [];
+      if (stats.onePuttRate != null) {
+        distCards.push(`
+          <div class="stats-rate-card">
+            <div class="stats-rate-value">${fmtPct(stats.onePuttRate)}</div>
+            <div class="stats-rate-label">1-Putt Rate</div>
+            <div class="stats-rate-sub">Holes you needed only one putt</div>
+          </div>
+        `);
+      }
+      if (stats.threePuttRate != null) {
+        distCards.push(`
+          <div class="stats-rate-card stats-rate-card-warn">
+            <div class="stats-rate-value">${fmtPct(stats.threePuttRate)}</div>
+            <div class="stats-rate-label">3-Putt Rate</div>
+            <div class="stats-rate-sub">Holes that took 3+ putts</div>
+          </div>
+        `);
+      }
+      if (stats.birdieRate != null) {
+        distCards.push(`
+          <div class="stats-rate-card">
+            <div class="stats-rate-value">${fmtPct(stats.birdieRate)}</div>
+            <div class="stats-rate-label">Birdie+ Rate</div>
+            <div class="stats-rate-sub">Holes scored under par</div>
+          </div>
+        `);
+      }
+      if (stats.bogeyRate != null) {
+        distCards.push(`
+          <div class="stats-rate-card stats-rate-card-warn">
+            <div class="stats-rate-value">${fmtPct(stats.bogeyRate)}</div>
+            <div class="stats-rate-label">Bogey+ Rate</div>
+            <div class="stats-rate-sub">Holes scored over par</div>
+          </div>
+        `);
+      }
+      const sampleHoles = Math.max(stats.holesWithPutts, stats.holesWithScore);
+      distributionSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Hole-by-hole patterns</div>
+          <div class="stats-section-note">From ${sampleHoles} hole${sampleHoles === 1 ? '' : 's'} with full data</div>
+        </div>
+        <div class="stats-rate-grid">${distCards.join('')}</div>
+      `;
+    }
+
+    // ── Scrambling section. Auto-derived from existing data so it
+    //    works on every round in your history, even pre-Phase-1.
+    let scramblingSection = '';
+    if (stats.scramblingAttempts > 0) {
+      // Up-and-down rate is one of the most predictive amateur stats.
+      // Bench: tour avg ~60%, scratch ~50%, low handicap ~35%, mid ~20%.
+      // We don't show those here (avoid the snark) but use the value
+      // for our own thresholds below.
+      const toneClass = stats.scramblingPct >= 35 ? '' : 'stats-rate-card-warn';
+      scramblingSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Short game</div>
+          <div class="stats-section-note">From ${stats.scramblingAttempts} missed green${stats.scramblingAttempts === 1 ? '' : 's'}</div>
+        </div>
+        <div class="stats-rate-grid">
+          <div class="stats-rate-card ${toneClass}">
+            <div class="stats-rate-value">${fmtPct(stats.scramblingPct)}</div>
+            <div class="stats-rate-label">Up-and-Down</div>
+            <div class="stats-rate-sub">Saved par after missing the green: ${stats.scramblingSaves} of ${stats.scramblingAttempts}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Miss-direction sections. Only render when at least 5 misses
+    //    have been logged with direction (smaller samples are noise).
+    function renderMissDirCard(label, counts, total, totalMisses) {
+      const order = ['left', 'right', 'short', 'long'];
+      const dirArrow = { left: '←', right: '→', short: '↓', long: '↑' };
+      const dirLabel = { left: 'Left', right: 'Right', short: 'Short', long: 'Long' };
+      const SAMPLE_BAR = 5;  // below this, headline reads "more reps needed"
+
+      // No data at all — render a placeholder card so the user sees
+      // both Driving + Approach side-by-side instead of an asymmetric
+      // single card. Encourages them to start logging the missing one.
+      if (total === 0) {
+        const sub = totalMisses > 0
+          ? `${totalMisses} miss${totalMisses === 1 ? '' : 'es'} logged without direction`
+          : 'No misses logged yet';
+        return `
+          <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
+            <div class="stats-card-label">${escapeHtml(label)}</div>
+            <div class="stats-card-headline">
+              <span class="stats-card-headline-value stats-miss-dir-empty-headline">No data yet</span>
+            </div>
+            <div class="stats-card-sub">${escapeHtml(sub)}</div>
+            <div class="stats-miss-dir-empty-msg">
+              Tap the direction (Left / Right / Short / Long) when you miss during a round.
+            </div>
+          </div>
+        `;
+      }
+
+      // Sort directions by frequency for the dominant pick
+      const sorted = order
+        .map(dir => ({ dir, n: counts[dir] || 0 }))
+        .sort((a, b) => b.n - a.n);
+      const top = sorted[0];
+      const dominant = total > 0 ? (top.n / total) * 100 : 0;
+
+      // Headline depends on sample size + dominance:
+      //   < 5 samples  → "Early signal" + nudge to keep logging
+      //   ≥ 5 + < 40%  → "Mixed" — no real pattern
+      //   ≥ 5 + ≥ 40%  → "Mostly Left" etc.
+      let headline, headlineSub;
+      if (total < SAMPLE_BAR) {
+        headline = 'Early signal';
+        headlineSub = `Only ${total} miss${total === 1 ? '' : 'es'} with logged direction — keep tagging to lock in a pattern.`;
+      } else if (dominant < 40) {
+        headline = 'Mixed';
+        headlineSub = 'No single direction dominates';
+      } else {
+        headline = `Mostly ${dirLabel[top.dir]}`;
+        headlineSub = `${Math.round(dominant)}% of logged misses go ${dirLabel[top.dir].toLowerCase()}`;
+      }
+
+      // Per-direction breakdown bars
+      const bars = order.map(dir => {
+        const n = counts[dir] || 0;
+        const pct = total > 0 ? (n / total) * 100 : 0;
+        return `
+          <div class="miss-dir-row">
+            <span class="miss-dir-row-arrow">${dirArrow[dir]}</span>
+            <span class="miss-dir-row-label">${dirLabel[dir]}</span>
+            <div class="miss-dir-bar">
+              <div class="miss-dir-bar-fill" style="width: ${pct}%"></div>
+            </div>
+            <span class="miss-dir-row-pct">${Math.round(pct)}%</span>
+            <span class="miss-dir-row-n">${n}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Sample size shown small at the bottom of each card so the user
+      // always knows what the percentages are based on (rather than
+      // jamming it into the section header where it would wrap the title).
+      const sampleNote = `Based on ${total} of ${totalMisses} miss${totalMisses === 1 ? '' : 'es'} with direction logged`;
+
+      return `
+        <div class="stats-card stats-miss-dir-card">
+          <div class="stats-card-label">${escapeHtml(label)}</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${escapeHtml(headline)}</span>
+          </div>
+          <div class="stats-card-sub">${escapeHtml(headlineSub)}</div>
+          <div class="miss-dir-bars">${bars}</div>
+          <div class="miss-dir-sample">${escapeHtml(sampleNote)}</div>
+        </div>
+      `;
+    }
+
+    let missDirectionSection = '';
+    const hasFirData = stats.firMissesWithDirection > 0;
+    const hasGirData = stats.girMissesWithDirection > 0;
+    // Render the section if EITHER has any logged-direction data.
+    // Each card handles its own low-sample / no-data state internally
+    // so users always see both side-by-side rather than wondering why
+    // one is missing. 5+ samples is still the bar for showing the
+    // dominant-direction headline; below that we just say "more reps
+    // needed" inside the card.
+    if (hasFirData || hasGirData) {
+      const cards = [
+        renderMissDirCard('Driving misses', stats.firMissDirCounts, stats.firMissesWithDirection, stats.firMissesTotal),
+        renderMissDirCard('Approach misses', stats.girMissDirCounts, stats.girMissesWithDirection, stats.girMissesTotal),
+      ];
+      missDirectionSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Miss patterns</div>
+        </div>
+        <div class="stats-card-grid">${cards.join('')}</div>
+      `;
+    } else if (stats.firMissesTotal > 0 || stats.girMissesTotal > 0) {
+      // No direction data on any miss yet — show a soft prompt instead.
+      missDirectionSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Miss patterns</div>
+        </div>
+        <div class="stats-empty-filtered" style="padding: var(--space-6);">
+          <div class="stats-empty-filtered-title">Direction tracking unlocks more</div>
+          <div class="stats-empty-filtered-sub">When you miss a fairway or green during a round, tap the direction (left, right, short, long) to surface miss-pattern insights here.</div>
+        </div>
+      `;
+    }
+
+    // ── Penalties section — only shown if at least one round has
+    //    penalty data. Per-round average is the headline.
+    let penaltiesSection = '';
+    if (stats.holesWithPenaltyData > 0) {
+      const roundsWithPenaltyData = Math.max(1, Math.ceil(stats.holesWithPenaltyData / 18));
+      const avgPerRound = stats.penaltyStrokes / roundsWithPenaltyData;
+      const toneClass = avgPerRound >= 2 ? 'stats-rate-card-warn' : '';
+      penaltiesSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Penalty strokes</div>
+          <div class="stats-section-note">Tracked across ${stats.holesWithPenaltyData} hole${stats.holesWithPenaltyData === 1 ? '' : 's'}</div>
+        </div>
+        <div class="stats-rate-grid">
+          <div class="stats-rate-card ${toneClass}">
+            <div class="stats-rate-value">${avgPerRound.toFixed(1).replace(/\.0$/, '')}</div>
+            <div class="stats-rate-label">Per Round Avg</div>
+            <div class="stats-rate-sub">${stats.penaltyStrokes} total penalty stroke${stats.penaltyStrokes === 1 ? '' : 's'}</div>
+          </div>
+          <div class="stats-rate-card">
+            <div class="stats-rate-value">${stats.penaltyHoles}</div>
+            <div class="stats-rate-label">Penalty Holes</div>
+            <div class="stats-rate-sub">Holes where you took at least one penalty</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Average by par section. Three tiles (Par 3 / Par 4 / Par 5)
+    //    each showing avg score and avg vs-par for holes of that par.
+    //    Auto-derived from per-hole data so partial rounds count too.
+    let parBreakdownSection = '';
+    const parData = stats.parBreakdown || {};
+    const hasAnyPar = parData[3] || parData[4] || parData[5];
+    if (hasAnyPar) {
+      const PAR_SAMPLE_BAR = 5;
+      function renderParTile(par) {
+        const d = parData[par];
+        if (!d) {
+          return `
+            <div class="stats-par-tile stats-par-tile-empty">
+              <div class="stats-par-tile-label">Par ${par}</div>
+              <div class="stats-par-tile-value">—</div>
+              <div class="stats-par-tile-sub">No holes played yet</div>
+            </div>
+          `;
+        }
+        const lowSample = d.holes < PAR_SAMPLE_BAR;
+        // vsPar formatting: "+0.3" / "-0.1" / "E"
+        const vsParStr = Math.abs(d.vsPar) < 0.05
+          ? 'E'
+          : (d.vsPar > 0 ? `+${d.vsPar.toFixed(1)}` : d.vsPar.toFixed(1));
+        // Tone: green when scoring under par on average, neutral at par,
+        // orange-warned when scoring over par. Using a margin (0.05) to
+        // avoid flipping based on rounding noise.
+        const tone = d.vsPar < -0.05 ? 'is-under'
+                   : d.vsPar > 0.05 ? 'is-over'
+                   : 'is-even';
+        return `
+          <div class="stats-par-tile ${tone}${lowSample ? ' is-low-sample' : ''}">
+            <div class="stats-par-tile-label">Par ${par}</div>
+            <div class="stats-par-tile-value">${d.avg.toFixed(2)}</div>
+            <div class="stats-par-tile-vs">${escapeHtml(vsParStr)} vs par</div>
+            <div class="stats-par-tile-sub">
+              ${d.holes} hole${d.holes === 1 ? '' : 's'}${lowSample ? ' · early signal' : ''}
+            </div>
+          </div>
+        `;
+      }
+      parBreakdownSection = `
+        <div class="stats-section-head">
+          <div class="stats-section-title">Average by par</div>
+        </div>
+        <div class="stats-par-grid">
+          ${renderParTile(3)}
+          ${renderParTile(4)}
+          ${renderParTile(5)}
+        </div>
+      `;
+    }
+
+    // ── At-a-glance strip — compact 4-stat row at the top, always
+    //    visible regardless of tab. Functions as a sticky-ish summary
+    //    so users don't lose the headline numbers when drilling into
+    //    a specific bucket.
+    const glanceStrip = `
+      <div class="stats-glance">
+        <div class="stats-glance-item">
+          <div class="stats-glance-label">Score</div>
+          <div class="stats-glance-value">${stats.avgScore != null ? fmtScore(stats.avgScore) : '—'}<span class="stats-glance-suffix">${stats.avgVsPar != null ? ' ' + fmtVsPar(stats.avgVsPar) : ''}</span></div>
+        </div>
+        <div class="stats-glance-item">
+          <div class="stats-glance-label">Putts/Hole</div>
+          <div class="stats-glance-value">${fmtPutts(stats.avgPuttsPerHole)}</div>
+        </div>
+        <div class="stats-glance-item">
+          <div class="stats-glance-label">Fairways</div>
+          <div class="stats-glance-value">${fmtPct(stats.avgFairwayPct)}</div>
+        </div>
+        <div class="stats-glance-item">
+          <div class="stats-glance-label">Greens</div>
+          <div class="stats-glance-value">${fmtPct(stats.avgGirPct)}</div>
+        </div>
+      </div>
+    `;
+
+    // ── Tab bar. Five tabs: Overview + four skill buckets. Horizontal
+    //    scroll on narrow screens so labels stay full-text rather than
+    //    cramped/abbreviated.
+    const tabs = [
+      { id: 'overview', label: 'Overview' },
+      { id: 'driving',  label: 'Driving' },
+      { id: 'approach', label: 'Approach' },
+      { id: 'putting',  label: 'Putting' },
+      { id: 'scoring',  label: 'Scoring' },
+    ];
+    const tabBar = `
+      <div class="stats-tabbar" role="tablist" aria-label="Stat category">
+        ${tabs.map(t => `
+          <button class="stats-tab${myStatsState.tab === t.id ? ' is-active' : ''}"
+                  role="tab"
+                  aria-selected="${myStatsState.tab === t.id}"
+                  onclick="setStatsTab('${t.id}')">
+            ${escapeHtml(t.label)}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    // Build each tab's content. Reuses the variables already built
+    // above (cardFir, cardGir, etc.) so we get one source of truth and
+    // tab switching is just a recompose.
+
+    // Overview: a digest of the 4 main bucket cards. Uses the existing
+    // big stat cards (which already include Last 10 + Best per bucket).
+    const overviewContent = `
+      <div class="stats-tab-grid">
+        ${cardFir}
+        ${cardGir}
+        ${cardPutts}
+        ${cardScore}
+      </div>
+    `;
+
+    // Driving: fairway% headline card + miss patterns (FIR only).
+    let drivingMissCard = '';
+    if (stats.firMissesWithDirection > 0 || stats.firMissesTotal > 0) {
+      drivingMissCard = renderMissDirCard('Driving misses', stats.firMissDirCounts, stats.firMissesWithDirection, stats.firMissesTotal);
+    }
+    const drivingContent = `
+      <div class="stats-tab-grid">
+        ${cardFir}
+        ${drivingMissCard || `
+          <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
+            <div class="stats-card-label">Miss Patterns</div>
+            <div class="stats-card-headline">
+              <span class="stats-card-headline-value stats-miss-dir-empty-headline">No misses yet</span>
+            </div>
+            <div class="stats-card-sub">Logged fairway misses will surface dominant patterns here.</div>
+          </div>
+        `}
+      </div>
+    `;
+
+    // Approach: GIR% + miss patterns (GIR only) + scrambling.
+    let approachMissCard = '';
+    if (stats.girMissesWithDirection > 0 || stats.girMissesTotal > 0) {
+      approachMissCard = renderMissDirCard('Approach misses', stats.girMissDirCounts, stats.girMissesWithDirection, stats.girMissesTotal);
+    }
+    let approachScramblingCard = '';
+    if (stats.scramblingAttempts > 0) {
+      const toneClass = stats.scramblingPct >= 35 ? '' : 'stats-rate-card-warn';
+      approachScramblingCard = `
+        <div class="stats-card ${toneClass === 'stats-rate-card-warn' ? 'stats-card-warn' : ''}">
+          <div class="stats-card-label">Up-and-Down</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${fmtPct(stats.scramblingPct)}</span>
+          </div>
+          <div class="stats-card-sub">Saved par after missing the green: ${stats.scramblingSaves} of ${stats.scramblingAttempts}</div>
+        </div>
+      `;
+    }
+    const approachContent = `
+      <div class="stats-tab-grid">
+        ${cardGir}
+        ${approachMissCard || `
+          <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
+            <div class="stats-card-label">Miss Patterns</div>
+            <div class="stats-card-headline">
+              <span class="stats-card-headline-value stats-miss-dir-empty-headline">No misses yet</span>
+            </div>
+            <div class="stats-card-sub">Logged green misses will surface dominant patterns here.</div>
+          </div>
+        `}
+        ${approachScramblingCard}
+      </div>
+    `;
+
+    // Putting: putts/hole + 1-putt + 3-putt rate cards.
+    let onePuttCard = '', threePuttCard = '';
+    if (stats.onePuttRate != null) {
+      onePuttCard = `
+        <div class="stats-card">
+          <div class="stats-card-label">1-Putt Rate</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${fmtPct(stats.onePuttRate)}</span>
+          </div>
+          <div class="stats-card-sub">Holes you needed only one putt</div>
+        </div>
+      `;
+    }
+    if (stats.threePuttRate != null) {
+      const toneClass = stats.threePuttRate >= 8 ? 'stats-card-warn' : '';
+      threePuttCard = `
+        <div class="stats-card ${toneClass}">
+          <div class="stats-card-label">3-Putt Rate</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${fmtPct(stats.threePuttRate)}</span>
+          </div>
+          <div class="stats-card-sub">Holes that took 3+ putts (lower is better)</div>
+        </div>
+      `;
+    }
+    const puttingContent = `
+      <div class="stats-tab-grid">
+        ${cardPutts}
+        ${onePuttCard}
+        ${threePuttCard}
+      </div>
+    `;
+
+    // Scoring: score card + average-by-par + birdie/bogey + penalties.
+    let birdieCard = '', bogeyCard = '', penaltyCard = '';
+    if (stats.birdieRate != null) {
+      birdieCard = `
+        <div class="stats-card">
+          <div class="stats-card-label">Birdie+ Rate</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${fmtPct(stats.birdieRate)}</span>
+          </div>
+          <div class="stats-card-sub">Holes scored under par</div>
+        </div>
+      `;
+    }
+    if (stats.bogeyRate != null) {
+      const toneClass = stats.bogeyRate >= 50 ? 'stats-card-warn' : '';
+      bogeyCard = `
+        <div class="stats-card ${toneClass}">
+          <div class="stats-card-label">Bogey+ Rate</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${fmtPct(stats.bogeyRate)}</span>
+          </div>
+          <div class="stats-card-sub">Holes scored over par</div>
+        </div>
+      `;
+    }
+    if (stats.holesWithPenaltyData > 0) {
+      const roundsWithPenaltyData = Math.max(1, Math.ceil(stats.holesWithPenaltyData / 18));
+      const avgPerRound = stats.penaltyStrokes / roundsWithPenaltyData;
+      const toneClass = avgPerRound >= 2 ? 'stats-card-warn' : '';
+      penaltyCard = `
+        <div class="stats-card ${toneClass}">
+          <div class="stats-card-label">Penalty Strokes</div>
+          <div class="stats-card-headline">
+            <span class="stats-card-headline-value">${avgPerRound.toFixed(1).replace(/\.0$/, '')}</span>
+            <span class="stats-card-headline-suffix">/round</span>
+          </div>
+          <div class="stats-card-sub">${stats.penaltyStrokes} total penalty stroke${stats.penaltyStrokes === 1 ? '' : 's'} across ${stats.penaltyHoles} hole${stats.penaltyHoles === 1 ? '' : 's'}</div>
+        </div>
+      `;
+    }
+    // Average-by-par (kept in scoring tab — conceptually a slice of "where do strokes go")
+    let parTilesHtml = '';
+    if (parBreakdownSection) {
+      // Reuse the existing parBreakdownSection's tiles but without its own section header
+      // since the tab itself provides the context. Strip the header by rendering tiles directly.
+      const parData2 = stats.parBreakdown || {};
+      const PAR_SAMPLE_BAR2 = 5;
+      const renderParTile2 = (par) => {
+        const d = parData2[par];
+        if (!d) {
+          return `<div class="stats-par-tile stats-par-tile-empty">
+            <div class="stats-par-tile-label">Par ${par}</div>
+            <div class="stats-par-tile-value">—</div>
+            <div class="stats-par-tile-sub">No holes played yet</div>
+          </div>`;
+        }
+        const lowSample = d.holes < PAR_SAMPLE_BAR2;
+        const vsParStr = Math.abs(d.vsPar) < 0.05 ? 'E'
+          : (d.vsPar > 0 ? `+${d.vsPar.toFixed(1)}` : d.vsPar.toFixed(1));
+        const tone = d.vsPar < -0.05 ? 'is-under' : d.vsPar > 0.05 ? 'is-over' : 'is-even';
+        return `<div class="stats-par-tile ${tone}${lowSample ? ' is-low-sample' : ''}">
+          <div class="stats-par-tile-label">Par ${par}</div>
+          <div class="stats-par-tile-value">${d.avg.toFixed(2)}</div>
+          <div class="stats-par-tile-vs">${escapeHtml(vsParStr)} vs par</div>
+          <div class="stats-par-tile-sub">${d.holes} hole${d.holes === 1 ? '' : 's'}${lowSample ? ' · early signal' : ''}</div>
+        </div>`;
+      };
+      parTilesHtml = `
+        <div class="stats-tab-section-label">Average by par</div>
+        <div class="stats-par-grid">
+          ${renderParTile2(3)}
+          ${renderParTile2(4)}
+          ${renderParTile2(5)}
+        </div>
+      `;
+    }
+    const scoringContent = `
+      <div class="stats-tab-grid">
+        ${cardScore}
+        ${birdieCard}
+        ${bogeyCard}
+        ${penaltyCard}
+      </div>
+      ${parTilesHtml}
+    `;
+
+    // Pick which tab content to render
+    const tabContent = (
+      myStatsState.tab === 'driving' ? drivingContent :
+      myStatsState.tab === 'approach' ? approachContent :
+      myStatsState.tab === 'putting' ? puttingContent :
+      myStatsState.tab === 'scoring' ? scoringContent :
+      overviewContent
+    );
+
+    // ── MOBILE LAYOUT — dense, scrollable bucket cards. No tabs.
+    //    All four skill areas stack vertically with everything you need
+    //    inline (no nested cards). Trades visual padding for data
+    //    density, which matches how mobile dashboards work in apps
+    //    people already use (Apple Health, Strava, Google Fit).
+    function renderMobileBucketDriving() {
+      // Recent + Best inline supporting stats
+      const supportingBits = [];
+      if (showLast10 && last10.avgFairwayPct != null) {
+        supportingBits.push(`Recent ${fmtPct(last10.avgFairwayPct)}`);
+      }
+      if (stats.bestFirPct != null) {
+        supportingBits.push(`Best ${fmtPct(stats.bestFirPct)}`);
+      }
+      const supportingHtml = supportingBits.length
+        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
+        : '';
+
+      // Inline mini miss-pattern bars when data exists
+      let missHtml = '';
+      const total = stats.firMissesWithDirection;
+      if (total > 0) {
+        const order = ['left', 'right', 'short', 'long'];
+        const dirArrow = { left: '←', right: '→', short: '↓', long: '↑' };
+        const dirLabel = { left: 'Left', right: 'Right', short: 'Short', long: 'Long' };
+        const bars = order.map(dir => {
+          const n = stats.firMissDirCounts[dir] || 0;
+          const pct = total > 0 ? (n / total) * 100 : 0;
+          return `
+            <div class="stats-mb-miss-row">
+              <span class="stats-mb-miss-arrow">${dirArrow[dir]}</span>
+              <span class="stats-mb-miss-label">${dirLabel[dir]}</span>
+              <div class="stats-mb-miss-bar"><div class="stats-mb-miss-bar-fill" style="width: ${pct}%"></div></div>
+              <span class="stats-mb-miss-pct">${Math.round(pct)}%</span>
+            </div>
+          `;
+        }).join('');
+        missHtml = `
+          <div class="stats-mb-subhead">Miss patterns
+            <span class="stats-mb-subhead-note">${total} of ${stats.firMissesTotal} logged</span>
+          </div>
+          <div class="stats-mb-miss-list">${bars}</div>
+        `;
+      } else if (stats.firMissesTotal > 0) {
+        missHtml = `
+          <div class="stats-mb-empty">Tap miss direction during a round to unlock pattern detection.</div>
+        `;
+      }
+
+      return `
+        <div class="stats-mb-card">
+          <div class="stats-mb-head">
+            <div class="stats-mb-title">Driving</div>
+            <div class="stats-mb-headline">${fmtPct(stats.avgFairwayPct)}<span class="stats-mb-headline-unit"> fairways</span></div>
+          </div>
+          ${supportingHtml}
+          ${missHtml}
+        </div>
+      `;
+    }
+
+    function renderMobileBucketApproach() {
+      const supportingBits = [];
+      if (showLast10 && last10.avgGirPct != null) {
+        supportingBits.push(`Recent ${fmtPct(last10.avgGirPct)}`);
+      }
+      if (stats.bestGirPct != null) {
+        supportingBits.push(`Best ${fmtPct(stats.bestGirPct)}`);
+      }
+      if (stats.scramblingAttempts > 0) {
+        supportingBits.push(`Up&Down ${fmtPct(stats.scramblingPct)}`);
+      }
+      const supportingHtml = supportingBits.length
+        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
+        : '';
+
+      let missHtml = '';
+      const total = stats.girMissesWithDirection;
+      if (total > 0) {
+        const order = ['left', 'right', 'short', 'long'];
+        const dirArrow = { left: '←', right: '→', short: '↓', long: '↑' };
+        const dirLabel = { left: 'Left', right: 'Right', short: 'Short', long: 'Long' };
+        const bars = order.map(dir => {
+          const n = stats.girMissDirCounts[dir] || 0;
+          const pct = total > 0 ? (n / total) * 100 : 0;
+          return `
+            <div class="stats-mb-miss-row">
+              <span class="stats-mb-miss-arrow">${dirArrow[dir]}</span>
+              <span class="stats-mb-miss-label">${dirLabel[dir]}</span>
+              <div class="stats-mb-miss-bar"><div class="stats-mb-miss-bar-fill" style="width: ${pct}%"></div></div>
+              <span class="stats-mb-miss-pct">${Math.round(pct)}%</span>
+            </div>
+          `;
+        }).join('');
+        missHtml = `
+          <div class="stats-mb-subhead">Miss patterns
+            <span class="stats-mb-subhead-note">${total} of ${stats.girMissesTotal} logged</span>
+          </div>
+          <div class="stats-mb-miss-list">${bars}</div>
+        `;
+      } else if (stats.girMissesTotal > 0) {
+        missHtml = `
+          <div class="stats-mb-empty">Tap miss direction during a round to unlock pattern detection.</div>
+        `;
+      }
+
+      return `
+        <div class="stats-mb-card">
+          <div class="stats-mb-head">
+            <div class="stats-mb-title">Approach</div>
+            <div class="stats-mb-headline">${fmtPct(stats.avgGirPct)}<span class="stats-mb-headline-unit"> greens</span></div>
+          </div>
+          ${supportingHtml}
+          ${missHtml}
+        </div>
+      `;
+    }
+
+    function renderMobileBucketPutting() {
+      const supportingBits = [];
+      if (showLast10 && last10.avgPuttsPerHole != null) {
+        supportingBits.push(`Recent ${fmtPutts(last10.avgPuttsPerHole)}`);
+      }
+      if (stats.lowestPuttsPerHole != null) {
+        supportingBits.push(`Best ${fmtPutts(stats.lowestPuttsPerHole)}`);
+      }
+      const supportingHtml = supportingBits.length
+        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
+        : '';
+
+      // Inline 1-putt + 3-putt as a tight 2-up
+      let ratesHtml = '';
+      if (stats.onePuttRate != null || stats.threePuttRate != null) {
+        ratesHtml = `
+          <div class="stats-mb-mini-grid">
+            ${stats.onePuttRate != null ? `
+              <div class="stats-mb-mini">
+                <div class="stats-mb-mini-value">${fmtPct(stats.onePuttRate)}</div>
+                <div class="stats-mb-mini-label">1-Putt rate</div>
+              </div>
+            ` : ''}
+            ${stats.threePuttRate != null ? `
+              <div class="stats-mb-mini${stats.threePuttRate >= 8 ? ' is-warn' : ''}">
+                <div class="stats-mb-mini-value">${fmtPct(stats.threePuttRate)}</div>
+                <div class="stats-mb-mini-label">3-Putt rate</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="stats-mb-card">
+          <div class="stats-mb-head">
+            <div class="stats-mb-title">Putting</div>
+            <div class="stats-mb-headline">${fmtPutts(stats.avgPuttsPerHole)}<span class="stats-mb-headline-unit"> per hole</span></div>
+          </div>
+          ${supportingHtml}
+          ${ratesHtml}
+        </div>
+      `;
+    }
+
+    function renderMobileBucketScoring() {
+      const supportingBits = [];
+      if (showLast10 && last10.avgScore != null) {
+        supportingBits.push(`Recent ${fmtScore(last10.avgScore)} ${fmtVsPar(last10.avgVsPar)}`);
+      }
+      if (stats.bestRound) {
+        supportingBits.push(`Best ${fmtScore(stats.bestRound.totals?.strokes)} ${fmtVsPar(stats.bestVsPar)}`);
+      }
+      const supportingHtml = supportingBits.length
+        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
+        : '';
+
+      // Per-par mini-tiles inline
+      let parHtml = '';
+      const parData3 = stats.parBreakdown || {};
+      if (parData3[3] || parData3[4] || parData3[5]) {
+        const renderParMini = (par) => {
+          const d = parData3[par];
+          if (!d) return `<div class="stats-mb-par-mini stats-mb-par-mini-empty"><div class="stats-mb-par-mini-label">Par ${par}</div><div class="stats-mb-par-mini-value">—</div></div>`;
+          const vsParStr = Math.abs(d.vsPar) < 0.05 ? 'E'
+            : (d.vsPar > 0 ? `+${d.vsPar.toFixed(1)}` : d.vsPar.toFixed(1));
+          const tone = d.vsPar < -0.05 ? 'is-under' : d.vsPar > 0.05 ? 'is-over' : 'is-even';
+          return `
+            <div class="stats-mb-par-mini ${tone}">
+              <div class="stats-mb-par-mini-label">Par ${par}</div>
+              <div class="stats-mb-par-mini-value">${d.avg.toFixed(1)}</div>
+              <div class="stats-mb-par-mini-vs">${escapeHtml(vsParStr)}</div>
+            </div>
+          `;
+        };
+        parHtml = `
+          <div class="stats-mb-subhead">Average by par</div>
+          <div class="stats-mb-par-grid">
+            ${renderParMini(3)}
+            ${renderParMini(4)}
+            ${renderParMini(5)}
+          </div>
+        `;
+      }
+
+      // Birdie/Bogey/Penalty as a tight 3-up grid below
+      const detailMinis = [];
+      if (stats.birdieRate != null) {
+        detailMinis.push(`
+          <div class="stats-mb-mini">
+            <div class="stats-mb-mini-value">${fmtPct(stats.birdieRate)}</div>
+            <div class="stats-mb-mini-label">Birdie+</div>
+          </div>
+        `);
+      }
+      if (stats.bogeyRate != null) {
+        detailMinis.push(`
+          <div class="stats-mb-mini${stats.bogeyRate >= 50 ? ' is-warn' : ''}">
+            <div class="stats-mb-mini-value">${fmtPct(stats.bogeyRate)}</div>
+            <div class="stats-mb-mini-label">Bogey+</div>
+          </div>
+        `);
+      }
+      if (stats.holesWithPenaltyData > 0) {
+        const roundsWithPenaltyData = Math.max(1, Math.ceil(stats.holesWithPenaltyData / 18));
+        const avgPerRound = stats.penaltyStrokes / roundsWithPenaltyData;
+        detailMinis.push(`
+          <div class="stats-mb-mini${avgPerRound >= 2 ? ' is-warn' : ''}">
+            <div class="stats-mb-mini-value">${avgPerRound.toFixed(1).replace(/\.0$/, '')}</div>
+            <div class="stats-mb-mini-label">Penalties</div>
+          </div>
+        `);
+      }
+      const detailHtml = detailMinis.length
+        ? `<div class="stats-mb-mini-grid">${detailMinis.join('')}</div>`
+        : '';
+
+      return `
+        <div class="stats-mb-card">
+          <div class="stats-mb-head">
+            <div class="stats-mb-title">Scoring</div>
+            <div class="stats-mb-headline">${fmtScore(stats.avgScore)}<span class="stats-mb-headline-unit"> ${fmtVsPar(stats.avgVsPar)}</span></div>
+          </div>
+          ${supportingHtml}
+          ${parHtml}
+          ${detailHtml}
+        </div>
+      `;
+    }
+
+    const mobileContent = `
+      <div class="stats-mb-stack">
+        ${renderMobileBucketDriving()}
+        ${renderMobileBucketApproach()}
+        ${renderMobileBucketPutting()}
+        ${renderMobileBucketScoring()}
+      </div>
+    `;
+
+    // Branch on viewport: mobile gets the dense bucket stack, desktop
+    // keeps the tab interface (which provides better information
+    // architecture when there's screen real estate to spare).
+    const useMobileLayout = isMobileMode();
+    const bodyContent = useMobileLayout
+      ? mobileContent
+      : `${tabBar}${tabContent}`;
+
+    mount.innerHTML = `
+      ${filterBar}
+      <div class="stats-sample-note">${sampleNote}</div>
+      ${glanceStrip}
+      ${bodyContent}
+    `;
+  }
+
 
   // Single round card. Extracted so Recent Rounds on Play landing and the
   // full rounds list can share identical card markup. Tapping opens the
@@ -29617,17 +32497,33 @@
         else                  scoreMarker = 'double';
         // FIR cell: par 3 → em-dash (N/A), else ✓ or ✗ based on recorded value.
         // If the hole was played before FIR tracking existed, e.fir is undefined —
-        // show a muted dash.
+        // show a muted dash. When the user logged a miss direction
+        // (Phase 1 diagnostic field), append a small arrow so reviewing
+        // the round shows what they recorded — otherwise the data is
+        // invisible after entry.
+        const dirGlyph = { left: '←', right: '→', short: '↓', long: '↑' };
+        const firDirSuffix = (e.fir === false && e.firMiss && dirGlyph[e.firMiss])
+          ? ` <span class="rs-cell-dir">${dirGlyph[e.firMiss]}</span>`
+          : '';
+        const girDirSuffix = (e.gir === false && e.girMiss && dirGlyph[e.girMiss])
+          ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
+          : '';
         const firCell = hd.par === 3 ? '<span class="rs-cell-dim">—</span>' :
           (e.fir === undefined ? '<span class="rs-cell-dim">—</span>' :
-           e.fir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>');
+           e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
         const girCell = e.gir === undefined ? '<span class="rs-cell-dim">—</span>' :
-          e.gir ? '<span class="rs-cell-hit">✓</span>' : '<span class="rs-cell-miss">✗</span>';
+          e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
+        // Penalty marker on the score cell. Compact warning glyph
+        // shows count when > 1; just the icon when 1. Title attribute
+        // explains on hover (mostly desktop).
+        const penaltyMark = (e.penalties > 0)
+          ? `<span class="rs-cell-pen" title="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}">⚠${e.penalties > 1 ? e.penalties : ''}</span>`
+          : '';
         return `
           <tr>
             <td>${hn}</td>
             <td>${hd.par}</td>
-            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span></td>
+            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span>${penaltyMark}</td>
             <td>${e.putts ?? '—'}</td>
             <td>${firCell}</td>
             <td>${girCell}</td>
