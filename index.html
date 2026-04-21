@@ -3965,11 +3965,24 @@
     z-index: calc(var(--z-raised) + 1);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    opacity: 1;
+    /* transition handles the fade-out; a keyframe animation handles
+       fade-in because animation-forwards pins opacity:1 after the
+       open so subsequent opacity changes (set inline by drag-to-close)
+       still work smoothly. */
     animation: toolsBackdropFadeIn 220ms ease forwards;
+    transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   @keyframes toolsBackdropFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  .tools-sheet-backdrop.closing {
+    /* Cancel the fade-in animation (if still running) AND kill any
+       inline opacity set by the drag-to-close handler. Then the
+       transition above animates opacity from current → 0. */
+    animation: none;
+    opacity: 0 !important;
   }
 
   .tools-sheet {
@@ -14811,6 +14824,35 @@
       top: calc(var(--session-banner-height, 52px) * 2 + env(safe-area-inset-top, 0px));
     }
 
+    /* ── Round-panel focus mode ──────────────────────────────
+       While the round screen is active, we hide chrome so the
+       hole card gets the full visual weight. Specifically:
+       - The "Round in progress" orange banner is suppressed (you're
+         already on the round; having "Resume" / "End" buttons pointing
+         at the thing you're currently looking at is redundant).
+       - The topbar title ("Round") is hidden; only the back arrow
+         remains. This is a deliberate minimalist treatment — the
+         hole card inside the panel already makes context obvious.
+       - All the top-padding math the body uses to reserve room for
+         the banner gets collapsed so the back-arrow sits right
+         under the safe area.
+       Swap the panel attribute to anything else and the chrome
+       comes back — this is fully toggleable via data-current-panel. */
+    body[data-current-panel="round"] {
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
+    }
+    body[data-current-panel="round"] #round-banner {
+      display: none !important;
+    }
+    body[data-current-panel="round"] .mobile-topbar {
+      top: 0 !important;
+      border-bottom: none;
+      background: transparent;
+    }
+    body[data-current-panel="round"] .mobile-topbar-title {
+      display: none;
+    }
+
     /* --- Top title bar --- */
     .mobile-topbar {
       display: block;
@@ -23375,6 +23417,7 @@
   function closeToolsSheet() {
     if (!dockState.sheetOpen) return;
     const sheet = document.querySelector('.tools-sheet');
+    const backdrop = document.querySelector('.tools-sheet-backdrop');
     if (!sheet) {
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
@@ -23384,6 +23427,13 @@
       return;
     }
     sheet.classList.add('closing');
+    // Fade the backdrop in sync with the sheet slide-down. Without
+    // this, the backdrop would vanish instantly when the sheet's
+    // transitionend fires (because the DOM node gets removed by
+    // renderRoundDock in the next step) — looks like a snap while
+    // the sheet animates smoothly. Adding .closing here triggers the
+    // CSS opacity transition to 0, matching the sheet timing.
+    if (backdrop) backdrop.classList.add('closing');
     const onDone = () => {
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
@@ -23391,7 +23441,9 @@
       releaseScrollLock();
       renderRoundDock();
     };
-    sheet.addEventListener('transitionend', onDone);
+    sheet.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'transform') onDone();
+    });
     // Safety net — if transitionend doesn't fire, clean up after the
     // expected animation duration.
     setTimeout(() => {
@@ -24698,22 +24750,49 @@
       renderMissModal();
       return;
     }
+
+    // Mark state as "closing" so re-entrant close calls bail out
+    // via the guard above. We don't flip .open to false until the
+    // animation finishes, because renderMissModal() reads .open to
+    // decide whether to wipe the mount — and we need the nodes to
+    // stay in the DOM during the fade-out.
+    //
+    // Trigger classes on BOTH nodes in the same paint frame so they
+    // animate together. Force a reflow by reading offsetHeight
+    // between class add and any subsequent DOM work — this ensures
+    // the browser has committed the "pre-closing" state (opacity:1,
+    // transform: translateY(0)) before we apply the closing state.
+    // Without the reflow, iOS Safari sometimes coalesces the two
+    // states into a single paint and skips the transition.
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
     el.classList.add('closing');
     backdrop.classList.add('closing');
-    const onDone = () => {
-      el.removeEventListener('transitionend', onDone);
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
       missModalState.open = false;
       missModalState.kind = null;
       missModalState.current = null;
       releaseScrollLock();
       renderMissModal();
     };
-    el.addEventListener('transitionend', (e) => {
-      if (e.propertyName === 'transform') onDone();
-    });
-    setTimeout(() => {
-      if (el.classList.contains('closing')) onDone();
-    }, 320);
+    // Listen for the modal's transform transition end — that's the
+    // longest of the two (260ms modal vs 220ms backdrop). By the
+    // time the modal is done sliding down, the backdrop has been
+    // faded out for ~40ms and is safe to remove.
+    const onModalEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onModalEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onModalEnd);
+    // Safety net — transitionend can be flaky (reduced motion,
+    // iOS quirks, element removed mid-transition). Fire cleanup
+    // manually after the max expected duration + buffer.
+    setTimeout(finish, 320);
   }
 
   // Record the picked direction + close the modal.
@@ -24740,23 +24819,16 @@
       entry = ctx.entry;
     }
     if (!entry) { closeMissModal(); return; }
-    // Defensive: also set the miss state to false (user is recording a
-    // direction → clearly a miss). Normally already set by setTristate
-    // before the modal opened, but makes the function robust if called
-    // directly.
     entry[statKey] = false;
     entry[missKey] = direction;
 
-    // Start closing the modal. The render MUST happen after the
-    // modal is fully gone — on iOS Safari, mutating the round DOM
-    // while the modal is mid-transition interrupts the transform
-    // animation and causes a snap. Deferring past the full 280ms
-    // close window lets the transition complete cleanly, then the
-    // round card updates just as the modal disappears.
-    //
-    // From the user's perspective: they tap a direction, the modal
-    // slides down, and a fraction of a second later the hole card
-    // shows "← Left" under the ✗. Imperceptible sequencing; no snap.
+    // Close the modal BEFORE rendering the round. The render is
+    // deferred to after the close animation completes (280ms — a
+    // touch past the 260ms modal transition) so the round's DOM
+    // churn can't interfere with the modal/backdrop transitions.
+    // Critical: on iOS Safari, synchronously mutating the round
+    // DOM while the modal is mid-transition collapses everything
+    // into a single paint frame and skips the exit animation.
     closeMissModal();
     setTimeout(() => {
       if (isGroup) grRenderRound();
