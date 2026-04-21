@@ -3941,6 +3941,23 @@
   /* ── Tools sheet: semi-transparent backdrop + sliding bottom sheet.
      Backdrop catches taps-outside to dismiss; sheet is a rounded-top
      card that grows to ~75vh max. */
+
+  /* Body scroll lock — applied by JS when a bottom sheet or modal is
+     open. Prevents the page behind the sheet from scrolling when the
+     user drags inside the backdrop or the non-scrollable sheet edges.
+     position: fixed on body is the most reliable iOS approach (plain
+     overflow: hidden still allows scroll momentum on iOS Safari). We
+     preserve the scroll position via an inline `top: -Npx` that JS
+     sets before locking, and restore it on unlock. */
+  html.scroll-locked { overflow: hidden; touch-action: none; }
+  html.scroll-locked body {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
   .tools-sheet-backdrop {
     position: fixed;
     inset: 0;
@@ -3991,7 +4008,19 @@
     border-bottom: 1px solid var(--border-light);
     position: relative;
     min-height: 52px;
+    /* Header doubles as the drag-to-close grab zone. touch-action: none
+       prevents the browser from claiming vertical swipes for its own
+       scroll gesture, so our JS touch handler can own the gesture. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: grab;
   }
+  .tools-sheet-header:active { cursor: grabbing; }
+  /* While the user is actively dragging the sheet, suppress the
+     built-in transform transition so the sheet tracks the finger
+     1:1. JS re-enables the transition on touchend. */
+  .tools-sheet.is-dragging { transition: none; }
   .tools-sheet-handle {
     /* small pill sitting centered at top of header — iOS-style drag indicator */
     position: absolute;
@@ -23209,13 +23238,48 @@
   // to the list without closing the sheet.
   // ─────────────────────────────────────────────────────────────
 
+  // ─────────────────────────────────────────────────────────────
+  // Scroll lock — prevents the background page from scrolling while a
+  // bottom sheet or modal is open. Uses position: fixed on body (plus
+  // saved scroll position) because plain overflow: hidden still allows
+  // momentum scroll on iOS Safari.
+  //
+  // Reference-counted so overlapping overlays (e.g. miss modal opened
+  // over a tools sheet) share one lock — only the final unlock
+  // restores the scroll position. Without refcounting, closing the
+  // modal would prematurely restore scroll while the sheet is still
+  // open, causing a visible jump.
+  // ─────────────────────────────────────────────────────────────
+  let _scrollLockCount = 0;
+  let _scrollLockY = 0;
+  function acquireScrollLock() {
+    if (_scrollLockCount === 0) {
+      _scrollLockY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.top = `-${_scrollLockY}px`;
+      document.documentElement.classList.add('scroll-locked');
+    }
+    _scrollLockCount++;
+  }
+  function releaseScrollLock() {
+    if (_scrollLockCount === 0) return;
+    _scrollLockCount--;
+    if (_scrollLockCount === 0) {
+      document.documentElement.classList.remove('scroll-locked');
+      document.body.style.top = '';
+      window.scrollTo(0, _scrollLockY);
+    }
+  }
+
   // Open the sheet on the list view.
   function openToolsSheet() {
     if (dockState.sheetOpen) return;
     dockState.sheetOpen = true;
     dockState.activeTool = null;
     dockState._animateNext = true;
+    acquireScrollLock();
     renderRoundDock();
+    // Attach drag-to-close handlers after the DOM exists
+    requestAnimationFrame(attachSheetDragHandlers);
   }
 
   // Tap a tool in the list — switch sheet body to that tool's content.
@@ -23296,6 +23360,7 @@
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      releaseScrollLock();
       renderRoundDock();
       return;
     }
@@ -23304,6 +23369,7 @@
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      releaseScrollLock();
       renderRoundDock();
     };
     sheet.addEventListener('transitionend', onDone);
@@ -23312,6 +23378,103 @@
     setTimeout(() => {
       if (sheet.classList.contains('closing')) onDone();
     }, 320);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Drag-to-close — swipe the sheet header downward to dismiss.
+  //
+  // Touch start on the header captures the start Y. Touchmove
+  // translates the sheet to follow the finger (downward only —
+  // upward movement is clamped). On touchend:
+  //   - If the drag traveled > 80px OR the release velocity is fast
+  //     (>0.6px/ms), close the sheet.
+  //   - Otherwise snap back to the open position.
+  //
+  // touch-action: none on the header (CSS above) prevents the browser
+  // from claiming the gesture as a page scroll before we see it.
+  // ─────────────────────────────────────────────────────────────
+  function attachSheetDragHandlers() {
+    const sheet = document.querySelector('.tools-sheet');
+    const header = sheet?.querySelector('.tools-sheet-header');
+    if (!sheet || !header) return;
+    // Guard against double-attachment on re-renders — the dock
+    // re-renders can replace the sheet node, so we flag the current
+    // node and bail if we've already wired it.
+    if (header.dataset.dragAttached === '1') return;
+    header.dataset.dragAttached = '1';
+
+    let startY = null;
+    let currentY = 0;
+    let startTime = 0;
+    let dragging = false;
+
+    const onStart = (e) => {
+      // Ignore if the user tapped the × close button or the ← back
+      // button — those have their own handlers and the gesture
+      // would interfere (e.g. a tiny drag while tapping).
+      const tgt = e.target;
+      if (tgt.closest('.tools-sheet-close, .tools-sheet-back')) return;
+      const touch = e.touches ? e.touches[0] : e;
+      startY = touch.clientY;
+      currentY = 0;
+      startTime = Date.now();
+      dragging = true;
+      sheet.classList.add('is-dragging');
+    };
+
+    const onMove = (e) => {
+      if (!dragging || startY == null) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const delta = touch.clientY - startY;
+      // Downward only — clamp upward to 0 so the sheet doesn't get
+      // pulled up past its resting position.
+      currentY = Math.max(0, delta);
+      sheet.style.transform = `translateY(${currentY}px)`;
+      // Fade the backdrop proportionally to drag progress. Sheet
+      // height is ~75vh, so use that as the fade reference.
+      const backdrop = document.querySelector('.tools-sheet-backdrop');
+      if (backdrop) {
+        const progress = Math.min(1, currentY / (window.innerHeight * 0.5));
+        backdrop.style.opacity = String(1 - progress);
+      }
+    };
+
+    const onEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      sheet.classList.remove('is-dragging');
+      const elapsed = Math.max(1, Date.now() - startTime);
+      const velocity = currentY / elapsed;   // px per ms
+      // Dismiss thresholds — far enough, OR fast enough
+      const shouldClose = currentY > 80 || velocity > 0.6;
+      // Clear inline styles so the CSS-driven animations take over
+      sheet.style.transform = '';
+      const backdrop = document.querySelector('.tools-sheet-backdrop');
+      if (backdrop) backdrop.style.opacity = '';
+      startY = null;
+      currentY = 0;
+      if (shouldClose) closeToolsSheet();
+      // If not closing, the sheet snaps back via the restored CSS
+      // transition (transform 260ms) because we cleared the inline
+      // transform above.
+    };
+
+    header.addEventListener('touchstart', onStart, { passive: true });
+    header.addEventListener('touchmove', onMove, { passive: true });
+    header.addEventListener('touchend', onEnd, { passive: true });
+    header.addEventListener('touchcancel', onEnd, { passive: true });
+    // Mouse support for desktop (trackpad users who click-drag)
+    header.addEventListener('mousedown', (e) => {
+      onStart(e);
+      const mm = (ev) => onMove(ev);
+      const mu = () => {
+        onEnd();
+        document.removeEventListener('mousemove', mm);
+        document.removeEventListener('mouseup', mu);
+      };
+      document.addEventListener('mousemove', mm);
+      document.addEventListener('mouseup', mu);
+    });
   }
 
   // Core recommendation logic. Pure function: given a target yardage and
@@ -23569,6 +23732,12 @@
         }
       }, 280);
     }
+
+    // Attach/re-attach drag-to-close handlers on the sheet header.
+    // The helper is idempotent via a data-flag — safe to call on
+    // every render. Needed on every render because the sheet node
+    // gets replaced when switching between tools.
+    if (dockState.sheetOpen) attachSheetDragHandlers();
   }
 
   // Render the full sheet — header + body. Body is either the tool
@@ -24484,9 +24653,19 @@
   };
 
   function openMissModal(kind, currentDirection) {
+    // Don't double-lock if modal is re-opened over itself (e.g. user
+    // taps ✗ while modal is already open). The acquireScrollLock
+    // refcount would drift and leak.
+    if (missModalState.open) {
+      missModalState.kind = kind;
+      missModalState.current = currentDirection || null;
+      renderMissModal();
+      return;
+    }
     missModalState.open = true;
     missModalState.kind = kind;
     missModalState.current = currentDirection || null;
+    acquireScrollLock();
     renderMissModal();
   }
 
@@ -24496,6 +24675,7 @@
     const backdrop = document.querySelector('.miss-modal-backdrop');
     if (!el || !backdrop) {
       missModalState.open = false;
+      releaseScrollLock();
       renderMissModal();
       return;
     }
@@ -24506,6 +24686,7 @@
       missModalState.open = false;
       missModalState.kind = null;
       missModalState.current = null;
+      releaseScrollLock();
       renderMissModal();
     };
     el.addEventListener('transitionend', (e) => {
@@ -24547,9 +24728,22 @@
     entry[statKey] = false;
     entry[missKey] = direction;
 
-    if (isGroup) grRenderRound();
-    else renderRound();
+    // Start the close animation FIRST, then re-render the round. The
+    // previous order (render then close) caused the modal to snap shut
+    // instead of animate — the round re-render triggered a layout pass
+    // that interrupted the modal's transform transition before it could
+    // start. Closing first means the transition is committed before any
+    // sibling DOM churn happens.
     closeMissModal();
+    // Defer the round re-render to the next frame so the transition
+    // has a clean paint to kick off from. By the time this fires, the
+    // browser has already committed the "closing" class and scheduled
+    // the transform transition; the render below only mutates nodes
+    // in a different part of the DOM and won't disturb it.
+    requestAnimationFrame(() => {
+      if (isGroup) grRenderRound();
+      else renderRound();
+    });
   }
 
   function renderMissModal() {
