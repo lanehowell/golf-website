@@ -2435,6 +2435,136 @@
      GROUP ROUND LOBBY — pre-round assembly screen
      ══════════════════════════════════════════════════════════════ */
 
+  /* ── Lobby header (replaces the old panel-head). The topbar now
+       provides the X + LIVE chrome, so the header itself is lighter:
+       eyebrow label, course name, quick meta. */
+  .lobby-head {
+    margin-bottom: var(--space-6);
+    padding-top: var(--space-2);
+  }
+  .lobby-head .label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    display: block;
+    margin-bottom: var(--space-2);
+  }
+  .lobby-head-title {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
+  }
+  .lobby-head-meta {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ── Course preview card — shown in the lobby so players see what
+       they're about to play. Shows the selected tee's yardage totals
+       + front/back breakdown. Elevated card on cream page. */
+  .lobby-course-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .lobby-course-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .lobby-course-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid;
+    flex-shrink: 0;
+  }
+  .lobby-course-head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .lobby-course-name {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .lobby-course-location {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  /* Two big stat blocks side by side — Par and Total Yards */
+  .lobby-course-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .lobby-course-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+  }
+  .lobby-course-stat-val {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .lobby-course-stat-lbl {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  /* Front/Back 9 splits — two rows with par + yards */
+  .lobby-course-splits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .lobby-course-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: var(--text-sm);
+  }
+  .lobby-course-split-lbl {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .lobby-course-split-val {
+    font-family: var(--font-body);
+    color: var(--text-secondary);
+    font-weight: var(--weight-medium);
+  }
+
+  /* ── Tee picker uses the shared .tee-selector / .tee-btn pattern
+       (defined elsewhere) so the lobby's tee picker matches the
+       course-detail page. No lobby-specific tee styles needed. */
+
   .lobby-section {
     margin-bottom: var(--space-8);
   }
@@ -3848,6 +3978,8 @@
   body[data-current-panel="round"] .mobile-bottomnav,
   body[data-current-panel="group-round"] .training-nav,
   body[data-current-panel="group-round"] .mobile-bottomnav,
+  body[data-current-panel="group-lobby"] .training-nav,
+  body[data-current-panel="group-lobby"] .mobile-bottomnav,
   body[data-current-panel="range-session"] .training-nav,
   body[data-current-panel="range-session"] .mobile-bottomnav,
   body[data-current-panel="shortgame-session"] .training-nav,
@@ -4041,12 +4173,14 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     opacity: 1;
-    /* transition handles the fade-out; a keyframe animation handles
-       fade-in because animation-forwards pins opacity:1 after the
-       open so subsequent opacity changes (set inline by drag-to-close)
-       still work smoothly. */
+    /* Fade-in is fast (220ms ease) — the dim appearing quickly feels
+       responsive when the user taps Tools. Fade-out is slower (320ms)
+       to match the sheet's slide-down feel so the dim lifts in sync
+       with the sheet leaving. Two mechanisms (animation for in,
+       transition for out) because animation-forwards pins opacity:1
+       after open, keeping inline opacity from drag-to-close working. */
     animation: toolsBackdropFadeIn 220ms ease forwards;
-    transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   @keyframes toolsBackdropFadeIn {
     from { opacity: 0; }
@@ -4074,7 +4208,12 @@
     display: flex;
     flex-direction: column;
     transform: translateY(0);
-    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* 320ms matches the backdrop's fade-out duration so both finish
+       together. closeToolsSheet waits on this transform's transitionend
+       before wiping the DOM — previously 260ms here killed the 320ms
+       backdrop fade (backdrop removed 60ms before its opacity
+       transition completed). */
+    transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   /* Initial and exit states for the slide-up/down animation */
@@ -11972,15 +12111,43 @@
     transform: translateX(-50%) translateY(0);
   }
   .toast.error { background: var(--color-orange-dark); }
+  /* Actionable toast — tapping it performs an action (e.g., navigating
+     to a panel). Opts back into pointer events and shows a subtle cue
+     that it's interactive: cursor pointer, slight orange accent border,
+     and a right-pointing chevron hint via ::after. */
+  .toast.actionable {
+    pointer-events: auto;
+    cursor: pointer;
+    padding-right: var(--space-8);
+    box-shadow: var(--shadow-lg), 0 0 0 1.5px var(--color-orange);
+  }
+  .toast.actionable::after {
+    content: '›';
+    position: absolute;
+    right: var(--space-5);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2em;
+    color: var(--color-orange);
+    font-weight: var(--weight-bold);
+  }
+  .toast.actionable:active { opacity: 0.85; }
 
   /* On mobile, the bottom nav lives where the toast would sit — flip it to
      the top instead, just below the fixed topbar. The enter animation also
-     flips direction so it slides in from above. */
+     flips direction so it slides in from above.
+     Also loosen the desktop nowrap + give the toast a bounded width so
+     longer messages (e.g., invite text) wrap instead of overflowing the
+     viewport. */
   @media (max-width: 768px) {
     .toast {
       bottom: auto;
       top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--space-3));
       transform: translateX(-50%) translateY(-100px);
+      white-space: normal;
+      max-width: calc(100vw - var(--space-6) * 2);
+      text-align: center;
+      line-height: var(--leading-snug);
     }
     .toast.show {
       transform: translateX(-50%) translateY(0);
@@ -12651,11 +12818,12 @@
   .nav-link {
     position: relative;
   }
-  /* Mobile tab badge — positioned above the tab icon */
-  .mobile-nav-btn {
-    position: relative;
-  }
-  .mobile-nav-btn .nav-badge {
+  /* Mobile tab badge — positioned above the tab icon. Class in the
+     actual HTML is .mobile-navitem (nav buttons already have
+     position: relative via their own styles, so we don't need to
+     set it here). Badge floats above the icon, slightly offset
+     right of center. */
+  .mobile-navitem .nav-badge {
     top: 4px;
     right: calc(50% - 20px);
   }
@@ -14867,9 +15035,11 @@
     }
     /* On the round panel, the bottom nav hides but banner + topbar stay.
        Just remove the bottom-nav-reserved padding so content can extend
-       to the real bottom of the viewport. */
+       to the real bottom of the viewport. Same treatment for group-
+       lobby — the nav is hidden there too. */
     body[data-current-panel="round"],
-    body[data-current-panel="group-round"] {
+    body[data-current-panel="group-round"],
+    body[data-current-panel="group-lobby"] {
       padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     }
     /* Neutralize the heavy vertical padding desktop needed around main */
@@ -14902,55 +15072,67 @@
 
     /* ── Round-panel focus mode ──────────────────────────────
        While the round screen is active (solo OR group), we hide chrome
-       so the hole card gets the full visual weight. Applies to both
-       'round' and 'group-round' panel ids — same treatment. */
+       so the hole card gets the full visual weight. Applies to 'round',
+       'group-round', AND 'group-lobby' — the lobby gets the same
+       minimalist chrome (no title, X close, LIVE indicator) since it's
+       part of the same round context. */
     body[data-current-panel="round"],
-    body[data-current-panel="group-round"] {
+    body[data-current-panel="group-round"],
+    body[data-current-panel="group-lobby"] {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
     }
     body[data-current-panel="round"] #round-banner,
-    body[data-current-panel="group-round"] #round-banner {
+    body[data-current-panel="group-round"] #round-banner,
+    body[data-current-panel="group-lobby"] #round-banner {
       display: none !important;
     }
     body[data-current-panel="round"] .mobile-topbar,
-    body[data-current-panel="group-round"] .mobile-topbar {
+    body[data-current-panel="group-round"] .mobile-topbar,
+    body[data-current-panel="group-lobby"] .mobile-topbar {
       top: 0 !important;
       border-bottom: none;
       background: transparent;
     }
     body[data-current-panel="round"] .mobile-topbar-title,
-    body[data-current-panel="group-round"] .mobile-topbar-title {
+    body[data-current-panel="group-round"] .mobile-topbar-title,
+    body[data-current-panel="group-lobby"] .mobile-topbar-title {
       display: none;
     }
-    /* Swap the back arrow for a circled-X glyph on both round screens.
-       The button's <span> holds an ← character in HTML; we blank it
-       out via font-size: 0 and paint a centered SVG via background
-       image. Drawing the X as SVG (not a font glyph) keeps centering
-       and stroke thickness geometrically perfect. Two color variants
-       for light and dark modes. */
+    /* Swap the back arrow for a circled-X glyph on all round-context
+       screens (round, group-round, group-lobby). The button's <span>
+       holds an ← character in HTML; we blank it out via font-size: 0
+       and paint a centered SVG via background image. Drawing the X as
+       SVG (not a font glyph) keeps centering and stroke thickness
+       geometrically perfect. Two color variants for light and dark
+       modes. */
     body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow {
+    body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow {
       font-size: 0;
       line-height: 0;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
-    body[data-current-panel="group-round"] .mobile-topbar-back {
+    body[data-current-panel="group-round"] .mobile-topbar-back,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
       background-size: 28px 28px;
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back,
-    html.dark body[data-current-panel="group-round"] .mobile-topbar-back {
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
-    body[data-current-panel="group-round"] .mobile-topbar-back:active {
+    body[data-current-panel="group-round"] .mobile-topbar-back:active,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back:active {
       opacity: 0.6;
     }
-    /* Live indicator — right-aligned in the topbar, visible only on
-       round screens (solo OR group). Pulsing orange dot + "LIVE" label
-       signals that a round is actively being tracked. */
+    /* Live indicator — right-aligned in the topbar, visible on all
+       round-context screens (round, group-round, group-lobby). Pulsing
+       orange dot + "LIVE" label signals this screen is tied to a live
+       round. */
     .mobile-topbar-live {
       display: none;
       align-items: center;
@@ -14968,7 +15150,8 @@
       pointer-events: none;
     }
     body[data-current-panel="round"] .mobile-topbar-live,
-    body[data-current-panel="group-round"] .mobile-topbar-live {
+    body[data-current-panel="group-round"] .mobile-topbar-live,
+    body[data-current-panel="group-lobby"] .mobile-topbar-live {
       display: inline-flex;
     }
     .mobile-topbar-live-dot {
@@ -15319,12 +15502,16 @@
   <div class="session-banner-inner" onclick="resumeActiveRound()">
     <span class="session-banner-pulse" aria-hidden="true"></span>
     <div class="session-banner-info">
-      <span class="session-banner-label">Round in progress</span>
+      <span class="session-banner-label" id="round-banner-label">Round in progress</span>
       <span class="session-banner-title" id="round-banner-title">—</span>
     </div>
     <span class="session-banner-timer" id="round-banner-progress">—</span>
-    <button class="session-banner-btn" onclick="event.stopPropagation(); resumeActiveRound()">Resume</button>
-    <button class="session-banner-btn end" onclick="event.stopPropagation(); endActiveRoundFromBanner()">End</button>
+    <!-- Action buttons — swapped by updateRoundBanner based on state.
+         For in-progress rounds: Resume + End.
+         For lobby (group round not yet started): Open Lobby only. -->
+    <button class="session-banner-btn" id="round-banner-btn-resume" onclick="event.stopPropagation(); resumeActiveRound()">Resume</button>
+    <button class="session-banner-btn end" id="round-banner-btn-end" onclick="event.stopPropagation(); endActiveRoundFromBanner()">End</button>
+    <button class="session-banner-btn" id="round-banner-btn-lobby" onclick="event.stopPropagation(); resumeActiveRound()" style="display: none;">Open</button>
   </div>
 </div>
 
@@ -18331,7 +18518,14 @@
       }
       renderQuickScore();
     }
-    if (id === 'social') renderSocial();
+    if (id === 'social') {
+      renderSocial();
+      // Invites snapshot only fires on invite add/remove; the
+      // associated ROUND's status can change (organizer starts it)
+      // without firing. Force a stale-invite re-check on each Social
+      // entry so an already-started round's invite auto-dismisses.
+      cleanUpStaleInvites({ force: true });
+    }
     if (id === 'user-profile') renderUserProfile();
     if (id === 'public-round') renderPublicRound();
     if (id === 'exercise-library') renderExerciseLibrary();
@@ -20657,14 +20851,47 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
-  function showToast(message, isError) {
+  // Show a transient toast. Opts can include:
+  //   onTap:    function called when user taps the toast. If provided,
+  //             the toast dismisses itself on tap and fires the handler.
+  //   duration: ms to show (default 2800). Longer for actionable
+  //             toasts like invites that the user might want to tap.
+  function showToast(message, isError, opts) {
     const el = document.getElementById('toast');
     if (!el) return;
+    opts = opts || {};
     el.textContent = message;
     el.classList.toggle('error', !!isError);
+    el.classList.toggle('actionable', !!opts.onTap);
     el.classList.add('show');
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => el.classList.remove('show'), 2800);
+
+    // Detach any previous handler so repeated toasts don't stack
+    // listeners. We keep the handler reference on the node so we
+    // can detach on dismiss as well.
+    if (showToast._handler) {
+      el.removeEventListener('click', showToast._handler);
+      showToast._handler = null;
+    }
+    if (opts.onTap) {
+      showToast._handler = () => {
+        clearTimeout(showToast._t);
+        el.classList.remove('show', 'actionable');
+        el.removeEventListener('click', showToast._handler);
+        showToast._handler = null;
+        try { opts.onTap(); } catch (_) {}
+      };
+      el.addEventListener('click', showToast._handler);
+    }
+
+    const duration = opts.duration || 2800;
+    showToast._t = setTimeout(() => {
+      el.classList.remove('show', 'actionable');
+      if (showToast._handler) {
+        el.removeEventListener('click', showToast._handler);
+        showToast._handler = null;
+      }
+    }, duration);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -21233,6 +21460,69 @@
     __seenInviteIds = null;
   }
 
+  // Stale-invite check cache. Maps groupRoundId → status ('lobby' |
+  // 'in-progress' | 'completed' | 'abandoned' | 'missing'). Lets us
+  // skip re-fetching on every snapshot once we've resolved a round's
+  // status. Only 'lobby' rounds produce visible invites — anything
+  // else means we auto-decline and hide.
+  const __inviteRoundStatusCache = new Map();
+
+  // For each current invite, fetch the associated round's status. If
+  // the round has moved past 'lobby' (already started, completed, or
+  // was deleted), silently decline the invite on the invitee's behalf
+  // so it disappears from their Social panel + badge. Runs after
+  // every snapshot; results are cached so we only hit Firestore once
+  // per groupRoundId per session.
+  //
+  // Called non-awaited from the snapshot handler — stale cleanup
+  // happens in the background and re-renders when it's done.
+  //
+  // `force: true` busts the status cache so invites get re-checked.
+  // Used when the invitee navigates to Social: the organizer may have
+  // started the round since our last check, and the invites snapshot
+  // doesn't fire on round-status changes (only on invite add/remove).
+  async function cleanUpStaleInvites(opts) {
+    if (!currentUser || !window.fb) return;
+    if (opts && opts.force) __inviteRoundStatusCache.clear();
+    const toCheck = groupRoundInvites.filter(inv =>
+      !__inviteRoundStatusCache.has(inv.groupRoundId)
+    );
+    if (toCheck.length === 0) return;
+
+    // Fetch each round's status concurrently. Bounded by the invite
+    // count (typically 0–3) so this is safe without a pool.
+    const results = await Promise.all(toCheck.map(async inv => {
+      try {
+        const round = await window.fb.getGroupRound(inv.groupRoundId);
+        const status = round ? round.status : 'missing';
+        __inviteRoundStatusCache.set(inv.groupRoundId, status);
+        return { inv, status };
+      } catch (_) {
+        // Permission-denied = round was deleted or we lost access.
+        __inviteRoundStatusCache.set(inv.groupRoundId, 'missing');
+        return { inv, status: 'missing' };
+      }
+    }));
+
+    // Any invite whose round is no longer in 'lobby' gets silently
+    // declined — removes it from Firestore and our local state.
+    const stale = results.filter(r =>
+      r.status !== 'lobby'
+    );
+    if (stale.length === 0) return;
+
+    for (const { inv } of stale) {
+      try {
+        await window.fb.declineGroupRoundInvite(currentUser.uid, inv.groupRoundId);
+      } catch (_) { /* best-effort */ }
+    }
+    // Drop stale from local state
+    const staleIds = new Set(stale.map(r => r.inv.groupRoundId));
+    groupRoundInvites = groupRoundInvites.filter(i => !staleIds.has(i.groupRoundId));
+    updateSocialBadge();
+    renderInvitesWhereVisible();
+  }
+
   // Process a snapshot of the invites collection. Detects net-new invites
   // (not in the seen set) and surfaces them via toast. Always refreshes
   // the badge + any visible Social/Today panel so the UI tracks Firestore.
@@ -21259,20 +21549,33 @@
     groupRoundInvites = freshInvites;
     __seenInviteIds = freshIds;
 
-    // Toast once per new invite (usually just one at a time in practice)
+    // Toast once per new invite (usually just one at a time in practice).
+    // Tap-to-navigate: hitting the toast routes to the Social tab so
+    // the user can accept/decline without digging. Longer duration
+    // (5.5s) because the user might want to read + tap.
     for (const inv of newlyArrived) {
       const fromName = inv.fromDisplayName
         || inv.fromUsernameDisplay
         || inv.fromUsername
         || 'Someone';
-      const courseName = inv.courseName || 'a round';
-      // Toast is non-blocking — user can keep working. The banner on
-      // Today and the badge on Social provide persistence.
-      showToast(`${fromName} invited you to ${courseName}`);
+      // Shorter message so it fits a narrow phone viewport. The
+      // toast is already actionable + has a chevron affordance, so
+      // "tap to view" is redundant phrasing.
+      showToast(`${fromName} invited you to a round`, false, {
+        duration: 5500,
+        onTap: () => showPanel('social', null)
+      });
     }
 
     updateSocialBadge();
     renderInvitesWhereVisible();
+
+    // Best-effort: check if any current invites point at rounds that
+    // have already started (or ended). Those get silently declined so
+    // they disappear from the invitee's Social panel + badge. Runs
+    // in the background — cache-backed so repeated snapshots don't
+    // re-fetch.
+    cleanUpStaleInvites();
   }
 
   // Re-render any UI surfaces that show invite info so they pick up
@@ -21341,7 +21644,10 @@
   // friend requests and group round invites — they're different surfaces
   // but both live on the Social page so one combined badge makes sense.
   function updateSocialBadge() {
-    const navs = [document.getElementById('nav-social'), document.getElementById('mobile-nav-social')];
+    // Desktop nav uses #nav-social, mobile bottom nav uses #mnav-social
+    // (class naming diverged — mobile uses .mobile-navitem, not
+    // .mobile-nav-btn). Query both, attach badge to whichever exists.
+    const navs = [document.getElementById('nav-social'), document.getElementById('mnav-social')];
     const count = friendRequests.length + (groupRoundInvites?.length || 0);
     navs.forEach(nav => {
       if (!nav) return;
@@ -22259,6 +22565,11 @@
       groupRoundState.doc = { id, ...payload };
       myGroupRounds = [groupRoundState.doc, ...myGroupRounds];
       courseDetailState.pickMode = 'solo'; // reset for next entry
+      // Clear the per-session "already invited" tracker so friends from
+      // a previous lobby can be invited again. Tracker is session-level
+      // and scoped to the current active round; a fresh lobby means a
+      // fresh slate for everyone.
+      __groupRoundInvitesSent.clear();
       updateRoundBanner();
       showPanel('group-lobby', null);
     } catch (err) {
@@ -22288,6 +22599,9 @@
     groupRoundState.docId = null;
     groupRoundState.doc = null;
     myGroupRounds = myGroupRounds.filter(r => r.id !== id);
+    // Reset per-session invites tracker so if the user starts a new
+    // lobby later, previously-invited friends can be invited again.
+    __groupRoundInvitesSent.clear();
     renderPlayLanding();
     updateRoundBanner();
   }
@@ -22325,12 +22639,13 @@
           <h2>No group round in progress</h2>
           <p class="panel-desc">Start one from a course page.</p>
         </div>
-        <button class="course-detail-cta" onclick="showPanel('play', null)">Go to Play →</button>`;
+        <button class="lobby-start-btn" onclick="showPanel('play', null)">Go to Play →</button>`;
       return;
     }
 
     const course = getCourse(gr.courseId);
     const courseName = course ? course.name : (gr.courseName || 'Course');
+    const courseLocation = course ? course.location : '';
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
     const playerUidsSet = new Set(players.map(p => p.uid));
@@ -22342,6 +22657,81 @@
       const d = new Date(gr.startTime);
       timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     } catch (_) { /* fall through */ }
+
+    // ── Course preview section — par, yardage, front/back breakdown.
+    //    Derived from the course catalog + my own selected tee so the
+    //    yardage reflects what I'LL actually play, not some generic
+    //    total. Scales nicely with whatever tee I pick below.
+    const me = players.find(p => p.uid === currentUser?.uid);
+    const myTeeName = me?.tee || (course?.tees?.[0]?.name) || null;
+    const myTee = course?.tees?.find(t => t.name === myTeeName) || course?.tees?.[0];
+    let coursePreviewHtml = '';
+    if (course && myTee) {
+      const totalPar = course.holes.reduce((s, h) => s + h.par, 0);
+      const frontPar = course.holes.slice(0, 9).reduce((s, h) => s + h.par, 0);
+      const backPar = course.holes.slice(9).reduce((s, h) => s + h.par, 0);
+      const frontYards = myTee.yardages.slice(0, 9).reduce((s, y) => s + y, 0);
+      const backYards = myTee.yardages.slice(9).reduce((s, y) => s + y, 0);
+      const totalYards = myTee.totalYards || (frontYards + backYards);
+      coursePreviewHtml = `
+        <div class="lobby-section">
+          <div class="lobby-section-label">Course</div>
+          <div class="lobby-course-card">
+            <div class="lobby-course-head">
+              <span class="lobby-course-swatch" style="background:${myTee.color};border-color:${myTee.color}"></span>
+              <div class="lobby-course-head-text">
+                <div class="lobby-course-name">${escapeHtml(courseName)}</div>
+                ${courseLocation ? `<div class="lobby-course-location">${escapeHtml(courseLocation)}</div>` : ''}
+              </div>
+            </div>
+            <div class="lobby-course-stats">
+              <div class="lobby-course-stat">
+                <span class="lobby-course-stat-val">Par ${totalPar}</span>
+                <span class="lobby-course-stat-lbl">18 Holes</span>
+              </div>
+              <div class="lobby-course-stat">
+                <span class="lobby-course-stat-val">${totalYards.toLocaleString()}</span>
+                <span class="lobby-course-stat-lbl">Yards · ${escapeHtml(myTee.name)}</span>
+              </div>
+            </div>
+            <div class="lobby-course-splits">
+              <div class="lobby-course-split">
+                <span class="lobby-course-split-lbl">Front 9</span>
+                <span class="lobby-course-split-val">Par ${frontPar} · ${frontYards.toLocaleString()} yd</span>
+              </div>
+              <div class="lobby-course-split">
+                <span class="lobby-course-split-lbl">Back 9</span>
+                <span class="lobby-course-split-val">Par ${backPar} · ${backYards.toLocaleString()} yd</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── Your Tee picker — uses the same .tee-selector / .tee-btn
+    //    pattern as the course-detail page so it feels consistent
+    //    across the app. Each tap updates the player's tee entry on
+    //    the group-round doc; fans out via the snapshot subscription.
+    //    Only YOUR tee is editable here (each player picks their own).
+    let teeChangeHtml = '';
+    if (course && Array.isArray(course.tees)) {
+      const chips = course.tees.map(t => {
+        const active = t.name === myTeeName;
+        return `
+          <button class="tee-btn${active ? ' active' : ''}"
+                  onclick="changeMyGroupRoundTee('${escapeAttr(t.name)}')"
+                  aria-pressed="${active}">
+            <span class="tee-btn-swatch" style="background:${t.color};border-color:${t.color}"></span>
+            <span class="tee-btn-name">${escapeHtml(t.name)}</span>
+            <span class="tee-btn-yards">${t.totalYards.toLocaleString()} yd</span>
+          </button>`;
+      }).join('');
+      teeChangeHtml = `
+        <div class="lobby-section">
+          <div class="lobby-section-label">Your Tee</div>
+          <div class="tee-selector">${chips}</div>
+        </div>`;
+    }
 
     // Player rows — organizer badge, my-self label, kick button for
     // others when current user is organizer.
@@ -22374,17 +22764,16 @@
     // the subscription callback.
     const canStart = isOrganizer && gr.status === 'lobby' && players.length >= 1;
     const startBtnHtml = canStart
-      ? `<button class="course-detail-cta" onclick="startGroupRoundFromLobby()">Start Round →</button>`
+      ? `<button class="lobby-start-btn" onclick="startGroupRoundFromLobby()">Start Round →</button>`
       : (isOrganizer
           ? `<div class="lobby-start-hint">Waiting for players…</div>`
           : `<div class="lobby-start-hint">Waiting for organizer to start</div>`);
 
     mount.innerHTML = `
-      <div class="panel-head">
-        <span class="accent-line"></span>
-        <span class="label">Group Round Lobby</span>
-        <h2>${escapeHtml(courseName)}</h2>
-        <p class="panel-desc">${timeStr ? 'Starting ' + escapeHtml(timeStr) + ' · ' : ''}${players.length} player${players.length === 1 ? '' : 's'} joined</p>
+      <div class="lobby-head">
+        <span class="label text-accent">Lobby</span>
+        <h1 class="lobby-head-title">${escapeHtml(courseName)}</h1>
+        <p class="lobby-head-meta">${timeStr ? 'Starting ' + escapeHtml(timeStr) + ' · ' : ''}${players.length} player${players.length === 1 ? '' : 's'} joined</p>
       </div>
 
       <div class="lobby-section">
@@ -22394,11 +22783,44 @@
 
       ${renderLobbyFriendsList(playerUidsSet)}
 
+      ${teeChangeHtml}
+
+      ${coursePreviewHtml}
+
       <div class="lobby-actions">
         ${startBtnHtml}
         <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">Leave Round</button>
       </div>
     `;
+  }
+
+  // Change my own tee on the active group round. Each player can change
+  // independently — updates only the player's entry in the players[]
+  // array via updateGroupRoundPlayer. The snapshot subscription picks
+  // up the change and re-renders the lobby.
+  async function changeMyGroupRoundTee(teeName) {
+    if (!currentUser || !isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (gr.status !== 'lobby') {
+      showToast('Tee is locked once the round starts', true);
+      return;
+    }
+    const me = (gr.players || []).find(p => p.uid === currentUser.uid);
+    if (!me) return;
+    if (me.tee === teeName) return; // no-op
+    // Optimistic local update so the UI feels instant — the snapshot
+    // callback will reconcile if the server rejects.
+    const oldTee = me.tee;
+    me.tee = teeName;
+    renderGroupLobby();
+    try {
+      await window.fb.updateGroupRoundPlayer(gr.id, currentUser.uid, { tee: teeName });
+    } catch (err) {
+      console.error('Failed to change tee:', err);
+      me.tee = oldTee;
+      renderGroupLobby();
+      showToast('Could not change tee', true);
+    }
   }
 
   // Organizer-only: flip the group round from 'lobby' to 'in-progress'
@@ -22425,6 +22847,25 @@
       // picks up the new status without waiting for the snapshot.
       groupRoundState.doc = { ...gr, status: 'in-progress' };
       groupRoundState.yourHoleIndex = 0;
+
+      // Cancel any outstanding invites we sent for this round — the
+      // round has started, so friends who hadn't accepted yet can't
+      // join anymore. Deleting their pending invite fires their own
+      // invite snapshot, which updates their badge and Social panel
+      // immediately (no waiting for them to open the app again).
+      //
+      // We only know about invites sent in THIS session via the
+      // __groupRoundInvitesSent tracker — that's fine, it's a
+      // best-effort cleanup and the invitee's stale-invite check
+      // handles any we miss.
+      const invitedUids = Array.from(__groupRoundInvitesSent);
+      __groupRoundInvitesSent.clear();
+      for (const uid of invitedUids) {
+        try {
+          await window.fb.cancelGroupRoundInvite(uid, gr.id);
+        } catch (_) { /* best-effort */ }
+      }
+
       updateRoundBanner();
       showPanel('group-round', null);
     } catch (err) {
@@ -23769,7 +24210,7 @@
     // by including it in the inline transition list — otherwise a
     // rapid tap during the sheet's open animation could break the slide.
     newSheet.style.height = `${oldHeight}px`;
-    newSheet.style.transition = 'height 260ms cubic-bezier(0.2, 0, 0, 1), transform 260ms cubic-bezier(0.4, 0, 0.2, 1)';
+    newSheet.style.transition = 'height 260ms cubic-bezier(0.2, 0, 0, 1), transform 320ms cubic-bezier(0.4, 0, 0.2, 1)';
     // Force reflow so the browser commits the starting height
     void newSheet.offsetHeight;
     newSheet.style.height = `${newHeight}px`;
@@ -23822,10 +24263,10 @@
       if (e.propertyName === 'transform') onDone();
     });
     // Safety net — if transitionend doesn't fire, clean up after the
-    // expected animation duration.
+    // expected animation duration (320ms transform + 20ms buffer).
     setTimeout(() => {
       if (sheet.classList.contains('closing')) onDone();
-    }, 320);
+    }, 340);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -25075,7 +25516,7 @@
     }
 
     // Re-render the appropriate round surface
-    if (isGroup) grRenderRound();
+    if (isGroup) renderGroupRoundPanel();
     else renderRound();
 
     // If the user just selected "miss", pop the direction modal so
@@ -25117,14 +25558,18 @@
     renderMissModal();
   }
 
-  function closeMissModal() {
-    if (!missModalState.open) return;
+  function closeMissModal(onClosed) {
+    if (!missModalState.open) {
+      if (typeof onClosed === 'function') onClosed();
+      return;
+    }
     const el = document.querySelector('.miss-modal');
     const backdrop = document.querySelector('.miss-modal-backdrop');
     if (!el || !backdrop) {
       missModalState.open = false;
       releaseScrollLock();
       renderMissModal();
+      if (typeof onClosed === 'function') onClosed();
       return;
     }
 
@@ -25155,6 +25600,11 @@
       missModalState.current = null;
       releaseScrollLock();
       renderMissModal();
+      // Callback fires AFTER the animation is visually complete and
+      // the modal DOM is wiped. Callers that want to re-render the
+      // round (which would otherwise churn layout mid-animation and
+      // kill the transition on iOS Safari) should pass a callback.
+      if (typeof onClosed === 'function') onClosed();
     };
     // Listen for the modal's transform transition end — that's the
     // longest of the two (260ms modal vs 220ms backdrop). By the
@@ -25199,18 +25649,17 @@
     entry[statKey] = false;
     entry[missKey] = direction;
 
-    // Close the modal BEFORE rendering the round. The render is
-    // deferred to after the close animation completes (280ms — a
-    // touch past the 260ms modal transition) so the round's DOM
-    // churn can't interfere with the modal/backdrop transitions.
-    // Critical: on iOS Safari, synchronously mutating the round
-    // DOM while the modal is mid-transition collapses everything
-    // into a single paint frame and skips the exit animation.
-    closeMissModal();
-    setTimeout(() => {
-      if (isGroup) grRenderRound();
+    // Close the modal and defer the round re-render until AFTER the
+    // close animation is fully complete + DOM wiped. Running
+    // renderRound() mid-animation (as the old 280ms timeout did)
+    // causes iOS Safari to batch the hole-card's layout churn into
+    // the same paint frame as the modal's transform, killing the
+    // exit transition. Passing the render as an onClosed callback
+    // guarantees sequential execution: animate → wipe → render.
+    closeMissModal(() => {
+      if (isGroup) renderGroupRoundPanel();
       else renderRound();
-    }, 280);
+    });
   }
 
   function renderMissModal() {
@@ -28522,7 +28971,29 @@
     const banner = document.getElementById('round-banner');
     const titleEl = document.getElementById('round-banner-title');
     const progressEl = document.getElementById('round-banner-progress');
+    const labelEl = document.getElementById('round-banner-label');
+    const btnResume = document.getElementById('round-banner-btn-resume');
+    const btnEnd = document.getElementById('round-banner-btn-end');
+    const btnLobby = document.getElementById('round-banner-btn-lobby');
     if (!banner || !titleEl || !progressEl) return;
+
+    // Helper — set the banner's button set. Three modes:
+    //   'active'  → Resume + End (in-progress rounds / sessions)
+    //   'lobby'   → Open Lobby only (group round waiting to start)
+    // Buttons are pre-rendered in the banner HTML; we just toggle
+    // their display. Keeps the banner layout stable.
+    const setButtons = (mode) => {
+      if (!btnResume || !btnEnd || !btnLobby) return;
+      if (mode === 'lobby') {
+        btnResume.style.display = 'none';
+        btnEnd.style.display = 'none';
+        btnLobby.style.display = '';
+      } else {
+        btnResume.style.display = '';
+        btnEnd.style.display = '';
+        btnLobby.style.display = 'none';
+      }
+    };
 
     // Group rounds take precedence — if one's active (lobby OR in-progress),
     // show the banner pointing at it. The banner click handler resumeActiveRound
@@ -28535,9 +29006,21 @@
       const myScores = me?.scores || {};
       const holesPlayed = Object.keys(myScores).length;
       const totalHoles = course ? course.holes.length : 18;
-      const statusSuffix = gr.status === 'lobby' ? ' · Lobby' : '';
-      titleEl.textContent = `Group · ${courseName}${statusSuffix}`;
-      progressEl.textContent = gr.status === 'lobby' ? '—' : `${holesPlayed}/${totalHoles}`;
+      if (gr.status === 'lobby') {
+        // Pre-start state: different label + Open button so the user
+        // understands this is a lobby, not a live round. No End button
+        // because "ending" a not-yet-started round is really just
+        // leaving the lobby — which they do from inside the lobby UI.
+        if (labelEl) labelEl.textContent = 'Group round lobby';
+        titleEl.textContent = courseName;
+        progressEl.textContent = 'Waiting to start';
+        setButtons('lobby');
+      } else {
+        if (labelEl) labelEl.textContent = 'Round in progress';
+        titleEl.textContent = `Group · ${courseName}`;
+        progressEl.textContent = `${holesPlayed}/${totalHoles}`;
+        setButtons('active');
+      }
       document.body.classList.add('round-active');
       return;
     }
@@ -28550,8 +29033,10 @@
       const teeName = inProgress.teeName || '';
       const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
       const totalHoles = course ? course.holes.length : 18;
+      if (labelEl) labelEl.textContent = 'Round in progress';
       titleEl.textContent = teeName ? `${courseName} · ${teeName}` : courseName;
       progressEl.textContent = `${holesPlayed}/${totalHoles}`;
+      setButtons('active');
       document.body.classList.add('round-active');
       return;
     }
@@ -28560,8 +29045,10 @@
     // title + shot count in the progress slot.
     if (isRangeSessionActive()) {
       const shotCount = (practiceSessionState.doc.shots || []).length;
+      if (labelEl) labelEl.textContent = 'Session in progress';
       titleEl.textContent = 'Range Session';
       progressEl.textContent = `${shotCount} shot${shotCount === 1 ? '' : 's'}`;
+      setButtons('active');
       document.body.classList.add('round-active');
       return;
     }
@@ -28570,8 +29057,10 @@
     if (isShortGameSessionActive()) {
       const doc = practiceSessionState.doc;
       const shotCount = (doc.shots || []).length;
+      if (labelEl) labelEl.textContent = 'Session in progress';
       titleEl.textContent = `Short Game · ${doc.minYards}–${doc.maxYards}`;
       progressEl.textContent = `${shotCount} shot${shotCount === 1 ? '' : 's'}`;
+      setButtons('active');
       document.body.classList.add('round-active');
       return;
     }
@@ -28581,8 +29070,10 @@
       const doc = practiceSessionState.doc;
       const holeNum = doc.holes[doc.currentHoleIdx]?.holeNumber || 1;
       const total = doc.holes.length;
+      if (labelEl) labelEl.textContent = 'Session in progress';
       titleEl.textContent = `${doc.courseName} · ${doc.teeName}`;
       progressEl.textContent = `Hole ${holeNum}/${total}`;
+      setButtons('active');
       document.body.classList.add('round-active');
       return;
     }
