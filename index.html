@@ -159,6 +159,94 @@
      ══════════════════════════════════════════════════════════════ */
 
   /* ══════════════════════════════════════════════════════════════
+     TOUCH-DEVICE TAP GHOST PREVENTION
+     ══════════════════════════════════════════════════════════════
+     iOS Safari (and other touch browsers) leave focus on the last-
+     tapped button until the user scrolls or taps elsewhere. With
+     no cursor to "move away," focus rings linger as visible "still
+     selected" outlines — what we've been calling tap ghosts.
+
+     Two-pronged fix:
+
+     1. :focus-visible instead of :focus. The browser only matches
+        :focus-visible on keyboard navigation, not pointer/touch.
+        Killing the :focus outline globally and re-adding it on
+        :focus-visible preserves accessibility for keyboard users
+        while clearing tap ghosts for touch users.
+
+     2. iOS treats post-tap as "still hovering" so any :hover style
+        persists until something else clears it. We override the
+        hover styles for the most ghost-prone interactive elements
+        on touch-only devices via @media (hover: none). Mouse
+        devices (where (hover: none) doesn't match) keep their
+        normal hover behavior.
+     ══════════════════════════════════════════════════════════════ */
+
+  *:focus { outline: none; -webkit-tap-highlight-color: transparent; }
+  *:focus-visible {
+    outline: 2px solid var(--color-orange);
+    outline-offset: 2px;
+  }
+
+  @media (hover: none) {
+    /* Tristate FIR/GIR buttons — orange border lingered after tap */
+    .tristate-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text-muted);
+    }
+    /* Tools list rows — orange border + scaled arrow lingered */
+    .tools-list-row:hover {
+      background: var(--bg-surface);
+      border-color: var(--border-light);
+    }
+    .tools-list-row:hover .tools-list-row-arrow {
+      color: var(--text-muted);
+      transform: none;
+    }
+    /* Bottom action bar — Tools button orange-border ghost */
+    .round-tools-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text-primary);
+    }
+    /* Sheet + modal header buttons (× / ←) */
+    .tools-sheet-close:hover,
+    .tools-sheet-back:hover,
+    .miss-modal-close:hover {
+      background: transparent;
+      color: var(--text-muted);
+    }
+    /* Miss-direction modal buttons */
+    .miss-modal-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text-primary);
+    }
+    .miss-modal-skip:hover {
+      border-color: var(--border-light);
+      color: var(--text-secondary);
+    }
+    /* Direction note tappable area */
+    .tristate-dir-note:hover {
+      background: transparent;
+    }
+    /* Round card +/- steppers */
+    .round-card-step-btn:hover,
+    .round-card-putts-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text-primary);
+    }
+    /* Weather refresh + caddie wind */
+    .weather-refresh-btn:hover {
+      background: transparent;
+      border-color: var(--border-light);
+      color: var(--text-muted);
+    }
+    .caddie-wind-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text-secondary);
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      DARK MODE — overrides the palette + semantic aliases when <html>
      has the .dark class. The whole system is token-driven, so
      redefining these values is all we need; component CSS using
