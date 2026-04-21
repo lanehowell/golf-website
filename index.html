@@ -4855,6 +4855,241 @@
     margin-bottom: var(--space-3);
   }
 
+  /* ──────────────────────────────────────────────────────────
+     Round insights card — per-round baseline comparison + suggestion.
+     Appears on round summary (single round) and rounds list (aggregate).
+     ────────────────────────────────────────────────────────── */
+  .round-insights-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-6);
+    margin-bottom: var(--space-8);
+    box-shadow: var(--shadow-sm);
+  }
+  .round-insights-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .round-insights-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .round-insights-baseline-note {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .round-insights-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .round-insight-row {
+    display: grid;
+    grid-template-columns: minmax(0, 120px) 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition-fast);
+  }
+  .round-insight-row.is-better {
+    border-color: rgba(45, 110, 52, 0.3);
+    background: #EFF8F0;
+  }
+  .round-insight-row.is-worse {
+    border-color: rgba(232, 93, 4, 0.3);
+    background: var(--color-orange-pale);
+  }
+  .round-insight-row.is-neutral {
+    opacity: 0.85;
+  }
+  .round-insight-label {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .round-insight-values {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .round-insight-current {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .round-insight-vs {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+  }
+  .round-insight-baseline {
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+  }
+  .round-insight-delta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    white-space: nowrap;
+  }
+  .round-insight-delta.is-better {
+    color: #2D6E34;
+  }
+  .round-insight-delta.is-worse {
+    color: var(--color-orange-dark);
+  }
+  .round-insight-delta.is-neutral {
+    color: var(--text-muted);
+  }
+  /* Dark mode tints */
+  html.dark .round-insight-row.is-better {
+    background: rgba(45, 110, 52, 0.18);
+    border-color: rgba(45, 110, 52, 0.4);
+  }
+  html.dark .round-insight-row.is-worse {
+    background: rgba(232, 93, 4, 0.18);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  html.dark .round-insight-delta.is-better {
+    color: #7FC088;
+  }
+  html.dark .round-insight-delta.is-worse {
+    color: var(--color-orange);
+  }
+
+  /* Suggestion callout — positive (green) or practice (orange accent). */
+  .round-insights-suggestion {
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    border-left: 3px solid;
+  }
+  .round-insights-suggestion.is-positive {
+    background: #EFF8F0;
+    border-left-color: #2D6E34;
+    color: #2D6E34;
+  }
+  .round-insights-suggestion.is-practice {
+    background: var(--color-orange-pale);
+    border-left-color: var(--color-orange);
+    color: var(--color-orange-dark);
+  }
+  html.dark .round-insights-suggestion.is-positive {
+    background: rgba(45, 110, 52, 0.18);
+    color: #7FC088;
+  }
+  html.dark .round-insights-suggestion.is-practice {
+    background: rgba(232, 93, 4, 0.18);
+    color: var(--color-orange);
+  }
+  .round-insights-suggestion-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+  }
+  .round-insights-suggestion-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    opacity: 0.92;
+  }
+
+  /* Empty state — not enough rounds to compute a baseline */
+  .round-insights-empty {
+    text-align: center;
+    background: var(--bg-surface);
+    border-style: dashed;
+    padding: var(--space-6);
+  }
+  .round-insights-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+    color: var(--text-primary);
+  }
+  .round-insights-empty-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 40ch;
+    margin: 0 auto;
+    line-height: var(--leading-normal);
+  }
+
+  /* Pattern callout — when the same suggestion has been hitting for
+     multiple rounds in a row. Only shown on the rounds list aggregate view. */
+  .round-insights-pattern {
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-8);
+    background: var(--color-cream-200);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+  }
+  html.dark .round-insights-pattern {
+    background: rgba(13, 13, 13, 0.25);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .round-insights-pattern-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: var(--space-2);
+  }
+  .round-insights-pattern-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
+  }
+  .round-insights-pattern-body strong {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+
+  @media (max-width: 560px) {
+    .round-insights-card {
+      padding: var(--space-4) var(--space-5);
+    }
+    .round-insight-row {
+      grid-template-columns: minmax(0, 85px) 1fr auto;
+      gap: var(--space-2);
+      padding: var(--space-3);
+    }
+    .round-insight-delta {
+      font-size: 0.62rem;
+    }
+    .round-insight-values {
+      font-size: 0.75rem;
+    }
+  }
+
   /* Hole-by-hole table on summary — visually similar to the course-detail
      scorecard but with a score column and row coloring for vs-par. */
   .round-summary-table-wrap {
@@ -18146,12 +18381,22 @@
   }
 
   function handleFriendsSnapshot(freshFriends) {
-    const freshUids = new Set(freshFriends.map(f => f.uid));
+    // Dedupe defensively — multiple code paths can touch /friends at
+    // once (accept from either side, the subscription itself, group-
+    // round acceptances). A snapshot fired mid-flight has sometimes
+    // arrived containing the same uid twice; collapse on uid so the
+    // UI never shows duplicates regardless of upstream timing.
+    const byUid = new Map();
+    for (const f of freshFriends) {
+      if (f && f.uid && !byUid.has(f.uid)) byUid.set(f.uid, f);
+    }
+    const deduped = Array.from(byUid.values());
+    const freshUids = new Set(deduped.map(f => f.uid));
 
     // First snapshot — seed silently
     if (__seenFriendUids === null) {
       __seenFriendUids = freshUids;
-      friendsList = freshFriends;
+      friendsList = deduped;
       friendsLoaded = true;
       if (currentPanelId === 'social') renderSocial();
       return;
@@ -18161,11 +18406,11 @@
     // I sent (their accept writes to my /friends collection too). Could
     // also be me accepting their request — same code path, no harm in
     // toasting "now friends with X" in either case.
-    const newlyArrived = freshFriends.filter(f =>
+    const newlyArrived = deduped.filter(f =>
       !__seenFriendUids.has(f.uid)
     );
 
-    friendsList = freshFriends;
+    friendsList = deduped;
     __seenFriendUids = freshUids;
 
     for (const friend of newlyArrived) {
@@ -25794,6 +26039,394 @@
   }
 
   // ─────────────────────────────────────────────────────────────
+  // Round insights — baseline comparison + suggestion text
+  // ─────────────────────────────────────────────────────────────
+  // Philosophy: compute personal baselines from the user's own recent
+  // rounds on the same course. Compare the current round to those
+  // baselines across four stat families (score, fairway %, GIR %,
+  // putts/hole) and surface the delta plus a single actionable
+  // suggestion. No PGA-Tour strokes-gained pretense — just "what was
+  // different today, and where should I practice?" given the data we
+  // already collect.
+
+  const INSIGHT_BASELINE_WINDOW = 10;  // last N rounds to average
+  const INSIGHT_MIN_ROUNDS = 5;        // fewer than this → no insights yet
+
+  // "Noise" bands — deltas within these are treated as "about the same
+  // as baseline" and render neutral (no green/orange tint). Below these
+  // thresholds we'd just be signaling statistical jitter as meaningful.
+  const INSIGHT_NOISE = {
+    score: 2,        // strokes
+    fairwayPct: 5,   // percentage points
+    girPct: 5,       // percentage points
+    puttsPerHole: 0.15,  // putts
+  };
+
+  // Extract the four stat values from a round's totals. Returns null
+  // if the round doesn't have enough data to compute them (incomplete,
+  // missing fields, etc.).
+  function computeRoundInsightStats(round) {
+    const t = round?.totals;
+    if (!t || typeof t.holesPlayed !== 'number' || t.holesPlayed === 0) return null;
+    return {
+      vsPar: t.vsPar ?? (t.strokes - (t.parTotal || 0)),
+      fairwayPct: t.firEligible > 0 ? (t.firHit / t.firEligible) * 100 : null,
+      girPct: t.girEligible > 0 ? (t.girHit / t.girEligible) * 100 : null,
+      puttsPerHole: t.holesPlayed > 0 ? t.putts / t.holesPlayed : null,
+      holesPlayed: t.holesPlayed,
+    };
+  }
+
+  // Compute the rolling-average baseline for a course, excluding the
+  // specified round (so a round's baseline doesn't include itself).
+  // Uses the last INSIGHT_BASELINE_WINDOW completed rounds. Returns
+  // null if there aren't enough rounds to form a reliable baseline.
+  function computeRoundBaselines(courseId, excludingRoundId) {
+    const candidates = (recentRounds || [])
+      .filter(r => r.status === 'completed')
+      .filter(r => r.courseId === courseId)
+      .filter(r => r.id !== excludingRoundId)
+      // Only count rounds with complete-enough data — skip tiny partials
+      .filter(r => (r.totals?.holesPlayed || 0) >= 9)
+      // Newest first
+      .sort((a, b) => (b.startTime || 0) - (a.startTime || 0))
+      .slice(0, INSIGHT_BASELINE_WINDOW);
+
+    if (candidates.length < INSIGHT_MIN_ROUNDS) return null;
+
+    // Average each stat across the sample. Not every round has every
+    // stat (fairway % requires par-4/5s that were actually tracked), so
+    // we track per-stat sample counts.
+    let vsParSum = 0, vsParN = 0;
+    let firSum = 0, firN = 0;
+    let girSum = 0, girN = 0;
+    let putSum = 0, putN = 0;
+
+    for (const r of candidates) {
+      const s = computeRoundInsightStats(r);
+      if (!s) continue;
+      if (typeof s.vsPar === 'number') { vsParSum += s.vsPar; vsParN += 1; }
+      if (typeof s.fairwayPct === 'number') { firSum += s.fairwayPct; firN += 1; }
+      if (typeof s.girPct === 'number') { girSum += s.girPct; girN += 1; }
+      if (typeof s.puttsPerHole === 'number') { putSum += s.puttsPerHole; putN += 1; }
+    }
+
+    return {
+      sampleSize: candidates.length,
+      vsPar: vsParN > 0 ? vsParSum / vsParN : null,
+      fairwayPct: firN > 0 ? firSum / firN : null,
+      girPct: girN > 0 ? girSum / girN : null,
+      puttsPerHole: putN > 0 ? putSum / putN : null,
+    };
+  }
+
+  // Shape for each row in the insights card. direction: 'better' |
+  // 'worse' | 'neutral'. delta is the raw (current - baseline) value;
+  // `improvement` is a positive number for "this stat improved" and
+  // negative for "this stat got worse" (inverts the raw delta for
+  // stats where lower is better, like score and putts).
+  function computeInsightRows(roundStats, baselines) {
+    if (!roundStats || !baselines) return [];
+    const rows = [];
+
+    // Score vs par — lower is better
+    if (roundStats.vsPar != null && baselines.vsPar != null) {
+      const delta = roundStats.vsPar - baselines.vsPar;
+      const improvement = -delta;  // score went down = improvement went up
+      const direction = Math.abs(delta) <= INSIGHT_NOISE.score ? 'neutral'
+                      : improvement > 0 ? 'better' : 'worse';
+      rows.push({
+        key: 'score',
+        label: 'Score vs Par',
+        current: formatVsPar(roundStats.vsPar),
+        baseline: formatVsPar(baselines.vsPar),
+        delta,
+        direction,
+        deltaText: direction === 'neutral'
+          ? 'about usual'
+          : `${improvement > 0 ? '' : '+'}${delta.toFixed(1).replace(/\.0$/, '')} vs baseline`,
+      });
+    }
+
+    // Fairway % — higher is better
+    if (roundStats.fairwayPct != null && baselines.fairwayPct != null) {
+      const delta = roundStats.fairwayPct - baselines.fairwayPct;
+      const direction = Math.abs(delta) <= INSIGHT_NOISE.fairwayPct ? 'neutral'
+                      : delta > 0 ? 'better' : 'worse';
+      rows.push({
+        key: 'fairway',
+        label: 'Fairways',
+        current: `${Math.round(roundStats.fairwayPct)}%`,
+        baseline: `${Math.round(baselines.fairwayPct)}%`,
+        delta,
+        direction,
+        deltaText: direction === 'neutral'
+          ? 'about usual'
+          : `${delta > 0 ? '+' : ''}${Math.round(delta)} pts vs baseline`,
+      });
+    }
+
+    // GIR % — higher is better
+    if (roundStats.girPct != null && baselines.girPct != null) {
+      const delta = roundStats.girPct - baselines.girPct;
+      const direction = Math.abs(delta) <= INSIGHT_NOISE.girPct ? 'neutral'
+                      : delta > 0 ? 'better' : 'worse';
+      rows.push({
+        key: 'gir',
+        label: 'Greens',
+        current: `${Math.round(roundStats.girPct)}%`,
+        baseline: `${Math.round(baselines.girPct)}%`,
+        delta,
+        direction,
+        deltaText: direction === 'neutral'
+          ? 'about usual'
+          : `${delta > 0 ? '+' : ''}${Math.round(delta)} pts vs baseline`,
+      });
+    }
+
+    // Putts per hole — lower is better
+    if (roundStats.puttsPerHole != null && baselines.puttsPerHole != null) {
+      const delta = roundStats.puttsPerHole - baselines.puttsPerHole;
+      const direction = Math.abs(delta) <= INSIGHT_NOISE.puttsPerHole ? 'neutral'
+                      : delta < 0 ? 'better' : 'worse';
+      rows.push({
+        key: 'putts',
+        label: 'Putts/Hole',
+        current: roundStats.puttsPerHole.toFixed(2),
+        baseline: baselines.puttsPerHole.toFixed(2),
+        delta,
+        direction,
+        deltaText: direction === 'neutral'
+          ? 'about usual'
+          : `${delta > 0 ? '+' : ''}${delta.toFixed(2)} vs baseline`,
+      });
+    }
+
+    return rows;
+  }
+
+  // Small helper to display vs-par values with sign.
+  function formatVsPar(n) {
+    if (n == null) return '—';
+    if (n === 0) return 'E';
+    return n > 0 ? `+${Math.round(n)}` : `${Math.round(n)}`;
+  }
+
+  // Pick the single most actionable suggestion from the insight rows.
+  // Priority:
+  //   1. If putts were worst → practice green
+  //   2. If GIR was worst → approach-play range work
+  //   3. If fairway% was worst → driver / accuracy
+  //   4. If score was up but ball-striking was neutral/good → short game
+  //   5. Nothing worse than baseline → solid-round acknowledgment
+  function pickInsightSuggestion(rows, roundStats) {
+    const worseRows = rows.filter(r => r.direction === 'worse');
+    if (worseRows.length === 0) {
+      return {
+        tone: 'positive',
+        title: 'Solid round',
+        body: 'Every tracked stat was at or above your recent baseline. Keep doing what you\'re doing.',
+      };
+    }
+
+    // Rank worse rows by "how much worse." For stats that are
+    // percentages, use absolute delta points. For score/putts, compare
+    // in their own units. To make them comparable, we'll use a
+    // normalized "how many noise-widths off" score.
+    const normalize = (row) => {
+      const noise = INSIGHT_NOISE[
+        row.key === 'score' ? 'score'
+        : row.key === 'fairway' ? 'fairwayPct'
+        : row.key === 'gir' ? 'girPct'
+        : 'puttsPerHole'
+      ];
+      return Math.abs(row.delta) / (noise || 1);
+    };
+    worseRows.sort((a, b) => normalize(b) - normalize(a));
+    const worst = worseRows[0];
+
+    // Score-was-worst but ball-striking was fine → likely short game /
+    // scrambling. Check if other rows are neutral/better.
+    if (worst.key === 'score') {
+      const otherRows = rows.filter(r => r.key !== 'score');
+      const strikingFine = otherRows.length > 0
+        && otherRows.every(r => r.direction !== 'worse');
+      if (strikingFine) {
+        return {
+          tone: 'practice',
+          title: 'Short game likely cost you today',
+          body: 'Your ball-striking stats held up but the score was up. Scrambling and chip-and-run distance control are probably the issue. Try the Short Game drill or a few courses-practice holes focused on sub-100 yd shots.',
+        };
+      }
+    }
+
+    switch (worst.key) {
+      case 'fairway':
+        return {
+          tone: 'practice',
+          title: 'Driving accuracy was off today',
+          body: 'Your fairway percentage was well below your recent baseline. A range session focused on driver — dialing in your stock shot shape — would help most.',
+        };
+      case 'gir':
+        return {
+          tone: 'practice',
+          title: 'Approach play cost you shots today',
+          body: 'You missed more greens than usual. Spend range time on your mid-to-short irons, or run a course-practice session to rehearse specific approach distances.',
+        };
+      case 'putts':
+        return {
+          tone: 'practice',
+          title: 'Putting was above baseline',
+          body: 'You took more putts per hole than usual. Time on the practice green — lag putting from 30+ ft and 4-6 footers for confidence — would pay off next round.',
+        };
+      default:
+        return {
+          tone: 'practice',
+          title: 'Look at overall scoring',
+          body: 'Score was above baseline. Review your hole-by-hole to spot the biggest damage holes.',
+        };
+    }
+  }
+
+  // Main insights-card renderer. Used on both round summary and
+  // (aggregated-style) on the rounds list page. Returns HTML string
+  // or '' if insufficient data (caller decides whether to show any
+  // wrapper around this).
+  function renderRoundInsightsCard(round, options = {}) {
+    if (!round || round.status !== 'completed') return '';
+    const stats = computeRoundInsightStats(round);
+    if (!stats) return '';
+    const baselines = computeRoundBaselines(round.courseId, round.id);
+
+    // Insufficient baseline → friendly prompt
+    if (!baselines) {
+      const needed = INSIGHT_MIN_ROUNDS - ((recentRounds || [])
+        .filter(r => r.status === 'completed' && r.courseId === round.courseId && r.id !== round.id)
+        .length);
+      return `
+        <div class="round-insights-card round-insights-empty">
+          <div class="round-insights-empty-title">Insights unlock at ${INSIGHT_MIN_ROUNDS} rounds</div>
+          <div class="round-insights-empty-text">
+            ${needed > 0
+              ? `${needed} more round${needed === 1 ? '' : 's'} on this course to unlock baseline comparison.`
+              : 'Just one more round on this course to unlock baseline comparison.'}
+          </div>
+        </div>
+      `;
+    }
+
+    const rows = computeInsightRows(stats, baselines);
+    const suggestion = pickInsightSuggestion(rows, stats);
+
+    const rowsHtml = rows.map(r => `
+      <div class="round-insight-row is-${r.direction}">
+        <div class="round-insight-label">${escapeHtml(r.label)}</div>
+        <div class="round-insight-values">
+          <span class="round-insight-current">${escapeHtml(String(r.current))}</span>
+          <span class="round-insight-vs">vs</span>
+          <span class="round-insight-baseline">${escapeHtml(String(r.baseline))}</span>
+        </div>
+        <div class="round-insight-delta is-${r.direction}">${escapeHtml(r.deltaText)}</div>
+      </div>
+    `).join('');
+
+    const heading = options.heading || 'How you played';
+
+    return `
+      <div class="round-insights-card">
+        <div class="round-insights-head">
+          <div class="round-insights-title">${escapeHtml(heading)}</div>
+          <div class="round-insights-baseline-note">vs last ${baselines.sampleSize} round${baselines.sampleSize === 1 ? '' : 's'}</div>
+        </div>
+        <div class="round-insights-rows">${rowsHtml}</div>
+        <div class="round-insights-suggestion is-${suggestion.tone}">
+          <div class="round-insights-suggestion-title">${escapeHtml(suggestion.title)}</div>
+          <div class="round-insights-suggestion-body">${escapeHtml(suggestion.body)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Aggregated view — shown on the Rounds list page. Analyzes the most
+  // recent completed round (if baseline exists) and surfaces a
+  // frequency-of-suggestions signal if the same theme has been hitting
+  // across several recent rounds. Skipped entirely when <5 rounds exist.
+  function renderAggregateInsightsBlock() {
+    const completed = (recentRounds || [])
+      .filter(r => r.status === 'completed')
+      .sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+
+    if (completed.length < INSIGHT_MIN_ROUNDS) return '';
+
+    // Walk the last 5 rounds and aggregate how often each suggestion
+    // type was picked. Over time a repeating suggestion ("approach
+    // play was off") is a stronger signal than any single round.
+    const lookbackN = Math.min(5, completed.length);
+    const recent = completed.slice(0, lookbackN);
+    const suggestionTallies = { fairway: 0, gir: 0, putts: 0, score: 0, positive: 0 };
+    let suggestionKeyByRound = [];
+
+    for (const r of recent) {
+      const stats = computeRoundInsightStats(r);
+      if (!stats) continue;
+      const bl = computeRoundBaselines(r.courseId, r.id);
+      if (!bl) continue;
+      const rows = computeInsightRows(stats, bl);
+      const suggestion = pickInsightSuggestion(rows, stats);
+      if (suggestion.tone === 'positive') {
+        suggestionTallies.positive += 1;
+        suggestionKeyByRound.push('positive');
+      } else {
+        // Pick the worst row that drove the suggestion
+        const worse = rows.filter(row => row.direction === 'worse');
+        if (worse.length > 0) {
+          const key = worse.reduce((a, b) =>
+            Math.abs(a.delta) / INSIGHT_NOISE[a.key === 'score' ? 'score' : a.key === 'fairway' ? 'fairwayPct' : a.key === 'gir' ? 'girPct' : 'puttsPerHole']
+            > Math.abs(b.delta) / INSIGHT_NOISE[b.key === 'score' ? 'score' : b.key === 'fairway' ? 'fairwayPct' : b.key === 'gir' ? 'girPct' : 'puttsPerHole']
+            ? a : b
+          ).key;
+          suggestionTallies[key] = (suggestionTallies[key] || 0) + 1;
+          suggestionKeyByRound.push(key);
+        }
+      }
+    }
+
+    // Most recent round's full insight card
+    const mostRecent = recent[0];
+    const cardHtml = renderRoundInsightsCard(mostRecent, { heading: 'Most recent round' });
+
+    // Pattern summary — if any non-positive suggestion appears 3+
+    // times in the last 5 rounds, call it out.
+    let patternHtml = '';
+    const nonPositiveEntries = Object.entries(suggestionTallies)
+      .filter(([k]) => k !== 'positive')
+      .sort((a, b) => b[1] - a[1]);
+    const top = nonPositiveEntries[0];
+    if (top && top[1] >= 3) {
+      const labelMap = {
+        fairway: 'driving accuracy',
+        gir: 'approach play',
+        putts: 'putting',
+        score: 'overall scoring',
+      };
+      patternHtml = `
+        <div class="round-insights-pattern">
+          <div class="round-insights-pattern-title">Pattern across recent rounds</div>
+          <div class="round-insights-pattern-body">
+            Across your last ${lookbackN} round${lookbackN === 1 ? '' : 's'},
+            <strong>${escapeHtml(labelMap[top[0]] || top[0])}</strong>
+            has shown up as the area most below baseline
+            <strong>${top[1]} time${top[1] === 1 ? '' : 's'}</strong>.
+            This is a consistent signal, not a one-round blip.
+          </div>
+        </div>
+      `;
+    }
+
+    return cardHtml + patternHtml;
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // Social tab — find people, manage friends + requests
   // ─────────────────────────────────────────────────────────────
   // State: the search query + results. Friend list and requests live at the
@@ -26662,14 +27295,22 @@
       await window.fb.acceptFriendRequest(currentUser.uid, myProfile, senderUid, req);
       // Update local caches
       friendRequests = friendRequests.filter(r => r.from !== senderUid);
-      friendsList.unshift({
-        uid: senderUid,
-        username: req.username,
-        usernameDisplay: req.usernameDisplay,
-        displayName: req.displayName,
-        photoURL: req.photoURL,
-        addedAt: Date.now(),
-      });
+      // Optimistically prepend the new friend — but only if they're
+      // not already in the list. The live subscription on /friends
+      // will also fire with the server-side version shortly; if it
+      // races ahead of this code path (the write → snapshot latency
+      // is sometimes sub-millisecond), we'd otherwise end up with a
+      // duplicate row until the next full re-render. Idempotent by uid.
+      if (!friendsList.some(f => f.uid === senderUid)) {
+        friendsList.unshift({
+          uid: senderUid,
+          username: req.username,
+          usernameDisplay: req.usernameDisplay,
+          displayName: req.displayName,
+          photoURL: req.photoURL,
+          addedAt: Date.now(),
+        });
+      }
       updateSocialBadge();
       // Invalidate feed so it reloads with the new friend's rounds
       socialState.feedLoaded = false;
@@ -28818,6 +29459,7 @@
     }
 
     mount.innerHTML = `
+      ${renderAggregateInsightsBlock()}
       ${filterBar}
       <div class="rounds-count">${countText}</div>
       ${listHtml}
@@ -29043,6 +29685,8 @@
           Logged via Quick Score — no per-hole detail available for this round.
         </div>
       ` : ''}
+
+      ${renderRoundInsightsCard(round)}
 
       ${holeRows ? `
         <div class="round-summary-section-label">Hole by Hole</div>
