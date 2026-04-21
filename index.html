@@ -2441,7 +2441,20 @@
        doesn't crash visually into the button. The Start Round CTA
        reuses .round-save-btn for visual consistency with Save & Next.
        When Start isn't available (waiting on players or organizer),
-       the same slot shows a centered hint. */
+       the same slot shows a centered hint.
+
+       The bar is rendered into #lobby-action-mount at body level (not
+       inside #panel-group-lobby) so it escapes the panel's transform-
+       based slide-in animation that would otherwise create a containing
+       block and break `position: fixed; bottom: 0`. The mount is
+       hidden whenever the user isn't on the lobby panel — saves us
+       having to manually clear its innerHTML on every navigation. */
+  #lobby-action-mount {
+    display: none;
+  }
+  body[data-current-panel="group-lobby"] #lobby-action-mount {
+    display: block;
+  }
   .lobby-action-bar {
     position: fixed;
     left: 0;
@@ -16236,6 +16249,14 @@
      nothing visible. -->
 <div id="round-dock-mount"></div>
 
+<!-- LOBBY ACTION BAR mount — populated by renderGroupLobby() with the
+     fixed bottom Start Round pill (or "Waiting for…" hint). Lives at
+     body level for the same reason as the round dock mount: the
+     .panel has transform-based slide-in animations that create a new
+     containing block, which breaks `position: fixed; bottom: 0`. By
+     mounting outside the panel, the bar pins to the actual viewport. -->
+<div id="lobby-action-mount"></div>
+
 <!-- MISS-DIRECTION MODAL mount — populated by renderMissModal() when
      a user taps ✗ on FIR or GIR. Lives at body level for the same
      reasons as the dock mount (escape ancestor transforms). -->
@@ -22863,13 +22884,18 @@
 
       <!-- Leave link sits inline at the bottom of scrollable content;
            the Start Round CTA lives in the fixed bottom action bar
-           rendered below. -->
+           rendered separately at body level. -->
       <div class="lobby-leave-row">
         <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">${isOrganizer ? 'Cancel Lobby' : 'Leave Round'}</button>
       </div>
-
-      ${actionBarHtml}
     `;
+
+    // Render the fixed bottom action bar into the body-level mount so
+    // it escapes the panel's transform-based slide-in animation
+    // (transforms create a containing block, which would otherwise
+    // anchor `position: fixed` to the panel instead of the viewport).
+    const actionMount = document.getElementById('lobby-action-mount');
+    if (actionMount) actionMount.innerHTML = actionBarHtml;
   }
 
   // Change my own tee on the active group round. Each player can change
