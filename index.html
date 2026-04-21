@@ -23264,9 +23264,28 @@
     if (_scrollLockCount === 0) return;
     _scrollLockCount--;
     if (_scrollLockCount === 0) {
+      // Order matters to avoid a visible scroll jump on iOS Safari.
+      // Steps:
+      //   1. Temporarily kill scroll-behavior (the design system sets
+      //      `scroll-behavior: smooth` on html globally, which would
+      //      make the restoration scroll animate instead of jump).
+      //   2. Remove the fixed-position lock. This causes the page to
+      //      momentarily scroll to top (position:fixed with top:-Npx
+      //      was the only thing keeping the visible scroll offset).
+      //   3. Clear the inline body top.
+      //   4. Immediately scroll back to the saved position. Because
+      //      scroll-behavior is off, this is instant — the user never
+      //      sees the intermediate scroll-to-top state.
+      //   5. Restore scroll-behavior on the next frame so smooth
+      //      scrolling works again for subsequent in-app navigation.
+      const prevBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
       document.documentElement.classList.remove('scroll-locked');
       document.body.style.top = '';
       window.scrollTo(0, _scrollLockY);
+      requestAnimationFrame(() => {
+        document.documentElement.style.scrollBehavior = prevBehavior;
+      });
     }
   }
 
@@ -24728,22 +24747,21 @@
     entry[statKey] = false;
     entry[missKey] = direction;
 
-    // Start the close animation FIRST, then re-render the round. The
-    // previous order (render then close) caused the modal to snap shut
-    // instead of animate — the round re-render triggered a layout pass
-    // that interrupted the modal's transform transition before it could
-    // start. Closing first means the transition is committed before any
-    // sibling DOM churn happens.
+    // Start closing the modal. The render MUST happen after the
+    // modal is fully gone — on iOS Safari, mutating the round DOM
+    // while the modal is mid-transition interrupts the transform
+    // animation and causes a snap. Deferring past the full 280ms
+    // close window lets the transition complete cleanly, then the
+    // round card updates just as the modal disappears.
+    //
+    // From the user's perspective: they tap a direction, the modal
+    // slides down, and a fraction of a second later the hole card
+    // shows "← Left" under the ✗. Imperceptible sequencing; no snap.
     closeMissModal();
-    // Defer the round re-render to the next frame so the transition
-    // has a clean paint to kick off from. By the time this fires, the
-    // browser has already committed the "closing" class and scheduled
-    // the transform transition; the render below only mutates nodes
-    // in a different part of the DOM and won't disturb it.
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       if (isGroup) grRenderRound();
       else renderRound();
-    });
+    }, 280);
   }
 
   function renderMissModal() {
