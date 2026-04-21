@@ -3269,6 +3269,57 @@
 
   /* Horizontal scroll strip so a 4-player card doesn't force wrapping
      on mobile. Wraps naturally on larger screens via the media query. */
+  /* Row: strip on the left (scrolls horizontally), manage button
+     pinned on the right. The button is OUTSIDE the scroll container
+     so it stays put as cards scroll behind/past it. A subtle gradient
+     fade on the strip's right edge hints there's more to scroll. */
+  .gr-others-row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-2);
+    position: relative;
+  }
+  .gr-others-row .gr-others-strip {
+    flex: 1;
+    min-width: 0;
+    /* Right padding so the last card has breathing room before the
+       manage button (and so the fade-edge ::after can sit cleanly
+       at the strip's right edge). */
+    padding-right: var(--space-2);
+  }
+
+  /* Manage players button — pinned to the right edge of the row.
+     Square-ish card matching .gr-other-card height so it visually
+     sits in the same row. Tap opens a bottom sheet listing the
+     current players + invitable friends. */
+  .gr-manage-btn {
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gr-manage-btn:active { transform: scale(0.96); }
+  @media (hover: hover) {
+    .gr-manage-btn:hover {
+      background: var(--color-orange-pale);
+      color: var(--color-orange);
+      border-color: var(--color-orange);
+    }
+  }
+
   .gr-others-strip {
     display: flex;
     gap: var(--space-3);
@@ -3890,6 +3941,102 @@
     color: var(--text-primary);
   }
 }
+
+  /* ── Manage Players sheet — bottom sheet opened from the round
+     panel's "Playing With" strip via the manage button. Same
+     architecture as the miss modal: full-width fixed sheet, slide-up
+     transform animation, fade backdrop. The sheet body is scrollable
+     for long friend lists. */
+  .manage-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 10);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .manage-sheet-backdrop.opening,
+  .manage-sheet-backdrop.closing {
+    opacity: 0;
+  }
+  .manage-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 11);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    /* Cap height — long friends list scrolls inside the body */
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .manage-sheet.opening,
+  .manage-sheet.closing {
+    transform: translateY(100%);
+  }
+  .manage-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .manage-sheet-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .manage-sheet-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  @media (hover: hover) {
+    .manage-sheet-close:hover {
+      background: var(--color-cream-100);
+      color: var(--text-primary);
+    }
+    html.dark .manage-sheet-close:hover {
+      background: var(--bg-surface);
+    }
+  }
+  .manage-sheet-body {
+    padding: var(--space-4);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+  }
+  /* Tighter spacing between sections inside the sheet body since we
+     don't have the lobby's top-level padding around it. */
+  .manage-sheet-body .lobby-section { margin-bottom: var(--space-5); }
+  .manage-sheet-body .lobby-section:last-child { margin-bottom: 0; }
 
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
      to stay out of the way on clean holes; expands to a full stepper
@@ -16262,6 +16409,12 @@
      reasons as the dock mount (escape ancestor transforms). -->
 <div id="miss-modal-mount"></div>
 
+<!-- MANAGE PLAYERS sheet mount — populated by renderManagePlayersSheet()
+     when the user taps the manage button on the round panel's "Playing
+     With" strip. Bottom sheet listing current players + invitable
+     friends. Body-level for the same reason as the others above. -->
+<div id="manage-players-mount"></div>
+
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
 <div class="confirm-backdrop" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" onclick="if(event.target===this) __confirmDialogResolve(false)">
@@ -23018,7 +23171,11 @@
       return;
     }
     const gr = groupRoundState.doc;
-    if (gr.organizerUid !== currentUser.uid) {
+    // Lobby gate: only organizer can invite from the lobby (since the
+    // lobby is their assembly screen). Once the round is in progress,
+    // ANY player can invite friends to join mid-round — collaborative
+    // by design, no permission tier.
+    if (gr.status === 'lobby' && gr.organizerUid !== currentUser.uid) {
       showToast('Only the organizer can invite', true);
       return;
     }
@@ -23040,17 +23197,25 @@
       courseName: course ? course.name : (gr.courseName || 'Round'),
       sentAt: Date.now()
     };
+    // Helper — re-render whichever surface(s) is currently showing the
+    // friends list. Both the lobby and the in-round manage sheet use
+    // renderLobbyFriendsList, so each needs a refresh after the
+    // invitedSet changes.
+    const refreshSurfaces = () => {
+      if (currentPanelId === 'group-lobby') renderGroupLobby();
+      if (managePlayersState.open) renderManagePlayersSheet();
+    };
     try {
       await window.fb.sendGroupRoundInvite(friendUid, payload);
       __groupRoundInvitesSent.add(friendUid);
       showToast('Invite sent');
-      renderGroupLobby();
+      refreshSurfaces();
     } catch (err) {
       console.error('Failed to send group round invite:', err);
       if (err?.code === 'permission-denied') {
         __groupRoundInvitesSent.add(friendUid);
         showToast('Invite already pending');
-        renderGroupLobby();
+        refreshSurfaces();
       } else {
         showToast('Invite failed', true);
       }
@@ -23078,7 +23243,10 @@
       await window.fb.removeGroupRoundPlayer(gr.id, uid);
       gr.players = (gr.players || []).filter(p => p.uid !== uid);
       gr.playerUids = (gr.playerUids || []).filter(u => u !== uid);
-      renderGroupLobby();
+      // Re-render whichever surface(s) are showing the players list
+      if (currentPanelId === 'group-lobby') renderGroupLobby();
+      if (currentPanelId === 'group-round') renderGroupRoundPanel();
+      if (managePlayersState.open) renderManagePlayersSheet();
     } catch (err) {
       console.error('Failed to kick player:', err);
       showToast('Could not remove player', true);
@@ -23962,7 +24130,9 @@
         <button class="gr-view-toggle-btn" onclick="grToggleViewMode()" aria-pressed="false">Scorecard</button>
       </div>
 
-      <!-- Other players' live strip -->
+      <!-- Other players' live strip + manage button. The button sits
+           in a sticky right column so it stays visible as the strip
+           scrolls horizontally; player cards scroll under it. -->
       <div class="gr-others-section">
         <div class="gr-others-head">
           <div class="gr-others-label">Playing With</div>
@@ -23970,7 +24140,17 @@
             <span class="gr-live-dot"></span>Live
           </div>
         </div>
-        <div class="gr-others-strip">${othersStrip}</div>
+        <div class="gr-others-row">
+          <div class="gr-others-strip">${othersStrip}</div>
+          <button class="gr-manage-btn" onclick="openManagePlayersSheet()" aria-label="Manage players">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+              <line x1="19" y1="8" x2="19" y2="14"/>
+              <line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Unified hole card — matches solo round's layout -->
@@ -25902,6 +26082,133 @@
       void modal.offsetHeight;  // force reflow
       requestAnimationFrame(() => {
         modal.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Manage Players sheet — opened from the round panel's "Playing
+  // With" strip via a manage button. Bottom-sheet listing all
+  // current players (with kick controls for the organizer) and all
+  // friends (with invite buttons for any non-player friend).
+  //
+  // Same animation pattern as the miss modal: opening class for
+  // the slide-in, closing class for the slide-out, scroll lock on
+  // body. Lives at the body level (#manage-players-mount) to escape
+  // the round panel's transform-based animations.
+  // ─────────────────────────────────────────────────────────────
+  const managePlayersState = { open: false };
+
+  function openManagePlayersSheet() {
+    if (!isGroupRoundActive()) return;
+    if (managePlayersState.open) return;
+    managePlayersState.open = true;
+    acquireScrollLock();
+    renderManagePlayersSheet();
+  }
+
+  function closeManagePlayersSheet() {
+    if (!managePlayersState.open) return;
+    const el = document.querySelector('.manage-sheet');
+    const backdrop = document.querySelector('.manage-sheet-backdrop');
+    if (!el || !backdrop) {
+      managePlayersState.open = false;
+      releaseScrollLock();
+      renderManagePlayersSheet();
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      managePlayersState.open = false;
+      releaseScrollLock();
+      renderManagePlayersSheet();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+
+  function renderManagePlayersSheet() {
+    const mount = document.getElementById('manage-players-mount');
+    if (!mount) return;
+    if (!managePlayersState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const gr = groupRoundState.doc;
+    if (!gr) {
+      mount.innerHTML = '';
+      return;
+    }
+    const isOrganizer = gr.organizerUid === currentUser?.uid;
+    const players = Array.isArray(gr.players) ? gr.players : [];
+    const playerUidsSet = new Set(players.map(p => p.uid));
+
+    // Player rows — same shape as the lobby's, but only the organizer
+    // sees the kick affordance, and not against themselves.
+    const playerRows = players.map(p => {
+      const isMe = p.uid === currentUser?.uid;
+      const isOrg = p.uid === gr.organizerUid;
+      const name = p.usernameDisplay || p.username || p.displayName || 'Player';
+      const teeLabel = p.tee ? `<span class="lobby-player-tee">${escapeHtml(p.tee)}</span>` : '';
+      const orgBadge = isOrg ? `<span class="lobby-player-badge">Organizer</span>` : '';
+      const meBadge = isMe && !isOrg ? `<span class="lobby-player-badge">You</span>` : '';
+      const kickBtn = (isOrganizer && !isMe)
+        ? `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`
+        : '';
+      return `
+        <div class="lobby-player-row">
+          <div class="lobby-player-info">
+            <span class="lobby-player-name">${escapeHtml(name)}</span>
+            ${orgBadge}
+            ${meBadge}
+            ${teeLabel}
+          </div>
+          ${kickBtn}
+        </div>`;
+    }).join('');
+
+    // Friends list — anyone NOT already a player gets an Invite button.
+    // Reuse the lobby's helper which handles "no friends yet" + already-
+    // invited state. Both organizer AND non-organizer can invite mid-
+    // round (per spec); the helper doesn't gate on organizer status.
+    const friendsHtml = renderLobbyFriendsList(playerUidsSet);
+
+    mount.innerHTML = `
+      <div class="manage-sheet-backdrop opening" onclick="closeManagePlayersSheet()" aria-hidden="true"></div>
+      <div class="manage-sheet opening" role="dialog" aria-modal="true" aria-label="Manage players">
+        <div class="manage-sheet-header">
+          <div class="manage-sheet-title">Manage Players</div>
+          <button class="manage-sheet-close" onclick="closeManagePlayersSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="manage-sheet-body">
+          <div class="lobby-section">
+            <div class="lobby-section-label">In This Round</div>
+            <div class="lobby-players">${playerRows}</div>
+          </div>
+          ${friendsHtml}
+        </div>
+      </div>
+    `;
+
+    // Kick off the slide-up animation on the next frame
+    const sheet = mount.querySelector('.manage-sheet.opening');
+    const backdrop = mount.querySelector('.manage-sheet-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
         if (backdrop) backdrop.classList.remove('opening');
       });
     }
@@ -29075,6 +29382,9 @@
     if (currentPanelId === 'group-lobby') renderGroupLobby();
     else if (currentPanelId === 'group-round') renderGroupRoundPanel();
     else renderPlayLanding();
+    // If the manage sheet is open over the round, refresh it too so
+    // a newly-joined player shows up in real time.
+    if (managePlayersState.open) renderManagePlayersSheet();
     // Update the persistent round banner — a live snapshot may have
     // advanced your played-holes count, or flipped status.
     updateRoundBanner();
