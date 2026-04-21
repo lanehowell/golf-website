@@ -2435,6 +2435,60 @@
      GROUP ROUND LOBBY — pre-round assembly screen
      ══════════════════════════════════════════════════════════════ */
 
+  /* ── Lobby fixed bottom action bar — same architecture as the round
+       screen's .round-action-bar: position: fixed; full width; safe-
+       area padding; gradient fade at the top so scrolling content
+       doesn't crash visually into the button. The Start Round CTA
+       reuses .round-save-btn for visual consistency with Save & Next.
+       When Start isn't available (waiting on players or organizer),
+       the same slot shows a centered hint. */
+  .lobby-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-raised);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      var(--bg-page) 0%,
+      var(--bg-page) 60%,
+      rgba(255, 253, 247, 0) 100%
+    );
+    pointer-events: none;
+  }
+  html.dark .lobby-action-bar {
+    background: linear-gradient(
+      to top,
+      var(--bg-page) 0%,
+      var(--bg-page) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+  .lobby-action-bar > * { pointer-events: auto; }
+  /* Hint variant — centered italicized text where the button would be */
+  .lobby-action-bar--hint {
+    justify-content: center;
+  }
+  .lobby-action-bar-hint {
+    padding: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-style: italic;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  /* Inline Leave row — sits at the bottom of the scrollable content
+     above the fixed action bar. */
+  .lobby-leave-row {
+    margin-top: var(--space-8);
+    text-align: center;
+  }
+
   /* ── Lobby header (replaces the old panel-head). The topbar now
        provides the X + LIVE chrome, so the header itself is lighter:
        eyebrow label, course name, quick meta. */
@@ -4127,20 +4181,22 @@
   }
 }
 
-  /* Reserve space at the bottom of round panel content so the action
-     bar never obscures the last hole card / secondary actions. */
+  /* Reserve space at the bottom of round/lobby panel content so the
+     fixed action bar never obscures the last card / secondary actions.
+     Same 92px reservation works for all three since they all use the
+     same 52px pill button + 20px combined padding above + below. */
+  #panel-round,
+  #panel-group-round,
+  #panel-group-lobby {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Horizontal-overflow containment is round-specific (the hole card
+     uses translateX animations that need clipping). The lobby has no
+     such animation so we don't need overflow-x there. */
   #panel-round,
   #panel-group-round {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-    /* Contain the hole-card slide-in animation (translateX from 24px
-       off-screen) so it can't trigger a horizontal scrollbar or
-       viewport reflow. Without this, iOS Safari would sometimes
-       reflow the viewport mid-animation, stranding the fixed-position
-       action bar in the wrong spot.
-       Using `clip` (iOS 16+, Chrome 90+) so no scroll container is
-       created; `hidden` is the fallback for older browsers — it
-       works equally well for this case since we never want to
-       scroll sideways within the round. */
+    /* Using `clip` (iOS 16+, Chrome 90+) so no scroll container is
+       created; `hidden` is the fallback for older browsers. */
     overflow-x: hidden;
     overflow-x: clip;
   }
@@ -22761,13 +22817,31 @@
     // Start button visibility: only organizer can start, and only
     // when at least one player (the organizer themselves) exists.
     // Status check guards against double-start clicks racing with
-    // the subscription callback.
+    // the subscription callback. The actual button HTML is built
+    // later for the fixed action bar.
     const canStart = isOrganizer && gr.status === 'lobby' && players.length >= 1;
-    const startBtnHtml = canStart
-      ? `<button class="lobby-start-btn" onclick="startGroupRoundFromLobby()">Start Round →</button>`
-      : (isOrganizer
-          ? `<div class="lobby-start-hint">Waiting for players…</div>`
-          : `<div class="lobby-start-hint">Waiting for organizer to start</div>`);
+
+    // Build the fixed bottom action bar — only shown when the user
+    // can actually start (organizer + status === lobby + at least 1
+    // player). For other states (waiting on organizer, no players),
+    // we show a centered hint instead, in the same fixed slot.
+    let actionBarHtml = '';
+    if (canStart) {
+      actionBarHtml = `
+        <div class="lobby-action-bar">
+          <button class="round-save-btn" onclick="startGroupRoundFromLobby()">
+            Start Round →
+          </button>
+        </div>`;
+    } else {
+      const hintText = isOrganizer
+        ? 'Waiting for players…'
+        : 'Waiting for organizer to start';
+      actionBarHtml = `
+        <div class="lobby-action-bar lobby-action-bar--hint">
+          <span class="lobby-action-bar-hint">${escapeHtml(hintText)}</span>
+        </div>`;
+    }
 
     mount.innerHTML = `
       <div class="lobby-head">
@@ -22787,10 +22861,14 @@
 
       ${coursePreviewHtml}
 
-      <div class="lobby-actions">
-        ${startBtnHtml}
-        <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">Leave Round</button>
+      <!-- Leave link sits inline at the bottom of scrollable content;
+           the Start Round CTA lives in the fixed bottom action bar
+           rendered below. -->
+      <div class="lobby-leave-row">
+        <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">${isOrganizer ? 'Cancel Lobby' : 'Leave Round'}</button>
       </div>
+
+      ${actionBarHtml}
     `;
   }
 
@@ -22985,20 +23063,106 @@
     if (!isGroupRoundActive()) return;
     const gr = groupRoundState.doc;
     const isOrganizer = gr.organizerUid === currentUser?.uid;
+    const inLobby = gr.status === 'lobby';
+
+    // Three distinct cases for messaging:
+    //   - Organizer canceling a not-yet-started lobby: this kicks
+    //     everyone out + cancels pending invites. Treat as "cancel
+    //     for everyone" so the dialog matches what actually happens.
+    //   - Organizer leaving an in-progress round: leaves the round
+    //     orphaned (others can keep playing without you).
+    //   - Non-organizer leaving (lobby or in-progress): just leaves
+    //     yourself; the round and other players continue.
+    let dialog;
+    if (isOrganizer && inLobby) {
+      dialog = {
+        eyebrow: 'Cancel Lobby',
+        title: 'Cancel this lobby?',
+        message: 'Everyone will be removed and pending invites will be withdrawn.',
+        confirmText: 'Cancel Lobby',
+      };
+    } else if (isOrganizer) {
+      dialog = {
+        eyebrow: 'Leave Round',
+        title: 'Leave this round?',
+        message: 'You\'ll leave the round. Other players may continue without you.',
+        confirmText: 'Leave',
+      };
+    } else {
+      dialog = {
+        eyebrow: 'Leave Round',
+        title: 'Leave this round?',
+        message: inLobby
+          ? 'You\'ll leave the lobby. The organizer can keep going without you.'
+          : 'Your scores so far will be preserved. The round continues without you.',
+        confirmText: 'Leave',
+      };
+    }
+
     const ok = await confirmDialog({
-      eyebrow: isOrganizer ? 'Cancel Round' : 'Leave Round',
+      ...dialog,
       eyebrowStyle: 'warning',
-      title: isOrganizer ? 'Cancel this round?' : 'Leave this round?',
-      message: isOrganizer
-        ? 'You\'ll leave the round. Other players may continue without you.'
-        : 'Your scores so far will be preserved. The round continues without you.',
-      confirmText: isOrganizer ? 'Cancel Round' : 'Leave',
       cancelText: 'Stay',
       destructive: true
     });
     if (!ok) return;
-    await abandonCurrentGroupRound();
+
+    if (isOrganizer && inLobby) {
+      await cancelLobbyAsOrganizer();
+    } else {
+      await abandonCurrentGroupRound();
+    }
     showPanel('play', null);
+  }
+
+  // Organizer cancels a lobby that hasn't started yet. Marks the round
+  // as 'abandoned' (which fires the per-round subscription for any
+  // other players already in the lobby — they'll see the status change
+  // and clean up locally), and withdraws all pending invites we sent
+  // this session.
+  //
+  // After the doc-level update, we also tear down our local state +
+  // navigate away.
+  async function cancelLobbyAsOrganizer() {
+    if (!groupRoundState.docId) return;
+    const id = groupRoundState.docId;
+    const gr = groupRoundState.doc;
+
+    // Step 1 — flip status to abandoned. This is the signal other
+    // lobby members listen for (via subscribeGroupRound or their own
+    // listMyGroupRounds polling). It's also what makes the round
+    // disappear from "active" queries everywhere else.
+    try {
+      await window.fb.updateGroupRoundFields(id, { status: 'abandoned', endTime: Date.now() });
+    } catch (err) {
+      console.error('Failed to mark lobby abandoned:', err);
+      showToast('Could not cancel lobby', true);
+      return;
+    }
+
+    // Step 2 — withdraw pending invites so invitees' badges + Social
+    // panels clear immediately. Same pattern as startGroupRoundFromLobby.
+    const invitedUids = Array.from(__groupRoundInvitesSent);
+    __groupRoundInvitesSent.clear();
+    for (const uid of invitedUids) {
+      try {
+        await window.fb.cancelGroupRoundInvite(uid, id);
+      } catch (_) { /* best-effort */ }
+    }
+
+    // Step 3 — tear down local state. We don't bother removing
+    // ourselves from the players array because the round is now
+    // abandoned and no further reads/writes against it should happen.
+    if (groupRoundState.unsubscribe) {
+      try { groupRoundState.unsubscribe(); } catch (_) {}
+      groupRoundState.unsubscribe = null;
+    }
+    groupRoundState.docId = null;
+    groupRoundState.doc = null;
+    myGroupRounds = myGroupRounds.filter(r => r.id !== id);
+    renderPlayLanding();
+    updateRoundBanner();
+    showToast('Lobby cancelled');
   }
 
   // ─── Shared round panel — Layer D1 (one-hole view) ──────────
@@ -28855,6 +29019,24 @@
         groupRoundState.yourHoleIndex = loadGroupRoundCursor();
         showPanel('group-round', null);
         return; // showPanel triggers a render already
+      }
+      if (newStatus === 'abandoned') {
+        // Organizer cancelled the round (typically from the lobby
+        // before starting). Tear down local state for everyone in it
+        // and bounce to Play. We toast briefly so the user knows why
+        // the panel disappeared from underneath them.
+        const wasInPanel = currentPanelId === 'group-lobby' || currentPanelId === 'group-round';
+        stopGroupRoundSubscription();
+        groupRoundState.docId = null;
+        groupRoundState.doc = null;
+        myGroupRounds = myGroupRounds.filter(r => r.id !== mergedDoc.id);
+        if (wasInPanel) {
+          showToast('The organizer cancelled the round');
+          showPanel('play', null);
+        }
+        renderPlayLanding();
+        updateRoundBanner();
+        return;
       }
       if (newStatus === 'completed') {
         // Round wrapped — we could show a toast for other players still
