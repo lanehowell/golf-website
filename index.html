@@ -161,132 +161,28 @@
   /* ══════════════════════════════════════════════════════════════
      TOUCH-DEVICE TAP GHOST PREVENTION
      ══════════════════════════════════════════════════════════════
-     iOS Safari leaves both :focus and :hover lingering on the last-
-     tapped button until the user scrolls or taps elsewhere. With no
-     cursor to move away, those styles persist as visible "still
-     selected" ghost outlines.
+     iOS Safari leaves :hover and :focus lingering on the last-tapped
+     button until the user scrolls or taps elsewhere. With no cursor
+     to move away, those styles persist as visible "still selected"
+     ghost outlines.
 
-     Fix: kill the default focus ring globally, and on touch-only
-     devices (where (hover: none) matches), neutralize hover AND
-     focus styling for ghost-prone interactive components. Mouse
-     devices keep all their normal hover/focus behavior because
-     (hover: none) won't match them.
+     Fix: every :hover rule throughout the stylesheet is wrapped in
+     @media (hover: hover) — see the wrapping at each declaration
+     site. That ensures hover styles only apply on devices with a
+     real cursor. Touch devices skip them entirely, no ghosts.
+
+     We also strip the default focus outline globally (touch users
+     don't benefit from it; it just adds visual noise after taps).
+     Keyboard navigation loses the visual ring, which is acceptable
+     for this touch-first app.
      ══════════════════════════════════════════════════════════════ */
 
-  /* Strip the browser's default focus outline globally. We don't add
-     a :focus-visible replacement because the heuristic is unreliable
-     on iOS Safari (sometimes matches on tap), and our app is touch-
-     first; keyboard users can still navigate, just without an
-     outline ring. */
   button:focus,
   a:focus,
   [role="button"]:focus,
   input:focus,
   select:focus,
   textarea:focus { outline: none; }
-
-  @media (hover: none) {
-    /* Tristate FIR/GIR buttons */
-    .tristate-btn:hover,
-    .tristate-btn:focus {
-      border-color: var(--border-light);
-      color: var(--text-muted);
-    }
-    /* Active-state buttons keep their fill colors even on focus */
-    .tristate-hit.is-active:hover,
-    .tristate-hit.is-active:focus {
-      background: #2D6E34;
-      border-color: #2D6E34;
-      color: var(--color-white);
-    }
-    .tristate-miss.is-active:hover,
-    .tristate-miss.is-active:focus {
-      background: var(--color-orange);
-      border-color: var(--color-orange);
-      color: var(--color-white);
-    }
-    /* Tools list rows */
-    .tools-list-row:hover,
-    .tools-list-row:focus {
-      background: var(--bg-surface);
-      border-color: var(--border-light);
-    }
-    .tools-list-row:hover .tools-list-row-arrow,
-    .tools-list-row:focus .tools-list-row-arrow {
-      color: var(--text-muted);
-      transform: none;
-    }
-    /* Bottom action bar — Tools button */
-    .round-tools-btn:hover,
-    .round-tools-btn:focus {
-      border-color: var(--border-light);
-      color: var(--text-primary);
-    }
-    .round-tools-btn.is-active:hover,
-    .round-tools-btn.is-active:focus {
-      background: var(--color-orange-pale);
-      border-color: var(--color-orange);
-      color: var(--color-orange-dark);
-    }
-    /* Sheet + modal header buttons */
-    .tools-sheet-close:hover,
-    .tools-sheet-close:focus,
-    .tools-sheet-back:hover,
-    .tools-sheet-back:focus,
-    .miss-modal-close:hover,
-    .miss-modal-close:focus {
-      background: transparent;
-      color: var(--text-muted);
-    }
-    /* Miss-direction modal buttons */
-    .miss-modal-btn:hover,
-    .miss-modal-btn:focus {
-      border-color: var(--border-light);
-      color: var(--text-primary);
-    }
-    .miss-modal-btn.is-active:hover,
-    .miss-modal-btn.is-active:focus {
-      background: var(--color-orange);
-      border-color: var(--color-orange);
-      color: var(--color-white);
-    }
-    .miss-modal-skip:hover,
-    .miss-modal-skip:focus {
-      border-color: var(--border-light);
-      color: var(--text-secondary);
-    }
-    /* Direction note tappable area */
-    .tristate-dir-note:hover,
-    .tristate-dir-note:focus {
-      background: transparent;
-    }
-    /* Round card +/- steppers */
-    .round-card-step-btn:hover,
-    .round-card-step-btn:focus,
-    .round-card-putts-btn:hover,
-    .round-card-putts-btn:focus {
-      border-color: var(--border-light);
-      color: var(--text-primary);
-    }
-    /* Weather + caddie wind buttons */
-    .weather-refresh-btn:hover,
-    .weather-refresh-btn:focus {
-      background: transparent;
-      border-color: var(--border-light);
-      color: var(--text-muted);
-    }
-    .caddie-wind-btn:hover,
-    .caddie-wind-btn:focus {
-      border-color: var(--border-light);
-      color: var(--text-secondary);
-    }
-    .caddie-wind-btn.is-active:hover,
-    .caddie-wind-btn.is-active:focus {
-      background: var(--color-orange);
-      border-color: var(--color-orange);
-      color: var(--color-white);
-    }
-  }
 
   /* ══════════════════════════════════════════════════════════════
      DARK MODE — overrides the palette + semantic aliases when <html>
@@ -385,10 +281,12 @@
     color: var(--color-black);
     border-color: rgba(245, 237, 216, 0.25);
   }
+  @media (hover: hover) {
   html.dark .play-hero-btn-ghost:hover {
     background: rgba(245, 237, 216, 0.08);
     border-color: var(--color-black);
   }
+}
 
   /* Today card — same "dramatic dark card" design issue as Play hero.
      In light mode it's a black card with cream text (by design). When
@@ -419,27 +317,33 @@
     color: var(--color-black);
     border-color: rgba(245, 237, 216, 0.25);
   }
+  @media (hover: hover) {
   html.dark .today-card:not(.rest) .today-btn-ghost:hover {
     background: rgba(245, 237, 216, 0.08);
     color: var(--color-black);
     border-color: var(--color-black);
   }
+}
   /* Quick-swap toggle inside the card + swap option buttons */
   html.dark .today-card:not(.rest) .swap-toggle {
     color: var(--color-black-60);
   }
+  @media (hover: hover) {
   html.dark .today-card:not(.rest) .swap-toggle:hover {
     color: var(--color-black);
   }
+}
   html.dark .today-card:not(.rest) .swap-option-btn {
     background: rgba(245, 237, 216, 0.04);
     border-color: rgba(245, 237, 216, 0.15);
     color: var(--color-black);
   }
+  @media (hover: hover) {
   html.dark .today-card:not(.rest) .swap-option-btn:hover {
     background: rgba(245, 237, 216, 0.10);
     border-color: var(--color-orange);
   }
+}
   html.dark .today-card:not(.rest) .swap-option-btn.current {
     border-color: var(--color-orange);
   }
@@ -498,12 +402,15 @@
     color: #7FC088;                              /* brightened leaf-green */
   }
 
+  @media (hover: hover) {
+
   html.dark .round-card-step-display.score-doublebogey,
   html.dark .round-card-step-display.score-over,
   html.dark .bag-remove-btn:hover {
     background: rgba(232, 93, 4, 0.12);          /* translucent orange (same as orange-pale in dark) */
     border-color: rgba(232, 93, 4, 0.35);
   }
+}
 
   /* ── Hero ─────────────────────────────────────────────────── */
   .training-hero {
@@ -700,7 +607,9 @@
     color: var(--color-orange);
     border-bottom-color: var(--color-orange);
   }
+  @media (hover: hover) {
   .nav-tab:hover:not(.active) { color: var(--text-primary); }
+}
 
   /* ── Panels ───────────────────────────────────────────────── */
   .panel { display: none; }
@@ -781,10 +690,12 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .signin-banner-dismiss:hover {
     background: var(--color-cream-200);
     color: var(--text-primary);
   }
+}
   .signin-banner-head {
     padding-right: var(--space-8); /* keep title clear of the × button */
     margin-bottom: var(--space-3);
@@ -855,11 +766,13 @@
     animation: fadeUp 0.4s ease both;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .round-invite-banner:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-accent);
     border-color: var(--color-orange);
   }
+}
   .round-invite-banner:active {
     transform: translateY(0);
   }
@@ -920,9 +833,11 @@
     color: var(--color-orange);
     transition: transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .round-invite-banner:hover .round-invite-banner-arrow {
     transform: translateX(3px);
   }
+}
 
   @media (max-width: 560px) {
     .round-invite-banner {
@@ -1018,7 +933,9 @@
     transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base), transform var(--transition-spring);
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .today-btn:hover { transform: translateY(-2px); }
+}
   .today-btn:active { transform: translateY(0); }
   .today-btn-primary {
     background: var(--color-orange);
@@ -1026,19 +943,23 @@
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .today-btn-primary:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .today-btn-ghost {
     background: transparent;
     color: var(--color-cream-300);
     border-color: rgba(255, 253, 247, 0.25);
   }
+  @media (hover: hover) {
   .today-btn-ghost:hover {
     color: var(--color-cream-50);
     border-color: rgba(255, 253, 247, 0.5);
   }
+}
 
   /* Quick-swap section — "Choose different workout" on the Today card.
      Collapsed to a subtle link by default; when opened, expands to show
@@ -1062,7 +983,9 @@
     cursor: pointer;
     transition: color var(--transition-fast);
   }
+  @media (hover: hover) {
   .swap-toggle:hover { color: var(--color-white); }
+}
   .swap-toggle .swap-caret {
     font-family: var(--font-mono);
     font-size: 0.6rem;
@@ -1104,11 +1027,13 @@
     text-align: left;
     font-family: var(--font-body);
   }
+  @media (hover: hover) {
   .swap-option-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--color-orange);
     transform: translateY(-2px);
   }
+}
   .swap-option-btn.current {
     border-color: var(--color-orange);
     background: rgba(232, 127, 53, 0.1);
@@ -1148,15 +1073,19 @@
     transition: background var(--transition-fast), transform var(--transition-spring);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .panel-start-btn:hover {
     background: var(--color-orange-light);
     transform: translateY(-2px);
   }
+}
   .panel-start-btn .arrow {
     font-family: var(--font-mono);
     transition: transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .panel-start-btn:hover .arrow { transform: translateX(2px); }
+}
   /* Hide the start button on the active session day — you can't "start"
      what's already running; Resume lives in the session banner. */
   body.session-active .panel.session-day .panel-start-btn { display: none; }
@@ -1206,10 +1135,12 @@
     color: var(--text-secondary);
     border-color: var(--border-medium);
   }
+  @media (hover: hover) {
   .today-card.rest .today-btn-ghost:hover {
     color: var(--text-primary);
     border-color: var(--color-black-60);
   }
+}
   .today-card.rest .today-stats {
     border-top-color: var(--border-light);
   }
@@ -1220,16 +1151,20 @@
      card we need to flip the colors so the toggle and option buttons are
      legible. */
   .today-card.rest .swap-toggle { color: var(--text-secondary); }
+  @media (hover: hover) {
   .today-card.rest .swap-toggle:hover { color: var(--color-orange); }
+}
   .today-card.rest .swap-option-btn {
     background: var(--color-cream-50);
     border-color: var(--border-light);
     color: var(--text-primary);
   }
+  @media (hover: hover) {
   .today-card.rest .swap-option-btn:hover {
     background: var(--bg-elevated);
     border-color: var(--color-orange);
   }
+}
   .today-card.rest .swap-option-btn.current {
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
@@ -1290,11 +1225,13 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .week-day[role="button"]:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
     border-color: var(--color-orange);
   }
+}
   .week-day[role="button"]:active {
     transform: translateY(-1px);
   }
@@ -1543,13 +1480,17 @@
     transition: background var(--transition-fast);
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .group-lobby-friend-btn:hover { background: var(--color-orange-light); }
+}
   .group-lobby-friend-btn.invited {
     background: transparent;
     color: var(--color-orange);
     border: 1.5px solid var(--color-orange);
   }
+  @media (hover: hover) {
   .group-lobby-friend-btn.invited:hover { background: var(--color-orange-pale); }
+}
   .group-lobby-friend-btn.joined {
     background: var(--color-cream-200);
     color: var(--text-muted);
@@ -1586,7 +1527,9 @@
     cursor: pointer;
     transition: background var(--transition-fast);
   }
+  @media (hover: hover) {
   .group-lobby-refresh-btn:hover { background: var(--color-orange-pale); }
+}
   .group-lobby-refresh-hint {
     font-size: var(--text-xs);
     color: var(--text-muted);
@@ -1624,10 +1567,12 @@
     box-shadow: var(--shadow-accent);
     transition: background var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .group-lobby-start-btn:hover {
     background: var(--color-orange-light);
     transform: translateY(-2px);
   }
+}
   .group-lobby-start-btn:active { transform: translateY(0); }
   .group-lobby-cancel-btn {
     width: 100%;
@@ -1644,10 +1589,12 @@
     cursor: pointer;
     transition: color var(--transition-fast), border-color var(--transition-fast);
   }
+  @media (hover: hover) {
   .group-lobby-cancel-btn:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
   }
+}
 
   /* ══════════════════════════════════════════════════════════════
      PLAY LANDING PAGE
@@ -1724,26 +1671,32 @@
     border: 2px solid transparent;
     transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .play-hero-btn:hover { transform: translateY(-2px); }
+}
   .play-hero-btn-primary {
     background: var(--color-orange);
     color: var(--color-white);
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .play-hero-btn-primary:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .play-hero-btn-ghost {
     background: transparent;
     color: var(--color-cream-50);
     border-color: rgba(255, 253, 247, 0.3);
   }
+  @media (hover: hover) {
   .play-hero-btn-ghost:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: var(--color-cream-50);
   }
+}
   .play-hero-meta {
     margin-top: var(--space-6);
     font-size: var(--text-xs);
@@ -1934,11 +1887,13 @@
     font-family: inherit;
     transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
   }
+  @media (hover: hover) {
   .play-courses-link:hover {
     border-color: var(--color-orange);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
   }
+}
   .play-courses-link-icon {
     flex-shrink: 0;
     width: 40px;
@@ -1975,10 +1930,12 @@
     font-size: var(--text-lg);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .play-courses-link:hover .play-courses-link-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
 
   /* ══════════════════════════════════════════════════════════════
      COURSES LIST PANEL
@@ -1999,11 +1956,13 @@
     font-family: inherit;
     transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
   }
+  @media (hover: hover) {
   .course-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
   }
+}
   .course-card-head {
     display: flex;
     align-items: center;
@@ -2038,20 +1997,24 @@
     padding: 2px var(--space-3);
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .course-card:hover .course-card-distance {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .course-card-arrow {
     color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: var(--text-lg);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .course-card:hover .course-card-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
   .course-card-meta {
     font-size: var(--text-sm);
     color: var(--text-muted);
@@ -2142,11 +2105,13 @@
     transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .courses-search-clear:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
   .courses-empty-search {
     padding: var(--space-8);
     text-align: center;
@@ -2221,9 +2186,11 @@
     transition: all var(--transition-fast);
     min-width: 0;
   }
+  @media (hover: hover) {
   .tee-btn:hover {
     border-color: var(--color-orange);
   }
+}
   .tee-btn.active {
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
@@ -2338,7 +2305,9 @@
     color: var(--text-primary);
   }
   .scorecard-table tbody tr:last-child td { border-bottom: none; }
+  @media (hover: hover) {
   .scorecard-table tbody tr:hover { background: var(--color-cream-100); }
+}
   .scorecard-table .hole-num {
     font-weight: var(--weight-semibold);
     color: var(--text-secondary);
@@ -2435,12 +2404,14 @@
     transition: background var(--transition-fast), border-color var(--transition-fast),
                 transform var(--transition-spring), box-shadow var(--transition-fast);
   }
+  @media (hover: hover) {
   .start-round-cta:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
     transform: translateY(-2px);
     box-shadow: 0 8px 28px var(--color-orange-glow);
   }
+}
   .start-round-cta:active {
     transform: translateY(0);
   }
@@ -2449,9 +2420,11 @@
     line-height: 1;
     transition: transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .start-round-cta:hover .start-round-cta-arrow {
     transform: translateX(3px);
   }
+}
 
   @media (max-width: 480px) {
     .start-round-card { padding: var(--space-4) var(--space-5) var(--space-5); }
@@ -2546,10 +2519,12 @@
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .lobby-player-kick:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange-dark);
   }
+}
 
   .lobby-friend-row {
     display: flex;
@@ -2587,7 +2562,9 @@
     transition: background var(--transition-fast);
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .lobby-friend-invite-btn:hover { background: var(--color-orange-light); }
+}
   .lobby-friend-status {
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -2640,10 +2617,12 @@
     box-shadow: var(--shadow-accent);
     transition: background var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .lobby-start-btn:hover {
     background: var(--color-orange-light);
     transform: translateY(-2px);
   }
+}
   .lobby-start-btn:active { transform: translateY(0); }
   .lobby-waiting-msg {
     padding: var(--space-4) var(--space-5);
@@ -2670,7 +2649,9 @@
     cursor: pointer;
     transition: background var(--transition-fast);
   }
+  @media (hover: hover) {
   .lobby-leave-btn:hover { background: var(--color-orange-pale); }
+}
   .lobby-refresh-btn {
     align-self: center;
     padding: var(--space-2) var(--space-4);
@@ -2688,7 +2669,9 @@
     gap: var(--space-2);
     transition: color var(--transition-fast);
   }
+  @media (hover: hover) {
   .lobby-refresh-btn:hover { color: var(--color-orange); }
+}
   .lobby-refresh-icon {
     font-size: 1.1em;
     line-height: 1;
@@ -2761,10 +2744,12 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .gr-refresh-inline:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange-dark);
   }
+}
   .gr-refresh-inline:active .lobby-refresh-icon {
     animation: app-splash-spin 0.5s ease;
     display: inline-block;
@@ -2975,12 +2960,14 @@
     color: var(--text-primary);
   }
   .gr-sc-cell-you { cursor: pointer; }
+  @media (hover: hover) {
   .gr-sc-cell-you:hover {
     outline: 2px solid var(--color-orange);
     outline-offset: -2px;
     position: relative;
     z-index: 1;
   }
+}
 
   .gr-sc-eagle {
     background: #2D6E34;
@@ -3248,10 +3235,12 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .round-card-step-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .round-card-step-btn:active {
     transform: scale(0.96);
     background: var(--color-orange-pale);
@@ -3368,10 +3357,12 @@
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .tristate-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .tristate-btn:active { transform: scale(0.95); }
 
   /* Active state colors:
@@ -3420,14 +3411,18 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .tristate-dir-note:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange-dark);
   }
+}
   html.dark .tristate-dir-note { color: var(--color-orange); }
+  @media (hover: hover) {
   html.dark .tristate-dir-note:hover {
     background: rgba(232, 93, 4, 0.15);
   }
+}
 
   /* Compact putts row — label left, stepper right */
   .round-card-putts {
@@ -3465,10 +3460,12 @@
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .round-card-putts-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .round-card-putts-btn:active {
     transform: scale(0.94);
     background: var(--color-orange-pale);
@@ -3550,13 +3547,17 @@
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .miss-modal-close:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
   }
+}
+  @media (hover: hover) {
   html.dark .miss-modal-close:hover {
     background: var(--bg-surface);
   }
+}
   .miss-modal-body {
     padding: var(--space-4);
     display: flex;
@@ -3584,10 +3585,12 @@
     -webkit-tap-highlight-color: transparent;
     min-height: 80px;
   }
+  @media (hover: hover) {
   .miss-modal-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .miss-modal-btn:active { transform: scale(0.97); }
   .miss-modal-btn.is-active {
     background: var(--color-orange);
@@ -3620,10 +3623,12 @@
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .miss-modal-skip:hover {
     border-color: var(--border-medium);
     color: var(--text-primary);
   }
+}
 
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
      to stay out of the way on clean holes; expands to a full stepper
@@ -3653,14 +3658,18 @@
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .round-card-penalties-add:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
     background: var(--color-orange-pale);
   }
+}
+  @media (hover: hover) {
   html.dark .round-card-penalties-add:hover {
     background: rgba(232, 93, 4, 0.12);
   }
+}
   .round-card-penalties-label {
     flex-shrink: 0;
     font-family: var(--font-body);
@@ -3711,10 +3720,12 @@
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .round-btn-primary:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .round-btn-primary:active { transform: scale(0.98); }
   .round-actions-secondary {
     margin-top: var(--space-5);
@@ -3734,10 +3745,14 @@
     cursor: pointer;
     transition: color var(--transition-fast);
   }
+  @media (hover: hover) {
   .round-btn-link:hover:not([disabled]) { color: var(--color-orange); }
+}
   .round-btn-link[disabled] { opacity: 0.35; cursor: not-allowed; }
   .round-btn-end { color: var(--text-muted); font-size: var(--text-xs); }
+  @media (hover: hover) {
   .round-btn-end:hover { color: var(--color-orange-dark); }
+}
 
   /* Mobile tweaks for round entry */
   @media (max-width: 480px) {
@@ -3840,10 +3855,12 @@
     white-space: nowrap;
     min-height: 52px;
   }
+  @media (hover: hover) {
   .round-tools-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .round-tools-btn.is-active {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
@@ -3890,6 +3907,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  @media (hover: hover) {
   .round-save-btn:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
@@ -3897,6 +3915,7 @@
       0 10px 28px var(--color-orange-glow),
       0 3px 8px rgba(13, 13, 13, 0.18);
   }
+}
   .round-save-btn:active {
     transform: scale(0.98);
   }
@@ -3905,10 +3924,12 @@
     background: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
   }
+  @media (hover: hover) {
   .round-save-btn.is-final:hover {
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
 
   /* Reserve space at the bottom of round panel content so the action
      bar never obscures the last hole card / secondary actions. */
@@ -4021,15 +4042,19 @@
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .tools-sheet-close:hover,
   .tools-sheet-back:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
   }
+}
+  @media (hover: hover) {
   html.dark .tools-sheet-close:hover,
   html.dark .tools-sheet-back:hover {
     background: var(--bg-surface);
   }
+}
 
   /* Sheet body — scrollable container for either the list or the
      active tool's content. Max height constrained by the sheet
@@ -4062,10 +4087,12 @@
     -webkit-tap-highlight-color: transparent;
     min-height: 72px;
   }
+  @media (hover: hover) {
   .tools-list-row:hover {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
   }
+}
   .tools-list-row:active {
     transform: scale(0.99);
   }
@@ -4102,10 +4129,12 @@
     flex-shrink: 0;
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .tools-list-row:hover .tools-list-row-arrow {
     color: var(--color-orange);
     transform: translateX(4px);
   }
+}
 
   /* ── Caddie tool ─────────────────────────────────────────── */
   .caddie-header {
@@ -4167,11 +4196,13 @@
     flex-shrink: 0;
     transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .weather-refresh-btn:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
   .weather-refresh-btn:active { transform: rotate(180deg); }
 
   /* Now row — big icon, big temp, label */
@@ -4452,9 +4483,11 @@
        its own "current hole" indicator and doesn't need row-hover noise */
     border-bottom: 1px solid transparent;
   }
+  @media (hover: hover) {
   .scorecard-table tbody tr:hover {
     background: transparent;
   }
+}
   .scorecard-table td {
     padding: 3px var(--space-1);
     text-align: center;
@@ -4718,10 +4751,12 @@
     transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .caddie-wind-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .caddie-wind-btn.is-active {
     background: var(--color-orange);
     border-color: var(--color-orange);
@@ -4909,9 +4944,11 @@
     transition: color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .dock-bag-edit-link:hover {
     color: var(--color-orange-dark);
   }
+}
 
   /* Mobile-specific content density tweaks */
   @media (max-width: 480px) {
@@ -4979,7 +5016,9 @@
     transition: background var(--transition-fast);
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .play-resume-btn:hover { background: var(--color-orange-light); }
+}
   .play-resume-discard {
     flex-shrink: 0;
     width: 32px;
@@ -4993,11 +5032,13 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .play-resume-discard:hover {
     background: var(--color-orange);
     color: var(--color-white);
     border-color: var(--color-orange);
   }
+}
   @media (max-width: 480px) {
     .play-resume { flex-wrap: wrap; }
     .play-resume-body { flex-basis: calc(100% - 52px); }
@@ -5024,11 +5065,13 @@
     font-family: inherit;
     transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
   }
+  @media (hover: hover) {
   .round-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
   }
+}
   .round-card-head {
     display: flex;
     align-items: center;
@@ -5049,10 +5092,12 @@
     font-size: var(--text-lg);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .round-card:hover .round-card-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
   .round-card-meta {
     font-size: var(--text-sm);
     color: var(--text-muted);
@@ -5140,10 +5185,12 @@
     transition: color var(--transition-fast), background var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .play-rounds-see-all:hover {
     color: var(--color-orange-dark);
     background: var(--color-orange-pale);
   }
+}
 
   /* ══════════════════════════════════════════════════════════════
      ALL ROUNDS PAGE — filter bar, month grouping, empty states
@@ -5281,10 +5328,12 @@
                 color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .stats-time-pill:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .stats-time-pill.is-active {
     background: var(--color-orange);
     border-color: var(--color-orange);
@@ -5456,9 +5505,11 @@
     -webkit-tap-highlight-color: transparent;
     margin-bottom: -1px;  /* overlap the tabbar's bottom border */
   }
+  @media (hover: hover) {
   .stats-tab:hover {
     color: var(--text-primary);
   }
+}
   .stats-tab.is-active {
     color: var(--color-orange);
     border-bottom-color: var(--color-orange);
@@ -6113,10 +6164,12 @@
     transition: box-shadow var(--transition-fast), transform var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .stats-entry-btn:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
   }
+}
   .stats-entry-btn-icon {
     width: 36px;
     height: 36px;
@@ -6171,9 +6224,11 @@
     transition: color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .play-stats-link:hover {
     color: var(--color-orange-light);
   }
+}
 
   @media (max-width: 560px) {
     .stats-card-grid,
@@ -6387,11 +6442,13 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  @media (hover: hover) {
   .quick-score-save[disabled]:hover {
     transform: none;
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
 
   @media (max-width: 560px) {
     .quick-score-field-grid {
@@ -7072,7 +7129,9 @@
     text-transform: uppercase;
     transition: color var(--transition-fast);
   }
+  @media (hover: hover) {
   .round-summary-delete:hover { color: var(--color-orange-dark); }
+}
 
   /* Ball-striking block — FIR/GIR percentage stats on the summary screen.
      Two big percentage cards, same visual weight as the totals grid but
@@ -7186,11 +7245,13 @@
     gap: var(--space-1);
     transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
   }
+  @media (hover: hover) {
   .jump-card:hover {
     border-color: var(--color-orange);
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
   }
+}
   .jump-card-label {
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -7244,11 +7305,13 @@
                 border-color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .practice-type-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-orange);
   }
+}
   .practice-type-card:active { transform: translateY(0); }
 
   /* "Coming soon" variant — shown flat, muted, not tappable. */
@@ -7256,11 +7319,13 @@
     cursor: default;
     opacity: 0.7;
   }
+  @media (hover: hover) {
   .practice-type-card-soon:hover {
     transform: none;
     box-shadow: none;
     border-color: var(--border-light);
   }
+}
 
   .practice-type-icon {
     flex-shrink: 0;
@@ -7322,10 +7387,12 @@
     color: var(--text-muted);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .practice-type-card:hover .practice-type-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
 
   @media (max-width: 560px) {
     .practice-type-card {
@@ -7402,11 +7469,13 @@
     -webkit-tap-highlight-color: transparent;
     animation: fadeUp 0.4s ease both;
   }
+  @media (hover: hover) {
   .practice-resume-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-accent);
     border-color: var(--color-orange);
   }
+}
   .practice-resume-card:active { transform: translateY(0); }
 
   .practice-resume-body {
@@ -7442,9 +7511,11 @@
     color: var(--color-orange);
     transition: transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .practice-resume-card:hover .practice-resume-arrow {
     transform: translateX(3px);
   }
+}
 
   /* Shot-entry card — reuses .round-card as base (matches round screen
      styling) with a few range-specific tweaks. */
@@ -7510,9 +7581,11 @@
                 color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .range-swing-btn:hover:not(.active) {
     color: var(--text-primary);
   }
+}
   .range-swing-btn.active {
     background: var(--bg-elevated);
     color: var(--color-orange);
@@ -7583,9 +7656,11 @@
     transition: border-color var(--transition-fast);
     animation: fadeUp 0.3s ease both;
   }
+  @media (hover: hover) {
   .range-shot-row:hover {
     border-color: var(--color-orange);
   }
+}
   .range-shot-num {
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -7641,11 +7716,13 @@
                 border-color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .range-shot-delete:hover {
     background: var(--color-orange-pale);
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
   }
+}
 
   @media (max-width: 560px) {
     .range-shot-row {
@@ -7690,10 +7767,12 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .practice-history-link:hover {
     background: var(--bg-surface);
     color: var(--color-orange);
   }
+}
   .practice-history-link-label {
     font-family: var(--font-body);
     font-size: var(--text-sm);
@@ -7707,10 +7786,12 @@
     color: var(--text-muted);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .practice-history-link:hover .practice-history-link-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
 
   /* History list container */
   .range-history-list {
@@ -7736,11 +7817,13 @@
                 transform var(--transition-spring);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .range-history-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
   }
+}
   .range-history-card-head {
     display: flex;
     align-items: center;
@@ -7760,10 +7843,12 @@
     color: var(--text-muted);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .range-history-card:hover .range-history-card-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
   .range-history-card-meta {
     font-family: var(--font-body);
     font-size: var(--text-sm);
@@ -7887,11 +7972,13 @@
                 transform var(--transition-spring);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .range-detail-club-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
   }
+}
   .range-detail-club-card-head {
     display: flex;
     align-items: center;
@@ -7911,10 +7998,12 @@
     color: var(--text-muted);
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .range-detail-club-card:hover .range-detail-club-card-arrow {
     color: var(--color-orange);
     transform: translateX(3px);
   }
+}
   .range-detail-club-card-avg {
     display: flex;
     flex-direction: column;
@@ -8030,10 +8119,12 @@
     color: var(--color-orange-dark);
     border-color: rgba(232, 93, 4, 0.4);
   }
+  @media (hover: hover) {
   .range-detail-delete:hover {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
   }
+}
 
   @media (max-width: 560px) {
     .range-detail-club-row {
@@ -8213,9 +8304,11 @@
     transition: border-color var(--transition-fast);
     animation: fadeUp 0.3s ease both;
   }
+  @media (hover: hover) {
   .shortgame-shot-row:hover {
     border-color: var(--color-orange);
   }
+}
   .shortgame-shot-body {
     display: flex;
     flex-direction: column;
@@ -8705,9 +8798,11 @@
     text-align: left;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .course-practice-tee-btn:hover {
     border-color: var(--color-orange);
   }
+}
   .course-practice-tee-btn.is-selected {
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
@@ -8770,9 +8865,11 @@
     box-shadow: var(--shadow-accent);
     transition: transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .course-practice-gimme-slider::-webkit-slider-thumb:hover {
     transform: scale(1.1);
   }
+}
   .course-practice-gimme-slider::-moz-range-thumb {
     width: 24px;
     height: 24px;
@@ -9127,7 +9224,9 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .session-banner-btn:hover { background: rgba(255, 255, 255, 0.28); }
+}
   .session-banner-btn.end {
     background: transparent;
     border-color: rgba(255, 255, 255, 0.4);
@@ -9255,10 +9354,12 @@
     flex-shrink: 0;
   }
   body.session-active .panel.session-day .ex-log-btn { display: inline-block; }
+  @media (hover: hover) {
   .ex-log-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .ex-log-btn.has-logs {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
@@ -9285,10 +9386,12 @@
     transition: all var(--transition-fast);
   }
   body.session-active .panel.session-day .ex-info-btn { display: inline-flex; align-items: center; justify-content: center; }
+  @media (hover: hover) {
   .ex-info-btn:hover {
     border-color: var(--color-orange);
     color: var(--color-orange);
   }
+}
   .ex-card.open .ex-info-btn {
     background: var(--color-orange);
     border-color: var(--color-orange);
@@ -9495,11 +9598,13 @@
     transition: background var(--transition-fast), transform var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .set-row-remove:hover {
     background: var(--color-orange);
     color: var(--color-white);
     transform: scale(1.08);
   }
+}
   .set-row-remove:active {
     transform: scale(0.96);
   }
@@ -9526,9 +9631,11 @@
     justify-content: center;
     gap: var(--space-2);
   }
+  @media (hover: hover) {
   .set-row-add:hover {
     background: var(--color-orange-pale);
   }
+}
   .set-row-add:active {
     background: var(--color-orange);
     color: var(--color-white);
@@ -9562,19 +9669,23 @@
     color: var(--color-white);
     border-color: var(--color-orange);
   }
+  @media (hover: hover) {
   .modal-btn-primary:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .modal-btn-ghost {
     background: transparent;
     color: var(--text-secondary);
     border-color: var(--border-medium);
   }
+  @media (hover: hover) {
   .modal-btn-ghost:hover {
     color: var(--text-primary);
     border-color: var(--color-black-60);
   }
+}
   @media (max-width: 560px) {
     .modal-backdrop { padding: 0; align-items: flex-end; }
     .modal {
@@ -9673,11 +9784,13 @@
     color: var(--text-secondary);
     border-color: var(--border-medium);
   }
+  @media (hover: hover) {
   .confirm-btn-cancel:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
     border-color: var(--color-black-60);
   }
+}
   /* Confirm (default) — primary orange */
   .confirm-btn-confirm {
     background: var(--color-orange);
@@ -9685,10 +9798,12 @@
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .confirm-btn-confirm:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .confirm-btn-confirm:active {
     background: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
@@ -9699,10 +9814,12 @@
     border-color: var(--color-orange-dark);
     box-shadow: 0 4px 16px rgba(200, 50, 0, 0.25);
   }
+  @media (hover: hover) {
   .confirm-btn-confirm.destructive:hover {
     background: #A33E00;
     border-color: #A33E00;
   }
+}
 
   /* Mobile: bottom-sheet style to match the log modal's mobile treatment */
   @media (max-width: 560px) {
@@ -9746,11 +9863,13 @@
     color: inherit;
     font-family: inherit;
   }
+  @media (hover: hover) {
   .lib-browse-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
+}
   .lib-browse-card-icon {
     font-size: 2rem;
     line-height: 1;
@@ -9781,9 +9900,11 @@
     flex-shrink: 0;
     transition: transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .lib-browse-card:hover .lib-browse-card-chevron {
     transform: translateX(3px);
   }
+}
 
   /* ══════════════════════════════════════════════════════════════
      EXERCISE LIBRARY — searchable list of all exercises
@@ -9853,10 +9974,12 @@
     align-items: center;
     justify-content: center;
   }
+  @media (hover: hover) {
   .ex-lib-search-clear:hover {
     background: var(--color-cream-300);
     color: var(--text-primary);
   }
+}
 
   .ex-lib-add-btn {
     padding: var(--space-3) var(--space-5);
@@ -9873,10 +9996,12 @@
     transition: background var(--transition-fast), transform var(--transition-spring);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .ex-lib-add-btn:hover {
     background: var(--color-orange-light);
     transform: translateY(-1px);
   }
+}
 
   .ex-lib-meta {
     font-family: var(--font-body);
@@ -10030,18 +10155,22 @@
     color: var(--color-orange);
     border: 1.5px solid var(--color-orange);
   }
+  @media (hover: hover) {
   .ex-lib-card-edit:hover {
     background: var(--bg-accent-tint);
   }
+}
   .ex-lib-card-delete {
     background: transparent;
     color: var(--color-orange-dark);
     border: 1.5px solid transparent;
   }
+  @media (hover: hover) {
   .ex-lib-card-delete:hover {
     border-color: var(--color-orange-dark);
     background: rgba(196, 77, 0, 0.06);
   }
+}
 
   .ex-lib-empty {
     background: var(--bg-elevated);
@@ -10120,10 +10249,12 @@
     align-items: center;
     justify-content: center;
   }
+  @media (hover: hover) {
   .cex-modal-close:hover {
     background: var(--color-cream-300);
     color: var(--text-primary);
   }
+}
   .cex-modal-title {
     font-family: var(--font-display);
     font-size: var(--text-xl);
@@ -10204,18 +10335,22 @@
     color: var(--text-secondary);
     border-color: var(--border-medium);
   }
+  @media (hover: hover) {
   .cex-modal-cancel:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
   }
+}
   .cex-modal-submit {
     background: var(--color-orange);
     color: var(--color-white);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .cex-modal-submit:hover:not([disabled]) {
     background: var(--color-orange-light);
   }
+}
   .cex-modal-submit[disabled] {
     opacity: 0.6;
     cursor: not-allowed;
@@ -10284,11 +10419,13 @@
     flex-direction: column;
     gap: var(--space-2);
   }
+  @media (hover: hover) {
   .routine-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
+}
   .routine-card-head {
     display: flex;
     align-items: baseline;
@@ -10450,11 +10587,13 @@
     border-radius: var(--radius-sm);
     outline: none;
   }
+  @media (hover: hover) {
   .rb-section-input:focus,
   .rb-section-input:hover {
     border-color: var(--color-orange);
     background: var(--bg-elevated);
   }
+}
   .rb-section-input::placeholder {
     color: var(--color-orange-dark);
     opacity: 0.5;
@@ -10533,10 +10672,12 @@
     justify-content: center;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .rb-ctrl:hover:not([disabled]) {
     background: var(--color-cream-200);
     color: var(--text-primary);
   }
+}
   .rb-ctrl[disabled] {
     opacity: 0.3;
     cursor: not-allowed;
@@ -10544,10 +10685,12 @@
   .rb-ctrl-delete {
     color: var(--color-orange-dark);
   }
+  @media (hover: hover) {
   .rb-ctrl-delete:hover:not([disabled]) {
     background: var(--bg-accent-tint);
     color: var(--color-orange-dark);
   }
+}
 
   /* Prescription row — sets / reps / notes */
   .rb-item-prescription {
@@ -10618,11 +10761,13 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .rb-superset-toggle:hover {
     color: var(--color-orange);
     border-color: var(--color-orange);
     border-style: solid;
   }
+}
   .rb-superset-toggle.active {
     background: var(--color-orange);
     color: var(--color-white);
@@ -10659,18 +10804,22 @@
     transition: background var(--transition-fast);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .rb-add-btn:hover {
     background: var(--color-orange-light);
   }
+}
   .rb-add-btn-secondary {
     background: transparent;
     color: var(--color-orange);
     border: 1.5px solid var(--color-orange);
     box-shadow: none;
   }
+  @media (hover: hover) {
   .rb-add-btn-secondary:hover {
     background: var(--bg-accent-tint);
   }
+}
 
   /* Footer: Save / Cancel / Delete */
   .rb-footer {
@@ -10697,9 +10846,11 @@
     transition: background var(--transition-fast);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .rb-save:hover:not([disabled]) {
     background: var(--color-orange-light);
   }
+}
   .rb-save[disabled] {
     opacity: 0.6;
     cursor: not-allowed;
@@ -10724,10 +10875,12 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .rb-cancel:hover {
     background: var(--color-cream-100);
     color: var(--text-primary);
   }
+}
   .rb-delete {
     flex: 1;
     padding: var(--space-3) var(--space-5);
@@ -10743,10 +10896,12 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .rb-delete:hover {
     border-color: var(--color-orange-dark);
     background: rgba(196, 77, 0, 0.06);
   }
+}
 
   /* Exercise picker modal — extends the cex-modal styles */
   .rb-picker-modal {
@@ -10776,10 +10931,12 @@
     flex-direction: column;
     gap: 2px;
   }
+  @media (hover: hover) {
   .rb-picker-item:hover {
     border-color: var(--color-orange);
     background: var(--bg-accent-tint);
   }
+}
   .rb-picker-item-name {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -10821,9 +10978,11 @@
     text-decoration: underline;
     text-decoration-color: rgba(232, 93, 4, 0.3);
   }
+  @media (hover: hover) {
   .rb-picker-link:hover {
     text-decoration-color: var(--color-orange);
   }
+}
 
   /* ── Day marker badge ─────────────────────────────────────── */
   .day-marker {
@@ -10890,7 +11049,9 @@
     cursor: pointer;
     transition: box-shadow var(--transition-base), border-color var(--transition-base);
   }
+  @media (hover: hover) {
   .ex-card:hover { box-shadow: var(--shadow-sm); }
+}
   .ex-card.open {
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
@@ -11053,7 +11214,9 @@
     cursor: pointer;
     transition: box-shadow var(--transition-base), border-color var(--transition-base);
   }
+  @media (hover: hover) {
   .stretch-card:hover { box-shadow: var(--shadow-sm); }
+}
   .stretch-card.open {
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
@@ -11175,8 +11338,12 @@
     cursor: pointer;
     transition: color var(--transition-fast), transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .back-link:hover { color: var(--color-orange); }
+}
+  @media (hover: hover) {
   .back-link:hover .back-arrow { transform: translateX(-3px); }
+}
   .back-arrow {
     display: inline-block;
     font-family: var(--font-mono);
@@ -11304,7 +11471,9 @@
     cursor: pointer;
     transition: box-shadow var(--transition-base), border-color var(--transition-base);
   }
+  @media (hover: hover) {
   .history-card:hover { box-shadow: var(--shadow-sm); }
+}
   .history-card.open {
     border-color: var(--color-orange);
     box-shadow: var(--shadow-accent);
@@ -11512,9 +11681,11 @@
     padding: var(--space-4) var(--space-3);
     margin: 0 calc(-1 * var(--space-3));
   }
+  @media (hover: hover) {
   .history-ex.editable:hover {
     background: var(--color-cream-100);
   }
+}
   /* Subtle edit hint — visible on hover only (desktop affordance).
      On mobile users just tap; hint stays hidden. */
   .history-ex-edit-hint {
@@ -11529,7 +11700,9 @@
     pointer-events: none;
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .history-ex.editable:hover .history-ex-edit-hint { opacity: 1; }
+}
 
   /* Per-exercise delete × button */
   .history-ex-delete {
@@ -11549,11 +11722,13 @@
     transition: all var(--transition-fast);
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .history-ex-delete:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
     background: var(--color-orange-pale);
   }
+}
   .history-ex-delete::before { content: '×'; display: block; transform: translateY(-1px); }
 
   /* Session-level trash button in the expanded detail header */
@@ -11590,11 +11765,13 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .history-session-delete:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
     background: var(--color-orange-pale);
   }
+}
   .history-session-delete svg {
     width: 12px;
     height: 12px;
@@ -11628,10 +11805,12 @@
     transition: background var(--transition-fast), transform var(--transition-spring);
     box-shadow: var(--shadow-accent);
   }
+  @media (hover: hover) {
   .btn-cta:hover {
     background: var(--color-orange-light);
     transform: translateY(-2px);
   }
+}
 
   /* Container for the Google Identity Services-rendered button. The button
      itself is rendered (and styled) by Google's library; we only control
@@ -11907,11 +12086,13 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  @media (hover: hover) {
   .social-save-btn[disabled]:hover {
     transform: none;
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
 
   /* Round summary — visibility toggle card */
   .round-visibility-card {
@@ -12099,9 +12280,11 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     white-space: nowrap;
   }
+  @media (hover: hover) {
   .feed-filter-btn:hover {
     color: var(--text-primary);
   }
+}
   .feed-filter-btn.active {
     background: var(--bg-elevated);
     color: var(--color-orange);
@@ -12182,10 +12365,12 @@
     cursor: pointer;
     transition: border-color var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .social-result-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-1px);
   }
+}
   .social-result-body {
     flex: 1;
     min-width: 0;
@@ -12291,10 +12476,12 @@
     cursor: pointer;
     transition: border-color var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .social-friend-card:hover {
     border-color: var(--color-orange);
     transform: translateY(-1px);
   }
+}
   .social-friend-body {
     flex: 1;
     min-width: 0;
@@ -12525,11 +12712,13 @@
     border-radius: var(--radius-lg);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-spring);
   }
+  @media (hover: hover) {
   .feed-card:hover {
     border-color: var(--color-orange);
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
   }
+}
 
   /* Header row — avatar + name/byline */
   .feed-card-header {
@@ -12670,9 +12859,11 @@
     padding: var(--space-4) var(--space-5);
     cursor: pointer;
   }
+  @media (hover: hover) {
   .feed-card:hover .feed-card-body {
     /* don't override card hover; just make cursor + subtle cue */
   }
+}
 
   /* Comments strip — bottom of card, toggles inline comments */
   .feed-comments-strip {
@@ -12692,19 +12883,23 @@
     cursor: pointer;
     transition: background var(--transition-fast), color var(--transition-fast);
   }
+  @media (hover: hover) {
   .feed-comments-strip:hover {
     background: var(--color-cream-200);
     color: var(--text-primary);
   }
+}
   .feed-comments-strip-active {
     background: var(--bg-accent-tint);
     color: var(--color-orange-dark);
     border-top-color: rgba(232, 93, 4, 0.3);
   }
+  @media (hover: hover) {
   .feed-comments-strip-active:hover {
     background: var(--bg-accent-tint);
     color: var(--color-orange-dark);
   }
+}
   .feed-comments-icon {
     flex-shrink: 0;
   }
@@ -12756,9 +12951,11 @@
     border-radius: var(--radius-sm);
     position: relative;
   }
+  @media (hover: hover) {
   .feed-inline-comment:hover .feed-inline-delete {
     opacity: 1;
   }
+}
   .feed-inline-avatar {
     width: 28px;
     height: 28px;
@@ -12798,7 +12995,9 @@
     line-height: 1.2;
   }
   .feed-inline-author[onclick] { cursor: pointer; }
+  @media (hover: hover) {
   .feed-inline-author[onclick]:hover { color: var(--color-orange); }
+}
   .feed-inline-handle {
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -12837,12 +13036,14 @@
     opacity: 0;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .feed-inline-delete:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
     opacity: 1;
   }
+}
   @media (hover: none) {
     .feed-inline-delete { opacity: 0.6; }
   }
@@ -12882,11 +13083,13 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  @media (hover: hover) {
   .feed-inline-post-btn[disabled]:hover {
     transform: none;
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
   .feed-inline-blocked {
     padding: var(--space-3);
     text-align: center;
@@ -12918,9 +13121,11 @@
     border-radius: var(--radius-md);
     transition: background var(--transition-fast);
   }
+  @media (hover: hover) {
   .public-round-author:hover {
     background: var(--color-cream-100);
   }
+}
   .public-round-author-body {
     min-width: 0;
   }
@@ -13028,12 +13233,16 @@
     position: relative;
     transition: border-color var(--transition-fast);
   }
+  @media (hover: hover) {
   .comment-row:hover {
     border-color: var(--border-medium);
   }
+}
+  @media (hover: hover) {
   .comment-row:hover .comment-delete {
     opacity: 1;
   }
+}
   .comment-avatar {
     width: 32px;
     height: 32px;
@@ -13075,9 +13284,11 @@
   .comment-author[onclick] {
     cursor: pointer;
   }
+  @media (hover: hover) {
   .comment-author[onclick]:hover {
     color: var(--color-orange);
   }
+}
   .comment-handle {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
@@ -13116,12 +13327,14 @@
     opacity: 0;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .comment-delete:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
     opacity: 1;
   }
+}
   /* On touch devices, show the delete button by default since there's no hover */
   @media (hover: none) {
     .comment-delete {
@@ -13177,11 +13390,13 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  @media (hover: hover) {
   .comment-post-btn[disabled]:hover {
     transform: none;
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
 
   .comment-compose-blocked {
     padding: var(--space-4);
@@ -13243,10 +13458,12 @@
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .settings-link-row:hover {
     border-color: var(--color-orange);
     background: var(--color-cream-100);
   }
+}
   .settings-link-row:active { transform: scale(0.995); }
   .settings-link-row-info {
     flex: 1;
@@ -13277,10 +13494,12 @@
     flex-shrink: 0;
     transition: color var(--transition-fast), transform var(--transition-fast);
   }
+  @media (hover: hover) {
   .settings-link-row:hover .settings-link-row-arrow {
     color: var(--color-orange);
     transform: translateX(2px);
   }
+}
 
   /* ── My Bag ───────────────────────────────────────────────────
      Editable list of the user's clubs. Each row has a name text input,
@@ -13345,9 +13564,11 @@
     border-radius: var(--radius-md);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
+  @media (hover: hover) {
   .bag-row:hover {
     border-color: var(--border-medium);
   }
+}
   .bag-row:focus-within {
     border-color: var(--color-orange);
     box-shadow: 0 0 0 3px var(--color-orange-glow);
@@ -13463,11 +13684,13 @@
     transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
   .bag-remove-btn:hover {
     color: var(--color-orange-dark);
     border-color: rgba(200, 50, 0, 0.25);
     background: #FEF0EC;
   }
+}
   .bag-remove-btn:active {
     transform: scale(0.92);
   }
@@ -13632,9 +13855,11 @@
   .bag-logged-pill.is-tappable {
     cursor: pointer;
   }
+  @media (hover: hover) {
   .bag-logged-pill.is-tappable:hover {
     transform: translateY(-1px);
   }
+}
   .bag-logged-pill[disabled] {
     opacity: 0.8;
     cursor: default;
@@ -13840,9 +14065,11 @@
   .range-history-card.is-excluded {
     opacity: 0.72;
   }
+  @media (hover: hover) {
   .range-history-card.is-excluded:hover {
     opacity: 1;
   }
+}
   .range-history-excluded-badge {
     display: inline-flex;
     align-items: center;
@@ -13890,11 +14117,13 @@
     cursor: not-allowed;
     box-shadow: none;
   }
+  @media (hover: hover) {
   .bag-edit-actions .btn[disabled]:hover {
     transform: none;
     background: var(--color-orange);
     border-color: var(--color-orange);
   }
+}
 
   /* ─── Partial-swing edit rows ───────────────────────────────
      Each partial row inside an edit row: small percent input, small
@@ -13999,11 +14228,13 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .bag-partial-remove-btn:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
     background: var(--color-orange-pale);
   }
+}
 
   /* ─── Partial-swing preset pills ────────────────────────────
      Row of tiny quick-add pills (100%, 75%, 50%, 25%) below each
@@ -14042,11 +14273,13 @@
     cursor: pointer;
     transition: all var(--transition-fast);
   }
+  @media (hover: hover) {
   .bag-partial-preset:hover {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
     color: var(--color-orange-dark);
   }
+}
   .bag-partial-preset.added {
     background: var(--color-orange-pale);
     border-color: var(--color-orange);
@@ -14155,18 +14388,22 @@
     color: var(--color-white);
     border-color: var(--color-orange);
   }
+  @media (hover: hover) {
   .schedule-savebar-btn.primary:hover {
     background: var(--color-orange-light);
     border-color: var(--color-orange-light);
   }
+}
   .schedule-savebar-btn.ghost {
     background: transparent;
     color: var(--color-orange-dark);
     border-color: var(--color-orange);
   }
+  @media (hover: hover) {
   .schedule-savebar-btn.ghost:hover {
     background: var(--bg-elevated);
   }
+}
   @media (max-width: 480px) {
     .schedule-savebar {
       flex-direction: column;
@@ -14242,9 +14479,11 @@
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     /* Let the native select show its own dropdown chevron on mobile — cleaner */
   }
+  @media (hover: hover) {
   .schedule-select:hover {
     border-color: var(--border-medium);
   }
+}
   .schedule-select:focus {
     border-color: var(--color-orange);
     box-shadow: 0 0 0 3px var(--color-orange-glow);
@@ -14284,9 +14523,11 @@
     box-shadow: var(--shadow-accent);
     transition: background var(--transition-fast);
   }
+  @media (hover: hover) {
   .schedule-empty-btn:hover {
     background: var(--color-orange-light);
   }
+}
 
   /* Segmented toggle (used for units) */
   .seg-control {
@@ -14381,11 +14622,13 @@
     transition: all var(--transition-fast);
     flex-shrink: 0;
   }
+  @media (hover: hover) {
   .settings-signout-btn:hover {
     color: var(--color-orange-dark);
     border-color: var(--color-orange-dark);
     background: var(--color-orange-pale);
   }
+}
 
   /* Disabled "Coming soon" rows for stubs like dark mode */
   .settings-row.disabled {
@@ -14578,7 +14821,9 @@
       border-radius: var(--radius-sm);
       transition: background var(--transition-fast), color var(--transition-fast);
     }
+    @media (hover: hover) {
     .mobile-topbar-back:hover { color: var(--color-orange); }
+    }
     /* "Back" button only shows on panels that aren't top-level tabs */
     body[data-current-panel="workout"] .mobile-topbar-back,
     body[data-current-panel="history"] .mobile-topbar-back,
