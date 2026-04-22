@@ -21767,10 +21767,14 @@
       }
     }));
 
-    // Any invite whose round is no longer in 'lobby' gets silently
-    // declined — removes it from Firestore and our local state.
+    // Stale = invite points at a round that's effectively over OR
+    // unreachable. 'in-progress' is NOT stale — mid-round invites are
+    // legitimate (e.g. organizer added you back after you left, or
+    // someone invited you to join an in-progress round). Only
+    // 'completed', 'abandoned', and 'missing' (deleted/no access)
+    // count as stale and get silently declined.
     const stale = results.filter(r =>
-      r.status !== 'lobby'
+      r.status === 'completed' || r.status === 'abandoned' || r.status === 'missing'
     );
     if (stale.length === 0) return;
 
@@ -22636,30 +22640,50 @@
     };
   }
 
-  // Leave an active group round as the current user. Sets their player
-  // status to 'left' (preserves their partial scores). If they're the
-  // last player, marks the whole round as abandoned. Clears local state.
+  // Leave an active group round as the current user. Two modes:
+  //   - In lobby: fully remove the player record (their data is empty).
+  //   - In progress: mark status='left' preserving their scores so a
+  //     future re-invite can restore their progress (see the merge
+  //     logic in addGroupRoundPlayer).
+  // Either way, tears down local state + clears session invite tracker.
   async function leaveActiveGroupRound() {
     if (!isGroupRoundActive() || !currentUser) return;
     const id = groupRoundState.docId;
+    const inLobby = groupRoundState.doc.status === 'lobby';
+    // For in-progress leaves, record the actual hole the player was
+    // on (1-based hole number, not the 0-based array index). Used in
+    // the round summary to show where someone bailed out.
+    let leftAtHole = 1;
     try {
-      // In lobby: just remove them entirely (their data is nothing).
-      // In progress: mark status='left' preserving scores.
-      if (groupRoundState.doc.status === 'lobby') {
+      const course = getCourse(groupRoundState.doc.courseId);
+      const idx = groupRoundState.yourHoleIndex || 0;
+      if (course && course.holes[idx]) {
+        leftAtHole = course.holes[idx].number;
+      }
+    } catch (_) { /* fall through to default */ }
+    try {
+      if (inLobby) {
         await window.fb.removeGroupRoundPlayer(id, currentUser.uid);
       } else {
-        const currentHole = 1; // no per-hole tracking yet; updated in Layer D
         await window.fb.updateGroupRoundPlayer(id, currentUser.uid, {
           status: 'left',
-          leftAtHole: currentHole
+          leftAtHole
         });
       }
     } catch (err) {
       console.error('Leave group round failed:', err);
     }
+    if (groupRoundState.unsubscribe) {
+      try { groupRoundState.unsubscribe(); } catch (_) {}
+      groupRoundState.unsubscribe = null;
+    }
     groupRoundState.docId = null;
     groupRoundState.doc = null;
     myGroupRounds = myGroupRounds.filter(r => r.id !== id);
+    // Clear the invite tracker so re-creating a lobby later starts
+    // fresh — same reason as abandonCurrentGroupRound.
+    __groupRoundInvitesSent.clear();
+    renderPlayLanding();
     updateRoundBanner();
   }
 
@@ -23367,8 +23391,16 @@
 
     if (isOrganizer && inLobby) {
       await cancelLobbyAsOrganizer();
-    } else {
+    } else if (inLobby) {
+      // Non-organizer leaving a lobby — their record has no data
+      // yet, so a full remove is fine (and cheaper than an update).
       await abandonCurrentGroupRound();
+    } else {
+      // In-progress leave (organizer OR non-organizer). Preserve
+      // scores via the 'left' status so a future re-invite can
+      // restore progress via addGroupRoundPlayer's merge logic.
+      // This matches the dialog's promise of "scores preserved."
+      await leaveActiveGroupRound();
     }
     showPanel('play', null);
   }
