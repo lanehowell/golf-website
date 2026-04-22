@@ -15334,11 +15334,23 @@
       background-repeat: no-repeat;
       background-position: center;
       background-size: 28px 28px;
+      /* Frosted-glass backing so the X stays legible when scrollable
+         content drifts behind it. The SVG icon ALREADY has its own
+         circle, but the surrounding tap target needs a subtle fill
+         too — otherwise text labels can read through and look like
+         they overlap the X. Layer a translucent page-color fill +
+         backdrop blur. The shape is a rounded square that's slightly
+         larger than the icon's visual circle. */
+      background-color: rgba(255, 253, 247, 0.72);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      border-radius: 50%;
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back,
     html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
+      background-color: rgba(13, 13, 13, 0.6);
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
@@ -15369,6 +15381,19 @@
     body[data-current-panel="group-round"] .mobile-topbar-live,
     body[data-current-panel="group-lobby"] .mobile-topbar-live {
       display: inline-flex;
+      /* Same frosted-glass backing as the X so the LIVE label stays
+         legible against scrolling content behind it. Pill shape with
+         tight padding so it reads as a small chip, not a banner. */
+      padding: 4px var(--space-3) 4px var(--space-2);
+      background-color: rgba(255, 253, 247, 0.72);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      border-radius: var(--radius-pill);
+    }
+    html.dark body[data-current-panel="round"] .mobile-topbar-live,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-live,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-live {
+      background-color: rgba(13, 13, 13, 0.6);
     }
     .mobile-topbar-live-dot {
       width: 8px;
@@ -26285,6 +26310,27 @@
     // round (per spec); the helper doesn't gate on organizer status.
     const friendsHtml = renderLobbyFriendsList(playerUidsSet);
 
+    // If the sheet is already mounted (re-render after invite/kick),
+    // update the body content in place — DON'T tear down and rebuild
+    // the wrapper, or the slide-up animation will replay every time
+    // the user taps a button. Only the body changes; the chrome
+    // stays put.
+    const existingSheet = mount.querySelector('.manage-sheet');
+    if (existingSheet && !existingSheet.classList.contains('closing')) {
+      const body = existingSheet.querySelector('.manage-sheet-body');
+      if (body) {
+        body.innerHTML = `
+          <div class="lobby-section">
+            <div class="lobby-section-label">In This Round</div>
+            <div class="lobby-players">${playerRows}</div>
+          </div>
+          ${friendsHtml}
+        `;
+      }
+      return;
+    }
+
+    // First render — build the full sheet and trigger the open animation.
     mount.innerHTML = `
       <div class="manage-sheet-backdrop opening" onclick="closeManagePlayersSheet()" aria-hidden="true"></div>
       <div class="manage-sheet opening" role="dialog" aria-modal="true" aria-label="Manage players">
