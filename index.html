@@ -23925,6 +23925,33 @@
     if (choice === 'save') {
       await completeMyGroupRound();
     } else if (choice === 'leave') {
+      // If a prior history card exists for THIS group round (from a
+      // previous save-then-leave-then-rejoin cycle), delete it. The
+      // user explicitly chose "Don't save" — that should mean no card,
+      // even if one already existed. Without this, an old partial
+      // card would linger after the user explicitly opted out of
+      // saving on the latest leave.
+      const grId = groupRoundState.docId;
+      if (grId && currentUser) {
+        const personalRoundId = `gr_${grId}_${currentUser.uid.slice(0, 8)}`;
+        const priorIdx = recentRounds.findIndex(r => r.id === personalRoundId);
+        if (priorIdx !== -1) {
+          try {
+            await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${personalRoundId}`);
+            recentRounds.splice(priorIdx, 1);
+            // Public mirror cleanup (best-effort — may not exist if the
+            // round was private or never published).
+            await window.fb.deleteDoc(`publicProfiles/${currentUser.uid}/rounds/${personalRoundId}`).catch(() => {});
+            // Bust the social feed so it re-fetches without the deleted card
+            if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+            // Keep public profile aggregate in sync
+            syncPublicProfile();
+          } catch (err) {
+            console.error('Failed to delete prior history card on leave:', err);
+            // Non-fatal — proceed with leave anyway
+          }
+        }
+      }
       await leaveActiveGroupRound();
       showPanel('play', null);
     }
@@ -29724,6 +29751,21 @@
     // Keep myGroupRounds cache in sync for the Play hero
     const idx = myGroupRounds.findIndex(r => r.id === mergedDoc.id);
     if (idx !== -1) myGroupRounds[idx] = mergedDoc;
+
+    // Reconcile the per-session "invited" tracker against current
+    // players. If a uid we sent an invite to is now in the players
+    // array, they've accepted — the invite no longer exists, so
+    // remove from the tracker. Without this, the friends list would
+    // keep showing "Invited" forever (even after the friend joins
+    // and later leaves), preventing re-invites.
+    if (__groupRoundInvitesSent.size > 0) {
+      const currentPlayerUids = new Set((mergedDoc.players || []).map(p => p.uid));
+      for (const uid of Array.from(__groupRoundInvitesSent)) {
+        if (currentPlayerUids.has(uid)) {
+          __groupRoundInvitesSent.delete(uid);
+        }
+      }
+    }
 
     // Handle status transitions
     if (prevStatus !== newStatus) {
