@@ -2782,6 +2782,15 @@
     color: var(--text-muted);
     border: 1px solid var(--border-light);
   }
+  /* "Finished" — player completed and saved their card; locked from
+     re-invite. Visually quieter than "joined" so it doesn't compete
+     for attention; clearly different from "pending" so it doesn't
+     feel like a transient state. */
+  .lobby-friend-status.finished {
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px dashed var(--border-medium);
+  }
 
   .lobby-empty-msg {
     padding: var(--space-5);
@@ -4037,6 +4046,181 @@
      don't have the lobby's top-level padding around it. */
   .manage-sheet-body .lobby-section { margin-bottom: var(--space-5); }
   .manage-sheet-body .lobby-section:last-child { margin-bottom: 0; }
+
+  /* ── Finish-round sheet — same chrome architecture as the manage
+     sheet, but tighter and built for choosing between save/leave.
+     Two large tappable option cards stacked vertically + a quiet
+     "Keep playing" cancel link beneath. */
+  .finish-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 10);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .finish-sheet-backdrop.opening,
+  .finish-sheet-backdrop.closing { opacity: 0; }
+  .finish-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 11);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .finish-sheet.opening,
+  .finish-sheet.closing { transform: translateY(100%); }
+  .finish-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    flex-shrink: 0;
+  }
+  .finish-sheet-eyebrow {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+  .finish-sheet-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  @media (hover: hover) {
+    .finish-sheet-close:hover {
+      background: var(--color-cream-100);
+      color: var(--text-primary);
+    }
+    html.dark .finish-sheet-close:hover {
+      background: var(--bg-surface);
+    }
+  }
+  .finish-sheet-body {
+    padding: 0 var(--space-5) var(--space-5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .finish-sheet-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: var(--space-2);
+  }
+  .finish-sheet-msg {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-5);
+  }
+  /* Each option is a stacked card — title on top, sub-description
+     below in muted text. Primary option has the orange-pale highlight
+     to draw the eye; secondary is a quieter outlined card. */
+  .finish-sheet-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .finish-sheet-option:active { transform: scale(0.98); }
+  @media (hover: hover) {
+    .finish-sheet-option:hover {
+      background: var(--bg-surface);
+      border-color: var(--border-medium);
+    }
+  }
+  .finish-sheet-option-primary {
+    background: var(--color-orange-pale);
+    border-color: rgba(232, 93, 4, 0.35);
+  }
+  @media (hover: hover) {
+    .finish-sheet-option-primary:hover {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+    }
+  }
+  html.dark .finish-sheet-option-primary {
+    background: rgba(232, 93, 4, 0.12);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  .finish-sheet-option-title {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .finish-sheet-option-primary .finish-sheet-option-title {
+    color: var(--color-orange-dark);
+  }
+  html.dark .finish-sheet-option-primary .finish-sheet-option-title {
+    color: var(--color-orange);
+  }
+  .finish-sheet-option-sub {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-snug);
+  }
+  /* Cancel link — full-width text button; visually quietest of the three */
+  .finish-sheet-cancel {
+    display: block;
+    width: 100%;
+    padding: var(--space-3);
+    margin-top: var(--space-2);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .finish-sheet-cancel:hover { color: var(--text-primary); }
+  }
 
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
      to stay out of the way on clean holes; expands to a full stepper
@@ -16440,6 +16624,12 @@
      friends. Body-level for the same reason as the others above. -->
 <div id="manage-players-mount"></div>
 
+<!-- FINISH ROUND sheet mount — populated by renderFinishRoundSheet()
+     when a player taps "Finish Round" on a partial round. Presents the
+     save-or-leave choice in plain language. Body-level for ancestor-
+     transform escape, same as the other sheet mounts. -->
+<div id="finish-sheet-mount"></div>
+
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
 <div class="confirm-backdrop" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" onclick="if(event.target===this) __confirmDialogResolve(false)">
@@ -22987,10 +23177,17 @@
     // Only ACTIVE players count as "in the round" for invite purposes.
     // A friend who joined and then left should be invitable again — we
     // don't want to lock them out just because their player record is
-    // still in the array (with status: 'left'). Same for 'completed'
-    // (their personal round is done; they're not playing anymore).
+    // still in the array (with status: 'left').
+    //
+    // 'completed' players ARE locked out though: they explicitly ended
+    // their round and saved a card to history. Re-inviting them would
+    // overwrite that card, which is confusing. Surface them as a
+    // separate "Finished" pill in the friends list instead.
     const playerUidsSet = new Set(
       players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
+    );
+    const finishedUidsSet = new Set(
+      players.filter(p => p.status === 'completed').map(p => p.uid)
     );
 
     // Format the round date/time naturally. Firestore stores startTime
@@ -23142,7 +23339,7 @@
         <div class="lobby-players">${playerRows}</div>
       </div>
 
-      ${renderLobbyFriendsList(playerUidsSet)}
+      ${renderLobbyFriendsList(playerUidsSet, finishedUidsSet)}
 
       ${teeChangeHtml}
 
@@ -23244,7 +23441,8 @@
     }
   }
 
-  function renderLobbyFriendsList(playerUidsSet) {
+  function renderLobbyFriendsList(playerUidsSet, finishedUidsSet) {
+    finishedUidsSet = finishedUidsSet || new Set();
     if (!friendsList || friendsList.length === 0) {
       return `
         <div class="lobby-section">
@@ -23254,11 +23452,17 @@
     }
     const rows = friendsList.map(f => {
       const alreadyIn = playerUidsSet.has(f.uid);
+      const alreadyFinished = finishedUidsSet.has(f.uid);
       const alreadyInvited = __groupRoundInvitesSent.has(f.uid);
       const name = f.usernameDisplay || f.username || 'Friend';
       let action;
       if (alreadyIn) {
         action = `<span class="lobby-friend-status joined">Joined</span>`;
+      } else if (alreadyFinished) {
+        // Player finished and saved their card to history. Locking them
+        // out prevents accidentally overwriting that card on rejoin —
+        // "End Round" is meant to be final.
+        action = `<span class="lobby-friend-status finished">Finished</span>`;
       } else if (alreadyInvited) {
         action = `<span class="lobby-friend-status pending">Invited</span>`;
       } else {
@@ -23290,6 +23494,15 @@
     // by design, no permission tier.
     if (gr.status === 'lobby' && gr.organizerUid !== currentUser.uid) {
       showToast('Only the organizer can invite', true);
+      return;
+    }
+    // Defense in depth: if this friend is ALREADY in the round as a
+    // completed player, refuse the invite. The friends list normally
+    // shows them as "Finished" (no Invite button), but a stale render
+    // or a directly-called invocation shouldn't bypass this.
+    const existingPlayer = (gr.players || []).find(p => p.uid === friendUid);
+    if (existingPlayer && existingPlayer.status === 'completed') {
+      showToast('Player has already finished this round', true);
       return;
     }
     const friend = friendsList.find(f => f.uid === friendUid);
@@ -23763,21 +23976,141 @@
     const holesLogged = Object.keys(me.scores || {}).length;
     const isPartial = holesLogged < totalHoles;
 
-    const ok = await confirmDialog({
-      eyebrow: 'Finish Your Round',
-      eyebrowStyle: 'warning',
-      title: isPartial
-        ? `End after ${holesLogged} hole${holesLogged === 1 ? '' : 's'}?`
-        : 'Save your round?',
-      message: isPartial
-        ? `Your ${holesLogged}-hole round will save to your history. The group round continues for other players.`
-        : 'Your 18-hole round will save to your history. The group round continues for any players still going.',
-      confirmText: 'Finish Round',
-      cancelText: 'Keep Playing',
-      destructive: false,
+    // 18-hole completion: no choice to make, just confirm save.
+    if (!isPartial) {
+      const ok = await confirmDialog({
+        eyebrow: 'Finish Your Round',
+        eyebrowStyle: 'warning',
+        title: 'Save your round?',
+        message: 'Your 18-hole round will save to your history. The group round continues for any players still going.',
+        confirmText: 'Save Round',
+        cancelText: 'Keep Playing',
+        destructive: false,
+      });
+      if (!ok) return;
+      await completeMyGroupRound();
+      return;
+    }
+
+    // Partial round: present three choices via the finish-round sheet.
+    //   - "Save my N holes"  → completeMyGroupRound (commits to history)
+    //   - "Leave without saving" → leaveActiveGroupRound (no card written)
+    //   - "Keep playing" (cancel) → close sheet
+    const choice = await openFinishRoundSheet({ holesLogged, totalHoles });
+    if (choice === 'save') {
+      await completeMyGroupRound();
+    } else if (choice === 'leave') {
+      // Same confirmation pattern as before — just confirm intent
+      // because "leave without saving" discards your card. The sheet
+      // copy already explains this; this confirm is a final guard.
+      const ok = await confirmDialog({
+        eyebrow: 'Leave Round',
+        eyebrowStyle: 'warning',
+        title: 'Leave without saving?',
+        message: `Your ${holesLogged}-hole progress won't be saved to your history. You can rejoin if invited again.`,
+        confirmText: 'Leave',
+        cancelText: 'Cancel',
+        destructive: true,
+      });
+      if (!ok) return;
+      await leaveActiveGroupRound();
+      showPanel('play', null);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Finish-round sheet — bottom sheet shown when a player taps
+  // "Finish Round" mid-round (partial). Presents the choice between
+  // saving their card and leaving without saving, in plain language.
+  // Same animation/scroll-lock pattern as the manage and miss sheets.
+  //
+  // Returns a Promise<'save' | 'leave' | null>. Null = dismissed
+  // without choosing (backdrop tap, X, Esc).
+  // ─────────────────────────────────────────────────────────────
+  let __finishSheetResolve = null;
+  function openFinishRoundSheet(opts) {
+    if (__finishSheetResolve) {
+      // Already open — close any prior with no result first
+      __finishSheetResolve(null);
+      __finishSheetResolve = null;
+    }
+    return new Promise((resolve) => {
+      __finishSheetResolve = resolve;
+      acquireScrollLock();
+      renderFinishRoundSheet(opts);
     });
-    if (!ok) return;
-    await completeMyGroupRound();
+  }
+
+  function closeFinishRoundSheet(result) {
+    if (!__finishSheetResolve) return;
+    const resolveFn = __finishSheetResolve;
+    __finishSheetResolve = null;
+    const el = document.querySelector('.finish-sheet');
+    const backdrop = document.querySelector('.finish-sheet-backdrop');
+    if (!el || !backdrop) {
+      releaseScrollLock();
+      const mount = document.getElementById('finish-sheet-mount');
+      if (mount) mount.innerHTML = '';
+      resolveFn(result || null);
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      releaseScrollLock();
+      const mount = document.getElementById('finish-sheet-mount');
+      if (mount) mount.innerHTML = '';
+      resolveFn(result || null);
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+
+  function renderFinishRoundSheet(opts) {
+    const mount = document.getElementById('finish-sheet-mount');
+    if (!mount) return;
+    const holesLogged = opts.holesLogged;
+    mount.innerHTML = `
+      <div class="finish-sheet-backdrop opening" onclick="closeFinishRoundSheet()" aria-hidden="true"></div>
+      <div class="finish-sheet opening" role="dialog" aria-modal="true" aria-label="Finish round">
+        <div class="finish-sheet-header">
+          <div class="finish-sheet-eyebrow">Finish Round</div>
+          <button class="finish-sheet-close" onclick="closeFinishRoundSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="finish-sheet-body">
+          <h3 class="finish-sheet-title">You've played ${holesLogged} hole${holesLogged === 1 ? '' : 's'}.</h3>
+          <p class="finish-sheet-msg">What would you like to do?</p>
+          <button class="finish-sheet-option finish-sheet-option-primary" onclick="closeFinishRoundSheet('save')">
+            <span class="finish-sheet-option-title">Save my round</span>
+            <span class="finish-sheet-option-sub">Saves a ${holesLogged}-hole round to your history.</span>
+          </button>
+          <button class="finish-sheet-option" onclick="closeFinishRoundSheet('leave')">
+            <span class="finish-sheet-option-title">Leave without saving</span>
+            <span class="finish-sheet-option-sub">Your progress won't be added to your history. You can rejoin if invited again.</span>
+          </button>
+          <button class="finish-sheet-cancel" onclick="closeFinishRoundSheet()">Keep playing</button>
+        </div>
+      </div>
+    `;
+    const sheet = mount.querySelector('.finish-sheet.opening');
+    const backdrop = mount.querySelector('.finish-sheet-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
   }
 
   // Execute completion: snapshot my scores → personal rounds collection,
@@ -24093,8 +24426,7 @@
       <!-- Same actions as hole view -->
       <div class="round-actions">
         <div class="round-actions-secondary">
-          <button class="round-btn-link round-btn-end" onclick="confirmCompleteMyGroupRound()">End My Round</button>
-          <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">Leave Round</button>
+          <button class="round-btn-link round-btn-end" onclick="confirmCompleteMyGroupRound()">Finish Round</button>
         </div>
       </div>
     `;
@@ -24321,8 +24653,7 @@
       <div class="round-actions">
         <div class="round-actions-secondary">
           <button class="round-btn-link" onclick="grGoPreviousHole()" ${groupRoundState.yourHoleIndex === 0 ? 'disabled' : ''}>← Previous Hole</button>
-          <button class="round-btn-link round-btn-end" onclick="confirmCompleteMyGroupRound()">End My Round</button>
-          <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">Leave Round</button>
+          <button class="round-btn-link round-btn-end" onclick="confirmCompleteMyGroupRound()">Finish Round</button>
         </div>
       </div>
     `;
@@ -26274,10 +26605,15 @@
     }
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
-    // Only ACTIVE players count as "in the round" — a friend who left
-    // mid-round should be invitable again. (Same logic as the lobby.)
+    // Only ACTIVE players count as "in the round" for invite purposes.
+    // Left players become invitable again (the rejoin merge restores
+    // their scores). Completed players are LOCKED OUT — they explicitly
+    // ended their round and saved a card; re-inviting would overwrite.
     const playerUidsSet = new Set(
       players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
+    );
+    const finishedUidsSet = new Set(
+      players.filter(p => p.status === 'completed').map(p => p.uid)
     );
 
     // Player rows — same shape as the lobby's, but only the organizer
@@ -26308,7 +26644,7 @@
     // Reuse the lobby's helper which handles "no friends yet" + already-
     // invited state. Both organizer AND non-organizer can invite mid-
     // round (per spec); the helper doesn't gate on organizer status.
-    const friendsHtml = renderLobbyFriendsList(playerUidsSet);
+    const friendsHtml = renderLobbyFriendsList(playerUidsSet, finishedUidsSet);
 
     // If the sheet is already mounted (re-render after invite/kick),
     // update the body content in place — DON'T tear down and rebuild
