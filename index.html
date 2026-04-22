@@ -17724,20 +17724,22 @@
       );
     },
 
-    // Pending rounds — survive-the-kick storage. Written when a player
-    // is removed from an active group round (kick OR organizer abandon)
-    // so they can recover their partial scorecard later. Lives in a
-    // user-private subcollection; document id = the original
-    // groupRoundId so re-kicks from the same round overwrite.
-    listPendingRounds: async (uid) => {
-      const snap = await getDocs(collection(db, `users/${uid}/pendingRounds`));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    },
+    // Pending rounds — survive-the-kick storage. Written to the same
+    // `users/{uid}/rounds` collection as completed rounds, with a
+    // distinctive id prefix and `status: 'pending'` so they're easy
+    // to filter out of history. Reusing this collection (instead of
+    // a separate subcollection) means we benefit from existing
+    // security rules + the existing loadRecentRounds load — no new
+    // network round-trip on app boot.
     savePendingRound: async (uid, groupRoundId, payload) => {
-      await setDoc(doc(db, `users/${uid}/pendingRounds/${groupRoundId}`), payload);
+      // Distinctive id so it sorts/identifies cleanly without
+      // colliding with the post-save `gr_${id}_${uidPrefix}` pattern.
+      const docId = `pending_${groupRoundId}`;
+      await setDoc(doc(db, `users/${uid}/rounds/${docId}`), payload);
     },
     deletePendingRound: async (uid, groupRoundId) => {
-      await deleteDoc(doc(db, `users/${uid}/pendingRounds/${groupRoundId}`));
+      const docId = `pending_${groupRoundId}`;
+      await deleteDoc(doc(db, `users/${uid}/rounds/${docId}`));
     },
 
     // Subscribe to the user's group round invites collection. Fires on
@@ -22106,8 +22108,54 @@
   // Pending rounds — partial scorecards saved when a player is removed
   // from a group round (kicked, organizer abandoned, etc). Surfaced as
   // a banner on Play; user can recover (save / continue solo) or
-  // discard. Loaded on auth-change alongside other user data.
-  let pendingRounds = [];
+  // discard. Stored in users/{uid}/rounds with status='pending' and
+  // id prefix 'pending_' so they ride alongside normal rounds without
+  // needing a separate Firestore subcollection (which kept hitting
+  // permission issues on read).
+  //
+  // Derived from recentRounds so any update to that cache is
+  // automatically reflected.
+  function getPendingRounds() {
+    return (recentRounds || [])
+      .filter(r => r.status === 'pending')
+      .sort((a, b) => (b.endTime || 0) - (a.endTime || 0));
+  }
+
+  // Upsert a pending round into the local recentRounds cache + write
+  // through to Firestore. Used by the kick / abandoned snapshot
+  // handlers when capturing a partial scorecard for recovery. The
+  // payload is augmented with status='pending' and the canonical
+  // pending_${groupRoundId} id so getPendingRounds finds it.
+  function upsertPendingRound(groupRoundId, payload) {
+    if (!currentUser || !window.fb || !groupRoundId) return;
+    const docId = `pending_${groupRoundId}`;
+    const fullPayload = { ...payload, status: 'pending' };
+    const cachedRecord = { id: docId, ...fullPayload };
+    const idx = recentRounds.findIndex(r => r.id === docId);
+    if (idx !== -1) recentRounds[idx] = cachedRecord;
+    else recentRounds.unshift(cachedRecord);
+    // Fire-and-forget; UI is already updated optimistically.
+    window.fb.savePendingRound(currentUser.uid, groupRoundId, fullPayload)
+      .catch(err => console.error('Failed to save pending round:', err));
+  }
+
+  // Remove a pending round from local cache + Firestore. Used by the
+  // recovery sheet's Save / Continue / Discard actions.
+  async function removePendingRound(pendingId) {
+    if (!currentUser || !window.fb || !pendingId) return;
+    recentRounds = recentRounds.filter(r => r.id !== pendingId);
+    // The Firestore doc id is the same as the cached id (pending_${gr}).
+    // savePendingRound takes groupRoundId, so strip the prefix to call
+    // deletePendingRound (which re-applies the prefix internally).
+    const groupRoundId = pendingId.startsWith('pending_')
+      ? pendingId.slice('pending_'.length)
+      : pendingId;
+    try {
+      await window.fb.deletePendingRound(currentUser.uid, groupRoundId);
+    } catch (err) {
+      console.error('Failed to delete pending round:', err);
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Social cache — friends list and pending requests
@@ -22326,20 +22374,9 @@
     }
   }
 
-  async function loadPendingRounds() {
-    if (!currentUser || !window.fb) {
-      pendingRounds = [];
-      return;
-    }
-    try {
-      pendingRounds = await window.fb.listPendingRounds(currentUser.uid);
-      // Sort newest-first so the banner highlights the most recent
-      pendingRounds.sort((a, b) => (b.endTime || 0) - (a.endTime || 0));
-    } catch (err) {
-      console.error('Failed to load pending rounds:', err);
-      pendingRounds = [];
-    }
-  }
+  // No separate loader for pending rounds — they're stored in
+  // users/{uid}/rounds and come back automatically with loadRecentRounds.
+  // Surfaced via getPendingRounds().
 
   // Start a live subscription to the user's invites collection. Fires on
   // any add/remove/update. First call seeds the seen-set silently; later
@@ -22719,8 +22756,7 @@
         loadMyGroupRounds(),
         loadGroupRoundInvites(),
         loadInProgressPracticeSession(),
-        loadInProgressSession(),
-        loadPendingRounds()
+        loadInProgressSession()
       ]);
       if (inProgressSession) {
         restoreInProgressSession(inProgressSession);
@@ -22755,7 +22791,6 @@
       routines = [];
       myGroupRounds = [];
       groupRoundInvites = [];
-      pendingRounds = [];
       groupRoundState.docId = null;
       groupRoundState.doc = null;
       if (groupRoundState.unsubscribe) {
@@ -30219,12 +30254,7 @@
             groupOthers: otherPlayers,
             reason: 'kicked'
           };
-          const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
-          const cachedRecord = { id: removedRoundId, ...pendingPayload };
-          if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
-          else pendingRounds.unshift(cachedRecord);
-          window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
-            .catch(err => console.error('Failed to save pending round:', err));
+          upsertPendingRound(removedRoundId, pendingPayload);
         }
       }
       // Cancel any pending score save
@@ -30318,15 +30348,7 @@
             // (could differentiate kick vs organizer-abandon in the UI later).
             reason: removedDoc.status === 'abandoned' ? 'abandoned' : 'kicked'
           };
-          // Update local cache optimistically so the banner appears
-          // immediately on the bounce-to-Play below.
-          const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
-          const cachedRecord = { id: removedRoundId, ...pendingPayload };
-          if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
-          else pendingRounds.unshift(cachedRecord);
-          // Fire-and-forget the Firestore write — UI is already updated
-          window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
-            .catch(err => console.error('Failed to save pending round:', err));
+          upsertPendingRound(removedRoundId, pendingPayload);
         }
         stopGroupRoundSubscription();
         groupRoundState.docId = null;
@@ -30433,12 +30455,7 @@
               groupOthers: otherPlayers,
               reason: 'abandoned'
             };
-            const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
-            const cachedRecord = { id: removedRoundId, ...pendingPayload };
-            if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
-            else pendingRounds.unshift(cachedRecord);
-            window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
-              .catch(err => console.error('Failed to save pending round:', err));
+            upsertPendingRound(removedRoundId, pendingPayload);
           }
         }
         stopGroupRoundSubscription();
@@ -30568,17 +30585,18 @@
   function renderPendingRoundsBanner() {
     const mount = document.getElementById('pending-rounds-banner-mount');
     if (!mount) return;
-    if (!pendingRounds || pendingRounds.length === 0) {
+    const pending = getPendingRounds();
+    if (pending.length === 0) {
       mount.innerHTML = '';
       return;
     }
     // Show the most recent pending round in the banner; if there
     // are more, the recovery sheet itself surfaces them via a
     // "+N more" affordance.
-    const latest = pendingRounds[0];
+    const latest = pending[0];
     const courseLabel = latest.courseName || 'Round';
     const holesLogged = Object.keys(latest.scores || {}).length;
-    const extraCount = pendingRounds.length - 1;
+    const extraCount = pending.length - 1;
     const extraLabel = extraCount > 0
       ? ` <span class="pending-banner-extra">+${extraCount} more</span>`
       : '';
@@ -30664,7 +30682,8 @@
     const mount = document.getElementById('recovery-sheet-mount');
     if (!mount) return;
     if (!recoverySheetState.open) { mount.innerHTML = ''; return; }
-    const pending = pendingRounds.find(p => p.id === recoverySheetState.currentId);
+    const allPending = getPendingRounds();
+    const pending = allPending.find(p => p.id === recoverySheetState.currentId);
     if (!pending) {
       // Pending record went away (deleted elsewhere); close sheet
       closeRecoverySheet();
@@ -30731,8 +30750,8 @@
     // "+N more" picker — show when there are multiple pending rounds
     // so user can switch which one this sheet is showing.
     let switcherHtml = '';
-    if (pendingRounds.length > 1) {
-      const items = pendingRounds.map(p => {
+    if (allPending.length > 1) {
+      const items = allPending.map(p => {
         const isCurrent = p.id === pending.id;
         const dStr = p.endTime
           ? new Date(p.endTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -30803,7 +30822,7 @@
   // normally" group round card.
   async function recoverPendingSave(pendingId) {
     if (!currentUser || !window.fb) return;
-    const pending = pendingRounds.find(p => p.id === pendingId);
+    const pending = getPendingRounds().find(p => p.id === pendingId);
     if (!pending) return;
     const course = getCourse(pending.courseId);
     if (!course) {
@@ -30842,10 +30861,8 @@
       showToast('Save failed — see console', true);
       return;
     }
-    // Delete the pending record (best-effort) and remove from cache
-    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
-    window.fb.deletePendingRound(currentUser.uid, pendingId).catch(err =>
-      console.error('Failed to delete pending after save:', err));
+    // Drop the pending record (cache + Firestore)
+    await removePendingRound(pendingId);
     closeRecoverySheet();
     renderPlayLanding();
     openRoundSummary(personalRoundId);
@@ -30856,7 +30873,7 @@
   // navigates to the round screen at the next unplayed hole.
   async function recoverPendingContinueSolo(pendingId) {
     if (!currentUser || !window.fb) return;
-    const pending = pendingRounds.find(p => p.id === pendingId);
+    const pending = getPendingRounds().find(p => p.id === pendingId);
     if (!pending) return;
     const course = getCourse(pending.courseId);
     if (!course) {
@@ -30930,10 +30947,8 @@
       return;
     }
 
-    // Delete the pending record + tear down the recovery sheet
-    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
-    window.fb.deletePendingRound(currentUser.uid, pendingId).catch(err =>
-      console.error('Failed to delete pending after continue:', err));
+    // Drop the pending record (cache + Firestore) + tear down the recovery sheet
+    await removePendingRound(pendingId);
     closeRecoverySheet();
     showPanel('round', null);
   }
@@ -30950,13 +30965,7 @@
       destructive: true,
     });
     if (!ok) return;
-    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
-    try {
-      await window.fb.deletePendingRound(currentUser.uid, pendingId);
-    } catch (err) {
-      console.error('Failed to delete pending round:', err);
-      showToast('Delete failed', true);
-    }
+    await removePendingRound(pendingId);
     closeRecoverySheet();
     renderPlayLanding();
   }
