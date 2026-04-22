@@ -4671,6 +4671,456 @@
     color: var(--text-muted);
   }
 
+  /* ── Track Shots tool ─────────────────────────────────────
+     Shot list + add button surfaced inside the round tools sheet.
+     Compact rows so multiple shots fit without scrolling. */
+  .shots-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .shot-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .shot-row:hover {
+      background: var(--bg-surface);
+      border-color: var(--border-medium);
+    }
+  }
+  .shot-row-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+    border-radius: 50%;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+  }
+  html.dark .shot-row-num {
+    background: rgba(232, 93, 4, 0.18);
+    color: var(--color-orange);
+  }
+  .shot-row-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .shot-row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .shot-row-club {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shot-row-dist {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    flex-shrink: 0;
+  }
+  .shot-row-unit {
+    font-size: 0.7em;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .shot-row-bottom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .shot-row-path {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .shot-row-arrow {
+    margin: 0 2px;
+    opacity: 0.6;
+  }
+  .shot-row-mishit {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange-dark);
+    background: var(--color-orange-pale);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  html.dark .shot-row-mishit {
+    background: rgba(232, 93, 4, 0.18);
+    color: var(--color-orange);
+  }
+  .shot-row-chevron {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    opacity: 0.5;
+  }
+
+  .shots-empty {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    margin-bottom: var(--space-4);
+  }
+  .shots-empty-icon {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-2);
+    opacity: 0.7;
+  }
+  .shots-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .shots-empty-text {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 32ch;
+    margin: 0 auto;
+  }
+
+  .shots-bag-warn {
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+  .shots-bag-warn a {
+    color: var(--color-orange);
+    cursor: pointer;
+    font-weight: var(--weight-semibold);
+  }
+
+  .shots-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1.5px dashed rgba(232, 93, 4, 0.45);
+    border-radius: var(--radius-lg);
+    color: var(--color-orange-dark);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.dark .shots-add-btn {
+    background: rgba(232, 93, 4, 0.10);
+    color: var(--color-orange);
+    border-color: rgba(232, 93, 4, 0.5);
+  }
+  @media (hover: hover) {
+    .shots-add-btn:hover {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+    }
+  }
+  .shots-add-btn:active { transform: scale(0.99); }
+  .shots-add-icon {
+    font-size: var(--text-xl);
+    line-height: 1;
+    font-weight: var(--weight-regular);
+  }
+
+  /* ── Shot edit sheet — bottom sheet for adding/editing an individual
+     shot. Same architecture as recovery-sheet/finish-sheet. Needs to
+     sit above the tools sheet (which is opened when this fires),
+     hence the z-index boost. */
+  .shot-edit-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-dropdown) + 20);
+    background: rgba(13, 13, 13, 0.55);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-edit-backdrop.opening,
+  .shot-edit-backdrop.closing { opacity: 0; }
+  .shot-edit-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-dropdown) + 21);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.3);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .shot-edit-sheet.opening,
+  .shot-edit-sheet.closing { transform: translateY(100%); }
+  .shot-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .shot-edit-eyebrow {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+  .shot-edit-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  @media (hover: hover) {
+    .shot-edit-close:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+  }
+  .shot-edit-body {
+    padding: var(--space-4) var(--space-5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+  }
+  .shot-edit-section {
+    margin-bottom: var(--space-5);
+  }
+  .shot-edit-section:last-child { margin-bottom: 0; }
+  .shot-edit-label {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shot-edit-label-hint {
+    font-weight: var(--weight-regular);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .shot-edit-club-select {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right var(--space-3) center;
+    background-size: 16px;
+    padding-right: var(--space-10);
+  }
+  html.dark .shot-edit-club-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  }
+  .shot-edit-bag-empty {
+    padding: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+  .shot-edit-bag-empty a {
+    color: var(--color-orange);
+    cursor: pointer;
+    font-weight: var(--weight-semibold);
+  }
+  .shot-edit-dist-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 0 var(--space-4);
+    transition: border-color var(--transition-fast);
+  }
+  .shot-edit-dist-row:focus-within {
+    border-color: var(--color-orange);
+  }
+  .shot-edit-dist-input {
+    flex: 1;
+    padding: var(--space-3) 0;
+    background: transparent;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    outline: none;
+  }
+  .shot-edit-dist-input::-webkit-outer-spin-button,
+  .shot-edit-dist-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .shot-edit-dist-input::placeholder { color: var(--text-muted); }
+  .shot-edit-dist-unit {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-weight: var(--weight-medium);
+  }
+
+  /* Segmented chip picker for lie + mishit selections. Wraps on
+     overflow so long lists fit on narrow phones. */
+  .shot-lie-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .shot-lie-picker-compact .shot-lie-chip {
+    font-size: var(--text-xs);
+  }
+  .shot-lie-chip {
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-lie-chip:active { transform: scale(0.97); }
+  .shot-lie-chip.is-active {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+    font-weight: var(--weight-semibold);
+  }
+  @media (hover: hover) {
+    .shot-lie-chip:not(.is-active):hover {
+      border-color: var(--border-medium);
+      color: var(--text-primary);
+    }
+  }
+
+  .shot-edit-footer {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .shot-edit-save {
+    flex: 1;
+    padding: var(--space-4);
+    background: var(--color-orange);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: var(--color-white);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .shot-edit-save:hover { background: var(--color-orange-light); }
+  }
+  .shot-edit-save:active { transform: scale(0.99); }
+  .shot-edit-delete {
+    padding: var(--space-4) var(--space-5);
+    background: transparent;
+    border: 1.5px solid rgba(200, 50, 0, 0.35);
+    border-radius: var(--radius-lg);
+    color: #C44D00;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .shot-edit-delete:hover { background: rgba(200, 50, 0, 0.08); }
+  }
+
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
      to stay out of the way on clean holes; expands to a full stepper
      once the user records any penalty stroke. */
@@ -15868,24 +16318,15 @@
        Back link is redundant on mobile. */
     .back-link { display: none; }
 
-    /* Body/main takes over scrolling; reserve space for both bars */
+    /* Body/main takes over scrolling; reserve space for the bottom nav
+       (top-padding is handled further down where the empty topbar is
+       defined). */
     body {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-bottom: calc(var(--mobile-bottomnav-h) + env(safe-area-inset-bottom, 0px));
     }
-    body.session-active {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-    }
-    body.round-active {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-    }
-    body.session-active.round-active {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
-    }
-    /* On the round panel, the bottom nav hides but banner + topbar stay.
-       Just remove the bottom-nav-reserved padding so content can extend
-       to the real bottom of the viewport. Same treatment for group-
-       lobby — the nav is hidden there too. */
+    /* On the round panel, the bottom nav hides, so content can
+       extend to the real bottom of the viewport. Same treatment
+       for group-lobby and group-round — the nav is hidden there. */
     body[data-current-panel="round"],
     body[data-current-panel="group-round"],
     body[data-current-panel="group-lobby"] {
@@ -15903,57 +16344,30 @@
       right: 0;
       padding-top: env(safe-area-inset-top, 0px);
     }
-    body.session-active .mobile-topbar {
-      top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
-    }
-    body.round-active .mobile-topbar {
-      top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
-    }
     body.round-active #round-banner {
       top: env(safe-area-inset-top, 0px);
     }
     body.session-active.round-active #round-banner {
       top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
     }
-    body.session-active.round-active .mobile-topbar {
-      top: calc(var(--session-banner-height, 52px) * 2 + env(safe-area-inset-top, 0px));
-    }
 
     /* ── Round-panel focus mode ──────────────────────────────
-       While the round screen is active (solo OR group), we hide chrome
-       so the hole card gets the full visual weight. Applies to 'round',
-       'group-round', AND 'group-lobby' — the lobby gets the same
-       minimalist chrome (no title, X close, LIVE indicator) since it's
-       part of the same round context. */
-    body[data-current-panel="round"],
-    body[data-current-panel="group-round"],
-    body[data-current-panel="group-lobby"] {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
-    }
+       While the round screen is active (solo OR group), we hide the
+       round banner (redundant with the in-panel chrome) and swap the
+       back-arrow glyph for a circled X. The topbar's transparency +
+       no-border + hidden title are handled by the base rules, so
+       we don't duplicate them here. */
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
     body[data-current-panel="group-lobby"] #round-banner {
       display: none !important;
-    }
-    body[data-current-panel="round"] .mobile-topbar,
-    body[data-current-panel="group-round"] .mobile-topbar,
-    body[data-current-panel="group-lobby"] .mobile-topbar {
-      top: 0 !important;
-      border-bottom: none;
-      background: transparent;
-    }
-    body[data-current-panel="round"] .mobile-topbar-title,
-    body[data-current-panel="group-round"] .mobile-topbar-title,
-    body[data-current-panel="group-lobby"] .mobile-topbar-title {
-      display: none;
     }
     /* Swap the back arrow for a circled-X glyph on all round-context
        screens (round, group-round, group-lobby). The button's <span>
        holds an ← character in HTML; we blank it out via font-size: 0
        and paint a centered SVG via background image. Drawing the X as
        SVG (not a font glyph) keeps centering and stroke thickness
-       geometrically perfect. Two color variants for light and dark
-       modes. */
+       geometrically perfect. */
     body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow {
@@ -15967,23 +16381,11 @@
       background-repeat: no-repeat;
       background-position: center;
       background-size: 28px 28px;
-      /* Frosted-glass backing so the X stays legible when scrollable
-         content drifts behind it. The SVG icon ALREADY has its own
-         circle, but the surrounding tap target needs a subtle fill
-         too — otherwise text labels can read through and look like
-         they overlap the X. Layer a translucent page-color fill +
-         backdrop blur. The shape is a rounded square that's slightly
-         larger than the icon's visual circle. */
-      background-color: rgba(255, 253, 247, 0.72);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
-      border-radius: 50%;
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back,
     html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
-      background-color: rgba(13, 13, 13, 0.6);
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
@@ -16113,7 +16515,15 @@
       padding-top: var(--space-3);
     }
 
-    /* --- Top title bar --- */
+    /* ── Top title bar — always visually empty ──────────────────
+       The topbar node stays in the DOM to reserve the safe-area
+       inset at the top of the viewport (keeps content off the
+       notch / status bar). But the title + border + background are
+       never shown — we ditched the title row entirely because it
+       duplicated the bottom-nav label on root tabs and offered
+       zero value on sub-panels where the page already had its own
+       big heading. The back button floats as a standalone frosted
+       pill in the top-left on sub-panels that need it. */
     .mobile-topbar {
       display: block;
       position: fixed;
@@ -16122,26 +16532,72 @@
       right: 0;
       height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
-      background: var(--color-cream-50);
-      border-bottom: 1px solid var(--border-light);
+      background: transparent;
+      border-bottom: none;
+      pointer-events: none; /* let taps pass through the empty area */
       z-index: var(--z-dropdown);
     }
+    .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
       height: var(--mobile-topbar-h);
-      padding: 0 56px;
     }
+    /* Re-enable pointer events on the back button and live indicator
+       (the parent has pointer-events: none). */
+    .mobile-topbar-back,
+    .mobile-topbar-live { pointer-events: auto; }
+
+    /* Collapse the reserved topbar-height padding to just the
+       safe-area inset on every panel. The topbar has no chrome to
+       reserve space for, so we don't pad for it. Session/round
+       banners are still reserved below. */
+    body {
+      padding-top: env(safe-area-inset-top, 0px) !important;
+    }
+    body.session-active,
+    body.round-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+    }
+    body.session-active.round-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+    }
+    /* On the round panel, the bottom nav hides but banner + topbar stay.
+       No extra padding adjustment needed — handled by the base rules. */
+    body[data-current-panel="round"],
+    body[data-current-panel="group-round"],
+    body[data-current-panel="group-lobby"] {
+      padding-top: env(safe-area-inset-top, 0px) !important;
+    }
+    body[data-current-panel="round"] #round-banner,
+    body[data-current-panel="group-round"] #round-banner,
+    body[data-current-panel="group-lobby"] #round-banner {
+      display: none !important;
+    }
+    /* Trim the default panel top padding on top-level tabs for a slight
+       extra nudge upward. */
+    body[data-current-panel="play"] .panel.active,
+    body[data-current-panel="practice"] .panel.active,
+    body[data-current-panel="today"] .panel.active,
+    body[data-current-panel="social"] .panel.active,
+    body[data-current-panel="profile"] .panel.active {
+      padding-top: var(--space-3);
+    }
+    /* The back button — floats as a frosted-glass pill in the
+       top-left. Same visual treatment as the round-panel's X-close
+       used to have: translucent fill + backdrop blur so content can
+       scroll behind it and the button still reads clearly. Only
+       visible on sub-panels (the next rule handles which ones). */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-2);
+      left: var(--space-3);
       top: 50%;
       transform: translateY(-50%);
-      width: 44px;
-      height: 44px;
-      background: transparent;
+      width: 40px;
+      height: 40px;
+      background-color: rgba(255, 253, 247, 0.72);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
       border: none;
       color: var(--text-secondary);
       cursor: pointer;
@@ -16149,11 +16605,17 @@
       align-items: center;
       justify-content: center;
       padding: 0;
-      border-radius: var(--radius-sm);
-      transition: background var(--transition-fast), color var(--transition-fast);
+      border-radius: 50%;
+      transition: opacity var(--transition-fast), color var(--transition-fast);
+      -webkit-tap-highlight-color: transparent;
     }
+    html.dark .mobile-topbar-back {
+      background-color: rgba(13, 13, 13, 0.6);
+      color: var(--color-cream-200);
+    }
+    .mobile-topbar-back:active { opacity: 0.6; }
     @media (hover: hover) {
-    .mobile-topbar-back:hover { color: var(--color-orange); }
+      .mobile-topbar-back:hover { color: var(--color-orange); }
     }
     /* "Back" button only shows on panels that aren't top-level tabs */
     body[data-current-panel="workout"] .mobile-topbar-back,
@@ -16185,6 +16647,36 @@
     body[data-current-panel="course-practice-setup"] .mobile-topbar-back,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back {
       display: inline-flex;
+    }
+    /* Reserve vertical space on sub-panels so content doesn't slide
+       under the floating back arrow. Round-context panels have their
+       own layout and manage this themselves. */
+    body[data-current-panel="workout"] .panel.active,
+    body[data-current-panel="history"] .panel.active,
+    body[data-current-panel="stretch"] .panel.active,
+    body[data-current-panel="library"] .panel.active,
+    body[data-current-panel="exercise-library"] .panel.active,
+    body[data-current-panel="routines"] .panel.active,
+    body[data-current-panel="routine-builder"] .panel.active,
+    body[data-current-panel="courses"] .panel.active,
+    body[data-current-panel="course-detail"] .panel.active,
+    body[data-current-panel="round-summary"] .panel.active,
+    body[data-current-panel="rounds"] .panel.active,
+    body[data-current-panel="quick-score"] .panel.active,
+    body[data-current-panel="user-profile"] .panel.active,
+    body[data-current-panel="public-round"] .panel.active,
+    body[data-current-panel="bag"] .panel.active,
+    body[data-current-panel="range-session"] .panel.active,
+    body[data-current-panel="range-history"] .panel.active,
+    body[data-current-panel="range-session-detail"] .panel.active,
+    body[data-current-panel="range-session-club-detail"] .panel.active,
+    body[data-current-panel="shortgame-setup"] .panel.active,
+    body[data-current-panel="shortgame-session"] .panel.active,
+    body[data-current-panel="shortgame-history"] .panel.active,
+    body[data-current-panel="shortgame-session-detail"] .panel.active,
+    body[data-current-panel="course-practice-setup"] .panel.active,
+    body[data-current-panel="course-practice-session"] .panel.active {
+      padding-top: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     .mobile-topbar-back-arrow {
       font-size: var(--text-xl);
@@ -17090,6 +17582,12 @@
      Shows the captured scorecard + Save / Continue solo / Discard
      actions. Body-level for the same reason. -->
 <div id="recovery-sheet-mount"></div>
+
+<!-- SHOT EDIT sheet mount — populated by renderShotEditSheet() when
+     the user adds or edits a shot from the Track Shots tool. Body-
+     level so it escapes the tools-sheet transform ancestor and
+     sits above every panel. -->
+<div id="shot-edit-sheet-mount"></div>
 
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
@@ -22730,6 +23228,7 @@
       status: 'in-progress',
       currentHoleIndex: roundState.holeIndex,
       scores: roundState.scores,
+      shots: roundState.shots,
       totals
     };
     try {
@@ -23295,6 +23794,7 @@
     teeName: null,
     holeIndex: 0,           // 0-based for arrays; display as +1
     scores: {},             // { holeNumber: { strokes, putts } }
+    shots: {},              // { holeNumber: [ { id, club, distance, startLie, endLie, mishit } ] }
     started: null,
     dateKey: null
   };
@@ -23482,6 +23982,7 @@
     roundState.teeName = teeName;
     roundState.holeIndex = 0;
     roundState.scores = {};
+    roundState.shots = {};
     roundState.started = startMs;
     // Initial save so an in-progress doc exists for resume detection
     await autoSaveRound();
@@ -23496,6 +23997,7 @@
     roundState.teeName = roundDoc.teeName;
     roundState.holeIndex = roundDoc.currentHoleIndex || 0;
     roundState.scores = roundDoc.scores || {};
+    roundState.shots = roundDoc.shots || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
     showPanel('round', null);
@@ -23508,6 +24010,7 @@
     roundState.teeName = null;
     roundState.holeIndex = 0;
     roundState.scores = {};
+    roundState.shots = {};
     roundState.started = null;
     roundState.dateKey = null;
   }
@@ -25442,10 +25945,103 @@
   // and a render function. The dock UI iterates this list.
   const DOCK_TOOLS = [
     { id: 'scorecard', label: 'Scorecard',   icon: '📋' },
+    { id: 'shots',     label: 'Track Shots', icon: '📍' },
     { id: 'weather',   label: 'Weather',     icon: '🌤️' },
     { id: 'caddie',    label: 'Club Caddie', icon: '🎯' },
     { id: 'bag',       label: 'My Bag',      icon: '⛳' },
   ];
+
+  // ─────────────────────────────────────────────────────────────
+  // Shot tracking — constants + per-hole shot list helpers.
+  //
+  // Each shot is:
+  //   { id, club, distance?, startLie, endLie, mishit? }
+  //
+  // club       — club name from the user's bag (string, e.g. "7 Iron")
+  // distance   — yards the shot traveled (optional; skippable)
+  // startLie   — one of SHOT_START_LIES
+  // endLie     — one of SHOT_END_LIES
+  // mishit     — one of SHOT_MISHITS (default 'clean'; skippable)
+  //
+  // Stored per round in roundState.shots[holeNumber] = [shot, ...]
+  // ─────────────────────────────────────────────────────────────
+  const SHOT_START_LIES = [
+    { id: 'tee',      label: 'Tee' },
+    { id: 'fairway',  label: 'Fairway' },
+    { id: 'rough',    label: 'Rough' },
+    { id: 'sand',     label: 'Bunker' },
+    { id: 'recovery', label: 'Recovery' },
+    { id: 'green',    label: 'Green' },
+  ];
+  const SHOT_END_LIES = [
+    { id: 'fairway', label: 'Fairway' },
+    { id: 'rough',   label: 'Rough' },
+    { id: 'green',   label: 'Green' },
+    { id: 'fringe',  label: 'Fringe' },
+    { id: 'sand',    label: 'Bunker' },
+    { id: 'water',   label: 'Water' },
+    { id: 'ob',      label: 'OB' },
+    { id: 'hole',    label: 'Holed' },
+  ];
+  const SHOT_MISHITS = [
+    { id: 'clean', label: 'Clean' },
+    { id: 'thin',  label: 'Thin' },
+    { id: 'fat',   label: 'Fat/Chunk' },
+    { id: 'toe',   label: 'Toe' },
+    { id: 'heel',  label: 'Heel' },
+    { id: 'push',  label: 'Push' },
+    { id: 'pull',  label: 'Pull' },
+  ];
+
+  // Short labels for the compact shot row — "Tee → Fwy", "Rgh → Grn", etc.
+  const SHOT_LIE_SHORT = {
+    tee: 'Tee',
+    fairway: 'Fwy',
+    rough: 'Rgh',
+    sand: 'Sand',
+    recovery: 'Rec',
+    green: 'Grn',
+    fringe: 'Frg',
+    water: 'Wtr',
+    ob: 'OB',
+    hole: 'In',
+  };
+
+  // Generate a client-side shot id. Same shape as newClubId — good enough
+  // for uniqueness within a round.
+  function newShotId() {
+    return 'shot_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  // Get the shots array for a given hole (defensive — the map may not
+  // have the key yet). Returns a reference so callers can mutate, but
+  // callers must call ensureShotsForHole() first if they want to push.
+  function getShotsForHole(holeNumber) {
+    return roundState.shots?.[holeNumber] || [];
+  }
+  function ensureShotsForHole(holeNumber) {
+    if (!roundState.shots) roundState.shots = {};
+    if (!roundState.shots[holeNumber]) roundState.shots[holeNumber] = [];
+    return roundState.shots[holeNumber];
+  }
+
+  // Smart default for a new shot's startLie: first shot = tee; otherwise
+  // chain from the previous shot's endLie. Makes the add flow a single
+  // tap in the common case.
+  function suggestStartLieForNewShot(holeNumber) {
+    const shots = getShotsForHole(holeNumber);
+    if (shots.length === 0) return 'tee';
+    const prev = shots[shots.length - 1];
+    const prevEnd = prev.endLie;
+    // If previous shot was out of play (OB/water), the next shot
+    // typically replays from the previous start lie. Default to tee
+    // for safety — user can change it.
+    if (prevEnd === 'ob' || prevEnd === 'water') return prev.startLie || 'fairway';
+    // End lies that aren't valid start lies — map to the closest equivalent.
+    if (prevEnd === 'fringe') return 'green';
+    if (prevEnd === 'hole') return 'green'; // shouldn't add more shots after holed, but safe default
+    return prevEnd || 'fairway';
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Tools sheet — bottom-sheet modal that replaces the old inline
@@ -26064,6 +26660,7 @@
     if (toolId === 'bag')       return renderDockBag();
     if (toolId === 'scorecard') return renderDockScorecard();
     if (toolId === 'weather')   return renderDockWeather();
+    if (toolId === 'shots')     return renderShotsTool();
     return '';
   }
 
@@ -26072,6 +26669,380 @@
   // mid-round without leaving the scoring screen. Reuses the bag-view
   // component classes so it matches the Profile → My Bag page exactly.
   // Partials are nested under each club, same as elsewhere.
+  // ─────────────────────────────────────────────────────────────
+  // Track Shots tool — surfaced in the round tools sheet. Shows the
+  // current hole's shot list; user can add/edit/delete. Data lives
+  // in roundState.shots (solo rounds only for now — group rounds
+  // show an "in solo only" hint until we wire group persistence).
+  // ─────────────────────────────────────────────────────────────
+
+  // Edit sheet state. `draft` holds the in-progress shot being added
+  // or edited; `editingId` is null when adding, a shot id when editing.
+  const shotEditState = {
+    open: false,
+    draft: null,      // { club, distance, startLie, endLie, mishit }
+    editingId: null,  // null = new shot
+    holeNumber: null, // which hole the shot belongs to
+  };
+
+  function renderShotsTool() {
+    // Shot tracking is solo-only for now. Group rounds get a hint
+    // pointing them toward the solo mode; we'll add per-player shot
+    // persistence to the group round doc in a follow-up.
+    if (isGroupRoundActive()) {
+      return `
+        <div class="round-dock-surface">
+          <div class="caddie-header">
+            <div class="caddie-eyebrow">Track Shots</div>
+          </div>
+          <div class="caddie-empty">
+            <div class="caddie-empty-title">Solo rounds only</div>
+            <div class="caddie-empty-text">
+              Shot tracking is currently available on solo rounds. Group round support is coming soon.
+            </div>
+          </div>
+        </div>`;
+    }
+    const ctx = getCurrentRoundContext();
+    if (!ctx) {
+      return `
+        <div class="round-dock-surface">
+          <div class="caddie-header">
+            <div class="caddie-eyebrow">Track Shots</div>
+          </div>
+          <div class="caddie-empty">
+            <div class="caddie-empty-title">No active round</div>
+            <div class="caddie-empty-text">Start a round to track your shots.</div>
+          </div>
+        </div>`;
+    }
+    const course = getCourse(ctx.courseId);
+    const hole = course?.holes?.[ctx.holeIndex];
+    if (!hole) return '';
+    const holeNum = hole.number;
+    const shots = getShotsForHole(holeNum);
+    const unit = distanceUnit();
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+
+    // Empty state — friendly prompt when no shots yet this hole.
+    let listHtml = '';
+    if (shots.length === 0) {
+      listHtml = `
+        <div class="shots-empty">
+          <div class="shots-empty-icon" aria-hidden="true">📍</div>
+          <div class="shots-empty-title">No shots logged yet</div>
+          <div class="shots-empty-text">Tap "Add shot" to log your first shot of this hole.</div>
+        </div>`;
+    } else {
+      const rows = shots.map((s, i) => {
+        const distText = (typeof s.distance === 'number')
+          ? `<span class="shot-row-dist">${distanceToDisplay(s.distance)}<span class="shot-row-unit">${unit}</span></span>`
+          : '';
+        const fromLbl = SHOT_LIE_SHORT[s.startLie] || s.startLie || '—';
+        const toLbl   = SHOT_LIE_SHORT[s.endLie]   || s.endLie   || '—';
+        const mishitBadge = (s.mishit && s.mishit !== 'clean')
+          ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
+          : '';
+        return `
+          <button class="shot-row" onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')" aria-label="Edit shot ${i + 1}">
+            <span class="shot-row-num">${i + 1}</span>
+            <span class="shot-row-body">
+              <span class="shot-row-top">
+                <span class="shot-row-club">${escapeHtml(s.club || 'Club')}</span>
+                ${distText}
+              </span>
+              <span class="shot-row-bottom">
+                <span class="shot-row-path">${fromLbl} <span class="shot-row-arrow" aria-hidden="true">→</span> ${toLbl}</span>
+                ${mishitBadge}
+              </span>
+            </span>
+            <span class="shot-row-chevron" aria-hidden="true">›</span>
+          </button>`;
+      }).join('');
+      listHtml = `<div class="shots-list">${rows}</div>`;
+    }
+
+    // Warning banner if bag is empty — shot add flow will still work
+    // but club picker won't have options; point user to fill their bag.
+    const bagHint = (bag.length === 0)
+      ? `<div class="shots-bag-warn">
+           Add clubs in <a role="button" tabindex="0" onclick="closeToolsSheet(); showPanel('bag', null)">Profile → My Bag</a> to pick from your bag.
+         </div>`
+      : '';
+
+    // Hole + par summary in the header
+    const parLabel = (hole.par != null) ? ` · Par ${hole.par}` : '';
+
+    return `
+      <div class="round-dock-surface">
+        <div class="caddie-header">
+          <div class="caddie-eyebrow">Track Shots</div>
+          <div class="caddie-hole-hint">Hole ${holeNum}${parLabel} · ${shots.length} shot${shots.length === 1 ? '' : 's'}</div>
+        </div>
+        ${bagHint}
+        ${listHtml}
+        <button class="shots-add-btn" onclick="openShotEditSheet(${holeNum}, null)">
+          <span class="shots-add-icon" aria-hidden="true">+</span>
+          Add shot
+        </button>
+      </div>`;
+  }
+
+  // Open the add/edit sheet. pendingShotId=null means a new shot; otherwise
+  // pre-fill from the existing shot. Renders immediately + locks scroll.
+  function openShotEditSheet(holeNumber, pendingShotId) {
+    const shots = getShotsForHole(holeNumber);
+    let draft;
+    if (pendingShotId) {
+      const existing = shots.find(s => s.id === pendingShotId);
+      if (!existing) return;
+      draft = { ...existing };
+    } else {
+      // Default club: first club in the bag (which is driver/longest
+      // after sort). User can change.
+      const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+      // For shots on the green, default to a putter.
+      const suggestedStart = suggestStartLieForNewShot(holeNumber);
+      let defaultClub = bag[0]?.name || '';
+      if (suggestedStart === 'green') {
+        const putter = bag.find(c => c.type === 'putter');
+        if (putter) defaultClub = putter.name;
+      }
+      draft = {
+        club: defaultClub,
+        distance: null,
+        startLie: suggestedStart,
+        endLie: '', // force user to pick — no sensible default
+        mishit: 'clean',
+      };
+    }
+    shotEditState.open = true;
+    shotEditState.draft = draft;
+    shotEditState.editingId = pendingShotId;
+    shotEditState.holeNumber = holeNumber;
+    acquireScrollLock();
+    renderShotEditSheet();
+  }
+
+  function closeShotEditSheet() {
+    if (!shotEditState.open) return;
+    const el = document.querySelector('.shot-edit-sheet');
+    const backdrop = document.querySelector('.shot-edit-backdrop');
+    if (!el || !backdrop) {
+      shotEditState.open = false;
+      shotEditState.draft = null;
+      shotEditState.editingId = null;
+      shotEditState.holeNumber = null;
+      releaseScrollLock();
+      const mount = document.getElementById('shot-edit-sheet-mount');
+      if (mount) mount.innerHTML = '';
+      return;
+    }
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      shotEditState.open = false;
+      shotEditState.draft = null;
+      shotEditState.editingId = null;
+      shotEditState.holeNumber = null;
+      releaseScrollLock();
+      const mount = document.getElementById('shot-edit-sheet-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+
+  // Update a field in the draft and re-render (some fields like club
+  // picker don't need a full re-render, but segment pickers do to
+  // update the active-state styling).
+  function updateShotDraft(field, value) {
+    if (!shotEditState.draft) return;
+    shotEditState.draft[field] = value;
+    renderShotEditSheet();
+  }
+
+  function updateShotDraftDistance(displayValue) {
+    if (!shotEditState.draft) return;
+    const yards = distanceFromInput(displayValue);
+    shotEditState.draft.distance = yards;
+    // No re-render — it would disrupt the input focus; the value is
+    // stored, and the save handler reads from state.
+  }
+
+  // Commit the draft to roundState.shots and persist. Handles both
+  // add and edit cases.
+  async function saveShotDraft() {
+    const { draft, editingId, holeNumber } = shotEditState;
+    if (!draft || holeNumber == null) return;
+    // Minimal validation: require club + end lie. Start lie has a
+    // smart default so it's always set.
+    if (!draft.club) {
+      showToast('Pick a club', true);
+      return;
+    }
+    if (!draft.endLie) {
+      showToast('Pick where the shot ended up', true);
+      return;
+    }
+    const shots = ensureShotsForHole(holeNumber);
+    if (editingId) {
+      const idx = shots.findIndex(s => s.id === editingId);
+      if (idx === -1) {
+        showToast('Shot not found', true);
+        return;
+      }
+      shots[idx] = { ...shots[idx], ...draft };
+    } else {
+      shots.push({ id: newShotId(), ...draft });
+    }
+    closeShotEditSheet();
+    // Re-render the shots tool so the new/edited shot shows up
+    const sheetBody = document.querySelector('.tools-sheet-body');
+    if (sheetBody && dockState.activeTool === 'shots') {
+      sheetBody.innerHTML = renderShotsTool();
+    }
+    // Persist (fire-and-forget; UI already updated)
+    autoSaveRound().catch(err => console.error('Failed to save shot:', err));
+  }
+
+  // Delete flow — confirm then drop from the shots array. Accessible
+  // from inside the edit sheet (a trash button) so it doesn't require
+  // a separate swipe gesture.
+  async function deleteShotDraft() {
+    const { editingId, holeNumber } = shotEditState;
+    if (!editingId || holeNumber == null) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Shot',
+      eyebrowStyle: 'warning',
+      title: 'Delete this shot?',
+      message: 'This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    const shots = ensureShotsForHole(holeNumber);
+    const idx = shots.findIndex(s => s.id === editingId);
+    if (idx !== -1) shots.splice(idx, 1);
+    closeShotEditSheet();
+    const sheetBody = document.querySelector('.tools-sheet-body');
+    if (sheetBody && dockState.activeTool === 'shots') {
+      sheetBody.innerHTML = renderShotsTool();
+    }
+    autoSaveRound().catch(err => console.error('Failed to delete shot:', err));
+  }
+
+  function renderShotEditSheet() {
+    const mount = document.getElementById('shot-edit-sheet-mount');
+    if (!mount) return;
+    if (!shotEditState.open || !shotEditState.draft) { mount.innerHTML = ''; return; }
+    const draft = shotEditState.draft;
+    const isEditing = !!shotEditState.editingId;
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    const unit = distanceUnit();
+
+    // Club picker — single-select dropdown native element. Keeps the
+    // sheet compact; long bags would otherwise eat all the vertical
+    // space with a segmented list.
+    const clubOptions = bag.map(c =>
+      `<option value="${escapeAttr(c.name)}" ${c.name === draft.club ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+    ).join('');
+    const clubPickerHtml = (bag.length === 0)
+      ? `<div class="shot-edit-bag-empty">
+           No clubs in your bag. Add some in
+           <a role="button" tabindex="0" onclick="closeShotEditSheet(); closeToolsSheet(); showPanel('bag', null)">Profile → My Bag</a>.
+         </div>`
+      : `<select class="shot-edit-club-select" onchange="updateShotDraft('club', this.value)">
+           <option value="" ${!draft.club ? 'selected' : ''}>— Pick club —</option>
+           ${clubOptions}
+         </select>`;
+
+    // Distance — numeric input, optional. Stored in yards canonically
+    // but displayed in user's unit.
+    const distDisplay = (typeof draft.distance === 'number')
+      ? distanceToDisplay(draft.distance)
+      : '';
+
+    // Segmented pickers — helper to generate the chip set
+    const renderSegmented = (options, current, field) => options.map(opt => `
+      <button type="button"
+              class="shot-lie-chip${current === opt.id ? ' is-active' : ''}"
+              onclick="updateShotDraft('${field}', '${opt.id}')">${escapeHtml(opt.label)}</button>
+    `).join('');
+
+    const mishitOptionsHtml = renderSegmented(SHOT_MISHITS, draft.mishit || 'clean', 'mishit');
+
+    mount.innerHTML = `
+      <div class="shot-edit-backdrop opening" onclick="closeShotEditSheet()" aria-hidden="true"></div>
+      <div class="shot-edit-sheet opening" role="dialog" aria-modal="true" aria-label="${isEditing ? 'Edit shot' : 'Add shot'}">
+        <div class="shot-edit-header">
+          <div class="shot-edit-eyebrow">${isEditing ? 'Edit Shot' : 'Add Shot'}</div>
+          <button class="shot-edit-close" onclick="closeShotEditSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="shot-edit-body">
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">Club</label>
+            ${clubPickerHtml}
+          </div>
+
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">
+              Distance
+              <span class="shot-edit-label-hint">optional</span>
+            </label>
+            <div class="shot-edit-dist-row">
+              <input type="number"
+                     inputmode="numeric"
+                     class="shot-edit-dist-input"
+                     placeholder="—"
+                     value="${distDisplay}"
+                     oninput="updateShotDraftDistance(this.value)" />
+              <span class="shot-edit-dist-unit">${unit}</span>
+            </div>
+          </div>
+
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">From</label>
+            <div class="shot-lie-picker">${renderSegmented(SHOT_START_LIES, draft.startLie, 'startLie')}</div>
+          </div>
+
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">To</label>
+            <div class="shot-lie-picker">${renderSegmented(SHOT_END_LIES, draft.endLie, 'endLie')}</div>
+          </div>
+
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">Contact</label>
+            <div class="shot-lie-picker shot-lie-picker-compact">${mishitOptionsHtml}</div>
+          </div>
+        </div>
+        <div class="shot-edit-footer">
+          ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
+          <button class="shot-edit-save" onclick="saveShotDraft()">${isEditing ? 'Save changes' : 'Add shot'}</button>
+        </div>
+      </div>`;
+
+    // Trigger slide-up
+    const sheet = mount.querySelector('.shot-edit-sheet.opening');
+    const backdrop = mount.querySelector('.shot-edit-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+  }
+
   function renderDockBag() {
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const unit = distanceUnit();
