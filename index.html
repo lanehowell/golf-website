@@ -2782,15 +2782,6 @@
     color: var(--text-muted);
     border: 1px solid var(--border-light);
   }
-  /* "Finished" — player completed and saved their card; locked from
-     re-invite. Visually quieter than "joined" so it doesn't compete
-     for attention; clearly different from "pending" so it doesn't
-     feel like a transient state. */
-  .lobby-friend-status.finished {
-    background: var(--bg-surface);
-    color: var(--text-muted);
-    border: 1px dashed var(--border-medium);
-  }
 
   .lobby-empty-msg {
     padding: var(--space-5);
@@ -3360,7 +3351,6 @@
     flex-direction: column;
     gap: 2px;
   }
-  .gr-other-card-left { opacity: 0.55; }
   .gr-other-name {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -17253,41 +17243,20 @@
       });
     },
 
-    // Add a new player to the round (used when an invitee accepts).
-    // Also adds the uid to the top-level playerUids array so queries
-    // and rules can use it.
+    // Add a player to the round. If a record for this uid already
+    // exists (e.g. they previously left and are now rejoining), it's
+    // REPLACED by the fresh join record — we don't merge old scores
+    // into it. Score restoration on rejoin is handled separately, via
+    // a "continue from history" prompt that pre-fills the new player
+    // record's scores BEFORE this is called.
     addGroupRoundPlayer: async (groupRoundId, player) => {
-      // Upsert via transaction: if a player record with this uid
-      // already exists (e.g. they joined, left mid-round, then got
-      // re-invited and accepted), MERGE that record's progress into
-      // the new join — scores + handicap + leftAtHole are preserved
-      // so the player picks up where they left off rather than
-      // starting fresh. The new record's identity fields (joinedAt,
-      // photoURL, etc.) win — the player may have updated their
-      // profile in the interim.
       const ref = doc(db, `groupRounds/${groupRoundId}`);
       await runTransaction(db, async (tx) => {
         const snap = await tx.get(ref);
         if (!snap.exists()) throw new Error('Group round not found');
         const data = snap.data();
-        const existing = (data.players || []).find(p => p.uid === player.uid);
-        // Merge: start with the new join record, then overlay any
-        // preserved progress from the prior record (if any).
-        const merged = existing
-          ? {
-              ...player,
-              scores: existing.scores || {},
-              // Keep the original joinedAt so timeline + ordering
-              // reflect when they FIRST joined, not the re-join time.
-              joinedAt: existing.joinedAt || player.joinedAt,
-              // Re-joining always flips status back to 'active'
-              status: 'active',
-              // Clear leftAtHole on rejoin — they're back in
-              leftAtHole: null,
-            }
-          : player;
         const others = (data.players || []).filter(p => p.uid !== player.uid);
-        const players = [...others, merged];
+        const players = [...others, player];
         const playerUids = data.playerUids || [];
         const update = { players };
         if (!playerUids.includes(player.uid)) {
@@ -22089,14 +22058,13 @@
         window.fb.listMyGroupRounds(currentUser.uid, 'lobby'),
         window.fb.listMyGroupRounds(currentUser.uid, 'in-progress')
       ]);
-      // Filter out rounds where MY player record shows completed or left
-      // — from my perspective those aren't "active" anymore even though
-      // other players may still be going. Layer E completion clears local
-      // state, but on cold load we need to re-compute from the doc.
+      // In the simplified model, leaving fully removes the player
+      // from the players array. So if I'm not in players, I'm not in
+      // the round — easy. listMyGroupRounds queries by playerUids so
+      // any round that returns here SHOULD have my uid, but check
+      // defensively in case of stale query results.
       const myActive = [...lobby, ...inProgress].filter(gr => {
-        const me = (gr.players || []).find(p => p.uid === currentUser.uid);
-        if (!me) return false;  // not in players — defensive
-        return me.status !== 'completed' && me.status !== 'left';
+        return (gr.players || []).some(p => p.uid === currentUser.uid);
       });
       myGroupRounds = myActive;
 
@@ -22855,36 +22823,17 @@
     };
   }
 
-  // Leave an active group round as the current user. Two modes:
-  //   - In lobby: fully remove the player record (their data is empty).
-  //   - In progress: mark status='left' preserving their scores so a
-  //     future re-invite can restore their progress (see the merge
-  //     logic in addGroupRoundPlayer).
-  // Either way, tears down local state + clears session invite tracker.
+  // Leave an active group round. Always fully removes the player from
+  // the group doc — no `status: 'left'` partial-record state. If the
+  // user wanted to preserve their progress, they would have saved a
+  // history card BEFORE calling this (see confirmCompleteMyGroupRound's
+  // partial-round flow). On a future rejoin, the rejoin-from-history
+  // prompt restores that data.
   async function leaveActiveGroupRound() {
     if (!isGroupRoundActive() || !currentUser) return;
     const id = groupRoundState.docId;
-    const inLobby = groupRoundState.doc.status === 'lobby';
-    // For in-progress leaves, record the actual hole the player was
-    // on (1-based hole number, not the 0-based array index). Used in
-    // the round summary to show where someone bailed out.
-    let leftAtHole = 1;
     try {
-      const course = getCourse(groupRoundState.doc.courseId);
-      const idx = groupRoundState.yourHoleIndex || 0;
-      if (course && course.holes[idx]) {
-        leftAtHole = course.holes[idx].number;
-      }
-    } catch (_) { /* fall through to default */ }
-    try {
-      if (inLobby) {
-        await window.fb.removeGroupRoundPlayer(id, currentUser.uid);
-      } else {
-        await window.fb.updateGroupRoundPlayer(id, currentUser.uid, {
-          status: 'left',
-          leftAtHole
-        });
-      }
+      await window.fb.removeGroupRoundPlayer(id, currentUser.uid);
     } catch (err) {
       console.error('Leave group round failed:', err);
     }
@@ -22895,8 +22844,6 @@
     groupRoundState.docId = null;
     groupRoundState.doc = null;
     myGroupRounds = myGroupRounds.filter(r => r.id !== id);
-    // Clear the invite tracker so re-creating a lobby later starts
-    // fresh — same reason as abandonCurrentGroupRound.
     __groupRoundInvitesSent.clear();
     renderPlayLanding();
     updateRoundBanner();
@@ -23174,21 +23121,11 @@
     const courseLocation = course ? course.location : '';
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
-    // Only ACTIVE players count as "in the round" for invite purposes.
-    // A friend who joined and then left should be invitable again — we
-    // don't want to lock them out just because their player record is
-    // still in the array (with status: 'left').
-    //
-    // 'completed' players ARE locked out though: they explicitly ended
-    // their round and saved a card to history. Re-inviting them would
-    // overwrite that card, which is confusing. Surface them as a
-    // separate "Finished" pill in the friends list instead.
-    const playerUidsSet = new Set(
-      players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
-    );
-    const finishedUidsSet = new Set(
-      players.filter(p => p.status === 'completed').map(p => p.uid)
-    );
+    // Players in the round. In the simplified model, leaving fully
+    // removes a player from this array, so anyone here is a current
+    // active player. The friends list uses this set to mark friends
+    // as "Joined" vs invitable.
+    const playerUidsSet = new Set(players.map(p => p.uid));
 
     // Format the round date/time naturally. Firestore stores startTime
     // as a millisecond timestamp; display as local time-of-day.
@@ -23339,7 +23276,7 @@
         <div class="lobby-players">${playerRows}</div>
       </div>
 
-      ${renderLobbyFriendsList(playerUidsSet, finishedUidsSet)}
+      ${renderLobbyFriendsList(playerUidsSet)}
 
       ${teeChangeHtml}
 
@@ -23441,8 +23378,7 @@
     }
   }
 
-  function renderLobbyFriendsList(playerUidsSet, finishedUidsSet) {
-    finishedUidsSet = finishedUidsSet || new Set();
+  function renderLobbyFriendsList(playerUidsSet) {
     if (!friendsList || friendsList.length === 0) {
       return `
         <div class="lobby-section">
@@ -23452,17 +23388,11 @@
     }
     const rows = friendsList.map(f => {
       const alreadyIn = playerUidsSet.has(f.uid);
-      const alreadyFinished = finishedUidsSet.has(f.uid);
       const alreadyInvited = __groupRoundInvitesSent.has(f.uid);
       const name = f.usernameDisplay || f.username || 'Friend';
       let action;
       if (alreadyIn) {
         action = `<span class="lobby-friend-status joined">Joined</span>`;
-      } else if (alreadyFinished) {
-        // Player finished and saved their card to history. Locking them
-        // out prevents accidentally overwriting that card on rejoin —
-        // "End Round" is meant to be final.
-        action = `<span class="lobby-friend-status finished">Finished</span>`;
       } else if (alreadyInvited) {
         action = `<span class="lobby-friend-status pending">Invited</span>`;
       } else {
@@ -23496,15 +23426,12 @@
       showToast('Only the organizer can invite', true);
       return;
     }
-    // Defense in depth: if this friend is ALREADY in the round as a
-    // completed player, refuse the invite. The friends list normally
-    // shows them as "Finished" (no Invite button), but a stale render
-    // or a directly-called invocation shouldn't bypass this.
-    const existingPlayer = (gr.players || []).find(p => p.uid === friendUid);
-    if (existingPlayer && existingPlayer.status === 'completed') {
-      showToast('Player has already finished this round', true);
-      return;
-    }
+    // Note: re-inviting a player who previously finished + saved IS
+    // allowed. On accept, addGroupRoundPlayer's merge brings their
+    // scores back; if they finish + save again, the deterministic
+    // personalRoundId means the new save overwrites the prior history
+    // card with the more complete data. So no card duplication, no
+    // data loss.
     const friend = friendsList.find(f => f.uid === friendUid);
     if (!friend) {
       showToast('Friend not found', true);
@@ -23863,9 +23790,8 @@
     queueSaveMyGroupScores();
   }
 
-  // Save + advance to next hole. On the final hole, prompts to end your
-  // round (D2 ships the full completion flow). Phase 1: ending just
-  // persists your final state; you can tap Leave Round to exit.
+  // Save + advance to next hole. On the final hole, prompts to finish
+  // the round.
   async function grSaveAndNext() {
     if (!isGroupRoundActive()) return;
     const course = getCourse(groupRoundState.doc.courseId);
@@ -23963,26 +23889,25 @@
 
   // Confirm dialog → completion. Adds a "less than 9 holes" note if
   // applicable, but doesn't block — partial rounds are valid.
+  // Confirm dialog → completion / leave. Different paths for partial
+  // vs full rounds.
   async function confirmCompleteMyGroupRound() {
     if (!isGroupRoundActive()) return;
     const me = getMyGroupRoundPlayer();
     if (!me) return;
-    if (me.status === 'completed') {
-      showToast('You already finished this round');
-      return;
-    }
     const course = getCourse(groupRoundState.doc.courseId);
     const totalHoles = course ? course.holes.length : 18;
     const holesLogged = Object.keys(me.scores || {}).length;
     const isPartial = holesLogged < totalHoles;
 
-    // 18-hole completion: no choice to make, just confirm save.
+    // 18-hole completion: simple confirm. No "save vs don't" question
+    // because they finished — saving is the obviously-right thing.
     if (!isPartial) {
       const ok = await confirmDialog({
-        eyebrow: 'Finish Your Round',
+        eyebrow: 'Finish Round',
         eyebrowStyle: 'warning',
         title: 'Save your round?',
-        message: 'Your 18-hole round will save to your history. The group round continues for any players still going.',
+        message: 'Your 18-hole round will be saved to your history.',
         confirmText: 'Save Round',
         cancelText: 'Keep Playing',
         destructive: false,
@@ -23992,27 +23917,14 @@
       return;
     }
 
-    // Partial round: present three choices via the finish-round sheet.
-    //   - "Save my N holes"  → completeMyGroupRound (commits to history)
-    //   - "Leave without saving" → leaveActiveGroupRound (no card written)
-    //   - "Keep playing" (cancel) → close sheet
+    // Partial round: present save/don't via the leave-round sheet.
+    //   - "save"  → save scorecard then remove from group round
+    //   - "leave" → just remove from group round, no card
+    //   - null    → cancel, keep playing
     const choice = await openFinishRoundSheet({ holesLogged, totalHoles });
     if (choice === 'save') {
       await completeMyGroupRound();
     } else if (choice === 'leave') {
-      // Same confirmation pattern as before — just confirm intent
-      // because "leave without saving" discards your card. The sheet
-      // copy already explains this; this confirm is a final guard.
-      const ok = await confirmDialog({
-        eyebrow: 'Leave Round',
-        eyebrowStyle: 'warning',
-        title: 'Leave without saving?',
-        message: `Your ${holesLogged}-hole progress won't be saved to your history. You can rejoin if invited again.`,
-        confirmText: 'Leave',
-        cancelText: 'Cancel',
-        destructive: true,
-      });
-      if (!ok) return;
       await leaveActiveGroupRound();
       showPanel('play', null);
     }
@@ -24084,19 +23996,19 @@
       <div class="finish-sheet-backdrop opening" onclick="closeFinishRoundSheet()" aria-hidden="true"></div>
       <div class="finish-sheet opening" role="dialog" aria-modal="true" aria-label="Finish round">
         <div class="finish-sheet-header">
-          <div class="finish-sheet-eyebrow">Finish Round</div>
+          <div class="finish-sheet-eyebrow">Leave Round</div>
           <button class="finish-sheet-close" onclick="closeFinishRoundSheet()" aria-label="Close">×</button>
         </div>
         <div class="finish-sheet-body">
-          <h3 class="finish-sheet-title">You've played ${holesLogged} hole${holesLogged === 1 ? '' : 's'}.</h3>
-          <p class="finish-sheet-msg">What would you like to do?</p>
+          <h3 class="finish-sheet-title">Leave after ${holesLogged} hole${holesLogged === 1 ? '' : 's'}?</h3>
+          <p class="finish-sheet-msg">Want to save what you've played so far?</p>
           <button class="finish-sheet-option finish-sheet-option-primary" onclick="closeFinishRoundSheet('save')">
-            <span class="finish-sheet-option-title">Save my round</span>
-            <span class="finish-sheet-option-sub">Saves a ${holesLogged}-hole round to your history.</span>
+            <span class="finish-sheet-option-title">Save partial round to history</span>
+            <span class="finish-sheet-option-sub">Adds a ${holesLogged}-hole card to your history. If you rejoin and play more, you'll be asked whether to continue from this card.</span>
           </button>
           <button class="finish-sheet-option" onclick="closeFinishRoundSheet('leave')">
-            <span class="finish-sheet-option-title">Leave without saving</span>
-            <span class="finish-sheet-option-sub">Your progress won't be added to your history. You can rejoin if invited again.</span>
+            <span class="finish-sheet-option-title">Don't save</span>
+            <span class="finish-sheet-option-sub">Leave the round without saving anything. Your progress will be lost.</span>
           </button>
           <button class="finish-sheet-cancel" onclick="closeFinishRoundSheet()">Keep playing</button>
         </div>
@@ -24192,30 +24104,26 @@
       return;
     }
 
-    // Now flip MY player.status to 'completed' in the group round doc
+    // Now remove me from the group round entirely. The personal round
+    // snapshot is the source of truth for my participation; the group
+    // doc only needs to track who's currently playing. (No more
+    // 'completed' player status — saving + leaving are one action now.)
     try {
-      await window.fb.updateGroupRoundPlayer(gr.id, currentUser.uid, {
-        status: 'completed',
-        completedAt: endMs
-      });
-      // Mirror locally
-      me.status = 'completed';
-      me.completedAt = endMs;
+      await window.fb.removeGroupRoundPlayer(gr.id, currentUser.uid);
+      // Mirror locally for the all-done check below
+      gr.players = (gr.players || []).filter(p => p.uid !== currentUser.uid);
+      gr.playerUids = (gr.playerUids || []).filter(u => u !== currentUser.uid);
     } catch (err) {
-      console.error('Failed to mark player completed:', err);
+      console.error('Failed to remove player from group round:', err);
       // Don't bail — the personal snapshot succeeded, which is the
-      // important thing. Group state can be fixed via a re-run.
+      // important thing.
     }
 
-    // If EVERY remaining player is now completed or left, flip the
-    // whole round's status to 'completed' + set endTime. Safe to race
-    // with other players doing the same thing — last write wins and
-    // the result is the same.
-    const freshPlayers = gr.players || [];
-    const allDone = freshPlayers.every(p =>
-      p.status === 'completed' || p.status === 'left'
-    );
-    if (allDone && gr.status !== 'completed') {
+    // If no one is left in the group round, mark it completed + set
+    // endTime. Safe to race with other players doing the same thing —
+    // last write wins and the result is the same.
+    const remainingPlayers = gr.players || [];
+    if (remainingPlayers.length === 0 && gr.status !== 'completed') {
       try {
         await window.fb.updateGroupRoundFields(gr.id, {
           status: 'completed',
@@ -24228,7 +24136,7 @@
       }
     }
 
-    // Clear local group-round state — the user has "left" this round
+    // Clear local group-round state — the user has left this round
     // in UX terms (their part is done). Remove from the active list too.
     const completedId = gr.id;
     groupRoundState.docId = null;
@@ -24547,13 +24455,11 @@
           const pVsPar = pStrokes - pPar;
           const pVsParStr = throughN === 0 ? '—' : (pVsPar === 0 ? 'E' : (pVsPar > 0 ? `+${pVsPar}` : `${pVsPar}`));
           const label = p.usernameDisplay || p.username || 'Player';
-          const statusClass = p.status === 'left' ? ' gr-other-card-left' : '';
           return `
-            <div class="gr-other-card${statusClass}">
+            <div class="gr-other-card">
               <div class="gr-other-name">${escapeHtml(label)}</div>
               <div class="gr-other-through">
                 ${throughN > 0 ? `Through ${throughN}` : 'Not started'}
-                ${p.status === 'left' ? ' · left' : ''}
               </div>
               <div class="gr-other-score">
                 <span class="gr-other-strokes">${pStrokes || '—'}</span>
@@ -26605,16 +26511,9 @@
     }
     const isOrganizer = gr.organizerUid === currentUser?.uid;
     const players = Array.isArray(gr.players) ? gr.players : [];
-    // Only ACTIVE players count as "in the round" for invite purposes.
-    // Left players become invitable again (the rejoin merge restores
-    // their scores). Completed players are LOCKED OUT — they explicitly
-    // ended their round and saved a card; re-inviting would overwrite.
-    const playerUidsSet = new Set(
-      players.filter(p => p.status !== 'left' && p.status !== 'completed').map(p => p.uid)
-    );
-    const finishedUidsSet = new Set(
-      players.filter(p => p.status === 'completed').map(p => p.uid)
-    );
+    // Players in the round. Leaving fully removes a player, so anyone
+    // here is currently active.
+    const playerUidsSet = new Set(players.map(p => p.uid));
 
     // Player rows — same shape as the lobby's, but only the organizer
     // sees the kick affordance, and not against themselves.
@@ -26644,7 +26543,7 @@
     // Reuse the lobby's helper which handles "no friends yet" + already-
     // invited state. Both organizer AND non-organizer can invite mid-
     // round (per spec); the helper doesn't gate on organizer status.
-    const friendsHtml = renderLobbyFriendsList(playerUidsSet, finishedUidsSet);
+    const friendsHtml = renderLobbyFriendsList(playerUidsSet);
 
     // If the sheet is already mounted (re-render after invite/kick),
     // update the body content in place — DON'T tear down and rebuild
@@ -32724,6 +32623,33 @@
     const chosenTee = await pickTeeForInvite(course, defaultTee);
     if (!chosenTee) return; // cancelled
 
+    // Rejoin-from-history check: if I have a previously-saved personal
+    // round for THIS group round, offer to continue from where I left
+    // off (restoring scores) or start fresh. This is the only way to
+    // preserve progress across leave-and-rejoin in the simplified
+    // model — the group doc itself doesn't keep ex-players' data.
+    let prefillScores = {};
+    const priorRound = (recentRounds || []).find(r => r.groupRoundId === groupRoundId);
+    if (priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
+      const holesPlayed = Object.keys(priorRound.scores).length;
+      const choice = await confirmDialog({
+        eyebrow: 'Continue Round?',
+        eyebrowStyle: 'warning',
+        title: 'Continue your saved round?',
+        message: `You have a saved ${holesPlayed}-hole round from this group. Continue from where you left off, or start fresh?`,
+        confirmText: 'Continue',
+        cancelText: 'Start Fresh',
+        destructive: false,
+      });
+      if (choice) {
+        prefillScores = { ...priorRound.scores };
+      }
+      // If they chose "Start Fresh", scores stay empty. The history
+      // card from priorRound stays in their history until they save
+      // again over it (deterministic personalRoundId — see
+      // completeMyGroupRound).
+    }
+
     // Build my player entry
     const profile = buildPublicProfileDoc();
     const myPlayer = {
@@ -32737,7 +32663,7 @@
       joinedAt: Date.now(),
       status: 'active',
       leftAtHole: null,
-      scores: {}
+      scores: prefillScores
     };
 
     try {
