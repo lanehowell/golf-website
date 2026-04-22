@@ -4790,6 +4790,35 @@
     opacity: 0.5;
   }
 
+  /* Intent label on each shot row — display-only, set via the shot
+     edit sheet. Subtle pill so it doesn't compete with the club
+     name. The .is-empty variant shows when intent is unset, hinting
+     the user can tap the row to set one. */
+  .shot-row-intent {
+    flex-shrink: 0;
+    padding: var(--space-1) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .shot-row-intent.is-empty {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+  }
+
+
   .shots-empty {
     padding: var(--space-8) var(--space-4);
     text-align: center;
@@ -5001,6 +5030,36 @@
   .shot-edit-bag-empty a {
     color: var(--color-orange);
     cursor: pointer;
+    font-weight: var(--weight-semibold);
+  }
+
+  /* Inline hint inside a shot-edit section — soft tip / suggestion.
+     Currently surfaced for the par 3 tee shot → approach intent
+     convention. Subtle warm tint so it reads as advisory, not as
+     a warning or required action. */
+  .shot-edit-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1px solid rgba(232, 93, 4, 0.25);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--color-orange-dark);
+    line-height: var(--leading-snug);
+  }
+  html.dark .shot-edit-hint {
+    background: rgba(232, 93, 4, 0.10);
+    color: var(--color-orange);
+    border-color: rgba(232, 93, 4, 0.35);
+  }
+  .shot-edit-hint-icon {
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+  .shot-edit-hint strong {
     font-weight: var(--weight-semibold);
   }
   .shot-edit-dist-row {
@@ -16515,15 +16574,12 @@
       padding-top: var(--space-3);
     }
 
-    /* ── Top title bar — always visually empty ──────────────────
-       The topbar node stays in the DOM to reserve the safe-area
-       inset at the top of the viewport (keeps content off the
-       notch / status bar). But the title + border + background are
-       never shown — we ditched the title row entirely because it
-       duplicated the bottom-nav label on root tabs and offered
-       zero value on sub-panels where the page already had its own
-       big heading. The back button floats as a standalone frosted
-       pill in the top-left on sub-panels that need it. */
+    /* ── Top title bar — opaque header strip with a back arrow.
+       Only visible when the back arrow is needed (sub-panels). On
+       root tabs and round-context screens it's overridden to
+       transparent — see overrides further down. The topbar node
+       always stays in the DOM to reserve the safe-area inset
+       at the top of the viewport. */
     .mobile-topbar {
       display: block;
       position: fixed;
@@ -16532,9 +16588,8 @@
       right: 0;
       height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
-      background: transparent;
-      border-bottom: none;
-      pointer-events: none; /* let taps pass through the empty area */
+      background: var(--bg-page);
+      border-bottom: 1px solid var(--border-light);
       z-index: var(--z-dropdown);
     }
     .mobile-topbar-title { display: none; }
@@ -16543,61 +16598,63 @@
       display: block;
       height: var(--mobile-topbar-h);
     }
-    /* Re-enable pointer events on the back button and live indicator
-       (the parent has pointer-events: none). */
-    .mobile-topbar-back,
-    .mobile-topbar-live { pointer-events: auto; }
 
-    /* Collapse the reserved topbar-height padding to just the
-       safe-area inset on every panel. The topbar has no chrome to
-       reserve space for, so we don't pad for it. Session/round
-       banners are still reserved below. */
+    /* Body padding reserves space for the opaque topbar. Root tabs
+       and round-context panels override this further down to collapse
+       it back to just the safe-area inset (their topbars are
+       transparent). */
     body {
-      padding-top: env(safe-area-inset-top, 0px) !important;
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
     }
     body.session-active,
     body.round-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
     }
     body.session-active.round-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
     }
-    /* On the round panel, the bottom nav hides but banner + topbar stay.
-       No extra padding adjustment needed — handled by the base rules. */
+
+    /* Round-context panels keep the floating X close + LIVE indicator
+       treatment — topbar transparent, no border, no reserved height
+       (the X overlays content like before). Round-banner is also
+       hidden in this mode so the screen stays minimal. */
     body[data-current-panel="round"],
     body[data-current-panel="group-round"],
     body[data-current-panel="group-lobby"] {
       padding-top: env(safe-area-inset-top, 0px) !important;
+    }
+    body[data-current-panel="round"] .mobile-topbar,
+    body[data-current-panel="group-round"] .mobile-topbar,
+    body[data-current-panel="group-lobby"] .mobile-topbar {
+      background: transparent;
+      border-bottom: none;
+      pointer-events: none;
+    }
+    body[data-current-panel="round"] .mobile-topbar-back,
+    body[data-current-panel="group-round"] .mobile-topbar-back,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back,
+    body[data-current-panel="round"] .mobile-topbar-live,
+    body[data-current-panel="group-round"] .mobile-topbar-live,
+    body[data-current-panel="group-lobby"] .mobile-topbar-live {
+      pointer-events: auto;
     }
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
     body[data-current-panel="group-lobby"] #round-banner {
       display: none !important;
     }
-    /* Trim the default panel top padding on top-level tabs for a slight
-       extra nudge upward. */
-    body[data-current-panel="play"] .panel.active,
-    body[data-current-panel="practice"] .panel.active,
-    body[data-current-panel="today"] .panel.active,
-    body[data-current-panel="social"] .panel.active,
-    body[data-current-panel="profile"] .panel.active {
-      padding-top: var(--space-3);
-    }
-    /* The back button — floats as a frosted-glass pill in the
-       top-left. Same visual treatment as the round-panel's X-close
-       used to have: translucent fill + backdrop blur so content can
-       scroll behind it and the button still reads clearly. Only
-       visible on sub-panels (the next rule handles which ones). */
+
+    /* The back arrow — a simple inline button inside the opaque
+       topbar. Round-context screens override this with the floating
+       X-close treatment (in the round-focus block further down). */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-3);
+      left: var(--space-2);
       top: 50%;
       transform: translateY(-50%);
-      width: 40px;
-      height: 40px;
-      background-color: rgba(255, 253, 247, 0.72);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      width: 44px;
+      height: 44px;
+      background: transparent;
       border: none;
       color: var(--text-secondary);
       cursor: pointer;
@@ -16605,17 +16662,16 @@
       align-items: center;
       justify-content: center;
       padding: 0;
-      border-radius: 50%;
-      transition: opacity var(--transition-fast), color var(--transition-fast);
+      border-radius: var(--radius-sm);
+      transition: background var(--transition-fast), color var(--transition-fast);
       -webkit-tap-highlight-color: transparent;
-    }
-    html.dark .mobile-topbar-back {
-      background-color: rgba(13, 13, 13, 0.6);
-      color: var(--color-cream-200);
     }
     .mobile-topbar-back:active { opacity: 0.6; }
     @media (hover: hover) {
-      .mobile-topbar-back:hover { color: var(--color-orange); }
+      .mobile-topbar-back:hover {
+        background: var(--bg-surface);
+        color: var(--color-orange);
+      }
     }
     /* "Back" button only shows on panels that aren't top-level tabs */
     body[data-current-panel="workout"] .mobile-topbar-back,
@@ -16648,34 +16704,14 @@
     body[data-current-panel="course-practice-session"] .mobile-topbar-back {
       display: inline-flex;
     }
-    /* Reserve vertical space on sub-panels so content doesn't slide
-       under the floating back arrow. Round-context panels have their
-       own layout and manage this themselves. */
-    body[data-current-panel="workout"] .panel.active,
-    body[data-current-panel="history"] .panel.active,
-    body[data-current-panel="stretch"] .panel.active,
-    body[data-current-panel="library"] .panel.active,
-    body[data-current-panel="exercise-library"] .panel.active,
-    body[data-current-panel="routines"] .panel.active,
-    body[data-current-panel="routine-builder"] .panel.active,
-    body[data-current-panel="courses"] .panel.active,
-    body[data-current-panel="course-detail"] .panel.active,
+    /* Round-context panels don't get topbar height reserved (their
+       topbar is transparent + the X floats), so reserve a bit of
+       padding at the panel level to keep content out from under the
+       floating close button. */
+    body[data-current-panel="round"] .panel.active,
     body[data-current-panel="round-summary"] .panel.active,
-    body[data-current-panel="rounds"] .panel.active,
-    body[data-current-panel="quick-score"] .panel.active,
-    body[data-current-panel="user-profile"] .panel.active,
-    body[data-current-panel="public-round"] .panel.active,
-    body[data-current-panel="bag"] .panel.active,
-    body[data-current-panel="range-session"] .panel.active,
-    body[data-current-panel="range-history"] .panel.active,
-    body[data-current-panel="range-session-detail"] .panel.active,
-    body[data-current-panel="range-session-club-detail"] .panel.active,
-    body[data-current-panel="shortgame-setup"] .panel.active,
-    body[data-current-panel="shortgame-session"] .panel.active,
-    body[data-current-panel="shortgame-history"] .panel.active,
-    body[data-current-panel="shortgame-session-detail"] .panel.active,
-    body[data-current-panel="course-practice-setup"] .panel.active,
-    body[data-current-panel="course-practice-session"] .panel.active {
+    body[data-current-panel="group-lobby"] .panel.active,
+    body[data-current-panel="group-round"] .panel.active {
       padding-top: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     .mobile-topbar-back-arrow {
@@ -23794,7 +23830,7 @@
     teeName: null,
     holeIndex: 0,           // 0-based for arrays; display as +1
     scores: {},             // { holeNumber: { strokes, putts } }
-    shots: {},              // { holeNumber: [ { id, club, distance, startLie, endLie, mishit } ] }
+    shots: {},              // { holeNumber: [ { id, club, distance, startLie, mishit } ] }
     started: null,
     dateKey: null
   };
@@ -25955,13 +25991,23 @@
   // Shot tracking — constants + per-hole shot list helpers.
   //
   // Each shot is:
-  //   { id, club, distance?, startLie, endLie, mishit? }
+  //   { id, club, distance?, startLie, intent?, mishit? }
   //
   // club       — club name from the user's bag (string, e.g. "7 Iron")
   // distance   — yards the shot traveled (optional; skippable)
-  // startLie   — one of SHOT_START_LIES
-  // endLie     — one of SHOT_END_LIES
+  // startLie   — one of SHOT_START_LIES (where the ball was BEFORE this shot)
+  // intent     — one of SHOT_INTENTS — what the user was trying to do.
+  //              Auto-inferred at save time so the user usually doesn't
+  //              touch it; overridable via tap on the shot row's intent
+  //              chip. Inference is best-effort; the user override always
+  //              wins and is preserved across re-saves.
   // mishit     — one of SHOT_MISHITS (default 'clean'; skippable)
+  //
+  // Note: there's no end lie / outcome field. Outcome is hard to capture
+  // accurately in the moment ("did that land in the right rough or the
+  // first cut?") and the existing FIR / GIR pills on the hole card cover
+  // the coarse outcome question. Per-club stats can later infer outcome
+  // from the next shot's start lie.
   //
   // Stored per round in roundState.shots[holeNumber] = [shot, ...]
   // ─────────────────────────────────────────────────────────────
@@ -25973,15 +26019,17 @@
     { id: 'recovery', label: 'Recovery' },
     { id: 'green',    label: 'Green' },
   ];
-  const SHOT_END_LIES = [
-    { id: 'fairway', label: 'Fairway' },
-    { id: 'rough',   label: 'Rough' },
-    { id: 'green',   label: 'Green' },
-    { id: 'fringe',  label: 'Fringe' },
-    { id: 'sand',    label: 'Bunker' },
-    { id: 'water',   label: 'Water' },
-    { id: 'ob',      label: 'OB' },
-    { id: 'hole',    label: 'Holed' },
+  // Shot intent — what the user was trying to do with this shot. Used
+  // by per-club stats to filter (e.g. "approach green hit %" only counts
+  // shots tagged 'approach'). The user can tap the intent chip on a
+  // shot row to override the inferred default.
+  const SHOT_INTENTS = [
+    { id: 'tee',      label: 'Tee Shot' },
+    { id: 'approach', label: 'Approach' },
+    { id: 'layup',    label: 'Layup' },
+    { id: 'chip',     label: 'Chip' },
+    { id: 'putt',     label: 'Putt' },
+    { id: 'recovery', label: 'Recovery' },
   ];
   const SHOT_MISHITS = [
     { id: 'clean', label: 'Clean' },
@@ -25993,7 +26041,8 @@
     { id: 'pull',  label: 'Pull' },
   ];
 
-  // Short labels for the compact shot row — "Tee → Fwy", "Rgh → Grn", etc.
+  // Short labels for the compact shot row. Only start lies — there's
+  // no end lie field anymore.
   const SHOT_LIE_SHORT = {
     tee: 'Tee',
     fairway: 'Fwy',
@@ -26001,11 +26050,27 @@
     sand: 'Sand',
     recovery: 'Rec',
     green: 'Grn',
-    fringe: 'Frg',
-    water: 'Wtr',
-    ob: 'OB',
-    hole: 'In',
   };
+
+  // Compact intent labels for the inline chip on each shot row.
+  const SHOT_INTENT_SHORT = {
+    tee:      'Tee',
+    approach: 'Appr',
+    layup:    'Layup',
+    chip:     'Chip',
+    putt:     'Putt',
+    recovery: 'Rec',
+  };
+
+  // Putter detector — looks up bag type first, falls back to name match.
+  // Used to default the club picker to a putter when shot starts on green.
+  function isPutter(clubName) {
+    if (!clubName) return false;
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    const club = bag.find(c => c.name === clubName);
+    if (club) return club.type === 'putter';
+    return /putter/i.test(clubName);
+  }
 
   // Generate a client-side shot id. Same shape as newClubId — good enough
   // for uniqueness within a round.
@@ -26025,22 +26090,13 @@
     return roundState.shots[holeNumber];
   }
 
-  // Smart default for a new shot's startLie: first shot = tee; otherwise
-  // chain from the previous shot's endLie. Makes the add flow a single
-  // tap in the common case.
+  // Smart default for a new shot's startLie. First shot defaults to tee;
+  // subsequent shots default to fairway (a safe assumption when chaining
+  // — the user adjusts if they're elsewhere).
   function suggestStartLieForNewShot(holeNumber) {
     const shots = getShotsForHole(holeNumber);
     if (shots.length === 0) return 'tee';
-    const prev = shots[shots.length - 1];
-    const prevEnd = prev.endLie;
-    // If previous shot was out of play (OB/water), the next shot
-    // typically replays from the previous start lie. Default to tee
-    // for safety — user can change it.
-    if (prevEnd === 'ob' || prevEnd === 'water') return prev.startLie || 'fairway';
-    // End lies that aren't valid start lies — map to the closest equivalent.
-    if (prevEnd === 'fringe') return 'green';
-    if (prevEnd === 'hole') return 'green'; // shouldn't add more shots after holed, but safe default
-    return prevEnd || 'fairway';
+    return 'fairway';
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -26680,7 +26736,7 @@
   // or edited; `editingId` is null when adding, a shot id when editing.
   const shotEditState = {
     open: false,
-    draft: null,      // { club, distance, startLie, endLie, mishit }
+    draft: null,      // { club, distance, startLie, mishit }
     editingId: null,  // null = new shot
     holeNumber: null, // which hole the shot belongs to
   };
@@ -26739,12 +26795,19 @@
           ? `<span class="shot-row-dist">${distanceToDisplay(s.distance)}<span class="shot-row-unit">${unit}</span></span>`
           : '';
         const fromLbl = SHOT_LIE_SHORT[s.startLie] || s.startLie || '—';
-        const toLbl   = SHOT_LIE_SHORT[s.endLie]   || s.endLie   || '—';
         const mishitBadge = (s.mishit && s.mishit !== 'clean')
           ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
           : '';
+        // Intent chip — display-only on the row. Set/changed via the
+        // edit sheet (tap the row). Subtle "Set intent" placeholder
+        // when not yet set, so the user knows it's editable.
+        const intentLbl = s.intent ? (SHOT_INTENT_SHORT[s.intent] || s.intent) : 'Set intent';
+        const intentClass = s.intent ? '' : ' is-empty';
         return `
-          <button class="shot-row" onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')" aria-label="Edit shot ${i + 1}">
+          <div class="shot-row" role="button" tabindex="0"
+               onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')"
+               onkeydown="if(event.key==='Enter'){openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')}"
+               aria-label="Edit shot ${i + 1}">
             <span class="shot-row-num">${i + 1}</span>
             <span class="shot-row-body">
               <span class="shot-row-top">
@@ -26752,12 +26815,12 @@
                 ${distText}
               </span>
               <span class="shot-row-bottom">
-                <span class="shot-row-path">${fromLbl} <span class="shot-row-arrow" aria-hidden="true">→</span> ${toLbl}</span>
+                <span class="shot-row-path">From ${fromLbl}</span>
                 ${mishitBadge}
               </span>
             </span>
-            <span class="shot-row-chevron" aria-hidden="true">›</span>
-          </button>`;
+            <span class="shot-row-intent${intentClass}">${escapeHtml(intentLbl)}</span>
+          </div>`;
       }).join('');
       listHtml = `<div class="shots-list">${rows}</div>`;
     }
@@ -26812,7 +26875,6 @@
         club: defaultClub,
         distance: null,
         startLie: suggestedStart,
-        endLie: '', // force user to pick — no sensible default
         mishit: 'clean',
       };
     }
@@ -26870,6 +26932,20 @@
     renderShotEditSheet();
   }
 
+  // Toggle a field's value: if it already matches `value`, clear it
+  // back to null. Used by the intent picker so re-tapping the active
+  // chip leaves intent unset (which keeps stats from including bad
+  // data when the user isn't sure what to pick).
+  function toggleShotDraft(field, value) {
+    if (!shotEditState.draft) return;
+    if (shotEditState.draft[field] === value) {
+      shotEditState.draft[field] = null;
+    } else {
+      shotEditState.draft[field] = value;
+    }
+    renderShotEditSheet();
+  }
+
   function updateShotDraftDistance(displayValue) {
     if (!shotEditState.draft) return;
     const yards = distanceFromInput(displayValue);
@@ -26883,14 +26959,10 @@
   async function saveShotDraft() {
     const { draft, editingId, holeNumber } = shotEditState;
     if (!draft || holeNumber == null) return;
-    // Minimal validation: require club + end lie. Start lie has a
-    // smart default so it's always set.
+    // Minimal validation: just need a club. Start lie has a smart
+    // default so it's always set; everything else is optional.
     if (!draft.club) {
       showToast('Pick a club', true);
-      return;
-    }
-    if (!draft.endLie) {
-      showToast('Pick where the shot ended up', true);
       return;
     }
     const shots = ensureShotsForHole(holeNumber);
@@ -26950,6 +27022,14 @@
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const unit = distanceUnit();
 
+    // If the sheet is already mounted, just update the body in place
+    // — rebuilding the wrapper would re-trigger the slide-up animation
+    // on every chip tap. Header + footer don't change between renders,
+    // so leaving them alone keeps the open state stable.
+    const existingSheet = mount.querySelector('.shot-edit-sheet');
+    const existingBody = mount.querySelector('.shot-edit-body');
+    const isAlreadyOpen = !!(existingSheet && existingBody);
+
     // Club picker — single-select dropdown native element. Keeps the
     // sheet compact; long bags would otherwise eat all the vertical
     // space with a segmented list.
@@ -26979,7 +27059,96 @@
               onclick="updateShotDraft('${field}', '${opt.id}')">${escapeHtml(opt.label)}</button>
     `).join('');
 
+    // Intent picker — same chip layout but uses toggleShotDraft so
+    // re-tapping the active chip clears it back to null. We want
+    // unset to be a real possibility (better than wrong data).
+    const renderIntentSegmented = (options, current) => options.map(opt => `
+      <button type="button"
+              class="shot-lie-chip${current === opt.id ? ' is-active' : ''}"
+              onclick="toggleShotDraft('intent', '${opt.id}')">${escapeHtml(opt.label)}</button>
+    `).join('');
+
     const mishitOptionsHtml = renderSegmented(SHOT_MISHITS, draft.mishit || 'clean', 'mishit');
+    const intentOptionsHtml = renderIntentSegmented(SHOT_INTENTS, draft.intent || null);
+
+    // Par 3 hint — when the user picks a Tee lie on a par 3, surface
+    // a soft tip that par-3 tee shots are typically tracked as
+    // "Approach" rather than "Tee Shot". Aligns with how Strokes
+    // Gained categorizes them and gives cleaner per-club approach
+    // stats. Tip only — user is free to ignore it.
+    let par3TeeHintHtml = '';
+    if (draft.startLie === 'tee') {
+      const course = roundState.courseId ? getCourse(roundState.courseId) : null;
+      const hole = course?.holes?.find(h => h.number === shotEditState.holeNumber);
+      if (hole && hole.par === 3) {
+        par3TeeHintHtml = `
+          <div class="shot-edit-hint">
+            <span class="shot-edit-hint-icon" aria-hidden="true">💡</span>
+            Par 3 tee shots are usually tracked as <strong>Approach</strong>.
+          </div>`;
+      }
+    }
+
+    // Body markup — extracted so we can swap it in place when the
+    // sheet is already mounted, instead of rebuilding the wrapper
+    // (which would re-trigger the slide-up animation on every chip
+    // tap).
+    const bodyHtml = `
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">Club</label>
+        ${clubPickerHtml}
+      </div>
+
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">
+          Distance
+          <span class="shot-edit-label-hint">optional</span>
+        </label>
+        <div class="shot-edit-dist-row">
+          <input type="number"
+                 inputmode="numeric"
+                 class="shot-edit-dist-input"
+                 placeholder="—"
+                 value="${distDisplay}"
+                 oninput="updateShotDraftDistance(this.value)" />
+          <span class="shot-edit-dist-unit">${unit}</span>
+        </div>
+      </div>
+
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">Lie</label>
+        <div class="shot-lie-picker">${renderSegmented(SHOT_START_LIES, draft.startLie, 'startLie')}</div>
+      </div>
+
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">
+          Intent
+          <span class="shot-edit-label-hint">optional · tap again to clear</span>
+        </label>
+        <div class="shot-lie-picker">${intentOptionsHtml}</div>
+        ${par3TeeHintHtml}
+      </div>
+
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">Contact</label>
+        <div class="shot-lie-picker shot-lie-picker-compact">${mishitOptionsHtml}</div>
+      </div>`;
+
+    if (isAlreadyOpen) {
+      // Update body in place — preserves the open state, the slide-up
+      // animation doesn't replay, scroll position holds.
+      existingBody.innerHTML = bodyHtml;
+      // Footer might also need an update if isEditing changed (it
+      // shouldn't during a single edit session, but safe to keep
+      // it in sync). Skip if footer doesn't exist for some reason.
+      const existingFooter = mount.querySelector('.shot-edit-footer');
+      if (existingFooter) {
+        existingFooter.innerHTML = `
+          ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
+          <button class="shot-edit-save" onclick="saveShotDraft()">${isEditing ? 'Save changes' : 'Add shot'}</button>`;
+      }
+      return;
+    }
 
     mount.innerHTML = `
       <div class="shot-edit-backdrop opening" onclick="closeShotEditSheet()" aria-hidden="true"></div>
@@ -26988,43 +27157,7 @@
           <div class="shot-edit-eyebrow">${isEditing ? 'Edit Shot' : 'Add Shot'}</div>
           <button class="shot-edit-close" onclick="closeShotEditSheet()" aria-label="Close">×</button>
         </div>
-        <div class="shot-edit-body">
-          <div class="shot-edit-section">
-            <label class="shot-edit-label">Club</label>
-            ${clubPickerHtml}
-          </div>
-
-          <div class="shot-edit-section">
-            <label class="shot-edit-label">
-              Distance
-              <span class="shot-edit-label-hint">optional</span>
-            </label>
-            <div class="shot-edit-dist-row">
-              <input type="number"
-                     inputmode="numeric"
-                     class="shot-edit-dist-input"
-                     placeholder="—"
-                     value="${distDisplay}"
-                     oninput="updateShotDraftDistance(this.value)" />
-              <span class="shot-edit-dist-unit">${unit}</span>
-            </div>
-          </div>
-
-          <div class="shot-edit-section">
-            <label class="shot-edit-label">From</label>
-            <div class="shot-lie-picker">${renderSegmented(SHOT_START_LIES, draft.startLie, 'startLie')}</div>
-          </div>
-
-          <div class="shot-edit-section">
-            <label class="shot-edit-label">To</label>
-            <div class="shot-lie-picker">${renderSegmented(SHOT_END_LIES, draft.endLie, 'endLie')}</div>
-          </div>
-
-          <div class="shot-edit-section">
-            <label class="shot-edit-label">Contact</label>
-            <div class="shot-lie-picker shot-lie-picker-compact">${mishitOptionsHtml}</div>
-          </div>
-        </div>
+        <div class="shot-edit-body">${bodyHtml}</div>
         <div class="shot-edit-footer">
           ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
           <button class="shot-edit-save" onclick="saveShotDraft()">${isEditing ? 'Save changes' : 'Add shot'}</button>
