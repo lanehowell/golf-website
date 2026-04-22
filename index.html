@@ -17691,10 +17691,21 @@
     // unsubscribe function. Phase 2 uses this; Phase 1 imports it
     // but doesn't call it.
     subscribeGroupRound: (groupRoundId, onUpdate) => {
-      return onSnapshot(doc(db, `groupRounds/${groupRoundId}`), (snap) => {
-        if (snap.exists()) onUpdate({ id: snap.id, ...snap.data() });
-        else onUpdate(null);
-      });
+      return onSnapshot(
+        doc(db, `groupRounds/${groupRoundId}`),
+        (snap) => {
+          if (snap.exists()) onUpdate({ id: snap.id, ...snap.data() });
+          else onUpdate(null);
+        },
+        (err) => {
+          // Permission-denied = we lost read access (kicked, round
+          // gone, etc). Treat the same as doc-deleted by firing the
+          // callback with null so the handler can clean up + show
+          // the recovery banner.
+          console.warn('Group round subscription error:', err?.code || err);
+          onUpdate(null);
+        }
+      );
     },
 
     // Pending rounds — survive-the-kick storage. Written when a player
@@ -30146,18 +30157,83 @@
   //   2. status transitioned (lobby → in-progress, → completed) — navigate
   //   3. normal update — merge into local state and re-render
   function handleGroupRoundSnapshot(freshDoc) {
-    // Null means the doc was deleted OR we lost read access (kicked)
+    // Null means the doc was deleted OR we lost read access (kicked
+    // — security rules drop our read permission once we're removed
+    // from playerUids, so the listener fires null instead of an
+    // updated doc with us missing). Either way: capture our partial
+    // scorecard for recovery if we have one, then tear down.
     if (!freshDoc) {
       const wasInPanel = currentPanelId === 'group-lobby' || currentPanelId === 'group-round';
+      // Save pending recovery snapshot from last-known state before
+      // we wipe groupRoundState.doc. Same logic as the kicked-
+      // detection branch below — relevant when the snapshot path
+      // we hit is "lost read access" instead of "doc has me missing."
+      if (currentUser && groupRoundState.doc && groupRoundState.docId) {
+        const myLastRecord = (groupRoundState.doc.players || []).find(p => p.uid === currentUser.uid);
+        const hasScores = myLastRecord && myLastRecord.scores && Object.keys(myLastRecord.scores).length > 0;
+        if (hasScores) {
+          const removedRoundId = groupRoundState.docId;
+          const removedDoc = groupRoundState.doc;
+          const course = getCourse(removedDoc.courseId);
+          const otherPlayers = (removedDoc.players || [])
+            .filter(p => p.uid !== currentUser.uid)
+            .map(p => ({
+              uid: p.uid,
+              username: p.username || null,
+              usernameDisplay: p.usernameDisplay || p.username || null,
+              displayName: p.displayName || null,
+              photoURL: p.photoURL || null
+            }));
+          const pendingPayload = {
+            groupRoundId: removedRoundId,
+            courseId: removedDoc.courseId,
+            courseName: course ? course.name : (removedDoc.courseName || 'Round'),
+            teeName: myLastRecord.tee || null,
+            startTime: removedDoc.startTime || null,
+            endTime: Date.now(),
+            dateKey: removedDoc.dateKey || null,
+            scores: myLastRecord.scores || {},
+            organizerUid: removedDoc.organizerUid || null,
+            groupOthers: otherPlayers,
+            reason: 'kicked'
+          };
+          const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
+          const cachedRecord = { id: removedRoundId, ...pendingPayload };
+          if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
+          else pendingRounds.unshift(cachedRecord);
+          window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
+            .catch(err => console.error('Failed to save pending round:', err));
+        }
+      }
+      // Cancel any pending score save
+      if (__groupRoundSaveTimer) {
+        clearTimeout(__groupRoundSaveTimer);
+        __groupRoundSaveTimer = null;
+      }
       stopGroupRoundSubscription();
-      groupRoundState.docId = null;
+      const removedId = groupRoundState.docId;
+      // Note whether we just saved a recovery scorecard; affects toast wording
+      const savedRecovery = currentUser
+        && (groupRoundState.doc?.players || [])
+            .find(p => p.uid === currentUser.uid)
+            ?.scores
+        && Object.keys(
+            (groupRoundState.doc?.players || []).find(p => p.uid === currentUser.uid)?.scores || {}
+          ).length > 0;
       groupRoundState.doc = null;
-      myGroupRounds = [];
+      groupRoundState.docId = null;
+      myGroupRounds = myGroupRounds.filter(r => r.id !== removedId);
+      if (removedId) {
+        try { localStorage.removeItem(`golfapp.grCursor.${removedId}`); } catch (_) {}
+      }
       if (wasInPanel) {
-        showToast('This round is no longer available');
+        showToast(savedRecovery
+          ? 'Removed from round — your scorecard is on the Play screen'
+          : 'This round is no longer available');
         showPanel('play', null);
       }
       renderPlayLanding();
+      updateRoundBanner();
       return;
     }
 
