@@ -16395,6 +16395,16 @@
     .page-main { padding-block: var(--space-6) var(--space-6); }
     .panel { padding-top: var(--space-4); }
 
+    /* Sub-panels: the static topbar already provides the top spacing;
+       panel content below it doesn't need extra padding-top pushing
+       it down. Keep page-main tight against the arrow. */
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .page-main {
+      padding-top: 0;
+    }
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .panel {
+      padding-top: var(--space-2);
+    }
+
     /* Sessions banner sits above the topbar at the very top */
     .session-banner {
       position: fixed;
@@ -16598,23 +16608,51 @@
     }
 
     /* On sub-panels (anything that isn't a root tab or a round-context
-       panel), the topbar flows with the page instead of being a fixed
-       strip. The back arrow is still positioned inside it but the bar
-       no longer reserves vertical space or pins to the top — it just
-       sits as the first element of the panel and scrolls naturally. */
+       panel), the topbar flows with the page AND sticks to the top as
+       the user scrolls. The back arrow sits at the top-left, hard
+       against the viewport edge with just enough margin to breathe.
+       Below the banner when one is active; flush to the top otherwise.
+       Opaque background so content scrolling beneath doesn't bleed
+       through. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      position: static;
+      position: sticky;
+      top: 0;
       height: auto;
-      padding-top: var(--space-2);
-      background: transparent;
+      padding: var(--space-3) var(--space-2);
+      background: var(--bg-page);
+      z-index: calc(var(--z-dropdown) - 1);
     }
-    /* Static topbar also shrinks its inner height — the default 52px
-       is for a fixed-bar context where the arrow should be visually
-       centered in a tappable strip. When the bar flows inline, a
-       smaller height tightens the banner → arrow → content rhythm
-       without losing tap target size (the button itself stays 44px). */
+    /* When a banner is active, the topbar sticks BELOW it rather
+       than at the top of the viewport. The banner sits at env(safe-
+       area-inset-top) + its own content area, so offset the sticky
+       top by the banner's total visual height (safe-area + banner
+       content height). */
+    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar,
+    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
+    }
+    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
+    }
+    /* Static topbar inner — no fixed height, just holds the button
+       inline. The button's own size (44px) determines the space. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-inner {
+      height: auto;
+    }
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+      position: static;
+      transform: none;
+      width: 44px;
       height: 44px;
+    }
+    /* Chunkier arrow glyph — match the Strava look: bolder stroke,
+       slightly larger character. Uses a Unicode left arrow with
+       weight tweaks via font sizing. */
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back-arrow {
+      font-size: 28px;
+      font-weight: 300;
+      line-height: 1;
+      color: var(--text-primary);
     }
 
     /* Body padding reserves space for the opaque topbar. Root tabs
