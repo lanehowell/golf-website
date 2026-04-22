@@ -2210,6 +2210,9 @@
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
     color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tee-btn-yards {
     flex-shrink: 0;
@@ -2462,6 +2465,17 @@
     box-shadow: var(--shadow-accent);
     transition: background var(--transition-fast), border-color var(--transition-fast),
                 transform var(--transition-spring), box-shadow var(--transition-fast);
+    /* Lock the button to a single-line height so the layout doesn't
+       jump when a longer tee name (Tournament / Bronze-Gold) would
+       otherwise wrap to two lines. The label truncates with an
+       ellipsis; arrow stays visible on the right. */
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .start-round-cta > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   @media (hover: hover) {
   .start-round-cta:hover {
@@ -16395,14 +16409,14 @@
     .page-main { padding-block: var(--space-6) var(--space-6); }
     .panel { padding-top: var(--space-4); }
 
-    /* Sub-panels: the static topbar already provides the top spacing;
-       panel content below it doesn't need extra padding-top pushing
-       it down. Keep page-main tight against the arrow. */
+    /* Sub-panels: the back arrow floats fixed at the top, so panel
+       content needs top padding to start BELOW where the arrow floats.
+       44px arrow + breathing room = ~60px reserved at the top. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .page-main {
       padding-top: 0;
     }
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .panel {
-      padding-top: var(--space-2);
+      padding-top: calc(44px + var(--space-4));
     }
 
     /* Sessions banner sits above the topbar at the very top */
@@ -16608,46 +16622,49 @@
     }
 
     /* On sub-panels (anything that isn't a root tab or a round-context
-       panel), the topbar flows with the page AND sticks to the top as
-       the user scrolls. The back arrow sits at the top-left, hard
-       against the viewport edge with just enough margin to breathe.
-       Below the banner when one is active; flush to the top otherwise.
-       Opaque background so content scrolling beneath doesn't bleed
-       through. */
+       panel), there's no topbar fill at all — just the back arrow as
+       a floating element that sticks below the banner as the user
+       scrolls. The .mobile-topbar wrapper is a transparent passthrough;
+       the actual sticky behavior lives on the button itself so content
+       can flow up to and around the arrow without an opaque strip
+       cutting across the page. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      position: sticky;
-      top: 0;
+      position: static;
       height: auto;
-      padding: var(--space-3) var(--space-2);
-      background: var(--bg-page);
-      z-index: calc(var(--z-dropdown) - 1);
+      padding: 0;
+      background: transparent;
+      z-index: auto;
     }
-    /* When a banner is active, the topbar sticks BELOW it rather
-       than at the top of the viewport. The banner sits at env(safe-
-       area-inset-top) + its own content area, so offset the sticky
-       top by the banner's total visual height (safe-area + banner
-       content height). */
-    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar,
-    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-    }
-    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
-    }
-    /* Static topbar inner — no fixed height, just holds the button
-       inline. The button's own size (44px) determines the space. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-inner {
       height: auto;
     }
+    /* Floating fixed back arrow — no surrounding bar. Pins to the
+       viewport just below any active banner; otherwise to the top.
+       Transparent background keeps content visible behind/around it
+       as it floats over the scrolling page. Fixed (not sticky)
+       because the button needs to pin to the viewport, not scroll
+       within a parent — and the parent .mobile-topbar collapses to
+       just the button height, so sticky has nothing to scroll within. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
-      position: static;
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
+      left: var(--space-2);
       transform: none;
       width: 44px;
       height: 44px;
+      margin: 0;
+      background: transparent;
+      z-index: calc(var(--z-dropdown) - 1);
     }
-    /* Chunkier arrow glyph — match the Strava look: bolder stroke,
-       slightly larger character. Uses a Unicode left arrow with
-       weight tweaks via font sizing. */
+    /* When a banner is active, pin below it. */
+    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back,
+    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) + var(--space-2));
+    }
+    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2 + var(--space-2));
+    }
+    /* Chunky arrow glyph — match the Strava look. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back-arrow {
       font-size: 28px;
       font-weight: 300;
@@ -16756,6 +16773,7 @@
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="round-summary"] .mobile-topbar-back,
     body[data-current-panel="rounds"] .mobile-topbar-back,
+    body[data-current-panel="my-stats"] .mobile-topbar-back,
     body[data-current-panel="quick-score"] .mobile-topbar-back,
     body[data-current-panel="group-lobby"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
@@ -19136,6 +19154,514 @@
           totalYards: 4988,
           rating: 65.1,
           slope: 112
+        }
+      ]
+    },
+    {
+      id: 'country-view-gc',
+      name: 'Country View Golf Club',
+      location: 'Lancaster, TX',
+      // 240 W Beltline Rd, Lancaster, TX 75146
+      lat: 32.5918,
+      lng: -96.7706,
+      // Par 70 (35/35). Designed by Ron Garl, opened 1989. Data from
+      // the course's printed scorecard.
+      holes: [
+        { number: 1,  par: 4, handicap: 4  },
+        { number: 2,  par: 4, handicap: 3  },
+        { number: 3,  par: 4, handicap: 11 },
+        { number: 4,  par: 5, handicap: 5  },
+        { number: 5,  par: 4, handicap: 9  },
+        { number: 6,  par: 3, handicap: 18 },
+        { number: 7,  par: 4, handicap: 2  },
+        { number: 8,  par: 3, handicap: 17 },
+        { number: 9,  par: 4, handicap: 10 },
+        { number: 10, par: 4, handicap: 8  },
+        { number: 11, par: 4, handicap: 13 },
+        { number: 12, par: 4, handicap: 12 },
+        { number: 13, par: 5, handicap: 7  },
+        { number: 14, par: 3, handicap: 15 },
+        { number: 15, par: 4, handicap: 14 },
+        { number: 16, par: 3, handicap: 16 },
+        { number: 17, par: 4, handicap: 1  },
+        { number: 18, par: 4, handicap: 6  }
+      ],
+      tees: [
+        {
+          name: 'Black',
+          color: '#0d0d0d',
+          yardages: [396, 402, 349, 532, 385, 181, 431, 155, 400, 372, 484, 382, 474, 184, 325, 150, 507, 425],
+          totalYards: 6534,
+          rating: 71.0,
+          slope: 128
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [363, 361, 320, 491, 348, 152, 403, 140, 377, 331, 393, 302, 435, 155, 295, 145, 434, 386],
+          totalYards: 5831,
+          rating: 69.8,
+          slope: 122
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [334, 310, 299, 468, 315, 120, 380, 120, 346, 289, 366, 276, 393, 130, 255, 130, 409, 352],
+          totalYards: 5297,
+          rating: 68.6,
+          slope: 116
+        },
+        {
+          name: 'Red',
+          color: '#c03030',
+          yardages: [310, 272, 275, 408, 275, 100, 334, 100, 309, 249, 322, 264, 351, 95, 232, 115, 357, 318],
+          totalYards: 4686,
+          rating: 67.8,
+          slope: 110
+        }
+      ]
+    },
+    {
+      id: 'cedar-crest-gc',
+      name: 'Cedar Crest Golf Course',
+      location: 'Dallas, TX',
+      // 1800 Southerland Ave, Dallas, TX 75203
+      // Historic A.W. Tillinghast design (1919), host of the 1927 PGA
+      // Championship. Renovations by D.A. Weibring / Golf Resources, Inc.
+      lat: 32.736,
+      lng: -96.812,
+      // Par 70 (35/35). Scorecard labels front-9 handicap as "Index".
+      holes: [
+        { number: 1,  par: 5, handicap: 2  },
+        { number: 2,  par: 4, handicap: 17 },
+        { number: 3,  par: 3, handicap: 3  },
+        { number: 4,  par: 4, handicap: 6  },
+        { number: 5,  par: 4, handicap: 13 },
+        { number: 6,  par: 3, handicap: 10 },
+        { number: 7,  par: 5, handicap: 9  },
+        { number: 8,  par: 4, handicap: 16 },
+        { number: 9,  par: 3, handicap: 12 },
+        { number: 10, par: 4, handicap: 1  },
+        { number: 11, par: 3, handicap: 4  },
+        { number: 12, par: 4, handicap: 15 },
+        { number: 13, par: 4, handicap: 18 },
+        { number: 14, par: 5, handicap: 8  },
+        { number: 15, par: 3, handicap: 7  },
+        { number: 16, par: 5, handicap: 11 },
+        { number: 17, par: 3, handicap: 5  },
+        { number: 18, par: 4, handicap: 14 }
+      ],
+      tees: [
+        {
+          name: 'Tournament',
+          color: '#a4b5d8',
+          yardages: [611, 362, 206, 467, 402, 185, 552, 315, 180, 482, 226, 358, 408, 551, 211, 561, 221, 428],
+          totalYards: 6726,
+          rating: 73.8,
+          slope: 134
+        },
+        {
+          name: 'Black',
+          color: '#0d0d0d',
+          yardages: [602, 350, 200, 462, 385, 182, 538, 303, 177, 474, 220, 340, 390, 550, 208, 556, 218, 418],
+          totalYards: 6573,
+          rating: 73.2,
+          slope: 132
+        },
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [586, 342, 175, 445, 360, 169, 485, 290, 161, 456, 187, 322, 365, 520, 187, 495, 175, 394],
+          totalYards: 6114,
+          rating: 70.8,
+          slope: 134
+        },
+        {
+          name: 'Silver',
+          color: '#c0c0c0',
+          yardages: [562, 327, 157, 428, 335, 153, 465, 276, 138, 447, 167, 298, 338, 485, 161, 466, 147, 325],
+          totalYards: 5675,
+          rating: 69.1,
+          slope: 125
+        },
+        {
+          name: 'Ruby',
+          color: '#c03030',
+          yardages: [485, 273, 134, 328, 282, 136, 410, 247, 127, 443, 137, 274, 286, 423, 138, 400, 128, 251],
+          totalYards: 4902,
+          rating: 65.2,
+          slope: 112
+        }
+      ]
+    },
+    {
+      id: 'buffalo-creek-gc',
+      name: 'Buffalo Creek Golf Club',
+      location: 'Heath, TX',
+      // 624 Country Club Dr, Heath, TX 75032 — eastern shore of
+      // Lake Ray Hubbard, ~30 min east of downtown Dallas.
+      lat: 32.846,
+      lng: -96.467,
+      // Par 71 (35/36). Tom Weiskopf / Jay Morrish design, opened 1992.
+      holes: [
+        { number: 1,  par: 4, handicap: 9  },
+        { number: 2,  par: 4, handicap: 11 },
+        { number: 3,  par: 5, handicap: 3  },
+        { number: 4,  par: 3, handicap: 15 },
+        { number: 5,  par: 4, handicap: 13 },
+        { number: 6,  par: 4, handicap: 1  },
+        { number: 7,  par: 4, handicap: 7  },
+        { number: 8,  par: 3, handicap: 17 },
+        { number: 9,  par: 4, handicap: 5  },
+        { number: 10, par: 4, handicap: 8  },
+        { number: 11, par: 4, handicap: 10 },
+        { number: 12, par: 3, handicap: 18 },
+        { number: 13, par: 4, handicap: 14 },
+        { number: 14, par: 5, handicap: 12 },
+        { number: 15, par: 4, handicap: 6  },
+        { number: 16, par: 5, handicap: 4  },
+        { number: 17, par: 3, handicap: 16 },
+        { number: 18, par: 4, handicap: 2  }
+      ],
+      tees: [
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [408, 435, 572, 227, 347, 478, 397, 156, 450, 430, 378, 196, 352, 523, 466, 611, 171, 481],
+          totalYards: 7078,
+          rating: 74.9,
+          slope: 132
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [383, 410, 534, 195, 328, 440, 357, 128, 386, 408, 348, 170, 330, 500, 427, 551, 146, 458],
+          totalYards: 6499,
+          rating: 72.2,
+          slope: 127
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [350, 366, 489, 167, 307, 407, 306, 119, 325, 369, 300, 141, 308, 467, 391, 484, 126, 441],
+          totalYards: 5863,
+          rating: 68.8,
+          slope: 124
+        },
+        {
+          name: 'Green',
+          color: '#4a8c4a',
+          yardages: [298, 313, 451, 141, 253, 368, 270, 103, 291, 336, 264, 102, 284, 428, 350, 445, 105, 407],
+          totalYards: 5209,
+          rating: 66.1,
+          slope: 113
+        }
+      ]
+    },
+    {
+      id: 'keeton-park-gc',
+      name: 'Keeton Park Golf Course',
+      location: 'Dallas, TX',
+      // 2323 N Jim Miller Rd, Dallas, TX 75227. David Bennett design (1979),
+      // Dallas muni, par 72.
+      lat: 32.7821,
+      lng: -96.7025,
+      holes: [
+        { number: 1,  par: 4, handicap: 7  },
+        { number: 2,  par: 3, handicap: 15 },
+        { number: 3,  par: 5, handicap: 1  },
+        { number: 4,  par: 4, handicap: 5  },
+        { number: 5,  par: 4, handicap: 13 },
+        { number: 6,  par: 5, handicap: 3  },
+        { number: 7,  par: 4, handicap: 9  },
+        { number: 8,  par: 3, handicap: 17 },
+        { number: 9,  par: 4, handicap: 11 },
+        { number: 10, par: 4, handicap: 14 },
+        { number: 11, par: 3, handicap: 16 },
+        { number: 12, par: 4, handicap: 10 },
+        { number: 13, par: 5, handicap: 4  },
+        { number: 14, par: 3, handicap: 18 },
+        { number: 15, par: 4, handicap: 2  },
+        { number: 16, par: 4, handicap: 8  },
+        { number: 17, par: 4, handicap: 6  },
+        { number: 18, par: 5, handicap: 12 }
+      ],
+      tees: [
+        {
+          name: 'Black',
+          color: '#0d0d0d',
+          yardages: [390, 171, 563, 382, 344, 561, 402, 172, 405, 382, 177, 362, 500, 164, 440, 420, 410, 513],
+          totalYards: 6758,
+          rating: 72.7,
+          slope: 127
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [361, 147, 556, 369, 321, 521, 375, 156, 344, 343, 156, 357, 481, 145, 419, 389, 387, 463],
+          totalYards: 6290,
+          rating: 70.5,
+          slope: 123
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [330, 135, 477, 343, 296, 490, 366, 141, 315, 321, 149, 330, 468, 130, 402, 361, 331, 440],
+          totalYards: 5825,
+          rating: 68.7,
+          slope: 115
+        },
+        {
+          name: 'Red',
+          color: '#c03030',
+          yardages: [260, 103, 392, 284, 260, 417, 272, 127, 236, 272, 124, 274, 394, 94, 312, 293, 277, 367],
+          totalYards: 4758,
+          rating: 63.9,
+          slope: 106
+        }
+      ]
+    },
+    {
+      id: 'heritage-ranch-gcc',
+      name: 'Heritage Ranch Golf & Country Club',
+      location: 'Fairview, TX',
+      // Fairview, TX (north DFW). Par 71. The scorecard shows a fourth
+      // set of tees labeled "Bronze..." (truncated) — yardages are a
+      // hybrid of Bronze and Gold values, so we label it "Bronze-Gold".
+      lat: 33.155,
+      lng: -96.615,
+      holes: [
+        { number: 1,  par: 4, handicap: 15 },
+        { number: 2,  par: 4, handicap: 7  },
+        { number: 3,  par: 5, handicap: 1  },
+        { number: 4,  par: 3, handicap: 13 },
+        { number: 5,  par: 4, handicap: 11 },
+        { number: 6,  par: 3, handicap: 17 },
+        { number: 7,  par: 3, handicap: 3  },
+        { number: 8,  par: 5, handicap: 5  },
+        { number: 9,  par: 4, handicap: 9  },
+        { number: 10, par: 4, handicap: 14 },
+        { number: 11, par: 5, handicap: 2  },
+        { number: 12, par: 3, handicap: 18 },
+        { number: 13, par: 4, handicap: 6  },
+        { number: 14, par: 4, handicap: 12 },
+        { number: 15, par: 4, handicap: 16 },
+        { number: 16, par: 3, handicap: 8  },
+        { number: 17, par: 5, handicap: 4  },
+        { number: 18, par: 4, handicap: 10 }
+      ],
+      tees: [
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [388, 406, 524, 210, 443, 173, 133, 571, 403, 385, 535, 182, 448, 388, 356, 208, 547, 433],
+          totalYards: 6733,
+          rating: 72.4,
+          slope: 130
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [353, 383, 501, 192, 396, 156, 133, 534, 386, 358, 506, 160, 422, 362, 327, 182, 519, 398],
+          totalYards: 6268,
+          rating: 70.0,
+          slope: 128
+        },
+        {
+          name: 'Bronze',
+          color: '#cd7f32',
+          yardages: [343, 359, 485, 160, 385, 140, 133, 505, 322, 329, 476, 135, 400, 340, 320, 165, 499, 366],
+          totalYards: 5862,
+          rating: 68.1,
+          slope: 122
+        },
+        {
+          name: 'Bronze-Gold',
+          color: '#d4a855',
+          yardages: [343, 325, 468, 160, 364, 140, 133, 475, 322, 329, 446, 135, 364, 340, 320, 165, 458, 346],
+          totalYards: 5633,
+          rating: 67.1,
+          slope: 120
+        },
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [320, 325, 468, 158, 364, 131, 133, 475, 319, 305, 446, 121, 364, 312, 304, 165, 458, 346],
+          totalYards: 5514,
+          rating: 66.5,
+          slope: 118
+        }
+      ]
+    },
+    {
+      id: 'stone-river-gc',
+      name: 'Stone River Golf Club',
+      location: 'Royse City, TX',
+      // 2001 Stone River Blvd (also 846 FM 2453), Royse City, TX 75189.
+      // Akira Ishikawa design (1997), par 72. East of Dallas.
+      lat: 32.969,
+      lng: -96.307,
+      holes: [
+        { number: 1,  par: 4, handicap: 5  },
+        { number: 2,  par: 4, handicap: 13 },
+        { number: 3,  par: 3, handicap: 15 },
+        { number: 4,  par: 5, handicap: 17 },
+        { number: 5,  par: 3, handicap: 11 },
+        { number: 6,  par: 4, handicap: 3  },
+        { number: 7,  par: 4, handicap: 7  },
+        { number: 8,  par: 4, handicap: 9  },
+        { number: 9,  par: 4, handicap: 1  },
+        { number: 10, par: 4, handicap: 4  },
+        { number: 11, par: 3, handicap: 16 },
+        { number: 12, par: 4, handicap: 12 },
+        { number: 13, par: 4, handicap: 6  },
+        { number: 14, par: 5, handicap: 8  },
+        { number: 15, par: 4, handicap: 18 },
+        { number: 16, par: 5, handicap: 2  },
+        { number: 17, par: 3, handicap: 10 },
+        { number: 18, par: 5, handicap: 14 }
+      ],
+      tees: [
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [366, 318, 156, 510, 215, 405, 390, 366, 380, 415, 140, 343, 356, 541, 288, 590, 173, 480],
+          totalYards: 6432,
+          rating: 70.5,
+          slope: 114
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [337, 301, 122, 485, 175, 365, 360, 326, 357, 395, 123, 324, 310, 501, 271, 513, 143, 465],
+          totalYards: 5873,
+          rating: 67.9,
+          slope: 111
+        },
+        {
+          name: 'Red',
+          color: '#c03030',
+          yardages: [302, 236, 97, 425, 150, 313, 321, 236, 316, 340, 104, 280, 263, 440, 228, 448, 115, 400],
+          totalYards: 5014,
+          rating: 63.8,
+          slope: 104
+        }
+      ]
+    },
+    {
+      id: 'old-brickyard-gc',
+      name: 'Old Brickyard Golf Course',
+      location: 'Ferris, TX',
+      // Ferris, TX (south of Dallas). Par 71.
+      lat: 32.535,
+      lng: -96.665,
+      holes: [
+        { number: 1,  par: 4, handicap: 9  },
+        { number: 2,  par: 5, handicap: 11 },
+        { number: 3,  par: 4, handicap: 17 },
+        { number: 4,  par: 3, handicap: 13 },
+        { number: 5,  par: 5, handicap: 1  },
+        { number: 6,  par: 3, handicap: 15 },
+        { number: 7,  par: 5, handicap: 5  },
+        { number: 8,  par: 3, handicap: 3  },
+        { number: 9,  par: 4, handicap: 7  },
+        { number: 10, par: 5, handicap: 2  },
+        { number: 11, par: 4, handicap: 8  },
+        { number: 12, par: 4, handicap: 4  },
+        { number: 13, par: 3, handicap: 16 },
+        { number: 14, par: 4, handicap: 14 },
+        { number: 15, par: 3, handicap: 18 },
+        { number: 16, par: 4, handicap: 12 },
+        { number: 17, par: 4, handicap: 10 },
+        { number: 18, par: 4, handicap: 6  }
+      ],
+      tees: [
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [368, 501, 359, 172, 562, 184, 468, 207, 332, 553, 348, 419, 177, 364, 136, 396, 348, 399],
+          totalYards: 6293,
+          rating: 70.8,
+          slope: 127
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [339, 455, 335, 150, 542, 166, 468, 167, 310, 530, 324, 399, 148, 330, 124, 396, 330, 381],
+          totalYards: 5894,
+          rating: 69.5,
+          slope: 122
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [339, 431, 335, 150, 500, 142, 450, 138, 310, 375, 324, 305, 148, 330, 124, 396, 330, 325],
+          totalYards: 5452,
+          rating: 66.9,
+          slope: 116
+        }
+      ]
+    },
+    {
+      id: 'cross-timbers-gc',
+      name: 'Cross Timbers Golf Course',
+      location: 'Azle, TX',
+      // 1181 S Stewart St, Azle, TX 76020. Jeff Brauer design (1995),
+      // par 72. West side of DFW, near Fort Worth.
+      lat: 32.893,
+      lng: -97.537,
+      holes: [
+        { number: 1,  par: 4, handicap: 15 },
+        { number: 2,  par: 4, handicap: 9  },
+        { number: 3,  par: 5, handicap: 3  },
+        { number: 4,  par: 4, handicap: 7  },
+        { number: 5,  par: 4, handicap: 1  },
+        { number: 6,  par: 3, handicap: 11 },
+        { number: 7,  par: 5, handicap: 5  },
+        { number: 8,  par: 4, handicap: 17 },
+        { number: 9,  par: 3, handicap: 13 },
+        { number: 10, par: 4, handicap: 4  },
+        { number: 11, par: 3, handicap: 14 },
+        { number: 12, par: 4, handicap: 12 },
+        { number: 13, par: 4, handicap: 6  },
+        { number: 14, par: 5, handicap: 10 },
+        { number: 15, par: 3, handicap: 18 },
+        { number: 16, par: 4, handicap: 2  },
+        { number: 17, par: 4, handicap: 8  },
+        { number: 18, par: 5, handicap: 16 }
+      ],
+      tees: [
+        {
+          name: 'Gold',
+          color: '#c9a23a',
+          yardages: [351, 378, 562, 420, 468, 229, 575, 332, 165, 372, 165, 345, 385, 404, 519, 220, 340, 504],
+          totalYards: 6734,
+          rating: 73.6,
+          slope: 127
+        },
+        {
+          name: 'Blue',
+          color: '#1e63d1',
+          yardages: [331, 352, 544, 405, 427, 222, 559, 316, 155, 349, 150, 334, 368, 389, 497, 214, 325, 480],
+          totalYards: 6417,
+          rating: 72.1,
+          slope: 124
+        },
+        {
+          name: 'White',
+          color: '#ffffff',
+          yardages: [314, 326, 526, 368, 403, 170, 521, 308, 143, 333, 135, 323, 347, 361, 472, 175, 301, 472],
+          totalYards: 5998,
+          rating: 70.1,
+          slope: 120
+        },
+        {
+          name: 'Red',
+          color: '#c03030',
+          yardages: [243, 286, 380, 326, 349, 209, 481, 265, 120, 246, 125, 204, 323, 336, 414, 135, 220, 435],
+          totalYards: 5097,
+          rating: 65.3,
+          slope: 114
         }
       ]
     },
@@ -23829,7 +24355,7 @@
         <div class="start-round-eyebrow">${courseDetailState.pickMode === 'group' ? 'Playing With Friends' : 'Playing From'}</div>
         <div class="tee-selector">${teeButtons}</div>
         <button class="start-round-cta" onclick="${courseDetailState.pickMode === 'group' ? `createGroupRoundFromCourse('${course.id}', '${tee.name}')` : `startRoundFromCourse('${course.id}', '${tee.name}')`}">
-          <span>${courseDetailState.pickMode === 'group' ? 'Create Group Round' : 'Start Round'} — ${escapeHtml(tee.name)}</span>
+          <span>${courseDetailState.pickMode === 'group' ? 'Create Round' : 'Start Round'} — ${escapeHtml(tee.name)}</span>
           <span class="start-round-cta-arrow" aria-hidden="true">→</span>
         </button>
       </div>
@@ -33159,6 +33685,19 @@
         // GIR applies to every hole, same null-excluded treatment
         if (src.gir === true)  { e.gir = true;  girEligible++; girHit++; }
         else if (src.gir === false) { e.gir = false; girEligible++; }
+        // Preserve miss-direction metadata from the loaded round. The
+        // Quick Score edit UI doesn't expose miss direction pickers, so
+        // without this pass-through, editing any field on a live-tracked
+        // round would silently wipe firMiss / girMiss. We only carry
+        // these over when the hit/miss state ITSELF is still a miss —
+        // if the user flipped miss → hit, the old direction is stale
+        // and we drop it.
+        if (e.fir === false && typeof src.firMiss === 'string') {
+          e.firMiss = src.firMiss;
+        }
+        if (e.gir === false && typeof src.girMiss === 'string') {
+          e.girMiss = src.girMiss;
+        }
         totalStrokes += src.strokes;
         scoresOut[h.number] = e;
       }
