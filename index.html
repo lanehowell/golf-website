@@ -16589,13 +16589,24 @@
       padding-top: env(safe-area-inset-top, 0px);
       background: var(--bg-page);
       z-index: var(--z-dropdown);
-      transition: top var(--transition-base);
     }
     .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
       position: relative;
       display: block;
       height: var(--mobile-topbar-h);
+    }
+
+    /* On sub-panels (anything that isn't a root tab or a round-context
+       panel), the topbar flows with the page instead of being a fixed
+       strip. The back arrow is still positioned inside it but the bar
+       no longer reserves vertical space or pins to the top — it just
+       sits as the first element of the panel and scrolls naturally. */
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      position: static;
+      height: auto;
+      padding-top: var(--space-4);
+      background: transparent;
     }
 
     /* Body padding reserves space for the opaque topbar. Root tabs
@@ -16613,27 +16624,18 @@
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
     }
 
-    /* When a banner sits at the top (active round, active workout
-       session, or both), push the topbar down so it sits BELOW the
-       banner. The banner takes the prime real estate; the topbar's
-       back arrow remains visible right beneath it. Without this, the
-       banner overlaps the topbar and hides the arrow.
-
-       Excluded: round-context panels (round / group-round / group-
-       lobby) which hide the round banner anyway and use a transparent
-       topbar with a floating X close. */
-    body.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-      padding-top: var(--space-2);
-      height: calc(var(--mobile-topbar-h) + var(--space-2));
+    /* Sub-panels: topbar is now static (flows with content), so the
+       body doesn't need to reserve vertical space for it. Only reserve
+       the safe-area inset (and the banner heights when active). */
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not(.session-active):not(.round-active) {
+      padding-top: env(safe-area-inset-top, 0px) !important;
     }
-    body.session-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-      padding-top: var(--space-2);
-      height: calc(var(--mobile-topbar-h) + var(--space-2));
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).round-active,
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
     }
-    body.session-active.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active.round-active {
+      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
     }
 
     /* Round-context panels keep the floating X close + LIVE indicator
