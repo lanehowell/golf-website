@@ -4212,6 +4212,390 @@
     .finish-sheet-cancel:hover { color: var(--text-primary); }
   }
 
+  /* ── Pending rounds banner — shown above the Play hero when the
+     user has scorecards saved from rounds they were removed from.
+     Tap → recovery sheet. Visually quieter than the hero so it
+     doesn't compete, but warm-tinted so it's noticeable. */
+  .pending-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1px solid rgba(232, 93, 4, 0.35);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pending-banner:active { transform: scale(0.99); }
+  @media (hover: hover) {
+    .pending-banner:hover {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+    }
+  }
+  html.dark .pending-banner {
+    background: rgba(232, 93, 4, 0.12);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  .pending-banner-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-orange-dark);
+  }
+  html.dark .pending-banner-icon { color: var(--color-orange); }
+  .pending-banner-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pending-banner-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange-dark);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  html.dark .pending-banner-title { color: var(--color-orange); }
+  .pending-banner-extra {
+    font-weight: var(--weight-regular);
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.7;
+    margin-left: var(--space-1);
+  }
+  .pending-banner-meta {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  html.dark .pending-banner-meta { color: var(--color-cream-100); }
+  .pending-banner-arrow {
+    flex-shrink: 0;
+    color: var(--color-orange-dark);
+    font-size: var(--text-xl);
+    line-height: 1;
+  }
+  html.dark .pending-banner-arrow { color: var(--color-orange); }
+
+  /* ── Recovery sheet — bottom sheet shown when the pending banner
+     is tapped. Same chrome architecture as finish-sheet/manage-sheet:
+     fixed bottom, slide-up transform, fade backdrop. */
+  .recovery-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 10);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .recovery-sheet-backdrop.opening,
+  .recovery-sheet-backdrop.closing { opacity: 0; }
+  .recovery-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 11);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .recovery-sheet.opening,
+  .recovery-sheet.closing { transform: translateY(100%); }
+  .recovery-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    flex-shrink: 0;
+  }
+  .recovery-sheet-eyebrow {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+  .recovery-sheet-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  @media (hover: hover) {
+    .recovery-sheet-close:hover {
+      background: var(--color-cream-100);
+      color: var(--text-primary);
+    }
+    html.dark .recovery-sheet-close:hover { background: var(--bg-surface); }
+  }
+  .recovery-sheet-body {
+    padding: 0 var(--space-5) var(--space-5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rec-meta {
+    margin-bottom: var(--space-4);
+  }
+  .rec-meta-course {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: 2px;
+  }
+  .rec-meta-line {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .rec-with {
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  /* Mini scorecard inside the sheet — two rows of 9 cells each.
+     Cell shows hole number small on top, score big below, color-
+     coded vs par. */
+  .rec-scorecard {
+    margin-bottom: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .rec-scorecard-missing {
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+  .rec-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .rec-row-label {
+    width: 32px;
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .rec-row-cells {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+  }
+  .rec-cell {
+    aspect-ratio: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+  }
+  .rec-cell-hole {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .rec-cell-score {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .rec-cell-eagle  { background: rgba(255, 215, 0, 0.18); border-color: rgba(255, 215, 0, 0.5); }
+  .rec-cell-birdie { background: var(--color-orange-pale); border-color: rgba(232, 93, 4, 0.45); }
+  .rec-cell-birdie .rec-cell-score { color: var(--color-orange-dark); }
+  html.dark .rec-cell-birdie { background: rgba(232, 93, 4, 0.18); }
+  html.dark .rec-cell-birdie .rec-cell-score { color: var(--color-orange); }
+  .rec-cell-par    { /* default neutral */ }
+  .rec-cell-bogey  { background: rgba(0, 0, 0, 0.04); }
+  html.dark .rec-cell-bogey { background: rgba(255, 255, 255, 0.06); }
+  .rec-cell-over   { background: rgba(200, 50, 0, 0.08); border-color: rgba(200, 50, 0, 0.2); }
+
+  /* Action buttons — same shape as finish-sheet options for visual
+     consistency. Primary = save (orange), secondary = continue
+     (neutral), destructive = discard (subdued red border). */
+  .rec-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .rec-action {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rec-action:active { transform: scale(0.98); }
+  @media (hover: hover) {
+    .rec-action:hover {
+      background: var(--bg-surface);
+      border-color: var(--border-medium);
+    }
+  }
+  .rec-action-primary {
+    background: var(--color-orange-pale);
+    border-color: rgba(232, 93, 4, 0.35);
+  }
+  @media (hover: hover) {
+    .rec-action-primary:hover {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+    }
+  }
+  html.dark .rec-action-primary {
+    background: rgba(232, 93, 4, 0.12);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  .rec-action-destructive {
+    border-color: rgba(200, 50, 0, 0.25);
+  }
+  @media (hover: hover) {
+    .rec-action-destructive:hover {
+      background: rgba(200, 50, 0, 0.05);
+      border-color: rgba(200, 50, 0, 0.4);
+    }
+  }
+  .rec-action-title {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .rec-action-primary .rec-action-title {
+    color: var(--color-orange-dark);
+  }
+  html.dark .rec-action-primary .rec-action-title { color: var(--color-orange); }
+  .rec-action-destructive .rec-action-title {
+    color: #C44D00;
+  }
+  .rec-action-sub {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-snug);
+  }
+
+  /* "+N more" switcher — appears at bottom of sheet body when there
+     are multiple pending rounds. Compact horizontal scroll list. */
+  .rec-switcher {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-light);
+  }
+  .rec-switcher-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .rec-switcher-list {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rec-switcher-item {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rec-switcher-item.is-current {
+    border-color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  html.dark .rec-switcher-item.is-current {
+    background: rgba(232, 93, 4, 0.15);
+  }
+  .rec-switcher-course {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .rec-switcher-date {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
      to stay out of the way on clean holes; expands to a full stepper
      once the user records any penalty stroke. */
@@ -16138,6 +16522,12 @@
            auth). Rendered by renderPlaySigninBanner(). -->
       <div id="play-signin-banner-mount"></div>
 
+      <!-- Pending rounds banner — surfaced above the hero when the
+           user has one or more partial scorecards saved from rounds
+           they were removed from (kick / organizer abandoned). Tapping
+           opens the recovery sheet. -->
+      <div id="pending-rounds-banner-mount"></div>
+
       <!-- Primary CTA — dynamic hero card. Renders one of two states:
            1. No round in progress → "Start a Round" (→ course picker)
            2. Round in progress → "Continue Round" (→ resumes the round) -->
@@ -16619,6 +17009,12 @@
      save-or-leave choice in plain language. Body-level for ancestor-
      transform escape, same as the other sheet mounts. -->
 <div id="finish-sheet-mount"></div>
+
+<!-- RECOVERY sheet mount — populated by renderRecoverySheet() when
+     the user taps the pending-rounds banner on the Play screen.
+     Shows the captured scorecard + Save / Continue solo / Discard
+     actions. Body-level for the same reason. -->
+<div id="recovery-sheet-mount"></div>
 
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
      Content is populated by confirmDialog() at open time. -->
@@ -17299,6 +17695,22 @@
         if (snap.exists()) onUpdate({ id: snap.id, ...snap.data() });
         else onUpdate(null);
       });
+    },
+
+    // Pending rounds — survive-the-kick storage. Written when a player
+    // is removed from an active group round (kick OR organizer abandon)
+    // so they can recover their partial scorecard later. Lives in a
+    // user-private subcollection; document id = the original
+    // groupRoundId so re-kicks from the same round overwrite.
+    listPendingRounds: async (uid) => {
+      const snap = await getDocs(collection(db, `users/${uid}/pendingRounds`));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+    savePendingRound: async (uid, groupRoundId, payload) => {
+      await setDoc(doc(db, `users/${uid}/pendingRounds/${groupRoundId}`), payload);
+    },
+    deletePendingRound: async (uid, groupRoundId) => {
+      await deleteDoc(doc(db, `users/${uid}/pendingRounds/${groupRoundId}`));
     },
 
     // Subscribe to the user's group round invites collection. Fires on
@@ -21664,6 +22076,12 @@
   // must check this first.
   let roundsLoaded = false;
 
+  // Pending rounds — partial scorecards saved when a player is removed
+  // from a group round (kicked, organizer abandoned, etc). Surfaced as
+  // a banner on Play; user can recover (save / continue solo) or
+  // discard. Loaded on auth-change alongside other user data.
+  let pendingRounds = [];
+
   // ─────────────────────────────────────────────────────────────
   // Social cache — friends list and pending requests
   // ─────────────────────────────────────────────────────────────
@@ -21878,6 +22296,21 @@
     } catch (err) {
       console.error('Failed to load group round invites:', err);
       groupRoundInvites = [];
+    }
+  }
+
+  async function loadPendingRounds() {
+    if (!currentUser || !window.fb) {
+      pendingRounds = [];
+      return;
+    }
+    try {
+      pendingRounds = await window.fb.listPendingRounds(currentUser.uid);
+      // Sort newest-first so the banner highlights the most recent
+      pendingRounds.sort((a, b) => (b.endTime || 0) - (a.endTime || 0));
+    } catch (err) {
+      console.error('Failed to load pending rounds:', err);
+      pendingRounds = [];
     }
   }
 
@@ -22259,7 +22692,8 @@
         loadMyGroupRounds(),
         loadGroupRoundInvites(),
         loadInProgressPracticeSession(),
-        loadInProgressSession()
+        loadInProgressSession(),
+        loadPendingRounds()
       ]);
       if (inProgressSession) {
         restoreInProgressSession(inProgressSession);
@@ -22288,6 +22722,7 @@
       routines = [];
       myGroupRounds = [];
       groupRoundInvites = [];
+      pendingRounds = [];
       groupRoundState.docId = null;
       groupRoundState.doc = null;
       if (groupRoundState.unsubscribe) {
@@ -29671,6 +30106,7 @@
   // ─────────────────────────────────────────────────────────────
   function renderPlayLanding() {
     renderPlaySigninBanner();
+    renderPendingRoundsBanner();
     renderPlayHero();
     renderResumeBanner();
     renderPlayStats();
@@ -29728,16 +30164,104 @@
     const prevStatus = groupRoundState.doc?.status;
     const newStatus = freshDoc.status;
 
+    // Kicked / removed detection: if the snapshot doesn't include me
+    // in players (and the previous snapshot did), the organizer kicked
+    // me OR I was removed for some other reason. Capture my partial
+    // scorecard to the pendingRounds collection (so I can recover it
+    // later from the Play screen banner), then tear down local state
+    // and bounce to Play.
+    //
+    // Done BEFORE the race guard below because the race guard would
+    // otherwise re-add my local record to the players array, masking
+    // the removal.
+    if (currentUser && groupRoundState.doc) {
+      const wasInPlayers = (groupRoundState.doc.players || []).some(p => p.uid === currentUser.uid);
+      const stillInPlayers = (freshDoc.players || []).some(p => p.uid === currentUser.uid);
+      if (wasInPlayers && !stillInPlayers) {
+        const wasInPanel = currentPanelId === 'group-lobby' || currentPanelId === 'group-round';
+        // Cancel any pending score save — the doc no longer accepts writes from us
+        if (__groupRoundSaveTimer) {
+          clearTimeout(__groupRoundSaveTimer);
+          __groupRoundSaveTimer = null;
+        }
+        // Snapshot the partial scorecard for recovery, but only if
+        // the player actually has scores. An empty kick (e.g. kicked
+        // from a lobby before logging anything) doesn't need a
+        // recovery banner.
+        const myLastRecord = (groupRoundState.doc.players || []).find(p => p.uid === currentUser.uid);
+        const removedRoundId = groupRoundState.docId;
+        const removedDoc = groupRoundState.doc;
+        const hasScores = myLastRecord && myLastRecord.scores && Object.keys(myLastRecord.scores).length > 0;
+        if (hasScores) {
+          const course = getCourse(removedDoc.courseId);
+          // Denormalize other players so the recovery banner can show
+          // who the user was playing with.
+          const otherPlayers = (removedDoc.players || [])
+            .filter(p => p.uid !== currentUser.uid)
+            .map(p => ({
+              uid: p.uid,
+              username: p.username || null,
+              usernameDisplay: p.usernameDisplay || p.username || null,
+              displayName: p.displayName || null,
+              photoURL: p.photoURL || null
+            }));
+          const pendingPayload = {
+            groupRoundId: removedRoundId,
+            courseId: removedDoc.courseId,
+            courseName: course ? course.name : (removedDoc.courseName || 'Round'),
+            teeName: myLastRecord.tee || null,
+            startTime: removedDoc.startTime || null,
+            endTime: Date.now(),
+            dateKey: removedDoc.dateKey || null,
+            scores: myLastRecord.scores || {},
+            organizerUid: removedDoc.organizerUid || null,
+            groupOthers: otherPlayers,
+            // Why this pending record was created — purely informational
+            // (could differentiate kick vs organizer-abandon in the UI later).
+            reason: removedDoc.status === 'abandoned' ? 'abandoned' : 'kicked'
+          };
+          // Update local cache optimistically so the banner appears
+          // immediately on the bounce-to-Play below.
+          const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
+          const cachedRecord = { id: removedRoundId, ...pendingPayload };
+          if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
+          else pendingRounds.unshift(cachedRecord);
+          // Fire-and-forget the Firestore write — UI is already updated
+          window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
+            .catch(err => console.error('Failed to save pending round:', err));
+        }
+        stopGroupRoundSubscription();
+        groupRoundState.docId = null;
+        groupRoundState.doc = null;
+        myGroupRounds = myGroupRounds.filter(r => r.id !== removedRoundId);
+        try { localStorage.removeItem(`golfapp.grCursor.${removedRoundId}`); } catch (_) {}
+        if (wasInPanel) {
+          showToast(hasScores
+            ? 'Removed from round — your scorecard is on the Play screen'
+            : 'You were removed from this round');
+          showPanel('play', null);
+        }
+        renderPlayLanding();
+        updateRoundBanner();
+        return;
+      }
+    }
+
     // Race guard: if WE have a pending OR in-flight score write, preserve
     // our local `me.scores` in the merged doc. A snapshot arriving during
     // the debounce window OR mid-write could otherwise overwrite our
     // uncommitted edits with stale server data. Two flags cover both
     // windows: __groupRoundSaveTimer (debounce pending) and
     // __groupRoundSaveInFlight (write in flight).
+    //
+    // The race guard only kicks in when we're STILL in the round per
+    // the fresh doc — the kicked-detection branch above runs first
+    // and returns early if not.
     let mergedDoc = freshDoc;
     if ((__groupRoundSaveTimer || __groupRoundSaveInFlight) && currentUser) {
       const localMe = getMyGroupRoundPlayer();
-      if (localMe) {
+      const stillInFresh = (freshDoc.players || []).some(p => p.uid === currentUser.uid);
+      if (localMe && stillInFresh) {
         const freshPlayers = (freshDoc.players || []).map(p =>
           p.uid === currentUser.uid
             ? { ...p, scores: localMe.scores || {} }
@@ -29777,11 +30301,48 @@
         return; // showPanel triggers a render already
       }
       if (newStatus === 'abandoned') {
-        // Organizer cancelled the round (typically from the lobby
-        // before starting). Tear down local state for everyone in it
-        // and bounce to Play. We toast briefly so the user knows why
-        // the panel disappeared from underneath them.
+        // Organizer cancelled the round. Tear down local state for
+        // everyone in it and bounce to Play. Same recovery semantics
+        // as a kick: if I had any scores logged, snapshot them as a
+        // pending round so I can decide later what to do with them.
         const wasInPanel = currentPanelId === 'group-lobby' || currentPanelId === 'group-round';
+        if (currentUser) {
+          const myLastRecord = (groupRoundState.doc?.players || []).find(p => p.uid === currentUser.uid);
+          const hasScores = myLastRecord && myLastRecord.scores && Object.keys(myLastRecord.scores).length > 0;
+          if (hasScores) {
+            const removedRoundId = mergedDoc.id;
+            const removedDoc = groupRoundState.doc;
+            const course = getCourse(removedDoc.courseId);
+            const otherPlayers = (removedDoc.players || [])
+              .filter(p => p.uid !== currentUser.uid)
+              .map(p => ({
+                uid: p.uid,
+                username: p.username || null,
+                usernameDisplay: p.usernameDisplay || p.username || null,
+                displayName: p.displayName || null,
+                photoURL: p.photoURL || null
+              }));
+            const pendingPayload = {
+              groupRoundId: removedRoundId,
+              courseId: removedDoc.courseId,
+              courseName: course ? course.name : (removedDoc.courseName || 'Round'),
+              teeName: myLastRecord.tee || null,
+              startTime: removedDoc.startTime || null,
+              endTime: Date.now(),
+              dateKey: removedDoc.dateKey || null,
+              scores: myLastRecord.scores || {},
+              organizerUid: removedDoc.organizerUid || null,
+              groupOthers: otherPlayers,
+              reason: 'abandoned'
+            };
+            const idxExisting = pendingRounds.findIndex(p => p.groupRoundId === removedRoundId);
+            const cachedRecord = { id: removedRoundId, ...pendingPayload };
+            if (idxExisting !== -1) pendingRounds[idxExisting] = cachedRecord;
+            else pendingRounds.unshift(cachedRecord);
+            window.fb.savePendingRound(currentUser.uid, removedRoundId, pendingPayload)
+              .catch(err => console.error('Failed to save pending round:', err));
+          }
+        }
         stopGroupRoundSubscription();
         groupRoundState.docId = null;
         groupRoundState.doc = null;
@@ -29899,6 +30460,409 @@
   // Toggled via body.round-active. Visible from any panel, not just Play.
   // Also clears the (now-deleted) in-Play resume mount in case any older
   // markup remains so we don't double up.
+  // ─────────────────────────────────────────────────────────────
+  // Pending rounds banner — surfaced at the top of Play when the
+  // user has one or more partial scorecards saved from being kicked
+  // or removed from a group round (organizer abandoned, etc).
+  // Tap → opens the recovery sheet which lets them save the card,
+  // continue solo, or discard.
+  // ─────────────────────────────────────────────────────────────
+  function renderPendingRoundsBanner() {
+    const mount = document.getElementById('pending-rounds-banner-mount');
+    if (!mount) return;
+    if (!pendingRounds || pendingRounds.length === 0) {
+      mount.innerHTML = '';
+      return;
+    }
+    // Show the most recent pending round in the banner; if there
+    // are more, the recovery sheet itself surfaces them via a
+    // "+N more" affordance.
+    const latest = pendingRounds[0];
+    const courseLabel = latest.courseName || 'Round';
+    const holesLogged = Object.keys(latest.scores || {}).length;
+    const extraCount = pendingRounds.length - 1;
+    const extraLabel = extraCount > 0
+      ? ` <span class="pending-banner-extra">+${extraCount} more</span>`
+      : '';
+    mount.innerHTML = `
+      <button class="pending-banner" onclick="openRecoverySheet('${escapeAttr(latest.id)}')" aria-label="Recover pending scorecard">
+        <span class="pending-banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </span>
+        <span class="pending-banner-body">
+          <span class="pending-banner-title">Pending scorecard${extraLabel}</span>
+          <span class="pending-banner-meta">${escapeHtml(courseLabel)} · ${holesLogged} hole${holesLogged === 1 ? '' : 's'} logged</span>
+        </span>
+        <span class="pending-banner-arrow" aria-hidden="true">›</span>
+      </button>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Recovery sheet — shown when user taps the pending-rounds banner.
+  // Displays the captured scorecard with three actions:
+  //   - Save to history (write a normal personal round card)
+  //   - Continue solo (start a fresh solo round with these scores)
+  //   - Discard (delete the pending record)
+  // Same body-level mount + slide-up animation pattern as the other
+  // sheets in this codebase.
+  // ─────────────────────────────────────────────────────────────
+  const recoverySheetState = { open: false, currentId: null };
+
+  function openRecoverySheet(pendingId) {
+    if (!pendingId) return;
+    recoverySheetState.open = true;
+    recoverySheetState.currentId = pendingId;
+    acquireScrollLock();
+    renderRecoverySheet();
+  }
+
+  function closeRecoverySheet() {
+    if (!recoverySheetState.open) return;
+    const el = document.querySelector('.recovery-sheet');
+    const backdrop = document.querySelector('.recovery-sheet-backdrop');
+    if (!el || !backdrop) {
+      recoverySheetState.open = false;
+      recoverySheetState.currentId = null;
+      releaseScrollLock();
+      const mount = document.getElementById('recovery-sheet-mount');
+      if (mount) mount.innerHTML = '';
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      recoverySheetState.open = false;
+      recoverySheetState.currentId = null;
+      releaseScrollLock();
+      const mount = document.getElementById('recovery-sheet-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+
+  // Switch to a different pending round inside the open sheet
+  // (used by the "+N more" picker when there are multiple).
+  function switchRecoverySheet(pendingId) {
+    if (!recoverySheetState.open) return;
+    recoverySheetState.currentId = pendingId;
+    renderRecoverySheet();
+  }
+
+  function renderRecoverySheet() {
+    const mount = document.getElementById('recovery-sheet-mount');
+    if (!mount) return;
+    if (!recoverySheetState.open) { mount.innerHTML = ''; return; }
+    const pending = pendingRounds.find(p => p.id === recoverySheetState.currentId);
+    if (!pending) {
+      // Pending record went away (deleted elsewhere); close sheet
+      closeRecoverySheet();
+      return;
+    }
+    const course = getCourse(pending.courseId);
+    const holes = course ? course.holes : [];
+    const holesLogged = Object.keys(pending.scores || {}).length;
+    const dateStr = pending.endTime
+      ? new Date(pending.endTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      : '';
+
+    // Mini scorecard — 9-cell rows for front 9 / back 9. Each cell
+    // shows the hole number top + the score below (or blank).
+    let scorecardHtml = '';
+    if (holes.length > 0) {
+      const buildRow = (start, end, label) => {
+        const cells = holes.slice(start, end).map(h => {
+          const entry = (pending.scores || {})[h.number];
+          const score = entry && entry.strokes ? entry.strokes : '';
+          const par = h.par;
+          let scoreClass = '';
+          if (score) {
+            const diff = score - par;
+            if (diff <= -2) scoreClass = ' rec-cell-eagle';
+            else if (diff === -1) scoreClass = ' rec-cell-birdie';
+            else if (diff === 0) scoreClass = ' rec-cell-par';
+            else if (diff === 1) scoreClass = ' rec-cell-bogey';
+            else scoreClass = ' rec-cell-over';
+          }
+          return `
+            <div class="rec-cell${scoreClass}">
+              <div class="rec-cell-hole">${h.number}</div>
+              <div class="rec-cell-score">${score || '—'}</div>
+            </div>`;
+        }).join('');
+        return `
+          <div class="rec-row">
+            <div class="rec-row-label">${label}</div>
+            <div class="rec-row-cells">${cells}</div>
+          </div>`;
+      };
+      scorecardHtml = `
+        <div class="rec-scorecard">
+          ${buildRow(0, 9, 'OUT')}
+          ${holes.length > 9 ? buildRow(9, 18, 'IN') : ''}
+        </div>`;
+    } else {
+      scorecardHtml = `<div class="rec-scorecard-missing">Course details unavailable</div>`;
+    }
+
+    // Other-players summary — shown so the user can identify which
+    // round this came from when they have multiple pending.
+    const others = pending.groupOthers || [];
+    let withHtml = '';
+    if (others.length > 0) {
+      const names = others.map(p => p.usernameDisplay || p.username || p.displayName || 'Player');
+      const list = names.length > 3
+        ? names.slice(0, 3).join(', ') + ` +${names.length - 3}`
+        : names.join(', ');
+      withHtml = `<div class="rec-with">Played with ${escapeHtml(list)}</div>`;
+    }
+
+    // "+N more" picker — show when there are multiple pending rounds
+    // so user can switch which one this sheet is showing.
+    let switcherHtml = '';
+    if (pendingRounds.length > 1) {
+      const items = pendingRounds.map(p => {
+        const isCurrent = p.id === pending.id;
+        const dStr = p.endTime
+          ? new Date(p.endTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+          : '';
+        const cn = p.courseName || 'Round';
+        return `
+          <button class="rec-switcher-item${isCurrent ? ' is-current' : ''}"
+                  onclick="switchRecoverySheet('${escapeAttr(p.id)}')">
+            <span class="rec-switcher-course">${escapeHtml(cn)}</span>
+            <span class="rec-switcher-date">${escapeHtml(dStr)}</span>
+          </button>`;
+      }).join('');
+      switcherHtml = `
+        <div class="rec-switcher">
+          <div class="rec-switcher-label">Other Pending</div>
+          <div class="rec-switcher-list">${items}</div>
+        </div>`;
+    }
+
+    mount.innerHTML = `
+      <div class="recovery-sheet-backdrop opening" onclick="closeRecoverySheet()" aria-hidden="true"></div>
+      <div class="recovery-sheet opening" role="dialog" aria-modal="true" aria-label="Recover scorecard">
+        <div class="recovery-sheet-header">
+          <div class="recovery-sheet-eyebrow">Pending Scorecard</div>
+          <button class="recovery-sheet-close" onclick="closeRecoverySheet()" aria-label="Close">×</button>
+        </div>
+        <div class="recovery-sheet-body">
+          <div class="rec-meta">
+            <div class="rec-meta-course">${escapeHtml(pending.courseName || 'Round')}</div>
+            <div class="rec-meta-line">
+              ${dateStr ? escapeHtml(dateStr) + ' · ' : ''}${pending.teeName ? escapeHtml(pending.teeName) + ' tees · ' : ''}${holesLogged} hole${holesLogged === 1 ? '' : 's'}
+            </div>
+            ${withHtml}
+          </div>
+          ${scorecardHtml}
+          <div class="rec-actions">
+            <button class="rec-action rec-action-primary" onclick="recoverPendingSave('${escapeAttr(pending.id)}')">
+              <span class="rec-action-title">Save to history</span>
+              <span class="rec-action-sub">Adds this scorecard as a permanent round in your history.</span>
+            </button>
+            <button class="rec-action" onclick="recoverPendingContinueSolo('${escapeAttr(pending.id)}')">
+              <span class="rec-action-title">Continue as solo round</span>
+              <span class="rec-action-sub">Picks up where you left off in a new solo round on the same course.</span>
+            </button>
+            <button class="rec-action rec-action-destructive" onclick="recoverPendingDiscard('${escapeAttr(pending.id)}')">
+              <span class="rec-action-title">Discard scorecard</span>
+              <span class="rec-action-sub">Deletes this without saving anything to history.</span>
+            </button>
+          </div>
+          ${switcherHtml}
+        </div>
+      </div>`;
+
+    const sheet = mount.querySelector('.recovery-sheet.opening');
+    const backdrop = mount.querySelector('.recovery-sheet-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+  }
+
+  // Save a pending scorecard to history as a normal round card.
+  // Same write shape as completeMyGroupRound's save path so the
+  // resulting history entry is indistinguishable from a "finished
+  // normally" group round card.
+  async function recoverPendingSave(pendingId) {
+    if (!currentUser || !window.fb) return;
+    const pending = pendingRounds.find(p => p.id === pendingId);
+    if (!pending) return;
+    const course = getCourse(pending.courseId);
+    if (!course) {
+      showToast('Course not found', true);
+      return;
+    }
+    const totals = computeGroupPlayerTotals(pending.scores || {}, course);
+    // Same deterministic id used by completeMyGroupRound so
+    // re-recovering doesn't create a duplicate.
+    const personalRoundId = `gr_${pending.groupRoundId}_${currentUser.uid.slice(0, 8)}`;
+    const personalPayload = {
+      courseId: pending.courseId,
+      courseName: pending.courseName,
+      teeName: pending.teeName,
+      startTime: pending.startTime,
+      endTime: pending.endTime || Date.now(),
+      dateKey: pending.dateKey,
+      status: 'completed',
+      currentHoleIndex: Math.max(0, Object.keys(pending.scores || {}).length - 1),
+      scores: pending.scores || {},
+      totals,
+      groupRoundId: pending.groupRoundId,
+      groupOthers: pending.groupOthers || []
+    };
+    try {
+      await window.fb.setDoc(`users/${currentUser.uid}/rounds/${personalRoundId}`, personalPayload);
+      const cachedRound = { id: personalRoundId, ...personalPayload };
+      const idx = recentRounds.findIndex(r => r.id === personalRoundId);
+      if (idx >= 0) recentRounds[idx] = cachedRound;
+      else recentRounds.unshift(cachedRound);
+      syncRoundToPublic(cachedRound);
+      syncPublicProfile();
+      if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+    } catch (err) {
+      console.error('Failed to save recovered round:', err);
+      showToast('Save failed — see console', true);
+      return;
+    }
+    // Delete the pending record (best-effort) and remove from cache
+    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
+    window.fb.deletePendingRound(currentUser.uid, pendingId).catch(err =>
+      console.error('Failed to delete pending after save:', err));
+    closeRecoverySheet();
+    renderPlayLanding();
+    openRoundSummary(personalRoundId);
+  }
+
+  // Continue a pending scorecard as a solo round. Creates a fresh
+  // solo round on the same course/tee, copies in the existing scores,
+  // navigates to the round screen at the next unplayed hole.
+  async function recoverPendingContinueSolo(pendingId) {
+    if (!currentUser || !window.fb) return;
+    const pending = pendingRounds.find(p => p.id === pendingId);
+    if (!pending) return;
+    const course = getCourse(pending.courseId);
+    if (!course) {
+      showToast('Course not found', true);
+      return;
+    }
+
+    // Mutual-exclusivity — same flow as starting a fresh round
+    if (isRoundActive()) {
+      const cont = await confirmDialog({
+        eyebrow: 'Round In Progress',
+        eyebrowStyle: 'warning',
+        title: 'Discard current round?',
+        message: 'Continuing this scorecard solo will abandon the round you already have going.',
+        confirmText: 'Discard & Continue',
+        cancelText: 'Keep Current',
+        destructive: true,
+      });
+      if (!cont) return;
+      if (isSoloRoundActive()) await abandonCurrentRound();
+      if (isGroupRoundActive()) await abandonCurrentGroupRound();
+    }
+
+    // Pick a tee that exists on the course; fall back to first if the
+    // pending one doesn't (e.g. course data changed).
+    const teeMatch = course.tees.find(t => t.name === pending.teeName);
+    const tee = teeMatch || course.tees[0];
+    if (!tee) {
+      showToast('No tees available on course', true);
+      return;
+    }
+
+    // Determine the next hole to land on (one past the highest
+    // hole-number with a recorded score, capped to last hole).
+    const playedNums = Object.keys(pending.scores || {}).map(Number).filter(n => !isNaN(n));
+    const maxPlayed = playedNums.length ? Math.max(...playedNums) : 0;
+    const nextHoleIdx = Math.min(maxPlayed, course.holes.length - 1);
+
+    const nowMs = Date.now();
+    const dateKey = pending.dateKey || todayKey();
+    const payload = {
+      courseId: pending.courseId,
+      courseName: course.name,
+      teeName: tee.name,
+      startTime: pending.startTime || nowMs,
+      endTime: null,
+      dateKey,
+      status: 'in-progress',
+      currentHoleIndex: nextHoleIdx,
+      scores: pending.scores || {},
+      totals: null
+    };
+    try {
+      // Reuse the solo-round write path. Generate an id that won't
+      // collide with the original group-round-derived one.
+      const newRoundId = `solo_recover_${pending.groupRoundId}_${nowMs}`;
+      await window.fb.setDoc(`users/${currentUser.uid}/rounds/${newRoundId}`, payload);
+      // Mirror locally + populate roundState so renderRound() works
+      const cached = { id: newRoundId, ...payload };
+      recentRounds.unshift(cached);
+      roundState.docId = newRoundId;
+      roundState.courseId = payload.courseId;
+      roundState.teeName = payload.teeName;
+      roundState.holeIndex = nextHoleIdx;
+      roundState.scores = payload.scores;
+      roundState.started = payload.startTime;
+      roundState.dateKey = dateKey;
+    } catch (err) {
+      console.error('Failed to start recovery solo round:', err);
+      showToast('Could not start round', true);
+      return;
+    }
+
+    // Delete the pending record + tear down the recovery sheet
+    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
+    window.fb.deletePendingRound(currentUser.uid, pendingId).catch(err =>
+      console.error('Failed to delete pending after continue:', err));
+    closeRecoverySheet();
+    showPanel('round', null);
+  }
+
+  async function recoverPendingDiscard(pendingId) {
+    if (!currentUser || !window.fb) return;
+    const ok = await confirmDialog({
+      eyebrow: 'Discard Scorecard',
+      eyebrowStyle: 'warning',
+      title: 'Permanently discard this scorecard?',
+      message: 'Your scores from this round will be deleted. This cannot be undone.',
+      confirmText: 'Discard',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    pendingRounds = pendingRounds.filter(p => p.id !== pendingId);
+    try {
+      await window.fb.deletePendingRound(currentUser.uid, pendingId);
+    } catch (err) {
+      console.error('Failed to delete pending round:', err);
+      showToast('Delete failed', true);
+    }
+    closeRecoverySheet();
+    renderPlayLanding();
+  }
+
   function renderResumeBanner() {
     const mount = document.getElementById('play-resume-mount');
     if (mount) mount.innerHTML = '';
