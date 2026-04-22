@@ -16531,8 +16531,7 @@
     body[data-current-panel="today"] .mobile-topbar,
     body[data-current-panel="social"] .mobile-topbar,
     body[data-current-panel="profile"] .mobile-topbar {
-      border-bottom: none;
-      background: transparent;
+      display: none;
     }
     /* Since the topbar on top-level tabs is now visually empty, collapse
        the reserved topbar-height padding down to just the safe-area
@@ -16625,13 +16624,13 @@
        topbar with a floating X close. */
     body.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-      padding-top: 0;
-      height: var(--mobile-topbar-h);
+      padding-top: var(--space-2);
+      height: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     body.session-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
-      padding-top: 0;
-      height: var(--mobile-topbar-h);
+      padding-top: var(--space-2);
+      height: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     body.session-active.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
