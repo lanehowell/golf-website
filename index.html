@@ -16589,8 +16589,8 @@
       height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
       background: var(--bg-page);
-      border-bottom: 1px solid var(--border-light);
       z-index: var(--z-dropdown);
+      transition: top var(--transition-base);
     }
     .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
@@ -16612,6 +16612,29 @@
     }
     body.session-active.round-active {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+    }
+
+    /* When a banner sits at the top (active round, active workout
+       session, or both), push the topbar down so it sits BELOW the
+       banner. The banner takes the prime real estate; the topbar's
+       back arrow remains visible right beneath it. Without this, the
+       banner overlaps the topbar and hides the arrow.
+
+       Excluded: round-context panels (round / group-round / group-
+       lobby) which hide the round banner anyway and use a transparent
+       topbar with a floating X close. */
+    body.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
+      padding-top: 0;
+      height: var(--mobile-topbar-h);
+    }
+    body.session-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px));
+      padding-top: 0;
+      height: var(--mobile-topbar-h);
+    }
+    body.session-active.round-active:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2);
     }
 
     /* Round-context panels keep the floating X close + LIVE indicator
