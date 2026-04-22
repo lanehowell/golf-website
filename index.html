@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Golf Performance Training Plan</title>
 <script>
   // Pre-paint theme init — runs before any CSS or content renders.
@@ -157,6 +157,20 @@
   /* ══════════════════════════════════════════════════════════════
      PAGE-SPECIFIC STYLES — extends design-system.css
      ══════════════════════════════════════════════════════════════ */
+
+  /* ── iOS double-tap zoom prevention. Combined with
+     `user-scalable=no` in the viewport meta tag, this kills the
+     double-tap-to-zoom gesture throughout the PWA — a behavior that
+     feels wrong in a full-screen app where taps should always be
+     treated as discrete actions, never zoom gestures.
+     `touch-action: manipulation` also removes the historical ~300ms
+     click delay iOS Safari adds while it waits for a potential
+     second tap. Scrolling and single-finger panning still work
+     normally. Applied to both html and body so it cascades to every
+     element including dynamically-created ones. */
+  html, body {
+    touch-action: manipulation;
+  }
 
   /* ══════════════════════════════════════════════════════════════
      TOUCH-DEVICE TAP GHOST PREVENTION
@@ -402,12 +416,43 @@
     color: #7FC088;                              /* brightened leaf-green */
   }
 
+  /* Double bogey / worse tile — dark-mode override. Previously this
+     rule was nested inside @media (hover: hover), so on touch devices
+     (iPhone) the override never applied and the light-mode cream
+     background bled through, producing a jarring white tile on the
+     dark round card. Kept outside any media query now. */
+  html.dark .round-card-step-display.score-doublebogey,
+  html.dark .round-card-step-display.score-over {
+    background: rgba(232, 93, 4, 0.12);          /* translucent orange */
+    border-color: rgba(232, 93, 4, 0.35);
+  }
+  /* Also brighten the "DOUBLE" tag text — the orange-dark token reads
+     muddy against the translucent dark background. */
+  html.dark .round-card-step-display.score-doublebogey .round-card-step-tag,
+  html.dark .round-card-step-display.score-over .round-card-step-tag {
+    color: var(--color-orange-light);
+  }
+  /* And the big numeric score — same reason: dark-on-dark is illegible. */
+  html.dark .round-card-step-display.score-doublebogey .round-card-step-value,
+  html.dark .round-card-step-display.score-over .round-card-step-value {
+    color: var(--color-orange-light);
+  }
+
+  /* Par tile + bogey tile also need dark-mode treatment — they use
+     cream backgrounds in light mode that would flash white in dark. */
+  html.dark .round-card-step-display.score-par {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-light);
+  }
+  html.dark .round-card-step-display.score-bogey {
+    background: rgba(232, 93, 4, 0.08);
+    border-color: rgba(232, 93, 4, 0.25);
+  }
+
   @media (hover: hover) {
 
-  html.dark .round-card-step-display.score-doublebogey,
-  html.dark .round-card-step-display.score-over,
   html.dark .bag-remove-btn:hover {
-    background: rgba(232, 93, 4, 0.12);          /* translucent orange (same as orange-pale in dark) */
+    background: rgba(232, 93, 4, 0.12);
     border-color: rgba(232, 93, 4, 0.35);
   }
 }
@@ -3135,210 +3180,273 @@
     box-shadow: var(--shadow-xs);
   }
 
-  .gr-sc-hint {
+  /* ── Group round Scorecard view (gsc-*) — ONE unified scorecard with
+     all players on the same grid. Top strip is per-player summaries
+     (strokes, vs-par, through N holes). Below that, Front 9 / Back 9
+     tables each have a hole-number row + par row in the head, then one
+     score row per player. YOUR row is visually highlighted and YOUR
+     cells are tappable to jump back and edit. Same score-marker visual
+     language as the dock scorecard and the tap-a-player sheet. */
+  .gsc-hint {
     font-family: var(--font-mono);
     font-size: 0.68rem;
     color: var(--text-muted);
     letter-spacing: var(--tracking-wide);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
     text-align: center;
     font-style: italic;
   }
 
-  /* Scrollable wrapper — on narrow viewports the 20+ column table
-     overflows. Standard golf app pattern. */
-  .gr-sc-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    margin: 0 calc(-1 * var(--space-5));
-    padding: 0 var(--space-5) var(--space-4);
-    /* Subtle scrollbar treatment */
+  /* Wrapping card — holds the summary strip + both nines */
+  .gsc-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
   }
-  .gr-sc-scroll::-webkit-scrollbar { height: 6px; }
-  .gr-sc-scroll::-webkit-scrollbar-thumb {
+
+  /* Summary strip: one tile per player, horizontally scrollable if a
+     group gets wide. Each tile shows name, total strokes, vs-par, and
+     "Through N" progress. Your tile gets an orange left-accent so it's
+     easy to pick out of a crowded strip. */
+  .gsc-summary-strip {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--color-cream-100);
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  html.dark .gsc-summary-strip { background: var(--bg-surface); }
+  .gsc-summary-strip::-webkit-scrollbar { height: 4px; }
+  .gsc-summary-strip::-webkit-scrollbar-thumb {
     background: var(--border-medium);
     border-radius: var(--radius-pill);
   }
 
-  .gr-sc-table {
-    border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
+  .gsc-summary-item {
+    flex: 0 0 auto;
+    min-width: 110px;
+    padding: var(--space-2) var(--space-3);
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    overflow: hidden;
-    width: auto;
-    min-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
-
-  .gr-sc-table th,
-  .gr-sc-table td {
-    padding: var(--space-2) var(--space-1);
-    text-align: center;
-    min-width: 34px;
-    border: 1px solid var(--border-light);
+  .gsc-summary-item.gsc-summary-you {
+    border-left: 3px solid var(--color-orange);
+    padding-left: calc(var(--space-3) - 2px);
   }
-
-  /* Player name column — sticky so it stays visible while scrolling */
-  .gr-sc-player-head,
-  .gr-sc-player-name {
-    position: sticky;
-    left: 0;
-    background: var(--bg-elevated);
-    min-width: 72px;
-    text-align: left;
-    padding: var(--space-2) var(--space-3);
-    z-index: 2;
-    font-weight: var(--weight-semibold);
-  }
-  .gr-sc-player-head {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    background: var(--color-cream-100);
-  }
-  .gr-sc-player-name {
-    font-family: var(--font-display);
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-    background: var(--bg-elevated);
-  }
-
-  /* Hole header — number above par */
-  .gr-sc-hole-head {
-    background: var(--color-cream-100);
-    padding: var(--space-1) 0 var(--space-2);
-    min-width: 32px;
-  }
-  .gr-sc-hole-num {
+  .gsc-summary-name {
     font-family: var(--font-display);
     font-size: 0.82rem;
-    font-weight: var(--weight-bold);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
-    line-height: 1;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 2px;
   }
-  .gr-sc-hole-par {
+  .gsc-summary-value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    line-height: 1;
+    display: inline;
+  }
+  .gsc-summary-vspar {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    margin-left: var(--space-2);
+  }
+  .gsc-summary-through {
     font-family: var(--font-mono);
     font-size: 0.58rem;
     color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     margin-top: 2px;
   }
 
-  .gr-sc-sub-head {
-    background: var(--color-black);
-    color: var(--color-cream-50);
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
+  /* Body — holds the two nines */
+  .gsc-body {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+  }
+  .gsc-nine { margin-bottom: var(--space-4); }
+  .gsc-nine:last-child { margin-bottom: 0; }
+  .gsc-nine-label {
+    font-family: var(--font-body);
+    font-size: 0.66rem;
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-light);
   }
 
-  .gr-sc-row-par {
-    background: var(--color-cream-100);
+  .gsc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    table-layout: fixed;
   }
-  .gr-sc-row-par .gr-sc-player-name {
-    background: var(--color-cream-100);
+  .gsc-table th, .gsc-table td {
+    padding: var(--space-2) 0;
+    text-align: center;
+    border: none;
+  }
+  .gsc-row-label {
+    text-align: left;
+    padding-left: 0;
+    padding-right: var(--space-2);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
     color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 56px;
+  }
+  .gsc-hole-num {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .gsc-hole-current {
+    color: var(--color-orange);
+    position: relative;
+  }
+  .gsc-hole-current::after {
+    content: '';
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: 2px;
+    height: 2px;
+    background: var(--color-orange);
+    border-radius: 1px;
+  }
+  .gsc-par {
     font-family: var(--font-mono);
     font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+  .gsc-total-label {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
+    width: 40px;
   }
-  .gr-sc-par-cell {
-    color: var(--text-muted);
-    font-size: 0.72rem;
-  }
-
-  /* Row highlight for YOU */
-  .gr-sc-row-you {
-    background: var(--bg-accent-tint);
-  }
-  .gr-sc-row-you .gr-sc-player-name {
-    color: var(--color-orange);
-    background: var(--bg-accent-tint);
-  }
-
-  /* Score cells — color-coded by score-vs-par. Reuse the same palette
-     as the hole card's round-card-step-display variants, but as solid
-     backgrounds so they pop in the grid. Transparent on empty. */
-  .gr-sc-cell {
-    font-weight: var(--weight-semibold);
-    color: var(--text-primary);
-  }
-  .gr-sc-cell-you { cursor: pointer; }
-  @media (hover: hover) {
-  .gr-sc-cell-you:hover {
-    outline: 2px solid var(--color-orange);
-    outline-offset: -2px;
-    position: relative;
-    z-index: 1;
-  }
-}
-
-  .gr-sc-eagle {
-    background: #2D6E34;
-    color: var(--color-cream-50);
-  }
-  .gr-sc-birdie {
-    background: #EFF8F0;
-    color: #2D6E34;
-  }
-  .gr-sc-par {
-    /* No background — stays white/cream. Readable contrast. */
-  }
-  .gr-sc-bogey {
-    background: var(--color-orange-pale);
-    color: var(--color-orange-dark);
-  }
-  .gr-sc-doublebogey,
-  .gr-sc-over {
-    background: #FEF0EC;
-    color: var(--color-orange-dark);
+  .gsc-total, .gsc-par-total {
+    font-family: var(--font-display);
     font-weight: var(--weight-bold);
-  }
-
-  .gr-sc-subtotal {
+    color: var(--text-primary);
     background: var(--color-cream-100);
-    color: var(--text-primary);
+  }
+  html.dark .gsc-total, html.dark .gsc-par-total { background: var(--bg-surface); }
+  .gsc-par-total { color: var(--text-muted); font-weight: var(--weight-semibold); }
+
+  /* Player rows in the body — the name cell on the left, score cells
+     across. YOUR row gets an orange-tinted background so you can
+     always find your scores at a glance. */
+  .gsc-player-row {
+    border-top: 1px solid var(--border-light);
+  }
+  .gsc-player-row.gsc-player-you {
+    background: rgba(232, 93, 4, 0.04);
+  }
+  html.dark .gsc-player-row.gsc-player-you {
+    background: rgba(232, 93, 4, 0.08);
+  }
+  .gsc-player-cell {
+    text-align: left !important;
+    padding-left: 0 !important;
+    padding-right: var(--space-2) !important;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
     font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 56px;
   }
-  .gr-sc-total {
-    background: var(--color-black);
-    color: var(--color-cream-50);
-    font-weight: var(--weight-bold);
-  }
-  .gr-sc-vspar {
-    background: var(--color-orange-pale);
-    color: var(--color-orange-dark);
+  .gsc-player-you .gsc-player-cell {
+    color: var(--color-orange);
   }
 
-  /* Dark-mode variants for the score-vs-par cells — same approach as
-     the earlier score-chip dark fixes: bright pastels become translucent
-     tints that work on dark backgrounds. */
-  html.dark .gr-sc-birdie {
-    background: rgba(45, 110, 52, 0.25);
-    color: #7FC088;
+  .gsc-strokes {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
   }
-  html.dark .gr-sc-eagle {
-    background: #2D6E34;
-    color: var(--color-cream-50);
+  .gsc-strokes-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 4px;
+    border-radius: 50%;
   }
-  html.dark .gr-sc-bogey {
+
+  /* YOUR cells are tappable to jump back and edit */
+  .gsc-tappable {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .gsc-tappable:hover .gsc-strokes-inner {
+      background: var(--color-orange-pale);
+    }
+    .gsc-tappable.gsc-empty:hover {
+      color: var(--color-orange);
+    }
+  }
+
+  /* Score markers — same language as dock/player-sheet scorecards */
+  .gsc-eagle .gsc-strokes-inner {
+    background: var(--color-orange);
+    color: var(--color-white);
+    box-shadow: 0 0 0 2px var(--color-orange-pale);
+  }
+  .gsc-birdie .gsc-strokes-inner {
+    border: 2px solid var(--color-orange);
+    color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .gsc-bogey .gsc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    color: var(--text-primary);
+  }
+  .gsc-double .gsc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    outline: 1.5px solid var(--text-muted);
+    outline-offset: 1.5px;
+    color: var(--text-primary);
+  }
+  html.dark .gsc-birdie .gsc-strokes-inner {
     background: rgba(232, 93, 4, 0.18);
-    color: var(--color-orange);
   }
-  html.dark .gr-sc-doublebogey,
-  html.dark .gr-sc-over {
-    background: rgba(232, 93, 4, 0.12);
-    color: var(--color-orange);
-  }
+  .gsc-empty { color: var(--text-muted); opacity: 0.55; }
+  .gsc-tappable.gsc-empty { opacity: 0.75; }
+
+
 
   /* Horizontal scroll strip so a 4-player card doesn't force wrapping
      on mobile. Wraps naturally on larger screens via the media query. */
@@ -3423,7 +3531,20 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* Card is now a button — reset button defaults so it looks like a card */
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) {
+    .gr-other-card:hover {
+      border-color: var(--color-orange);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .gr-other-card:active { transform: scale(0.98); }
   .gr-other-name {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -4019,7 +4140,252 @@
      architecture as the miss modal: full-width fixed sheet, slide-up
      transform animation, fade backdrop. The sheet body is scrollable
      for long friend lists. */
-  .manage-sheet-backdrop {
+  /* ── Player Scorecard sheet — read-only scorecard for another
+     player in the current group round. Opened by tapping that
+     player's card in the "Playing With" strip. Same bottom-sheet
+     architecture as the manage-players sheet, with a compact
+     mobile-friendly scorecard body that splits into Front 9 /
+     Back 9 sections. */
+  .player-sc-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 10);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .player-sc-backdrop.opening,
+  .player-sc-backdrop.closing { opacity: 0; }
+  .player-sc-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-raised) + 11);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .player-sc-sheet.opening,
+  .player-sc-sheet.closing {
+    transform: translateY(100%);
+  }
+  /* Disable the transition while the user is actively dragging
+     so the sheet tracks the finger exactly. Matches tools sheet. */
+  .player-sc-sheet.is-dragging { transition: none; }
+  .player-sc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-5) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .player-sc-sheet.is-dragging .player-sc-header { cursor: grabbing; }
+  .player-sc-header-main { min-width: 0; flex: 1; }
+  .player-sc-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .player-sc-name {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .player-sc-tee {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: var(--tracking-wide);
+  }
+  .player-sc-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-2xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .player-sc-close:hover { background: var(--bg-surface); color: var(--text-primary); }
+  }
+
+  /* Summary strip — strokes / vs-par / (putts) */
+  .player-sc-summary {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-cream-100);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  html.dark .player-sc-summary { background: var(--bg-surface); }
+  .player-sc-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .player-sc-summary-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .player-sc-summary-strokes .player-sc-summary-value { color: var(--color-orange); }
+  .player-sc-summary-label {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+
+  /* Scrollable body containing both nines */
+  .player-sc-body {
+    padding: var(--space-4) var(--space-5) var(--space-5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+  }
+  .player-sc-nine { margin-bottom: var(--space-5); }
+  .player-sc-nine:last-child { margin-bottom: 0; }
+  .player-sc-nine-label {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .player-sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    table-layout: fixed;
+  }
+  .player-sc-table th, .player-sc-table td {
+    padding: var(--space-2) 0;
+    text-align: center;
+    border: none;
+  }
+  .player-sc-row-label {
+    text-align: left;
+    padding-left: 0;
+    padding-right: var(--space-2);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 44px;
+  }
+  .player-sc-hole-num {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .player-sc-par {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .player-sc-total-label {
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 36px;
+  }
+  .player-sc-total, .player-sc-par-total {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    background: var(--color-cream-100);
+  }
+  html.dark .player-sc-total, html.dark .player-sc-par-total { background: var(--bg-surface); }
+  .player-sc-par-total { color: var(--text-muted); font-weight: var(--weight-semibold); }
+  .player-sc-strokes {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .player-sc-strokes-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 4px;
+    border-radius: 50%;
+  }
+  /* Score markers matching solo scorecard styling */
+  .player-sc-eagle .player-sc-strokes-inner {
+    background: var(--color-orange);
+    color: var(--color-white);
+    box-shadow: 0 0 0 2px var(--color-orange-pale);
+  }
+  .player-sc-birdie .player-sc-strokes-inner {
+    border: 2px solid var(--color-orange);
+    color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .player-sc-bogey .player-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    color: var(--text-primary);
+  }
+  .player-sc-double .player-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    outline: 1.5px solid var(--text-muted);
+    outline-offset: 1.5px;
+    color: var(--text-primary);
+  }
+  html.dark .player-sc-birdie .player-sc-strokes-inner {
+    background: rgba(232, 93, 4, 0.18);
+  }
+  .player-sc-empty { color: var(--text-muted); opacity: 0.5; }
+
+
     position: fixed;
     inset: 0;
     z-index: calc(var(--z-raised) + 10);
@@ -4117,7 +4483,14 @@
   .finish-sheet-backdrop {
     position: fixed;
     inset: 0;
-    z-index: calc(var(--z-raised) + 10);
+    /* Explicit high z-index — this sheet can be opened from the Play
+       screen's in-progress round banner, where the mobile bottom nav
+       is visible. The --z-raised custom prop is undefined in this
+       codebase, so calc(var(--z-raised) + 10) was evaluating to
+       `auto` and letting DOM order decide the stack, which put the
+       nav on top. 8900/8901 match the confirm backdrop (9000) and
+       still leave headroom above it. */
+    z-index: 8900;
     background: rgba(13, 13, 13, 0.45);
     opacity: 1;
     transition: opacity 220ms ease;
@@ -4131,7 +4504,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: calc(var(--z-raised) + 11);
+    z-index: 8901;
     background: var(--bg-elevated);
     border-top-left-radius: var(--radius-xl);
     border-top-right-radius: var(--radius-xl);
@@ -6267,6 +6640,201 @@
   html.dark .scorecard-row-current {
     background: rgba(232, 93, 4, 0.15);
   }
+
+  /* ── New dock scorecard (dock-sc-*) — mirrors the player-scorecard
+     sheet's layout so the in-round "Scorecard" tool and the tap-a-
+     player scorecard view feel like the same thing. Header with
+     course+tee context, summary tiles (strokes / vs par / putts),
+     and two 9-hole tables with hole-as-column layout and score
+     markers matching the solo round/round summary colors. */
+  .dock-sc-header {
+    padding: 0 0 var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-4);
+  }
+  .dock-sc-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .dock-sc-course-name {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dock-sc-tee {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* Summary strip — strokes / vs-par / (putts) */
+  .dock-sc-summary {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-cream-100);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+  }
+  html.dark .dock-sc-summary { background: var(--bg-surface); }
+  .dock-sc-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dock-sc-summary-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .dock-sc-summary-strokes .dock-sc-summary-value { color: var(--color-orange); }
+  .dock-sc-summary-label {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+
+  /* Body — holds the two nines. Scrolls internally if both nines
+     plus the summary exceed the dock's available height. */
+  .dock-sc-body {
+    padding-bottom: var(--space-2);
+  }
+  .dock-sc-nine { margin-bottom: var(--space-5); }
+  .dock-sc-nine:last-child { margin-bottom: 0; }
+  .dock-sc-nine-label {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .dock-sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    table-layout: fixed;
+  }
+  .dock-sc-table th, .dock-sc-table td {
+    padding: var(--space-2) 0;
+    text-align: center;
+    border: none;
+  }
+  .dock-sc-row-label {
+    text-align: left;
+    padding-left: 0;
+    padding-right: var(--space-2);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 44px;
+  }
+  .dock-sc-hole-num {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  /* Current hole marker — subtle orange underline on the hole number */
+  .dock-sc-hole-current {
+    color: var(--color-orange);
+    position: relative;
+  }
+  .dock-sc-hole-current::after {
+    content: '';
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: 2px;
+    height: 2px;
+    background: var(--color-orange);
+    border-radius: 1px;
+  }
+  .dock-sc-par {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .dock-sc-total-label {
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 36px;
+  }
+  .dock-sc-total, .dock-sc-par-total {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    background: var(--color-cream-100);
+  }
+  html.dark .dock-sc-total, html.dark .dock-sc-par-total { background: var(--bg-surface); }
+  .dock-sc-par-total { color: var(--text-muted); font-weight: var(--weight-semibold); }
+  .dock-sc-strokes {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .dock-sc-strokes-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 4px;
+    border-radius: 50%;
+  }
+  /* Score markers — match the player-sheet/solo-round visual language */
+  .dock-sc-eagle .dock-sc-strokes-inner {
+    background: var(--color-orange);
+    color: var(--color-white);
+    box-shadow: 0 0 0 2px var(--color-orange-pale);
+  }
+  .dock-sc-birdie .dock-sc-strokes-inner {
+    border: 2px solid var(--color-orange);
+    color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .dock-sc-bogey .dock-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    color: var(--text-primary);
+  }
+  .dock-sc-double .dock-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    outline: 1.5px solid var(--text-muted);
+    outline-offset: 1.5px;
+    color: var(--text-primary);
+  }
+  html.dark .dock-sc-birdie .dock-sc-strokes-inner {
+    background: rgba(232, 93, 4, 0.18);
+  }
+  .dock-sc-empty { color: var(--text-muted); opacity: 0.5; }
 
   /* Yardage input — big prominent Playfair number with unit label */
   .caddie-input-row {
@@ -11338,7 +11906,12 @@
     position: fixed;
     inset: 0;
     background: rgba(13, 13, 13, 0.55);
-    z-index: calc(var(--z-modal) + 100);
+    /* Explicit high z-index so the confirm sits above everything
+       including the mobile bottom nav. The --z-modal custom prop
+       isn't defined anywhere in this codebase, so calc(var(--z-modal)
+       + 100) was evaluating to `auto` and letting DOM order decide
+       the stack — which on the Play panel meant the nav won. */
+    z-index: 9000;
     align-items: center;
     justify-content: center;
     padding: var(--space-4);
@@ -17694,6 +18267,11 @@
      With" strip. Bottom sheet listing current players + invitable
      friends. Body-level for the same reason as the others above. -->
 <div id="manage-players-mount"></div>
+
+<!-- PLAYER SCORECARD sheet mount — populated by renderPlayerScorecardSheet()
+     when the user taps a player card in the "Playing With" strip.
+     Shows that player's hole-by-hole scorecard in a read-only view. -->
+<div id="player-scorecard-mount"></div>
 
 <!-- FINISH ROUND sheet mount — populated by renderFinishRoundSheet()
      when a player taps "Finish Round" on a partial round. Presents the
@@ -25953,113 +26531,121 @@
   function renderGroupScorecardView(mount, gr, course, me) {
     const myUid = currentUser?.uid;
     const holes = course.holes;
-    const totalHoles = holes.length;
 
-    // Order players: you first, then others in join order
+    // Player ordering: you first, then everyone else
     const ordered = [
       me,
       ...(gr.players || []).filter(p => p.uid !== myUid)
     ];
 
-    // Build header row: par + hcp per hole, plus subtotal cells.
-    // "Out" after hole 9, "In" after hole 18, "Tot" and "±Par" at end.
     const frontHoles = holes.slice(0, 9);
-    const backHoles = holes.slice(9);
-    const frontPar = frontHoles.reduce((s, h) => s + h.par, 0);
-    const backPar = backHoles.reduce((s, h) => s + h.par, 0);
-    const totalPar = frontPar + backPar;
+    const backHoles  = holes.slice(9);
+    const frontPar   = frontHoles.reduce((s, h) => s + h.par, 0);
+    const backPar    = backHoles.reduce((s, h) => s + h.par, 0);
+    const totalPar   = frontPar + backPar;
 
-    const headerHoleCells = holes.map((h, i) => {
-      const isNineBreak = i === 8;
-      return `
-        <th class="gr-sc-hole-head${isNineBreak ? ' gr-sc-nine-break' : ''}">
-          <div class="gr-sc-hole-num">${h.number}</div>
-          <div class="gr-sc-hole-par">P${h.par}</div>
-        </th>`;
-    }).join('');
+    // Shortest available display name for a player, used for the left-
+    // most column in each nine's table. Falls back through handles before
+    // landing on "Player" so the column never looks empty.
+    const nameFor = (p) => (p.uid === myUid)
+      ? 'You'
+      : (p.usernameDisplay || p.username || p.displayName || 'Player');
 
-    const headerRow = `
-      <tr>
-        <th class="gr-sc-player-head">Player</th>
-        ${holes.slice(0, 9).map((h, i) => `
-          <th class="gr-sc-hole-head">
-            <div class="gr-sc-hole-num">${h.number}</div>
-            <div class="gr-sc-hole-par">P${h.par}</div>
-          </th>`).join('')}
-        <th class="gr-sc-sub-head">Out</th>
-        ${holes.slice(9).map((h, i) => `
-          <th class="gr-sc-hole-head">
-            <div class="gr-sc-hole-num">${h.number}</div>
-            <div class="gr-sc-hole-par">P${h.par}</div>
-          </th>`).join('')}
-        <th class="gr-sc-sub-head">In</th>
-        <th class="gr-sc-sub-head">Tot</th>
-        <th class="gr-sc-sub-head">±</th>
-      </tr>`;
-
-    const playerRows = ordered.map(p => {
-      const scores = p.scores || {};
-      const isYou = p.uid === myUid;
-      const nameLabel = isYou ? 'You' : (p.usernameDisplay || p.username || 'Player');
-
-      // Per-hole cell rendering — broken into front 9 + back 9 so we can
-      // slot the "Out" subtotal in between.
-      const cellForHole = (h, holeIdx) => {
-        const s = scores[h.number];
-        const strokes = s?.strokes;
-        const scoreClass = classifyScore(strokes, h.par);
-        const cellClass = `gr-sc-cell${scoreClass ? ` gr-sc-${scoreClass}` : ''}${isYou ? ' gr-sc-cell-you' : ''}`;
-        const value = strokes != null ? String(strokes) : '';
-        if (isYou) {
-          // Tappable — jumps back to hole-card view at this hole
-          return `<td class="${cellClass}" onclick="grJumpToHoleAndEdit(${holeIdx})">${value}</td>`;
+    // Build one row of score cells for a given player within a nine.
+    // For YOU, cells are tappable and jump back to hole-card view.
+    // startIdx is the round-wide hole index of this nine's first hole
+    // (0 for front, 9 for back) so tapping a cell jumps to the correct
+    // absolute hole.
+    const scoreRowCells = (player, nineHoles, startIdx) => {
+      const scores = player.scores || {};
+      const isYou = player.uid === myUid;
+      return nineHoles.map((h, i) => {
+        const holeIdx = startIdx + i;
+        const s = scores[h.number]?.strokes;
+        if (s == null) {
+          const emptyCls = isYou ? 'gsc-strokes gsc-empty gsc-tappable' : 'gsc-strokes gsc-empty';
+          const emptyTap = isYou ? ` onclick="grJumpToHoleAndEdit(${holeIdx})"` : '';
+          return `<td class="${emptyCls}"${emptyTap}>—</td>`;
         }
-        return `<td class="${cellClass}">${value}</td>`;
-      };
+        const diff = s - h.par;
+        let marker = '';
+        if (diff <= -2)       marker = ' gsc-eagle';
+        else if (diff === -1) marker = ' gsc-birdie';
+        else if (diff === 1)  marker = ' gsc-bogey';
+        else if (diff >= 2)   marker = ' gsc-double';
+        if (isYou) {
+          return `<td class="gsc-strokes gsc-tappable${marker}" onclick="grJumpToHoleAndEdit(${holeIdx})"><span class="gsc-strokes-inner">${s}</span></td>`;
+        }
+        return `<td class="gsc-strokes${marker}"><span class="gsc-strokes-inner">${s}</span></td>`;
+      }).join('');
+    };
 
-      // Compute subtotals: strokes for holes played in that segment
-      const strokesFor = (subset) => subset.reduce((sum, h) => {
-        const s = scores[h.number];
-        return sum + (s?.strokes || 0);
-      }, 0);
-      const playedInSubset = (subset) => subset.filter(h => scores[h.number]?.strokes != null).length;
+    // Build a full nine's table: hole-number row + par row in the head,
+    // then one score row per player. The right-most column is the
+    // per-row total ("Out" for front, "In" for back).
+    const buildNineHtml = (nineHoles, label, startIdx) => {
+      const totalLabel = label === 'Front 9' ? 'Out' : 'In';
+      const ninePar = nineHoles.reduce((sum, h) => sum + h.par, 0);
 
-      const frontStrokes = strokesFor(frontHoles);
-      const backStrokes = strokesFor(backHoles);
-      const totalStrokes = frontStrokes + backStrokes;
+      const nums = nineHoles.map((h, i) => {
+        // Current-hole marker only applies to YOUR position — group
+        // rounds track per-player progress, and highlighting someone
+        // else's "current hole" in a shared grid would be confusing.
+        const isCurrent = (startIdx + i) === groupRoundState.yourHoleIndex;
+        return `<th class="gsc-hole-num${isCurrent ? ' gsc-hole-current' : ''}">${h.number}</th>`;
+      }).join('');
+      const pars = nineHoles.map(h => `<td class="gsc-par">${h.par}</td>`).join('');
 
-      // vs par — only count par for played holes, same approach used
-      // in the hole card view. A partial front-9 should not show +45.
-      const playedAll = [...frontHoles, ...backHoles].filter(h => scores[h.number]?.strokes != null);
-      const playedPar = playedAll.reduce((s, h) => s + h.par, 0);
-      const playedStrokes = playedAll.reduce((s, h) => s + (scores[h.number]?.strokes || 0), 0);
-      const vsPar = playedStrokes - playedPar;
-      const vsParStr = playedAll.length === 0 ? '—'
-        : (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+      const playerRows = ordered.map(p => {
+        const isYou = p.uid === myUid;
+        const scores = p.scores || {};
+        const nineStrokes = nineHoles.reduce((sum, h) => sum + (scores[h.number]?.strokes || 0), 0);
+        const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
+        return `
+          <tr class="gsc-player-row${isYou ? ' gsc-player-you' : ''}">
+            <td class="gsc-player-cell" title="${escapeAttr(nameFor(p))}">${escapeHtml(nameFor(p))}</td>
+            ${scoreRowCells(p, nineHoles, startIdx)}
+            <td class="gsc-total">${nineStrokesDisplay}</td>
+          </tr>`;
+      }).join('');
 
       return `
-        <tr class="${isYou ? 'gr-sc-row-you' : ''}">
-          <th class="gr-sc-player-name">${escapeHtml(nameLabel)}</th>
-          ${frontHoles.map((h, i) => cellForHole(h, i)).join('')}
-          <td class="gr-sc-subtotal">${frontStrokes || '—'}</td>
-          ${backHoles.map((h, i) => cellForHole(h, i + 9)).join('')}
-          <td class="gr-sc-subtotal">${backStrokes || '—'}</td>
-          <td class="gr-sc-subtotal gr-sc-total">${totalStrokes || '—'}</td>
-          <td class="gr-sc-subtotal gr-sc-vspar">${vsParStr}</td>
-        </tr>`;
+        <div class="gsc-nine">
+          <div class="gsc-nine-label">${label}</div>
+          <table class="gsc-table">
+            <thead>
+              <tr><th class="gsc-row-label">Hole</th>${nums}<th class="gsc-total-label">${totalLabel}</th></tr>
+              <tr><td class="gsc-row-label">Par</td>${pars}<td class="gsc-total gsc-par-total">${ninePar}</td></tr>
+            </thead>
+            <tbody>${playerRows}</tbody>
+          </table>
+        </div>`;
+    };
+
+    // Grand totals strip — one tile per player showing total strokes
+    // and vs-par. Lives under the header so the whole group's status
+    // is visible at a glance before scrolling into the nines.
+    const summaryTiles = ordered.map(p => {
+      const isYou = p.uid === myUid;
+      const scores = p.scores || {};
+      const played = holes.filter(h => scores[h.number]?.strokes != null);
+      const holesPlayed = played.length;
+      const totalStrokes = played.reduce((s, h) => s + (scores[h.number].strokes || 0), 0);
+      const playedPar = played.reduce((s, h) => s + h.par, 0);
+      const vsPar = totalStrokes - playedPar;
+      const vsParStr = holesPlayed === 0 ? '—' :
+        (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+      return `
+        <div class="gsc-summary-item${isYou ? ' gsc-summary-you' : ''}">
+          <span class="gsc-summary-name" title="${escapeAttr(nameFor(p))}">${escapeHtml(nameFor(p))}</span>
+          <span class="gsc-summary-value">${holesPlayed === 0 ? '—' : totalStrokes}</span>
+          <span class="gsc-summary-vspar">${vsParStr}</span>
+          <span class="gsc-summary-through">${holesPlayed === 0 ? 'Not started' : `Through ${holesPlayed}`}</span>
+        </div>`;
     }).join('');
 
-    // Par row — reference row at the top of the table
-    const parRow = `
-      <tr class="gr-sc-row-par">
-        <th class="gr-sc-player-name">Par</th>
-        ${frontHoles.map(h => `<td class="gr-sc-par-cell">${h.par}</td>`).join('')}
-        <td class="gr-sc-subtotal">${frontPar}</td>
-        ${backHoles.map(h => `<td class="gr-sc-par-cell">${h.par}</td>`).join('')}
-        <td class="gr-sc-subtotal">${backPar}</td>
-        <td class="gr-sc-subtotal gr-sc-total">${totalPar}</td>
-        <td class="gr-sc-subtotal">—</td>
-      </tr>`;
+    const frontHtml = buildNineHtml(frontHoles, 'Front 9', 0);
+    const backHtml  = buildNineHtml(backHoles,  'Back 9', 9);
 
     mount.innerHTML = `
       <!-- Status strip -->
@@ -26081,17 +26667,18 @@
         <button class="gr-view-toggle-btn active" aria-pressed="true">Scorecard</button>
       </div>
 
-      <div class="gr-sc-hint">Tap any of your cells to edit that hole</div>
+      <div class="gsc-hint">Tap any of your cells to edit that hole</div>
 
-      <!-- Scrollable scorecard grid -->
-      <div class="gr-sc-scroll">
-        <table class="gr-sc-table">
-          <thead>${headerRow}</thead>
-          <tbody>
-            ${parRow}
-            ${playerRows}
-          </tbody>
-        </table>
+      <!-- Unified scorecard card — all players in one grid -->
+      <div class="gsc-card">
+        <!-- Per-player summary row at the top — glance-view of where
+             everyone stands before getting into the hole-by-hole grid. -->
+        <div class="gsc-summary-strip">${summaryTiles}</div>
+
+        <div class="gsc-body">
+          ${frontHtml}
+          ${backHtml}
+        </div>
       </div>
 
       <!-- Same actions as hole view -->
@@ -26101,9 +26688,6 @@
         </div>
       </div>
     `;
-    // Mount the round tool dock (Caddie / Scorecard / Bag) — same dock
-    // solo rounds use. Renders separately from the main panel content
-    // because it lives at the body level, outside the panel wrapper.
     renderRoundDock();
   }
 
@@ -26219,7 +26803,7 @@
           const pVsParStr = throughN === 0 ? '—' : (pVsPar === 0 ? 'E' : (pVsPar > 0 ? `+${pVsPar}` : `${pVsPar}`));
           const label = p.usernameDisplay || p.username || 'Player';
           return `
-            <div class="gr-other-card">
+            <button class="gr-other-card" onclick="openPlayerScorecardSheet('${escapeAttr(p.uid)}')" aria-label="View ${escapeAttr(label)}'s scorecard">
               <div class="gr-other-name">${escapeHtml(label)}</div>
               <div class="gr-other-through">
                 ${throughN > 0 ? `Through ${throughN}` : 'Not started'}
@@ -26228,7 +26812,7 @@
                 <span class="gr-other-strokes">${pStrokes || '—'}</span>
                 <span class="gr-other-vspar">${pVsParStr}</span>
               </div>
-            </div>`;
+            </button>`;
         }).join('');
 
     const atLastHole = groupRoundState.yourHoleIndex === course.holes.length - 1;
@@ -26886,15 +27470,16 @@
   // touch-action: none on the header (CSS above) prevents the browser
   // from claiming the gesture as a page scroll before we see it.
   // ─────────────────────────────────────────────────────────────
-  function attachSheetDragHandlers() {
-    const sheet = document.querySelector('.tools-sheet');
-    const header = sheet?.querySelector('.tools-sheet-header');
-    if (!sheet || !header) return;
-    // Guard against double-attachment on re-renders — the dock
-    // re-renders can replace the sheet node, so we flag the current
-    // node and bail if we've already wired it.
-    if (header.dataset.dragAttached === '1') return;
-    header.dataset.dragAttached = '1';
+  // Generic bottom-sheet drag-to-dismiss. Attaches the gesture to
+  // `headerEl`, tracks vertical drag, fades the backdrop proportionally,
+  // and calls closeFn() if the user drags far enough or fast enough.
+  // Safe to call on re-renders — guards against double-attach via a
+  // dataset flag on the header element. Used by the tools sheet and
+  // the per-player scorecard sheet so they share one code path.
+  function attachBottomSheetDrag({ sheetEl, headerEl, backdropSelector, ignoreSelector, closeFn }) {
+    if (!sheetEl || !headerEl) return;
+    if (headerEl.dataset.dragAttached === '1') return;
+    headerEl.dataset.dragAttached = '1';
 
     let startY = null;
     let currentY = 0;
@@ -26902,30 +27487,29 @@
     let dragging = false;
 
     const onStart = (e) => {
-      // Ignore if the user tapped the × close button or the ← back
-      // button — those have their own handlers and the gesture
-      // would interfere (e.g. a tiny drag while tapping).
-      const tgt = e.target;
-      if (tgt.closest('.tools-sheet-close, .tools-sheet-back')) return;
+      // Skip if the user tapped an element that has its own handler
+      // (close button, back arrow, etc.) — otherwise a tap could be
+      // interpreted as a tiny drag.
+      if (ignoreSelector && e.target.closest(ignoreSelector)) return;
       const touch = e.touches ? e.touches[0] : e;
       startY = touch.clientY;
       currentY = 0;
       startTime = Date.now();
       dragging = true;
-      sheet.classList.add('is-dragging');
+      sheetEl.classList.add('is-dragging');
     };
 
     const onMove = (e) => {
       if (!dragging || startY == null) return;
       const touch = e.touches ? e.touches[0] : e;
       const delta = touch.clientY - startY;
-      // Downward only — clamp upward to 0 so the sheet doesn't get
-      // pulled up past its resting position.
+      // Downward only — clamp upward so the sheet doesn't pull above rest
       currentY = Math.max(0, delta);
-      sheet.style.transform = `translateY(${currentY}px)`;
-      // Fade the backdrop proportionally to drag progress. Sheet
-      // height is ~75vh, so use that as the fade reference.
-      const backdrop = document.querySelector('.tools-sheet-backdrop');
+      sheetEl.style.transform = `translateY(${currentY}px)`;
+      // Fade the backdrop proportional to drag progress. Reference
+      // half the viewport so the backdrop is fully transparent just
+      // before the sheet slides off-screen.
+      const backdrop = backdropSelector ? document.querySelector(backdropSelector) : null;
       if (backdrop) {
         const progress = Math.min(1, currentY / (window.innerHeight * 0.5));
         backdrop.style.opacity = String(1 - progress);
@@ -26935,29 +27519,27 @@
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
-      sheet.classList.remove('is-dragging');
+      sheetEl.classList.remove('is-dragging');
       const elapsed = Math.max(1, Date.now() - startTime);
-      const velocity = currentY / elapsed;   // px per ms
-      // Dismiss thresholds — far enough, OR fast enough
+      const velocity = currentY / elapsed;  // px per ms
+      // Dismiss if dragged far enough OR fast enough
       const shouldClose = currentY > 80 || velocity > 0.6;
-      // Clear inline styles so the CSS-driven animations take over
-      sheet.style.transform = '';
-      const backdrop = document.querySelector('.tools-sheet-backdrop');
+      sheetEl.style.transform = '';
+      const backdrop = backdropSelector ? document.querySelector(backdropSelector) : null;
       if (backdrop) backdrop.style.opacity = '';
       startY = null;
       currentY = 0;
-      if (shouldClose) closeToolsSheet();
+      if (shouldClose) closeFn();
       // If not closing, the sheet snaps back via the restored CSS
-      // transition (transform 260ms) because we cleared the inline
-      // transform above.
+      // transition on .transform (we just cleared the inline style).
     };
 
-    header.addEventListener('touchstart', onStart, { passive: true });
-    header.addEventListener('touchmove', onMove, { passive: true });
-    header.addEventListener('touchend', onEnd, { passive: true });
-    header.addEventListener('touchcancel', onEnd, { passive: true });
-    // Mouse support for desktop (trackpad users who click-drag)
-    header.addEventListener('mousedown', (e) => {
+    headerEl.addEventListener('touchstart', onStart, { passive: true });
+    headerEl.addEventListener('touchmove', onMove, { passive: true });
+    headerEl.addEventListener('touchend', onEnd, { passive: true });
+    headerEl.addEventListener('touchcancel', onEnd, { passive: true });
+    // Mouse support for desktop trackpad click-drag
+    headerEl.addEventListener('mousedown', (e) => {
       onStart(e);
       const mm = (ev) => onMove(ev);
       const mu = () => {
@@ -26967,6 +27549,18 @@
       };
       document.addEventListener('mousemove', mm);
       document.addEventListener('mouseup', mu);
+    });
+  }
+
+  function attachSheetDragHandlers() {
+    const sheet = document.querySelector('.tools-sheet');
+    const header = sheet?.querySelector('.tools-sheet-header');
+    attachBottomSheetDrag({
+      sheetEl: sheet,
+      headerEl: header,
+      backdropSelector: '.tools-sheet-backdrop',
+      ignoreSelector: '.tools-sheet-close, .tools-sheet-back',
+      closeFn: closeToolsSheet,
     });
   }
 
@@ -28046,143 +28640,107 @@
     const course = getCourse(ctx.courseId);
     const tee = course.tees.find(t => t.name === ctx.teeName) || course.tees[0];
     const scores = ctx.scores;
+    const holes = course.holes;
 
-    // Build the full 18-hole dataset. For each hole: par from course,
-    // yardage from selected tee, recorded strokes (if played), and a
-    // classification for the score marker (birdie/bogey/etc.).
-    const rows = course.holes.map((h, i) => {
-      const rec = scores[h.number];
-      const strokes = rec?.strokes;
-      const played = typeof strokes === 'number';
-      let marker = 'none';
-      if (played) {
-        const diff = strokes - h.par;
-        if (diff <= -2)      marker = 'eagle';
-        else if (diff === -1) marker = 'birdie';
-        else if (diff === 0)  marker = 'none';
-        else if (diff === 1)  marker = 'bogey';
-        else                  marker = 'double';
-      }
-      return {
-        number: h.number,
-        par: h.par,
-        yards: tee.yardages[i],
-        strokes,
-        played,
-        marker,
-        isCurrent: i === roundState.holeIndex,
-      };
-    });
+    // Split the card into the familiar Front 9 / Back 9 layout. Each
+    // nine renders as a compact grid (number / par / score per hole)
+    // so the whole card fits on a phone without horizontal scrolling.
+    const frontHoles = holes.slice(0, 9);
+    const backHoles  = holes.slice(9);
+    const frontPar = frontHoles.reduce((s, h) => s + h.par, 0);
+    const backPar  = backHoles.reduce((s, h) => s + h.par, 0);
+    const totalPar = frontPar + backPar;
 
-    // Subtotal helper — accumulate par + strokes for a slice of holes.
-    // Strokes only count if played; if ANY hole in the slice is unplayed,
-    // the strokes subtotal is displayed as a dash (can't report a partial
-    // 9-hole total without misleading the user).
-    function subtotal(slice) {
-      const par = slice.reduce((s, r) => s + r.par, 0);
-      const allPlayed = slice.every(r => r.played);
-      const strokes = allPlayed
-        ? slice.reduce((s, r) => s + r.strokes, 0)
-        : slice.filter(r => r.played).reduce((s, r) => s + r.strokes, 0);
-      return { par, strokes, complete: allPlayed };
-    }
+    // Sum strokes for a hole list, counting only holes actually logged.
+    const sumStrokes = (hs) => hs.reduce((s, h) => s + (scores[h.number]?.strokes || 0), 0);
+    const frontStrokes = sumStrokes(frontHoles);
+    const backStrokes  = sumStrokes(backHoles);
+    const totalStrokes = frontStrokes + backStrokes;
+    const holesPlayed  = holes.filter(h => scores[h.number]?.strokes != null).length;
 
-    const front = rows.slice(0, 9);
-    const back  = rows.slice(9, 18);
-    const frontSub = subtotal(front);
-    const backSub  = subtotal(back);
-    const totalPar = frontSub.par + backSub.par;
-    const totalStrokes = rows.filter(r => r.played).reduce((s, r) => s + r.strokes, 0);
-    const totalComplete = frontSub.complete && backSub.complete;
-    // vs-par for any currently-played holes, using only-played aggregate
-    // so the header stat stays meaningful mid-round.
-    const playedRows = rows.filter(r => r.played);
-    const playedPar = playedRows.reduce((s, r) => s + r.par, 0);
-    const playedStrokes = playedRows.reduce((s, r) => s + r.strokes, 0);
-    const vsPar = playedStrokes - playedPar;
-    const vsParStr = playedRows.length === 0
-      ? '—'
-      : (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+    // Vs-par for holes actually played — matches mid-round framing on
+    // the player scorecard sheet so the number stays meaningful before
+    // all 18 are in.
+    const playedPar = holes.reduce((s, h) => {
+      return s + (scores[h.number]?.strokes != null ? h.par : 0);
+    }, 0);
+    const vsPar = totalStrokes - playedPar;
+    const vsParStr = holesPlayed === 0 ? '—' :
+      (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+
+    // Helper to build one nine's table. Mirrors the player-scorecard
+    // sheet's layout: hole-number row, par row, score row; total column
+    // on the far right ("Out" for front, "In" for back).
+    const buildNineHtml = (nineHoles, label, nineStrokes, ninePar) => {
+      const nums = nineHoles.map(h => {
+        const isCurrent = h.number === (roundState.holeIndex + 1);
+        return `<th class="dock-sc-hole-num${isCurrent ? ' dock-sc-hole-current' : ''}">${h.number}</th>`;
+      }).join('');
+      const pars = nineHoles.map(h => `<td class="dock-sc-par">${h.par}</td>`).join('');
+      const strokeCells = nineHoles.map(h => {
+        const s = scores[h.number]?.strokes;
+        if (s == null) return `<td class="dock-sc-strokes dock-sc-empty">—</td>`;
+        const diff = s - h.par;
+        let cls = '';
+        if (diff <= -2)     cls = ' dock-sc-eagle';
+        else if (diff === -1) cls = ' dock-sc-birdie';
+        else if (diff === 1)  cls = ' dock-sc-bogey';
+        else if (diff >= 2)   cls = ' dock-sc-double';
+        return `<td class="dock-sc-strokes${cls}"><span class="dock-sc-strokes-inner">${s}</span></td>`;
+      }).join('');
+      const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
+      return `
+        <div class="dock-sc-nine">
+          <div class="dock-sc-nine-label">${label}</div>
+          <table class="dock-sc-table">
+            <thead>
+              <tr><th class="dock-sc-row-label">Hole</th>${nums}<th class="dock-sc-total-label">${label === 'Front 9' ? 'Out' : 'In'}</th></tr>
+              <tr><td class="dock-sc-row-label">Par</td>${pars}<td class="dock-sc-total dock-sc-par-total">${ninePar}</td></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="dock-sc-row-label">Score</td>
+                ${strokeCells}
+                <td class="dock-sc-total">${nineStrokesDisplay}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+    };
+
+    const frontHtml = buildNineHtml(frontHoles, 'Front 9', frontStrokes, frontPar);
+    const backHtml  = buildNineHtml(backHoles,  'Back 9',  backStrokes,  backPar);
+
+    // Putts summary — shown only if the user has logged any.
+    const totalPutts = holes.reduce((s, h) => s + (scores[h.number]?.putts || 0), 0);
+    const puttsTile = totalPutts > 0
+      ? `<div class="dock-sc-summary-item"><span class="dock-sc-summary-value">${totalPutts}</span><span class="dock-sc-summary-label">Putts</span></div>`
+      : '';
 
     return `
       <div class="round-dock-surface">
-        <div class="scorecard-header">
-          <div class="scorecard-eyebrow">Scorecard</div>
-          <div class="scorecard-totals-row">
-            <div class="scorecard-total-tile">
-              <div class="scorecard-total-value">${playedRows.length === 0 ? '—' : totalStrokes}</div>
-              <div class="scorecard-total-label">Strokes</div>
-            </div>
-            <div class="scorecard-total-tile">
-              <div class="scorecard-total-value">${vsParStr}</div>
-              <div class="scorecard-total-label">vs Par</div>
-            </div>
-            <div class="scorecard-total-tile">
-              <div class="scorecard-total-value">${playedRows.length}/${rows.length}</div>
-              <div class="scorecard-total-label">Holes</div>
-            </div>
-          </div>
+        <div class="dock-sc-header">
+          <div class="dock-sc-eyebrow">Scorecard</div>
+          <div class="dock-sc-course-name">${escapeHtml(course.name)}</div>
+          <div class="dock-sc-tee">${escapeHtml(tee.name)} tees · ${holesPlayed}/${holes.length} holes · Par ${totalPar}</div>
         </div>
 
-        <div class="scorecard-scroll">
-          <div class="scorecard-nines">
-            ${renderScorecardNine('Front 9', front, frontSub)}
-            ${renderScorecardNine('Back 9', back, backSub)}
+        <div class="dock-sc-summary">
+          <div class="dock-sc-summary-item dock-sc-summary-strokes">
+            <span class="dock-sc-summary-value">${holesPlayed === 0 ? '—' : totalStrokes}</span>
+            <span class="dock-sc-summary-label">Strokes</span>
           </div>
-
-          <div class="scorecard-grand-total">
-            <div class="scorecard-grand-total-label">Total</div>
-            <div class="scorecard-grand-total-values">
-              <span class="scorecard-grand-total-par">Par ${totalPar}</span>
-              <span class="scorecard-grand-total-strokes">${totalComplete ? totalStrokes : (playedRows.length === 0 ? '—' : `${totalStrokes} (through ${playedRows.length})`)}</span>
-            </div>
+          <div class="dock-sc-summary-item">
+            <span class="dock-sc-summary-value">${vsParStr}</span>
+            <span class="dock-sc-summary-label">vs Par</span>
           </div>
-
-          <div class="scorecard-legend">
-            <span class="scorecard-legend-item"><span class="rs-score rs-score-eagle">3</span> Eagle+</span>
-            <span class="scorecard-legend-item"><span class="rs-score rs-score-birdie">3</span> Birdie</span>
-            <span class="scorecard-legend-item"><span class="rs-score rs-score-bogey">5</span> Bogey</span>
-            <span class="scorecard-legend-item"><span class="rs-score rs-score-double">6</span> Double+</span>
-          </div>
+          ${puttsTile}
         </div>
-      </div>`;
-  }
 
-  // Render one 9-hole table (Front 9 or Back 9). Columns: Hole, Par, Score.
-  // Putts/FIR/GIR intentionally omitted to keep the dock view scannable
-  // on phones — full per-hole detail lives on the post-round summary.
-  function renderScorecardNine(label, holes, sub) {
-    const rowsHtml = holes.map(r => {
-      const scoreCell = r.played
-        ? `<span class="rs-score rs-score-${r.marker}">${r.strokes}</span>`
-        : '<span class="scorecard-unplayed">—</span>';
-      const currentClass = r.isCurrent ? ' scorecard-row-current' : '';
-      return `
-        <tr class="scorecard-row${currentClass}">
-          <td class="scorecard-cell-hole">${r.number}</td>
-          <td class="scorecard-cell-par">${r.par}</td>
-          <td class="scorecard-cell-score">${scoreCell}</td>
-        </tr>`;
-    }).join('');
-    const subStrokesStr = sub.complete
-      ? sub.strokes
-      : (sub.strokes > 0 ? `${sub.strokes}*` : '—');
-    return `
-      <div class="scorecard-nine">
-        <div class="scorecard-nine-label">${label}</div>
-        <table class="scorecard-table">
-          <thead>
-            <tr><th>Hole</th><th>Par</th><th>Score</th></tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-          <tfoot>
-            <tr class="scorecard-subtotal-row">
-              <td class="scorecard-cell-hole">${label.includes('Front') ? 'OUT' : 'IN'}</td>
-              <td class="scorecard-cell-par">${sub.par}</td>
-              <td class="scorecard-cell-score scorecard-cell-subtotal">${subStrokesStr}</td>
-            </tr>
-          </tfoot>
-        </table>
+        <div class="dock-sc-body">
+          ${frontHtml}
+          ${backHtml}
+        </div>
       </div>`;
   }
 
@@ -28790,6 +29348,204 @@
   // the slide-in, closing class for the slide-out, scroll lock on
   // body. Lives at the body level (#manage-players-mount) to escape
   // the round panel's transform-based animations.
+  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // Player Scorecard sheet — read-only view of another player's
+  // hole-by-hole scorecard. Opened by tapping their card in the
+  // "Playing With" strip on the group round panel. Updates live
+  // with the group round doc (same onSnapshot as the rest of the
+  // panel), so if the user stays open while the other player logs
+  // holes, the scorecard refreshes in place.
+  // ─────────────────────────────────────────────────────────────
+  const playerScorecardState = { open: false, uid: null };
+
+  function openPlayerScorecardSheet(uid) {
+    if (!isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const player = (gr.players || []).find(p => p.uid === uid);
+    if (!player) return;
+    playerScorecardState.open = true;
+    playerScorecardState.uid = uid;
+    acquireScrollLock();
+    renderPlayerScorecardSheet();
+  }
+
+  function closePlayerScorecardSheet() {
+    if (!playerScorecardState.open) return;
+    const el = document.querySelector('.player-sc-sheet');
+    const backdrop = document.querySelector('.player-sc-backdrop');
+    if (!el || !backdrop) {
+      playerScorecardState.open = false;
+      playerScorecardState.uid = null;
+      releaseScrollLock();
+      const mount = document.getElementById('player-scorecard-mount');
+      if (mount) mount.innerHTML = '';
+      return;
+    }
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      playerScorecardState.open = false;
+      playerScorecardState.uid = null;
+      releaseScrollLock();
+      const mount = document.getElementById('player-scorecard-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+
+  function renderPlayerScorecardSheet() {
+    const mount = document.getElementById('player-scorecard-mount');
+    if (!mount) return;
+    if (!playerScorecardState.open) { mount.innerHTML = ''; return; }
+    const gr = groupRoundState.doc;
+    if (!gr) { closePlayerScorecardSheet(); return; }
+    const player = (gr.players || []).find(p => p.uid === playerScorecardState.uid);
+    if (!player) { closePlayerScorecardSheet(); return; }
+    const course = getCourse(gr.courseId);
+    if (!course) { closePlayerScorecardSheet(); return; }
+
+    const name = player.usernameDisplay || player.username || player.displayName || 'Player';
+    const teeLabel = player.tee || '—';
+    const scores = player.scores || {};
+    const holes = course.holes;
+
+    // Split into front 9 / back 9 for a familiar scorecard layout
+    const frontHoles = holes.slice(0, 9);
+    const backHoles  = holes.slice(9);
+    const frontPar = frontHoles.reduce((s, h) => s + h.par, 0);
+    const backPar  = backHoles.reduce((s, h) => s + h.par, 0);
+    const totalPar = frontPar + backPar;
+
+    // Sum strokes for a hole list, counting only holes actually logged.
+    // Holes with no entry contribute 0 to strokes but also don't count
+    // toward par (so running vs-par stays meaningful mid-round).
+    const sumStrokes = (hs) => hs.reduce((s, h) => s + (scores[h.number]?.strokes || 0), 0);
+    const sumParPlayed = (hs) => hs.reduce((s, h) => {
+      return s + (scores[h.number]?.strokes != null ? h.par : 0);
+    }, 0);
+
+    const frontStrokes = sumStrokes(frontHoles);
+    const backStrokes  = sumStrokes(backHoles);
+    const totalStrokes = frontStrokes + backStrokes;
+    const parPlayed    = sumParPlayed(frontHoles) + sumParPlayed(backHoles);
+    const vsPar        = totalStrokes - parPlayed;
+    const holesPlayed  = holes.filter(h => scores[h.number]?.strokes != null).length;
+
+    const vsParStr = holesPlayed === 0 ? '—' :
+      vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+
+    // Build a nine's table rows — number + par header, then the player's
+    // strokes for each hole (dash if not played).
+    const buildNineHtml = (nineHoles, label, nineStrokes, ninePar) => {
+      const nums = nineHoles.map(h => `<th class="player-sc-hole-num">${h.number}</th>`).join('');
+      const pars = nineHoles.map(h => `<td class="player-sc-par">${h.par}</td>`).join('');
+      const strokeCells = nineHoles.map(h => {
+        const s = scores[h.number]?.strokes;
+        if (s == null) return `<td class="player-sc-strokes player-sc-empty">—</td>`;
+        const diff = s - h.par;
+        let cls = '';
+        if (diff <= -2)     cls = ' player-sc-eagle';
+        else if (diff === -1) cls = ' player-sc-birdie';
+        else if (diff === 1)  cls = ' player-sc-bogey';
+        else if (diff >= 2)   cls = ' player-sc-double';
+        return `<td class="player-sc-strokes${cls}"><span class="player-sc-strokes-inner">${s}</span></td>`;
+      }).join('');
+      const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
+      return `
+        <div class="player-sc-nine">
+          <div class="player-sc-nine-label">${label}</div>
+          <table class="player-sc-table">
+            <thead>
+              <tr><th class="player-sc-row-label">Hole</th>${nums}<th class="player-sc-total-label">${label === 'Front 9' ? 'Out' : 'In'}</th></tr>
+              <tr><td class="player-sc-row-label">Par</td>${pars}<td class="player-sc-total player-sc-par-total">${ninePar}</td></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="player-sc-row-label">Score</td>
+                ${strokeCells}
+                <td class="player-sc-total">${nineStrokesDisplay}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+    };
+
+    const frontHtml = buildNineHtml(frontHoles, 'Front 9', frontStrokes, frontPar);
+    const backHtml  = buildNineHtml(backHoles,  'Back 9',  backStrokes,  backPar);
+
+    // Putts summary line — only shown when the player has actually
+    // recorded any putts (some users skip them). Sums across logged holes.
+    const totalPutts = holes.reduce((s, h) => s + (scores[h.number]?.putts || 0), 0);
+    const puttsLine = totalPutts > 0
+      ? `<div class="player-sc-summary-item"><span class="player-sc-summary-value">${totalPutts}</span><span class="player-sc-summary-label">Putts</span></div>`
+      : '';
+
+    mount.innerHTML = `
+      <div class="player-sc-backdrop opening" onclick="closePlayerScorecardSheet()" aria-hidden="true"></div>
+      <div class="player-sc-sheet opening" role="dialog" aria-modal="true" aria-label="${escapeAttr(name)}'s scorecard">
+        <div class="player-sc-header">
+          <div class="player-sc-header-main">
+            <div class="player-sc-eyebrow">Scorecard</div>
+            <div class="player-sc-name">${escapeHtml(name)}</div>
+            <div class="player-sc-tee">${escapeHtml(teeLabel)} tees · ${holesPlayed}/${holes.length} holes</div>
+          </div>
+          <button class="player-sc-close" onclick="closePlayerScorecardSheet()" aria-label="Close">×</button>
+        </div>
+
+        <div class="player-sc-summary">
+          <div class="player-sc-summary-item player-sc-summary-strokes">
+            <span class="player-sc-summary-value">${holesPlayed === 0 ? '—' : totalStrokes}</span>
+            <span class="player-sc-summary-label">Strokes</span>
+          </div>
+          <div class="player-sc-summary-item">
+            <span class="player-sc-summary-value">${vsParStr}</span>
+            <span class="player-sc-summary-label">vs Par</span>
+          </div>
+          ${puttsLine}
+        </div>
+
+        <div class="player-sc-body">
+          ${frontHtml}
+          ${backHtml}
+        </div>
+      </div>`;
+
+    // Trigger slide-up
+    const sheet = mount.querySelector('.player-sc-sheet.opening');
+    const backdrop = mount.querySelector('.player-sc-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    // Wire drag-to-dismiss on the header — same gesture as the
+    // tools sheet. Attached after the DOM is in place; the helper
+    // guards against double-attach on re-renders.
+    const fullSheet = mount.querySelector('.player-sc-sheet');
+    const header = fullSheet?.querySelector('.player-sc-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.player-sc-backdrop',
+      ignoreSelector: '.player-sc-close',
+      closeFn: closePlayerScorecardSheet,
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────
   const managePlayersState = { open: false };
 
@@ -32289,6 +33045,9 @@
     // If the manage sheet is open over the round, refresh it too so
     // a newly-joined player shows up in real time.
     if (managePlayersState.open) renderManagePlayersSheet();
+    // If the player-scorecard sheet is open, refresh it too so the
+    // other player's live progress updates in place.
+    if (playerScorecardState.open) renderPlayerScorecardSheet();
     // Update the persistent round banner — a live snapshot may have
     // advanced your played-holes count, or flipped status.
     updateRoundBanner();
