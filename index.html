@@ -4386,9 +4386,16 @@
   .player-sc-empty { color: var(--text-muted); opacity: 0.5; }
 
 
+  .manage-sheet-backdrop {
     position: fixed;
     inset: 0;
-    z-index: calc(var(--z-raised) + 10);
+    /* Explicit high z-index — the round action bar's fixed Save & Next
+       button (z:auto via undefined --z-raised) was intercepting taps
+       that should dismiss the sheet when the user taps outside it.
+       Without a real z-index here, the tap never reached the backdrop
+       click handler. 8800/8801 sit below the finish sheet (8900) and
+       confirm modal (9000) so those layer correctly if any stack. */
+    z-index: 8800;
     background: rgba(13, 13, 13, 0.45);
     opacity: 1;
     transition: opacity 220ms ease;
@@ -4404,7 +4411,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: calc(var(--z-raised) + 11);
+    z-index: 8801;
     background: var(--bg-elevated);
     border-top-left-radius: var(--radius-xl);
     border-top-right-radius: var(--radius-xl);
@@ -4421,6 +4428,9 @@
   .manage-sheet.closing {
     transform: translateY(100%);
   }
+  /* Disable the transition while dragging so the sheet tracks the
+     finger exactly. Matches the tools and player-sc sheets. */
+  .manage-sheet.is-dragging { transition: none; }
   .manage-sheet-header {
     display: flex;
     align-items: center;
@@ -4429,7 +4439,11 @@
     padding: var(--space-4);
     border-bottom: 1px solid var(--border-light);
     flex-shrink: 0;
+    /* Header doubles as the drag-to-close grab zone */
+    cursor: grab;
+    touch-action: none;
   }
+  .manage-sheet.is-dragging .manage-sheet-header { cursor: grabbing; }
   .manage-sheet-title {
     flex: 1;
     font-family: var(--font-display);
@@ -6017,6 +6031,22 @@
     text-overflow: ellipsis;
     min-width: 0;
   }
+  /* Left-aligned variant for the tools list view — when a tool IS
+     selected the header has a back arrow on the left balancing the
+     close button on the right, so center-aligning the title reads
+     cleanly. In list mode there's nothing on the left (just a
+     spacer), so left-aligning the title feels more natural and
+     matches the left-aligned rows below it. */
+  .tools-sheet-title.is-list {
+    text-align: left;
+    padding-left: var(--space-2);
+  }
+  /* Flex filler in list mode where there's no title text — pushes
+     the close button to the right edge and leaves the drag-handle
+     pill centered above (it's absolutely positioned). */
+  .tools-sheet-title-spacer {
+    flex: 1;
+  }
   /* Invisible spacer for list mode — preserves title centering by
      matching the close button's footprint on the opposite side. */
   .tools-sheet-spacer {
@@ -6110,6 +6140,12 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* Explicit left-align so iOS button defaults can't center the
+       inline text inside. Parent .tools-list-row already sets this
+       but iOS Safari sometimes doesn't cascade it through button
+       children reliably. */
+    text-align: left;
+    align-items: flex-start;
   }
   .tools-list-row-label {
     font-family: var(--font-display);
@@ -6117,12 +6153,14 @@
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     letter-spacing: var(--tracking-tight);
+    text-align: left;
   }
   .tools-list-row-desc {
     font-family: var(--font-body);
     font-size: var(--text-sm);
     color: var(--text-muted);
     line-height: var(--leading-normal);
+    text-align: left;
   }
   .tools-list-row-arrow {
     font-size: 1rem;
@@ -17033,14 +17071,60 @@
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
     body[data-current-panel="group-lobby"] .mobile-topbar-back {
+      /* Frosted-glass fill behind the X — matches the LIVE pill's
+         treatment on the right side of the topbar so the close button
+         stays legible over scrolling content. Button is 44×44 for the
+         tap target, but we use a radial-gradient trick so the FROST
+         only fills the visible 28px circle, not the whole square.
+         Using radial-gradient rather than a pseudo-element keeps the
+         SVG icon on the ::before so it stays above the frost naturally
+         without fighting z-index. */
+      background-color: transparent;
+      border-radius: 50%;
+    }
+    /* Frost fill — separate ::before so it can be sized to the visible
+       icon circle (28px) rather than the 44px tap target. */
+    body[data-current-panel="round"] .mobile-topbar-back::before,
+    body[data-current-panel="group-round"] .mobile-topbar-back::before,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: rgba(255, 253, 247, 0.72);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+    }
+    html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
+      background-color: rgba(13, 13, 13, 0.6);
+    }
+    /* SVG icon — drawn on the ::after pseudo so it paints ABOVE the
+       ::before frost layer naturally (pseudo paint order: ::before,
+       content, ::after). No z-index needed. */
+    body[data-current-panel="round"] .mobile-topbar-back::after,
+    body[data-current-panel="group-round"] .mobile-topbar-back::after,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
       background-size: 28px 28px;
     }
-    html.dark body[data-current-panel="round"] .mobile-topbar-back,
-    html.dark body[data-current-panel="group-round"] .mobile-topbar-back,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back {
+    html.dark body[data-current-panel="round"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
@@ -26066,7 +26150,8 @@
     __groupRoundSaveInFlight = true;
     try {
       await window.fb.updateGroupRoundPlayer(groupRoundState.docId, currentUser.uid, {
-        scores: me.scores || {}
+        scores: me.scores || {},
+        shots:  me.shots  || {}
       });
     } catch (err) {
       console.error('Failed to save group round score:', err);
@@ -26419,6 +26504,11 @@
       status: 'completed',
       currentHoleIndex: Math.max(0, Object.keys(me.scores || {}).length - 1),
       scores: me.scores || {},
+      // Shots logged during the group round get preserved on the
+      // personal history card alongside scores. Matches the solo
+      // round snapshot shape so history UIs can read shots the same
+      // way regardless of which round flavor produced the card.
+      shots: me.shots || {},
       totals,
       // Back-reference to the group round so history can show it
       // distinctly (Layer F) and we can dedupe if a user completes
@@ -27261,10 +27351,27 @@
   // Get the shots array for a given hole (defensive — the map may not
   // have the key yet). Returns a reference so callers can mutate, but
   // callers must call ensureShotsForHole() first if they want to push.
+  //
+  // Routes through the round context: solo rounds store shots on
+  // `roundState.shots`; group rounds store them on YOUR player entry
+  // in the group round doc (`me.shots`). The accessor abstracts this
+  // so higher-level code can just ask for "the current round's shots
+  // on hole N" without branching.
   function getShotsForHole(holeNumber) {
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      return me?.shots?.[holeNumber] || [];
+    }
     return roundState.shots?.[holeNumber] || [];
   }
   function ensureShotsForHole(holeNumber) {
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      if (!me) return [];
+      if (!me.shots) me.shots = {};
+      if (!me.shots[holeNumber]) me.shots[holeNumber] = [];
+      return me.shots[holeNumber];
+    }
     if (!roundState.shots) roundState.shots = {};
     if (!roundState.shots[holeNumber]) roundState.shots[holeNumber] = [];
     return roundState.shots[holeNumber];
@@ -27858,8 +27965,7 @@
       headerHtml = `
         <div class="tools-sheet-header">
           <div class="tools-sheet-handle" aria-hidden="true"></div>
-          <div class="tools-sheet-spacer" aria-hidden="true"></div>
-          <div class="tools-sheet-title">Tools</div>
+          <div class="tools-sheet-title-spacer" aria-hidden="true"></div>
           <button class="tools-sheet-close" onclick="closeToolsSheet()" aria-label="Close">×</button>
         </div>
       `;
@@ -27880,6 +27986,7 @@
     // Short descriptions help discoverability. Kept to one line each.
     const DESCRIPTIONS = {
       scorecard: 'See your running scorecard',
+      shots:     'Log each shot and club used',
       weather:   'Conditions at the course',
       caddie:    'Get a club suggestion',
       bag:       'Reference your club distances',
@@ -27917,9 +28024,11 @@
   // Partials are nested under each club, same as elsewhere.
   // ─────────────────────────────────────────────────────────────
   // Track Shots tool — surfaced in the round tools sheet. Shows the
-  // current hole's shot list; user can add/edit/delete. Data lives
-  // in roundState.shots (solo rounds only for now — group rounds
-  // show an "in solo only" hint until we wire group persistence).
+  // current hole's shot list; user can add/edit/delete. Works for both
+  // solo and group rounds: solo persists shots on the solo round doc,
+  // group persists them alongside scores on YOUR player entry in the
+  // group round doc. The storage branching lives inside getShotsForHole
+  // / ensureShotsForHole so the UI code here stays mode-agnostic.
   // ─────────────────────────────────────────────────────────────
 
   // Edit sheet state. `draft` holds the in-progress shot being added
@@ -27932,23 +28041,6 @@
   };
 
   function renderShotsTool() {
-    // Shot tracking is solo-only for now. Group rounds get a hint
-    // pointing them toward the solo mode; we'll add per-player shot
-    // persistence to the group round doc in a follow-up.
-    if (isGroupRoundActive()) {
-      return `
-        <div class="round-dock-surface">
-          <div class="caddie-header">
-            <div class="caddie-eyebrow">Track Shots</div>
-          </div>
-          <div class="caddie-empty">
-            <div class="caddie-empty-title">Solo rounds only</div>
-            <div class="caddie-empty-text">
-              Shot tracking is currently available on solo rounds. Group round support is coming soon.
-            </div>
-          </div>
-        </div>`;
-    }
     const ctx = getCurrentRoundContext();
     if (!ctx) {
       return `
@@ -28172,8 +28264,14 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    // Persist (fire-and-forget; UI already updated)
-    autoSaveRound().catch(err => console.error('Failed to save shot:', err));
+    // Persist through the active round's save path. Group rounds write
+    // shots alongside scores in a single updateGroupRoundPlayer call,
+    // debounced by queueSaveMyGroupScores; solo rounds use autoSaveRound.
+    if (isGroupRoundActive()) {
+      queueSaveMyGroupScores();
+    } else {
+      autoSaveRound().catch(err => console.error('Failed to save shot:', err));
+    }
   }
 
   // Delete flow — confirm then drop from the shots array. Accessible
@@ -28200,7 +28298,12 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    autoSaveRound().catch(err => console.error('Failed to delete shot:', err));
+    // Persist — same branching as saveShotDraft above.
+    if (isGroupRoundActive()) {
+      queueSaveMyGroupScores();
+    } else {
+      autoSaveRound().catch(err => console.error('Failed to delete shot:', err));
+    }
   }
 
   function renderShotEditSheet() {
@@ -29684,6 +29787,19 @@
         if (backdrop) backdrop.classList.remove('opening');
       });
     }
+
+    // Wire drag-to-dismiss on the header — same gesture as the
+    // tools and player-scorecard sheets. The helper no-ops on
+    // re-renders thanks to its dataset.dragAttached guard.
+    const fullSheet = mount.querySelector('.manage-sheet');
+    const header = fullSheet?.querySelector('.manage-sheet-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.manage-sheet-backdrop',
+      ignoreSelector: '.manage-sheet-close',
+      closeFn: closeManagePlayersSheet,
+    });
   }
 
   // Adjust penalty stroke count. Penalties don't add to strokes
@@ -32811,6 +32927,7 @@
             endTime: Date.now(),
             dateKey: removedDoc.dateKey || null,
             scores: myLastRecord.scores || {},
+            shots:  myLastRecord.shots  || {},
             organizerUid: removedDoc.organizerUid || null,
             groupOthers: otherPlayers,
             reason: 'kicked'
@@ -32903,6 +33020,7 @@
             endTime: Date.now(),
             dateKey: removedDoc.dateKey || null,
             scores: myLastRecord.scores || {},
+            shots:  myLastRecord.shots  || {},
             organizerUid: removedDoc.organizerUid || null,
             groupOthers: otherPlayers,
             // Why this pending record was created — purely informational
@@ -32929,10 +33047,11 @@
     }
 
     // Race guard: if WE have a pending OR in-flight score write, preserve
-    // our local `me.scores` in the merged doc. A snapshot arriving during
-    // the debounce window OR mid-write could otherwise overwrite our
-    // uncommitted edits with stale server data. Two flags cover both
-    // windows: __groupRoundSaveTimer (debounce pending) and
+    // our local `me.scores` (and `me.shots`, since they write together)
+    // in the merged doc. A snapshot arriving during the debounce window
+    // OR mid-write could otherwise overwrite uncommitted edits with
+    // stale server data. Two flags cover both windows:
+    // __groupRoundSaveTimer (debounce pending) and
     // __groupRoundSaveInFlight (write in flight).
     //
     // The race guard only kicks in when we're STILL in the round per
@@ -32945,7 +33064,7 @@
       if (localMe && stillInFresh) {
         const freshPlayers = (freshDoc.players || []).map(p =>
           p.uid === currentUser.uid
-            ? { ...p, scores: localMe.scores || {} }
+            ? { ...p, scores: localMe.scores || {}, shots: localMe.shots || {} }
             : p
         );
         mergedDoc = { ...freshDoc, players: freshPlayers };
@@ -33406,6 +33525,7 @@
       status: 'completed',
       currentHoleIndex: Math.max(0, Object.keys(pending.scores || {}).length - 1),
       scores: pending.scores || {},
+      shots:  pending.shots  || {},
       totals,
       groupRoundId: pending.groupRoundId,
       groupOthers: pending.groupOthers || []
@@ -33487,6 +33607,10 @@
       status: 'in-progress',
       currentHoleIndex: nextHoleIdx,
       scores: pending.scores || {},
+      // Carry shots through from the pending group scorecard so the
+      // user doesn't lose what they already tracked. The new solo
+      // round picks up at the same hole with the same shot history.
+      shots: pending.shots || {},
       totals: null
     };
     try {
@@ -33502,6 +33626,7 @@
       roundState.teeName = payload.teeName;
       roundState.holeIndex = nextHoleIdx;
       roundState.scores = payload.scores;
+      roundState.shots = payload.shots;
       roundState.started = payload.startTime;
       roundState.dateKey = dateKey;
     } catch (err) {
@@ -36314,10 +36439,11 @@
 
     // Rejoin-from-history check: if I have a previously-saved personal
     // round for THIS group round, offer to continue from where I left
-    // off (restoring scores) or start fresh. This is the only way to
-    // preserve progress across leave-and-rejoin in the simplified
+    // off (restoring scores AND shots) or start fresh. This is the only
+    // way to preserve progress across leave-and-rejoin in the simplified
     // model — the group doc itself doesn't keep ex-players' data.
     let prefillScores = {};
+    let prefillShots = {};
     const priorRound = (recentRounds || []).find(r => r.groupRoundId === groupRoundId);
     if (priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
       const holesPlayed = Object.keys(priorRound.scores).length;
@@ -36332,6 +36458,12 @@
       });
       if (choice) {
         prefillScores = { ...priorRound.scores };
+        // Carry shots through too — otherwise a user who tracked shots
+        // before leaving loses them on rejoin, even when opting to
+        // "Continue" their saved round. Shots are stored per-hole
+        // under priorRound.shots (falsy for pre-feature rounds or
+        // rounds where no shots were logged).
+        prefillShots = { ...(priorRound.shots || {}) };
       }
       // If they chose "Start Fresh", scores stay empty. The history
       // card from priorRound stays in their history until they save
@@ -36352,7 +36484,8 @@
       joinedAt: Date.now(),
       status: 'active',
       leftAtHole: null,
-      scores: prefillScores
+      scores: prefillScores,
+      shots:  prefillShots
     };
 
     try {
@@ -39920,6 +40053,16 @@
     const firPct = firMax > 0 && typeof firHit === 'number' ? Math.round((firHit / firMax) * 100) : null;
     const girPct = girMax > 0 && typeof girHit === 'number' ? Math.round((girHit / girMax) * 100) : null;
 
+    // Shot-tracking summary. The round saves a `shots` map keyed by
+    // hole number, each holding the array of logged shots. Not every
+    // round has this data (Quick Score rounds don't; pre-feature
+    // rounds don't), so surface it only when there's something to
+    // show — a tile in the totals strip + a column in the hole table.
+    const shotsMap = round.shots || {};
+    const shotsHoleCount = Object.keys(shotsMap).filter(hn => (shotsMap[hn] || []).length > 0).length;
+    const totalTrackedShots = Object.values(shotsMap).reduce((s, arr) => s + (Array.isArray(arr) ? arr.length : 0), 0);
+    const hasTrackedShots = totalTrackedShots > 0;
+
     // Hole-by-hole breakdown if we have course data. Quick Score rounds
     // have empty scores maps and won't produce any rows — we show a
     // helpful note below instead.
@@ -39964,6 +40107,13 @@
         const penaltyMark = (e.penalties > 0)
           ? `<span class="rs-cell-pen" title="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}">⚠${e.penalties > 1 ? e.penalties : ''}</span>`
           : '';
+        // Shots logged on this hole — when none, show a muted dash so
+        // the column reads cleanly even if the user tracked shots on
+        // only some holes.
+        const holeShotCount = (shotsMap[hn] || []).length;
+        const shotsCell = hasTrackedShots
+          ? (holeShotCount > 0 ? `<td>${holeShotCount}</td>` : '<td><span class="rs-cell-dim">—</span></td>')
+          : '';
         return `
           <tr>
             <td>${hn}</td>
@@ -39972,6 +40122,7 @@
             <td>${e.putts ?? '—'}</td>
             <td>${firCell}</td>
             <td>${girCell}</td>
+            ${shotsCell}
           </tr>`;
       }).join('');
     }
@@ -40003,6 +40154,12 @@
           <div class="round-summary-stat-value">${holesPlayed}</div>
           <div class="round-summary-stat-label">Holes</div>
         </div>
+        ${hasTrackedShots ? `
+          <div class="round-summary-stat">
+            <div class="round-summary-stat-value">${totalTrackedShots}</div>
+            <div class="round-summary-stat-label">Shots Logged</div>
+          </div>
+        ` : ''}
       </div>
 
       ${hasStatsTracking ? `
@@ -40034,7 +40191,7 @@
         <div class="round-summary-table-wrap">
           <table class="round-summary-table">
             <thead>
-              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr>
+              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th>${hasTrackedShots ? '<th>Shots</th>' : ''}</tr>
             </thead>
             <tbody>${holeRows}</tbody>
           </table>
