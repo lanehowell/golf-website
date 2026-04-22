@@ -16605,8 +16605,16 @@
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
       position: static;
       height: auto;
-      padding-top: var(--space-4);
+      padding-top: var(--space-2);
       background: transparent;
+    }
+    /* Static topbar also shrinks its inner height — the default 52px
+       is for a fixed-bar context where the arrow should be visually
+       centered in a tappable strip. When the bar flows inline, a
+       smaller height tightens the banner → arrow → content rhythm
+       without losing tap target size (the button itself stays 44px). */
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-inner {
+      height: 44px;
     }
 
     /* Body padding reserves space for the opaque topbar. Root tabs
