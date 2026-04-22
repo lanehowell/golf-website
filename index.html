@@ -3545,6 +3545,24 @@
     }
   }
   .gr-other-card:active { transform: scale(0.98); }
+  /* Finished variant — subtle green-tinted border + "Finished" text in
+     the through-row signals completion without a loud badge. Still
+     tappable to view their final scorecard. */
+  .gr-other-card-finished {
+    border-color: rgba(45, 110, 52, 0.35);
+    background: rgba(239, 248, 240, 0.55);
+  }
+  html.dark .gr-other-card-finished {
+    border-color: rgba(143, 206, 148, 0.3);
+    background: rgba(45, 110, 52, 0.12);
+  }
+  .gr-other-card-finished .gr-other-through {
+    color: #2D6E34;
+    font-weight: var(--weight-semibold);
+  }
+  html.dark .gr-other-card-finished .gr-other-through {
+    color: #8FCE94;
+  }
   .gr-other-name {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -4149,7 +4167,13 @@
   .player-sc-backdrop {
     position: fixed;
     inset: 0;
-    z-index: calc(var(--z-raised) + 10);
+    /* Explicit high z-index — the --z-raised custom prop is undefined
+       in this codebase, so calc(var(--z-raised) + 10) was evaluating
+       to `auto` and letting DOM order decide the stack. The bottom
+       nav on the summary screen was winning by DOM order. 8700/8701
+       sits below confirm modal (9000), finish sheet (8900), and
+       manage sheet (8800) so those layer correctly when stacked. */
+    z-index: 8700;
     background: rgba(13, 13, 13, 0.45);
     opacity: 1;
     transition: opacity 220ms ease;
@@ -4163,7 +4187,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: calc(var(--z-raised) + 11);
+    z-index: 8701;
     background: var(--bg-elevated);
     border-top-left-radius: var(--radius-xl);
     border-top-right-radius: var(--radius-xl);
@@ -4489,6 +4513,281 @@
      don't have the lobby's top-level padding around it. */
   .manage-sheet-body .lobby-section { margin-bottom: var(--space-5); }
   .manage-sheet-body .lobby-section:last-child { margin-bottom: 0; }
+
+  /* ── Edit-score sheet — opens when you tap another player's cell in
+     the group scorecard. Lightweight strokes/putts editor. Same
+     chrome architecture as the other bottom sheets (handle + drag-
+     to-close header + backdrop). Z-indices sit above the manage
+     sheet (8800) because the edit sheet CAN be opened on top of a
+     manage sheet in theory, though in practice the user closes one
+     to interact with the other. 8850 gives headroom while staying
+     below the finish sheet (8900) and confirm modal (9000). */
+  .edit-score-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8850;
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .edit-score-backdrop.opening,
+  .edit-score-backdrop.closing {
+    opacity: 0;
+  }
+  .edit-score-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8851;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+  }
+  .edit-score-sheet.opening,
+  .edit-score-sheet.closing { transform: translateY(100%); }
+  .edit-score-sheet.is-dragging { transition: none; }
+  .edit-score-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+  }
+  .edit-score-sheet.is-dragging .edit-score-header { cursor: grabbing; }
+  .edit-score-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    background: var(--border-medium);
+    border-radius: 2px;
+  }
+  .edit-score-title-block {
+    flex: 1;
+    min-width: 0;
+  }
+  .edit-score-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .edit-score-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .edit-score-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .edit-score-close:active { opacity: 0.6; }
+  @media (hover: hover) {
+    .edit-score-close:hover { background: var(--bg-surface); color: var(--text-primary); }
+  }
+  .edit-score-body {
+    padding: var(--space-5) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    overflow-y: auto;
+  }
+  .edit-score-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .edit-score-field-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .edit-score-field-opt {
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: var(--tracking-normal);
+    font-size: var(--text-xs);
+  }
+  /* Stepper: [−] [big value] [+]. Values live centered between the
+     buttons. Large touch targets so editing is ergonomic on-course. */
+  .edit-score-stepper {
+    display: grid;
+    grid-template-columns: 64px 1fr 64px;
+    gap: var(--space-3);
+    align-items: stretch;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2);
+  }
+  .edit-score-step-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .edit-score-step-btn:active { transform: scale(0.94); }
+  @media (hover: hover) {
+    .edit-score-step-btn:hover:not(:disabled) {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+    }
+  }
+  .edit-score-step-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .edit-score-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-2);
+  }
+  .edit-score-num {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .edit-score-diff {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    color: var(--color-orange);
+    margin-top: 4px;
+    letter-spacing: var(--tracking-wide);
+  }
+  /* Quick-set shortcuts that appear only when no value is entered —
+     par and bogey cover the majority of "I missed my friend's hole"
+     edits. Sized small so they don't compete with the primary stepper. */
+  .edit-score-quickset {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+  }
+  .edit-score-quickset-btn {
+    flex: 1;
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .edit-score-quickset-btn:active { transform: scale(0.97); }
+  @media (hover: hover) {
+    .edit-score-quickset-btn:hover {
+      border-style: solid;
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+  .edit-score-actions {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .edit-score-cancel,
+  .edit-score-save {
+    flex: 1;
+    padding: var(--space-4) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .edit-score-cancel {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+  }
+  @media (hover: hover) {
+    .edit-score-cancel:hover { background: var(--bg-surface); }
+  }
+  .edit-score-save {
+    background: var(--color-orange);
+    color: var(--color-white);
+    box-shadow: var(--shadow-accent);
+  }
+  @media (hover: hover) {
+    .edit-score-save:hover:not(:disabled) { background: var(--color-orange-light); }
+  }
+  .edit-score-save:active:not(:disabled) { transform: scale(0.98); }
+  .edit-score-save:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+  /* Dark mode — inherit base surface colors but bump stepper contrast */
+  html.dark .edit-score-stepper { background: rgba(255, 255, 255, 0.03); }
+  html.dark .edit-score-step-btn { background: var(--bg-elevated); }
 
   /* ── Finish-round sheet — same chrome architecture as the manage
      sheet, but tighter and built for choosing between save/leave.
@@ -5183,6 +5482,41 @@
     background: rgba(232, 93, 4, 0.18);
     color: var(--color-orange);
   }
+  /* Result badge — shows dispersion outcome. "On" gets a green success
+     treatment so it reads as a positive data point; any miss (Long,
+     Short, L-L, etc.) gets a neutral slate pill so it's informational
+     without implying judgment. Sized the same as the mishit badge so
+     they stack cleanly on the shot row. */
+  .shot-row-result {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .shot-row-result-on {
+    background: #EFF8F0;
+    color: #2D6E34;
+    border: 1px solid #B7DDB9;
+  }
+  html.dark .shot-row-result-on {
+    background: rgba(45, 110, 52, 0.18);
+    color: #8FCE94;
+    border-color: rgba(143, 206, 148, 0.3);
+  }
+  .shot-row-result-miss {
+    background: var(--color-cream-200);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+  }
+  html.dark .shot-row-result-miss {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-cream-300);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
   .shot-row-chevron {
     flex-shrink: 0;
     color: var(--text-muted);
@@ -5538,6 +5872,82 @@
       color: var(--text-primary);
     }
   }
+
+  /* 3×3 dispersion grid for the shot Result picker. Spatial layout
+     IS the interaction model: top row = long, bottom row = short,
+     left column = left, right column = right. Center = on target,
+     styled distinctly so it doesn't get lost among the 8 miss cells.
+     Square aspect ratio so the grid reads as a compass/target. */
+  .shot-result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: var(--space-2);
+    aspect-ratio: 1 / 1;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .shot-result-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    padding: var(--space-2);
+  }
+  .shot-result-cell:active { transform: scale(0.96); }
+  @media (hover: hover) {
+    .shot-result-cell:not(.is-active):hover {
+      border-color: var(--color-orange);
+      color: var(--text-primary);
+    }
+  }
+  /* Center "On Target" cell — always visually distinct from the miss
+     cells even when not active. Dashed border hints "this is different."
+     When active, switches to a solid green success fill. */
+  .shot-result-cell.is-center {
+    border-style: dashed;
+    border-color: var(--border-medium);
+    color: var(--text-muted);
+  }
+  .shot-result-cell.is-center.is-active {
+    background: #EFF8F0;
+    border: 1.5px solid #2D6E34;
+    border-style: solid;
+    color: #2D6E34;
+  }
+  html.dark .shot-result-cell.is-center.is-active {
+    background: rgba(45, 110, 52, 0.22);
+    border-color: #8FCE94;
+    color: #8FCE94;
+  }
+  /* Miss cells active — orange fill matching the other active chips
+     in the edit sheet, keeps visual consistency with Intent/Lie. */
+  .shot-result-cell.is-active:not(.is-center) {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: var(--color-white);
+  }
+  .shot-result-cell-label {
+    line-height: 1.1;
+    text-align: center;
+  }
+  /* Empty placeholder — shouldn't exist in our 3x3 (all 9 cells filled)
+     but defined defensively in case SHOT_RESULTS ever changes shape. */
+  .shot-result-cell-empty { visibility: hidden; }
 
   .shot-edit-footer {
     display: flex;
@@ -9412,6 +9822,340 @@
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--text-muted);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     Group round leaderboard on the round summary screen
+     Mount point = #round-summary-leaderboard-mount
+     Hydrated async in hydrateRoundSummaryLeaderboard().
+     ────────────────────────────────────────────────────────────── */
+  .round-summary-leaderboard-mount {
+    margin-bottom: var(--space-8);
+  }
+  .rs-lb-loading,
+  .rs-lb-empty {
+    padding: var(--space-4);
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+  .rs-lb-table {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-elevated);
+  }
+  .rs-lb-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .rs-lb-row:last-child { border-bottom: none; }
+  /* Row-as-button — reset button defaults so the row still looks like
+     a table row. Hover feedback only on tappable rows (is-tappable
+     class). Non-tappable rows (zero-data players) remain display-only
+     divs with no hover affordance. */
+  button.rs-lb-row {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast);
+  }
+  button.rs-lb-row:last-child { border-bottom: none; }
+  button.rs-lb-row:active { background: var(--color-cream-100); }
+  @media (hover: hover) {
+    button.rs-lb-row.is-tappable:hover {
+      background: var(--color-cream-100);
+    }
+  }
+  html.dark button.rs-lb-row:active { background: rgba(255, 255, 255, 0.04); }
+  html.dark button.rs-lb-row.is-tappable:hover { background: rgba(255, 255, 255, 0.04); }
+  /* Highlight YOUR row with a subtle orange wash so you can locate
+     yourself at a glance. Same visual pattern as the unified group
+     scorecard's orange row treatment. */
+  .rs-lb-row.is-me {
+    background: var(--color-orange-pale);
+  }
+  button.rs-lb-row.is-me { background: var(--color-orange-pale); }
+  html.dark .rs-lb-row.is-me,
+  html.dark button.rs-lb-row.is-me {
+    background: rgba(232, 93, 4, 0.08);
+  }
+  button.rs-lb-row.is-me:active,
+  button.rs-lb-row.is-me.is-tappable:hover {
+    background: var(--color-orange-pale);
+    filter: brightness(0.97);
+  }
+  .rs-lb-pos {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .rs-lb-row.is-me .rs-lb-pos { color: var(--color-orange); }
+  .rs-lb-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rs-lb-you-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-orange);
+    color: var(--color-white);
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  .rs-lb-tee {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+  }
+  .rs-lb-strokes {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .rs-lb-vspar {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-orange);
+    font-weight: var(--weight-medium);
+    margin-left: 2px;
+  }
+  .rs-lb-through {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  /* In-progress leaderboard state — softer background, muted position
+     number, and an "In Progress" pill replacing the numeric score so
+     unfinished rounds read as informational rather than competitive.
+     Separates completed leaderboard rows visually from not-yet-scored
+     ones without making the in-progress rows feel hidden. */
+  .rs-lb-row.is-inprogress {
+    background: var(--bg-surface);
+  }
+  html.dark .rs-lb-row.is-inprogress {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .rs-lb-row.is-inprogress .rs-lb-pos {
+    color: var(--text-muted);
+    font-weight: var(--weight-medium);
+  }
+  .rs-lb-row.is-inprogress .rs-lb-name {
+    color: var(--text-secondary);
+  }
+  .rs-lb-strokes-inprogress {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  /* In-progress pill — subtle, muted, no score. Different palette from
+     YOU tag so they don't visually compete on the same row. */
+  .rs-lb-inprogress-pill {
+    display: inline-block;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  /* Dark mode: solid cream-tinted fill with a proper border — the
+     previous ghost-on-ghost treatment (translucent bg on translucent
+     row) read as broken. Neutral palette distinguishes it from the
+     orange YOU tag while still being clearly visible. */
+  html.dark .rs-lb-inprogress-pill {
+    background: rgba(234, 217, 188, 0.14);
+    color: var(--color-cream-200);
+    border-color: rgba(234, 217, 188, 0.3);
+  }
+  .rs-lb-through-inprogress {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  /* View Group Scorecard button — sits below the leaderboard table,
+     opens a full-screen scorecard grid showing all players' hole-by-
+     hole data. Ghost button style so it doesn't compete visually
+     with the primary Back to Play CTA further down the summary. */
+  .rs-lb-group-btn {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-lb-group-btn:active { transform: scale(0.99); }
+  @media (hover: hover) {
+    .rs-lb-group-btn:hover {
+      border-style: solid;
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+
+  /* Summary group scorecard sheet — full-width bottom sheet showing
+     the complete group's hole-by-hole data in a unified grid. Slides
+     up like the other sheets (tools, player-sc, manage, edit-score)
+     for consistency. Reuses the .gsc-* class language from the live
+     group scorecard view inside the sheet body. */
+  .sgs-backdrop {
+    position: fixed;
+    inset: 0;
+    /* Sits just below the player scorecard sheet (8700) so if the
+       user taps a row inside the group scorecard to open an
+       individual card, the individual card layers on top. */
+    z-index: 8650;
+    background: rgba(13, 13, 13, 0.5);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sgs-backdrop.opening,
+  .sgs-backdrop.closing { opacity: 0; }
+  .sgs-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8651;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .sgs-sheet.opening,
+  .sgs-sheet.closing { transform: translateY(100%); }
+  /* Disable transition while dragging so the sheet tracks the
+     finger 1:1 — matches tools/player-sc/manage sheets. */
+  .sgs-sheet.is-dragging { transition: none; }
+  .sgs-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    /* Header doubles as the drag-to-close grab zone */
+    cursor: grab;
+    touch-action: none;
+  }
+  .sgs-sheet.is-dragging .sgs-header { cursor: grabbing; }
+  .sgs-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    background: var(--border-medium);
+    border-radius: 2px;
+  }
+  .sgs-title-block { flex: 1; min-width: 0; }
+  .sgs-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+  }
+  .sgs-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sgs-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+  .sgs-close:active { opacity: 0.6; }
+  @media (hover: hover) {
+    .sgs-close:hover { background: var(--bg-surface); color: var(--text-primary); }
+  }
+  .sgs-body {
+    padding: var(--space-4);
+    overflow-y: auto;
+    flex: 1;
   }
 
   /* Hole-table FIR/GIR cell states — tiny visual cues in the scorecard */
@@ -18357,6 +19101,19 @@
      Shows that player's hole-by-hole scorecard in a read-only view. -->
 <div id="player-scorecard-mount"></div>
 
+<!-- EDIT SCORE sheet mount — populated by renderEditScoreSheet() when
+     the user taps a cell in the group scorecard belonging to another
+     player. Lightweight strokes/putts editor that writes via
+     updateGroupRoundPlayer. Body-level like the other sheet mounts. -->
+<div id="edit-score-mount"></div>
+
+<!-- SUMMARY GROUP SCORECARD modal mount — populated by
+     renderSummaryGroupScorecard() when the user taps "View group
+     scorecard" on the round summary leaderboard. Shows the complete
+     group's hole-by-hole grid (all players × all holes) from shaped
+     leaderboard row data. Body-level for ancestor-transform escape. -->
+<div id="summary-group-scorecard-mount"></div>
+
 <!-- FINISH ROUND sheet mount — populated by renderFinishRoundSheet()
      when a player taps "Finish Round" on a partial round. Presents the
      save-or-leave choice in plain language. Body-level for ancestor-
@@ -19034,6 +19791,54 @@
         const playerUids = (data.playerUids || []).filter(u => u !== uid);
         tx.update(ref, { players, playerUids });
       });
+    },
+
+    // Mirror a player's final totals onto the group round itself so
+    // OTHER players in the round can see a leaderboard when they
+    // finish — they can't read each other's personal round cards
+    // (private paths), but the group round has a shared results
+    // subcollection that's readable by everyone who was in the round.
+    // Keep the payload small — just what the leaderboard needs. Called
+    // from completeMyGroupRound; must run BEFORE removeGroupRoundPlayer
+    // strictly speaking doesn't matter (the results-write rule only
+    // checks uid match, not playerUids membership) but doing it first
+    // keeps intent clear.
+    writeGroupRoundResult: async (groupRoundId, uid, result) => {
+      const ref = doc(db, `groupRounds/${groupRoundId}/results/${uid}`);
+      await setDoc(ref, { uid, ...result });
+    },
+
+    // Fetch all per-player result docs for a completed (or in-flight)
+    // group round. Used by the round summary to render a leaderboard
+    // without needing to read every other player's private history.
+    // Returns an array of result objects (no ordering — caller sorts).
+    listGroupRoundResults: async (groupRoundId) => {
+      const col = collection(db, `groupRounds/${groupRoundId}/results`);
+      const snap = await getDocs(col);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+
+    // Subscribe to live updates on the results subcollection. Fires
+    // whenever anyone writes their completion results doc (e.g. another
+    // player finishes their round). Callback receives the full current
+    // list of result docs — same shape as listGroupRoundResults, but
+    // pushed instead of pulled. Returns an unsubscribe function.
+    subscribeGroupRoundResults: (groupRoundId, onUpdate) => {
+      return onSnapshot(
+        collection(db, `groupRounds/${groupRoundId}/results`),
+        (snap) => {
+          const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          onUpdate(results);
+        },
+        (err) => {
+          // Permission error = we lost access (shouldn't happen for a
+          // player who previously had a results doc in this round).
+          // Fire an empty list so the leaderboard UI can continue
+          // rendering whatever it has cached.
+          console.warn('Group round results subscription error:', err?.code || err);
+          onUpdate([]);
+        }
+      );
     },
 
     // List group rounds the current user is a player in, filtered by
@@ -21203,6 +22008,18 @@
     if (id !== currentPanelId) {
       previousPanelId = currentPanelId;
       currentPanelId = id;
+    }
+
+    // Round summary leaderboard subscriptions — only active while the
+    // user is actually viewing the summary. Leaving the panel unhooks
+    // the listeners so we don't keep streaming reads after the user
+    // has moved on. Foreground-only updates by design.
+    if (prevId === 'round-summary' && id !== 'round-summary') {
+      teardownLeaderboardSubscriptions();
+      // Dismiss the summary group scorecard modal too if it's still
+      // open — leaving the summary page should close any sheets/modals
+      // owned by that page.
+      if (summaryGroupScorecardState.open) closeSummaryGroupScorecard();
     }
 
     document.querySelectorAll('.panel').forEach(p => {
@@ -24407,12 +25224,14 @@
         window.fb.listMyGroupRounds(currentUser.uid, 'in-progress')
       ]);
       // In the simplified model, leaving fully removes the player
-      // from the players array. So if I'm not in players, I'm not in
-      // the round — easy. listMyGroupRounds queries by playerUids so
-      // any round that returns here SHOULD have my uid, but check
-      // defensively in case of stale query results.
+      // from the players array, and finishing marks the player entry
+      // as status:'finished' (keeps them in the array so other players
+      // see them on leaderboards and Playing With strips, but I'm no
+      // longer actively playing). Filter out both: I'm in this round
+      // only if my entry exists AND isn't flagged finished.
       const myActive = [...lobby, ...inProgress].filter(gr => {
-        return (gr.players || []).some(p => p.uid === currentUser.uid);
+        const myEntry = (gr.players || []).find(p => p.uid === currentUser.uid);
+        return myEntry && myEntry.status !== 'finished';
       });
       myGroupRounds = myActive;
 
@@ -26535,26 +27354,72 @@
       return;
     }
 
-    // Now remove me from the group round entirely. The personal round
-    // snapshot is the source of truth for my participation; the group
-    // doc only needs to track who's currently playing. (No more
-    // 'completed' player status — saving + leaving are one action now.)
+    // Mirror my totals onto the group round's results subcollection so
+    // the OTHER players can include me in their leaderboards. Writing
+    // this BEFORE removeGroupRoundPlayer keeps the doc visible to my
+    // own read rule via playerUids membership; after removal my own
+    // results-doc existence serves as the fallback proof. Either way
+    // works because the write rule only checks uid match. Failure here
+    // isn't fatal — the personal card already saved — so we just log.
     try {
-      await window.fb.removeGroupRoundPlayer(gr.id, currentUser.uid);
-      // Mirror locally for the all-done check below
-      gr.players = (gr.players || []).filter(p => p.uid !== currentUser.uid);
-      gr.playerUids = (gr.playerUids || []).filter(u => u !== currentUser.uid);
+      const profile = (typeof buildPublicProfileDoc === 'function') ? buildPublicProfileDoc() : {};
+      await window.fb.writeGroupRoundResult(gr.id, currentUser.uid, {
+        completedAt: endMs,
+        // Display info denormalized so the leaderboard doesn't need
+        // to fetch publicProfiles. Matches the shape used in
+        // personalPayload.groupOthers.
+        username: profile.username || null,
+        usernameDisplay: profile.usernameDisplay || profile.username || null,
+        displayName: profile.displayName || null,
+        photoURL: profile.photoURL || null,
+        tee: me.tee,
+        // Full totals object — strokes, vsPar, putts, holesPlayed,
+        // FIR/GIR splits. Everything a leaderboard row might need.
+        totals,
+        // Per-hole scores too — lets other players view this player's
+        // scorecard from the summary screen (tap their row on the
+        // leaderboard, or open the group scorecard view). Just the
+        // strokes/putts/fir/gir data, no shots (personal practice data).
+        scores: me.scores || {}
+      });
     } catch (err) {
-      console.error('Failed to remove player from group round:', err);
-      // Don't bail — the personal snapshot succeeded, which is the
-      // important thing.
+      console.error('Failed to write group round result mirror:', err);
+      // Soft-fail. Other players won't see my score on their
+      // leaderboard, but the personal card is still saved and my
+      // own summary renders fine.
     }
 
-    // If no one is left in the group round, mark it completed + set
-    // endTime. Safe to race with other players doing the same thing —
-    // last write wins and the result is the same.
-    const remainingPlayers = gr.players || [];
-    if (remainingPlayers.length === 0 && gr.status !== 'completed') {
+    // Mark me as finished on the group round rather than removing me
+    // outright. This keeps my entry in the players array so other
+    // still-playing friends see "Finished" next to my name in their
+    // Playing With strip, and my row stays on the group scorecard.
+    // Explicit leave (leaveActiveGroupRound) is a different action
+    // that DOES fully remove me — that's for "I'm bailing, don't
+    // count me at all." Partial save + finish are both "I played,
+    // I'm done, show me as done."
+    try {
+      await window.fb.updateGroupRoundPlayer(gr.id, currentUser.uid, {
+        status: 'finished',
+        finishedAt: endMs
+      });
+      // Mirror locally for the all-done check below. Find my entry
+      // and flip its status, don't splice it out.
+      const myIdx = (gr.players || []).findIndex(p => p.uid === currentUser.uid);
+      if (myIdx >= 0) {
+        gr.players[myIdx] = { ...gr.players[myIdx], status: 'finished', finishedAt: endMs };
+      }
+    } catch (err) {
+      console.error('Failed to mark player finished on group round:', err);
+      // Don't bail — personal snapshot + results doc succeeded, which
+      // is what the leaderboard actually needs.
+    }
+
+    // If no one is LEFT PLAYING (everyone's either finished or left),
+    // mark the round itself completed + set endTime. Safe to race with
+    // other players doing the same thing — last write wins and the
+    // result is the same.
+    const stillPlaying = (gr.players || []).filter(p => p.status !== 'finished');
+    if (stillPlaying.length === 0 && gr.status !== 'completed') {
       try {
         await window.fb.updateGroupRoundFields(gr.id, {
           status: 'completed',
@@ -26642,20 +27507,26 @@
       : (p.usernameDisplay || p.username || p.displayName || 'Player');
 
     // Build one row of score cells for a given player within a nine.
-    // For YOU, cells are tappable and jump back to hole-card view.
-    // startIdx is the round-wide hole index of this nine's first hole
-    // (0 for front, 9 for back) so tapping a cell jumps to the correct
-    // absolute hole.
+    // Cells for ALL players are tappable — tapping YOUR cell jumps
+    // back to the hole-card view for editing; tapping someone else's
+    // opens the lightweight edit-score sheet so anyone can correct a
+    // miskey without needing organizer privileges. startIdx is the
+    // round-wide hole index of this nine's first hole (0 for front,
+    // 9 for back) so tapping a cell jumps to the correct absolute hole.
     const scoreRowCells = (player, nineHoles, startIdx) => {
       const scores = player.scores || {};
       const isYou = player.uid === myUid;
+      // Route: your cells → hole-card edit flow (full editor with
+      // FIR/GIR/shots). Other players' cells → lightweight sheet
+      // that just edits strokes + putts.
+      const tapHandler = isYou
+        ? (holeIdx) => `onclick="grJumpToHoleAndEdit(${holeIdx})"`
+        : (holeIdx) => `onclick="openEditScoreSheet('${escapeAttr(player.uid)}', ${holeIdx})"`;
       return nineHoles.map((h, i) => {
         const holeIdx = startIdx + i;
         const s = scores[h.number]?.strokes;
         if (s == null) {
-          const emptyCls = isYou ? 'gsc-strokes gsc-empty gsc-tappable' : 'gsc-strokes gsc-empty';
-          const emptyTap = isYou ? ` onclick="grJumpToHoleAndEdit(${holeIdx})"` : '';
-          return `<td class="${emptyCls}"${emptyTap}>—</td>`;
+          return `<td class="gsc-strokes gsc-empty gsc-tappable" ${tapHandler(holeIdx)}>—</td>`;
         }
         const diff = s - h.par;
         let marker = '';
@@ -26663,10 +27534,7 @@
         else if (diff === -1) marker = ' gsc-birdie';
         else if (diff === 1)  marker = ' gsc-bogey';
         else if (diff >= 2)   marker = ' gsc-double';
-        if (isYou) {
-          return `<td class="gsc-strokes gsc-tappable${marker}" onclick="grJumpToHoleAndEdit(${holeIdx})"><span class="gsc-strokes-inner">${s}</span></td>`;
-        }
-        return `<td class="gsc-strokes${marker}"><span class="gsc-strokes-inner">${s}</span></td>`;
+        return `<td class="gsc-strokes gsc-tappable${marker}" ${tapHandler(holeIdx)}><span class="gsc-strokes-inner">${s}</span></td>`;
       }).join('');
     };
 
@@ -26873,6 +27741,8 @@
     // OTHER players — compact strip. Each chip shows name, current hole
     // as inferred from their scores (highest numbered hole they've
     // logged), running total, vs-par. Independent of YOUR position.
+    // Finished players stay in the strip with a "Finished" marker so
+    // you can see they're done rather than having them silently vanish.
     const others = (gr.players || []).filter(p => p.uid !== currentUser.uid);
     const othersStrip = others.length === 0
       ? `<div class="gr-others-empty">You're the only one in this round right now.</div>`
@@ -26880,9 +27750,7 @@
           const scores = p.scores || {};
           const played = Object.keys(scores).map(Number).sort((a,b)=>a-b);
           const throughN = played.length;
-          const lastHole = played.length > 0 ? played[played.length - 1] : null;
           const pStrokes = played.reduce((s, h) => s + (scores[h]?.strokes || 0), 0);
-          const pTheirTee = course.tees.find(t => t.name === p.tee) || course.tees[0];
           // Par the OTHER player played — can't assume same tee, but par is
           // course-level not tee-level, so just sum played holes' pars.
           const pPar = played.reduce((s, h) => {
@@ -26892,11 +27760,22 @@
           const pVsPar = pStrokes - pPar;
           const pVsParStr = throughN === 0 ? '—' : (pVsPar === 0 ? 'E' : (pVsPar > 0 ? `+${pVsPar}` : `${pVsPar}`));
           const label = p.usernameDisplay || p.username || 'Player';
+          const isFinished = p.status === 'finished';
+          // Through-text changes to "Finished" for completed players,
+          // "Not started" for ones with no scores, else "Through N".
+          let throughText;
+          if (isFinished) {
+            throughText = throughN >= 18 ? 'Finished' : `Finished · ${throughN} holes`;
+          } else if (throughN === 0) {
+            throughText = 'Not started';
+          } else {
+            throughText = `Through ${throughN}`;
+          }
           return `
-            <button class="gr-other-card" onclick="openPlayerScorecardSheet('${escapeAttr(p.uid)}')" aria-label="View ${escapeAttr(label)}'s scorecard">
+            <button class="gr-other-card${isFinished ? ' gr-other-card-finished' : ''}" onclick="openPlayerScorecardSheet('${escapeAttr(p.uid)}')" aria-label="View ${escapeAttr(label)}'s scorecard">
               <div class="gr-other-name">${escapeHtml(label)}</div>
               <div class="gr-other-through">
-                ${throughN > 0 ? `Through ${throughN}` : 'Not started'}
+                ${throughText}
               </div>
               <div class="gr-other-score">
                 <span class="gr-other-strokes">${pStrokes || '—'}</span>
@@ -27309,6 +28188,25 @@
     { id: 'heel',  label: 'Heel' },
     { id: 'push',  label: 'Push' },
     { id: 'pull',  label: 'Pull' },
+  ];
+
+  // Shot result — where the ball ended up relative to the intended
+  // target. Laid out as a 3×3 compass grid in the UI so tapping feels
+  // spatially natural. Used later for per-club/per-distance dispersion
+  // analysis: "typically when I have 150y with my 9 iron, I go long".
+  // All values are optional — null means the user hasn't recorded the
+  // result yet (shot logged mid-hole, result filled in after). The
+  // "on" cell is center of the grid (on target).
+  const SHOT_RESULTS = [
+    { id: 'long-left',   label: 'Long Left',   short: 'L-L', row: 0, col: 0 },
+    { id: 'long',        label: 'Long',        short: 'Long', row: 0, col: 1 },
+    { id: 'long-right',  label: 'Long Right',  short: 'L-R', row: 0, col: 2 },
+    { id: 'left',        label: 'Left',        short: 'Left', row: 1, col: 0 },
+    { id: 'on',          label: 'On Target',   short: 'On',  row: 1, col: 1 },
+    { id: 'right',       label: 'Right',       short: 'Right', row: 1, col: 2 },
+    { id: 'short-left',  label: 'Short Left',  short: 'S-L', row: 2, col: 0 },
+    { id: 'short',       label: 'Short',       short: 'Short', row: 2, col: 1 },
+    { id: 'short-right', label: 'Short Right', short: 'S-R', row: 2, col: 2 },
   ];
 
   // Short labels for the compact shot row. Only start lies — there's
@@ -28033,11 +28931,14 @@
 
   // Edit sheet state. `draft` holds the in-progress shot being added
   // or edited; `editingId` is null when adding, a shot id when editing.
+  // Draft shape: { club, distance, startLie, intent, mishit, result }
+  // where `distance` is yards-to-target (not distance hit) and `result`
+  // is one of the SHOT_RESULTS ids (or null if not yet recorded).
   const shotEditState = {
     open: false,
-    draft: null,      // { club, distance, startLie, mishit }
-    editingId: null,  // null = new shot
-    holeNumber: null, // which hole the shot belongs to
+    draft: null,
+    editingId: null,
+    holeNumber: null,
   };
 
   function renderShotsTool() {
@@ -28080,6 +28981,14 @@
         const mishitBadge = (s.mishit && s.mishit !== 'clean')
           ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
           : '';
+        // Result badge — shows dispersion outcome if recorded. "On" gets
+        // a distinct "on target" treatment; any miss shows the short
+        // label (Long, L-L, etc.). Skipped when null so rows stay quiet
+        // until the user logs a result.
+        const resultMeta = s.result ? SHOT_RESULTS.find(r => r.id === s.result) : null;
+        const resultBadge = resultMeta
+          ? `<span class="shot-row-result shot-row-result-${s.result === 'on' ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
+          : '';
         // Intent chip — display-only on the row. Set/changed via the
         // edit sheet (tap the row). Subtle "Set intent" placeholder
         // when not yet set, so the user knows it's editable.
@@ -28098,6 +29007,7 @@
               </span>
               <span class="shot-row-bottom">
                 <span class="shot-row-path">From ${fromLbl}</span>
+                ${resultBadge}
                 ${mishitBadge}
               </span>
             </span>
@@ -28364,6 +29274,35 @@
     const mishitOptionsHtml = renderSegmented(SHOT_MISHITS, draft.mishit || 'clean', 'mishit');
     const intentOptionsHtml = renderIntentSegmented(SHOT_INTENTS, draft.intent || null);
 
+    // Result picker — 3×3 compass grid. Tap a cell to set, tap the
+    // active cell again to clear (result is genuinely optional; a
+    // user might log a shot mid-hole before they know where it ended
+    // up). Center cell = "on target". Building this as an explicit
+    // grid rather than a segmented strip because the spatial layout
+    // IS the interaction model: top = long, bottom = short, left =
+    // left, right = right.
+    const resultGridHtml = (() => {
+      const cells = [];
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const opt = SHOT_RESULTS.find(r => r.row === row && r.col === col);
+          if (!opt) { cells.push('<div class="shot-result-cell-empty"></div>'); continue; }
+          const isActive = draft.result === opt.id;
+          const isCenter = opt.id === 'on';
+          cells.push(`
+            <button type="button"
+                    class="shot-result-cell${isActive ? ' is-active' : ''}${isCenter ? ' is-center' : ''}"
+                    onclick="toggleShotDraft('result', '${opt.id}')"
+                    aria-label="${escapeAttr(opt.label)}"
+                    aria-pressed="${isActive ? 'true' : 'false'}">
+              <span class="shot-result-cell-label">${escapeHtml(opt.short)}</span>
+            </button>
+          `);
+        }
+      }
+      return cells.join('');
+    })();
+
     // Par 3 hint — when the user picks a Tee lie on a par 3, surface
     // a soft tip that par-3 tee shots are typically tracked as
     // "Approach" rather than "Tee Shot". Aligns with how Strokes
@@ -28394,7 +29333,7 @@
 
       <div class="shot-edit-section">
         <label class="shot-edit-label">
-          Distance
+          Yards to target
           <span class="shot-edit-label-hint">optional</span>
         </label>
         <div class="shot-edit-dist-row">
@@ -28420,6 +29359,14 @@
         </label>
         <div class="shot-lie-picker">${intentOptionsHtml}</div>
         ${par3TeeHintHtml}
+      </div>
+
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">
+          Result
+          <span class="shot-edit-label-hint">optional · tap again to clear</span>
+        </label>
+        <div class="shot-result-grid">${resultGridHtml}</div>
       </div>
 
       <div class="shot-edit-section">
@@ -29460,7 +30407,20 @@
   // panel), so if the user stays open while the other player logs
   // holes, the scorecard refreshes in place.
   // ─────────────────────────────────────────────────────────────
-  const playerScorecardState = { open: false, uid: null };
+  // Player Scorecard sheet state. Two modes:
+  //   - 'live'    — reads from groupRoundState.doc for an active round
+  //                 (Playing With strip taps). Updates live via snapshot.
+  //   - 'summary' — reads from a provided snapshot row + course ID,
+  //                 used from the summary leaderboard after a round
+  //                 has been played. No live updates; the data is
+  //                 whatever the leaderboard fetched.
+  const playerScorecardState = {
+    open: false,
+    uid: null,
+    mode: 'live',           // 'live' | 'summary'
+    snapshotRow: null,      // populated in 'summary' mode
+    snapshotCourseId: null  // populated in 'summary' mode
+  };
 
   function openPlayerScorecardSheet(uid) {
     if (!isGroupRoundActive()) return;
@@ -29470,6 +30430,29 @@
     if (!player) return;
     playerScorecardState.open = true;
     playerScorecardState.uid = uid;
+    playerScorecardState.mode = 'live';
+    playerScorecardState.snapshotRow = null;
+    playerScorecardState.snapshotCourseId = null;
+    acquireScrollLock();
+    renderPlayerScorecardSheet();
+  }
+
+  // Summary-mode opener — called from the leaderboard on the round
+  // summary screen. Takes a shaped row (includes scores, totals, tee,
+  // name, photo) + the course ID so the sheet can render without
+  // needing an active group round in local state.
+  function openSummaryPlayerScorecardSheet(uid) {
+    const rows = roundSummaryState.leaderboardRows || [];
+    const row = rows.find(r => r.uid === uid);
+    if (!row) return;
+    const roundId = roundSummaryState.roundId;
+    const round = roundId ? recentRounds.find(r => r.id === roundId) : null;
+    if (!round) return;
+    playerScorecardState.open = true;
+    playerScorecardState.uid = uid;
+    playerScorecardState.mode = 'summary';
+    playerScorecardState.snapshotRow = row;
+    playerScorecardState.snapshotCourseId = round.courseId;
     acquireScrollLock();
     renderPlayerScorecardSheet();
   }
@@ -29481,6 +30464,9 @@
     if (!el || !backdrop) {
       playerScorecardState.open = false;
       playerScorecardState.uid = null;
+      playerScorecardState.mode = 'live';
+      playerScorecardState.snapshotRow = null;
+      playerScorecardState.snapshotCourseId = null;
       releaseScrollLock();
       const mount = document.getElementById('player-scorecard-mount');
       if (mount) mount.innerHTML = '';
@@ -29494,6 +30480,9 @@
       done = true;
       playerScorecardState.open = false;
       playerScorecardState.uid = null;
+      playerScorecardState.mode = 'live';
+      playerScorecardState.snapshotRow = null;
+      playerScorecardState.snapshotCourseId = null;
       releaseScrollLock();
       const mount = document.getElementById('player-scorecard-mount');
       if (mount) mount.innerHTML = '';
@@ -29511,14 +30500,37 @@
     const mount = document.getElementById('player-scorecard-mount');
     if (!mount) return;
     if (!playerScorecardState.open) { mount.innerHTML = ''; return; }
-    const gr = groupRoundState.doc;
-    if (!gr) { closePlayerScorecardSheet(); return; }
-    const player = (gr.players || []).find(p => p.uid === playerScorecardState.uid);
-    if (!player) { closePlayerScorecardSheet(); return; }
-    const course = getCourse(gr.courseId);
+
+    // Source-agnostic fetch — either live group round doc (during play)
+    // or the summary snapshot row (post-round on summary screen). Both
+    // paths shape to a common { player, course } tuple so the rest of
+    // the render doesn't need to know which mode it's in.
+    let player = null;
+    let course = null;
+    if (playerScorecardState.mode === 'summary') {
+      const row = playerScorecardState.snapshotRow;
+      if (!row) { closePlayerScorecardSheet(); return; }
+      course = getCourse(playerScorecardState.snapshotCourseId);
+      // Shape the row into a player-shaped object for the render. The
+      // leaderboard row already carries scores/tee/name/photo so we
+      // just alias them.
+      player = {
+        uid: row.uid,
+        displayName: row.displayName,
+        photoURL: row.photoURL,
+        tee: row.tee,
+        scores: row.scores || {}
+      };
+    } else {
+      const gr = groupRoundState.doc;
+      if (!gr) { closePlayerScorecardSheet(); return; }
+      player = (gr.players || []).find(p => p.uid === playerScorecardState.uid);
+      if (!player) { closePlayerScorecardSheet(); return; }
+      course = getCourse(gr.courseId);
+    }
     if (!course) { closePlayerScorecardSheet(); return; }
 
-    const name = player.usernameDisplay || player.username || player.displayName || 'Player';
+    const name = player.displayName || player.usernameDisplay || player.username || 'Player';
     const teeLabel = player.tee || '—';
     const scores = player.scores || {};
     const holes = course.holes;
@@ -29647,6 +30659,267 @@
       ignoreSelector: '.player-sc-close',
       closeFn: closePlayerScorecardSheet,
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Edit-other-player score sheet
+  // ─────────────────────────────────────────────────────────────
+  // Any player in a group round can edit another player's scores —
+  // useful for correcting miskeys or filling in a hole the person
+  // missed while walking up. Much lighter than opening the full
+  // hole-card editor: just strokes + putts in a bottom sheet, save
+  // writes via updateGroupRoundPlayer. The person whose score is
+  // being edited sees the change live via snapshot.
+  //
+  // Editing YOUR OWN score still flows through the main round panel
+  // (grJumpToHoleAndEdit → hole card). This sheet is strictly for
+  // editing OTHER players.
+  const editScoreState = {
+    open: false,
+    uid: null,
+    holeIdx: null,
+    draftStrokes: null,
+    draftPutts: null,
+    saving: false
+  };
+
+  function openEditScoreSheet(uid, holeIdx) {
+    if (!isGroupRoundActive() || !currentUser) return;
+    if (uid === currentUser.uid) {
+      // Own-score edits use the main panel flow — no need for this sheet.
+      grJumpToHoleAndEdit(holeIdx);
+      return;
+    }
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const player = (gr.players || []).find(p => p.uid === uid);
+    if (!player) {
+      showToast('Player is no longer in the round', true);
+      return;
+    }
+    const course = getCourse(gr.courseId);
+    if (!course || holeIdx < 0 || holeIdx >= course.holes.length) return;
+    const hole = course.holes[holeIdx];
+    const existing = (player.scores || {})[hole.number] || {};
+    editScoreState.open = true;
+    editScoreState.uid = uid;
+    editScoreState.holeIdx = holeIdx;
+    editScoreState.draftStrokes = existing.strokes ?? null;
+    editScoreState.draftPutts = existing.putts ?? null;
+    editScoreState.saving = false;
+    acquireScrollLock();
+    renderEditScoreSheet();
+  }
+
+  function closeEditScoreSheet() {
+    if (!editScoreState.open) return;
+    const el = document.querySelector('.edit-score-sheet');
+    const backdrop = document.querySelector('.edit-score-backdrop');
+    const finish = () => {
+      editScoreState.open = false;
+      editScoreState.uid = null;
+      editScoreState.holeIdx = null;
+      editScoreState.draftStrokes = null;
+      editScoreState.draftPutts = null;
+      editScoreState.saving = false;
+      releaseScrollLock();
+      const mount = document.getElementById('edit-score-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!el || !backdrop) { finish(); return; }
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    // Fallback timer so we always clean up even if transitionend misses
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+
+  // Bump the draft strokes/putts by delta, clamping at sane bounds.
+  // Called from the +/- buttons in the sheet.
+  function editScoreAdjust(field, delta) {
+    if (!editScoreState.open) return;
+    if (field === 'strokes') {
+      const cur = editScoreState.draftStrokes ?? 0;
+      const next = Math.max(1, Math.min(15, cur + delta));
+      editScoreState.draftStrokes = next;
+    } else if (field === 'putts') {
+      const cur = editScoreState.draftPutts ?? 0;
+      const next = Math.max(0, Math.min(8, cur + delta));
+      editScoreState.draftPutts = next;
+    }
+    renderEditScoreSheet();
+  }
+
+  async function saveEditScore() {
+    if (!editScoreState.open || editScoreState.saving) return;
+    if (!currentUser || !window.fb) return;
+    if (editScoreState.draftStrokes == null || editScoreState.draftStrokes < 1) {
+      showToast('Set strokes first', true);
+      return;
+    }
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const course = getCourse(gr.courseId);
+    if (!course) return;
+    const hole = course.holes[editScoreState.holeIdx];
+    if (!hole) return;
+    const targetPlayer = (gr.players || []).find(p => p.uid === editScoreState.uid);
+    if (!targetPlayer) {
+      showToast('Player is no longer in the round', true);
+      closeEditScoreSheet();
+      return;
+    }
+    editScoreState.saving = true;
+    renderEditScoreSheet();
+
+    // Build the patched scores map. Preserve any existing fields on
+    // that hole's entry (fir/gir if somehow tracked) and only replace
+    // the ones we edited.
+    const prevEntry = (targetPlayer.scores || {})[hole.number] || {};
+    const nextEntry = {
+      ...prevEntry,
+      strokes: editScoreState.draftStrokes
+    };
+    if (editScoreState.draftPutts != null) {
+      nextEntry.putts = editScoreState.draftPutts;
+    }
+    const nextScores = {
+      ...(targetPlayer.scores || {}),
+      [hole.number]: nextEntry
+    };
+
+    try {
+      await window.fb.updateGroupRoundPlayer(gr.id, targetPlayer.uid, {
+        scores: nextScores
+      });
+      // Local optimistic update — reflect immediately so the scorecard
+      // updates without waiting for the round-trip snapshot. The real
+      // snapshot arrives moments later and reconciles.
+      targetPlayer.scores = nextScores;
+      const targetName = targetPlayer.displayName || targetPlayer.usernameDisplay || targetPlayer.username || 'player';
+      showToast(`Updated ${targetName}'s hole ${hole.number}`);
+      closeEditScoreSheet();
+      // Re-render the group round panel so the scorecard cell updates
+      if (typeof renderGroupRoundPanel === 'function') renderGroupRoundPanel();
+    } catch (err) {
+      console.error('Failed to update other player score:', err);
+      showToast('Save failed — try again', true);
+      editScoreState.saving = false;
+      renderEditScoreSheet();
+    }
+  }
+
+  function renderEditScoreSheet() {
+    const mount = document.getElementById('edit-score-mount');
+    if (!mount) return;
+    if (!editScoreState.open) { mount.innerHTML = ''; return; }
+
+    const gr = groupRoundState.doc;
+    if (!gr) { closeEditScoreSheet(); return; }
+    const course = getCourse(gr.courseId);
+    const hole = course?.holes[editScoreState.holeIdx];
+    const player = (gr.players || []).find(p => p.uid === editScoreState.uid);
+    if (!hole || !player) { closeEditScoreSheet(); return; }
+
+    const name = player.displayName || player.usernameDisplay || player.username || 'Player';
+    const strokes = editScoreState.draftStrokes;
+    const putts = editScoreState.draftPutts;
+    const strokesStr = strokes == null ? '—' : String(strokes);
+    const puttsStr = putts == null ? '—' : String(putts);
+    const diff = strokes != null ? strokes - hole.par : null;
+    const diffStr = diff == null ? '' : (diff === 0 ? 'Par' : (diff > 0 ? `+${diff}` : `${diff}`));
+
+    // Re-render preserves the opening-animation class on first mount.
+    const isFirstMount = !mount.querySelector('.edit-score-sheet');
+    const animClass = isFirstMount ? ' opening' : '';
+    const backdropClass = isFirstMount ? ' opening' : '';
+
+    mount.innerHTML = `
+      <div class="edit-score-backdrop${backdropClass}" onclick="closeEditScoreSheet()" aria-hidden="true"></div>
+      <div class="edit-score-sheet${animClass}" role="dialog" aria-modal="true" aria-label="Edit score">
+        <div class="edit-score-header">
+          <div class="edit-score-handle" aria-hidden="true"></div>
+          <div class="edit-score-title-block">
+            <div class="edit-score-eyebrow">Editing ${escapeHtml(name)}</div>
+            <div class="edit-score-title">Hole ${hole.number} · Par ${hole.par}</div>
+          </div>
+          <button class="edit-score-close" onclick="closeEditScoreSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="edit-score-body">
+          <div class="edit-score-field">
+            <div class="edit-score-field-label">Strokes</div>
+            <div class="edit-score-stepper">
+              <button class="edit-score-step-btn" onclick="editScoreAdjust('strokes', -1)" aria-label="Decrease strokes" ${strokes == null || strokes <= 1 ? 'disabled' : ''}>−</button>
+              <div class="edit-score-value">
+                <div class="edit-score-num">${strokesStr}</div>
+                ${diffStr ? `<div class="edit-score-diff">${diffStr}</div>` : ''}
+              </div>
+              <button class="edit-score-step-btn" onclick="editScoreAdjust('strokes', 1)" aria-label="Increase strokes">+</button>
+            </div>
+            ${strokes == null ? `
+              <div class="edit-score-quickset">
+                <button class="edit-score-quickset-btn" onclick="editScoreQuickSet('strokes', ${hole.par})">Par (${hole.par})</button>
+                <button class="edit-score-quickset-btn" onclick="editScoreQuickSet('strokes', ${hole.par + 1})">Bogey</button>
+              </div>
+            ` : ''}
+          </div>
+          <div class="edit-score-field">
+            <div class="edit-score-field-label">Putts <span class="edit-score-field-opt">(optional)</span></div>
+            <div class="edit-score-stepper">
+              <button class="edit-score-step-btn" onclick="editScoreAdjust('putts', -1)" aria-label="Decrease putts" ${putts == null || putts <= 0 ? 'disabled' : ''}>−</button>
+              <div class="edit-score-value">
+                <div class="edit-score-num">${puttsStr}</div>
+              </div>
+              <button class="edit-score-step-btn" onclick="editScoreAdjust('putts', 1)" aria-label="Increase putts">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="edit-score-actions">
+          <button class="edit-score-cancel" onclick="closeEditScoreSheet()">Cancel</button>
+          <button class="edit-score-save" onclick="saveEditScore()" ${editScoreState.saving ? 'disabled' : ''}>
+            ${editScoreState.saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (isFirstMount) {
+      const sheet = mount.querySelector('.edit-score-sheet');
+      const backdrop = mount.querySelector('.edit-score-backdrop');
+      if (sheet) {
+        void sheet.offsetHeight;
+        requestAnimationFrame(() => {
+          sheet.classList.remove('opening');
+          if (backdrop) backdrop.classList.remove('opening');
+        });
+      }
+      // Drag-to-close on the header — matches tools/player-sc/manage sheets
+      const fullSheet = mount.querySelector('.edit-score-sheet');
+      const header = fullSheet?.querySelector('.edit-score-header');
+      attachBottomSheetDrag({
+        sheetEl: fullSheet,
+        headerEl: header,
+        backdropSelector: '.edit-score-backdrop',
+        ignoreSelector: '.edit-score-close',
+        closeFn: closeEditScoreSheet,
+      });
+    }
+  }
+
+  // Quick-set for the strokes field when no value yet — saves a few
+  // taps for par/bogey which cover ~70% of edits.
+  function editScoreQuickSet(field, value) {
+    if (!editScoreState.open) return;
+    if (field === 'strokes') editScoreState.draftStrokes = value;
+    else if (field === 'putts') editScoreState.draftPutts = value;
+    renderEditScoreSheet();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -29897,10 +31170,52 @@
 
   // Round summary navigation. We track which round to show via state, similar
   // to the courseDetail pattern, since the panel itself is data-driven.
-  const roundSummaryState = { roundId: null };
+  const roundSummaryState = {
+    roundId: null,
+    // Leaderboard hydration state. Keyed by groupRoundId so switching
+    // between summary cards doesn't let a stale fetch result bleed
+    // into the wrong summary if the user backs out and into another.
+    leaderboardFor: null,      // which groupRoundId the current cache is for
+    leaderboardRows: null,     // array of rows once loaded; null = not fetched
+    leaderboardLoading: false,
+    // Live subscription state — when viewing a group round summary
+    // we subscribe to BOTH the parent doc (for in-progress score
+    // updates from still-playing players) AND the results subcoll
+    // (for completion events). Both are unsubscribed on panel leave.
+    lbUnsubscribeDoc: null,    // unsubscribe from groupRounds/{id}
+    lbUnsubscribeResults: null,// unsubscribe from /results subcoll
+    lbLiveDoc: null,           // latest snapshot of the parent doc
+    lbLiveResults: null        // latest snapshot of the results list
+  };
   function openRoundSummary(roundId) {
+    // Tear down any live subscriptions from a previous summary BEFORE
+    // swapping roundId. Leaking listeners would produce ghost UI
+    // updates on the new round's leaderboard.
+    teardownLeaderboardSubscriptions();
     roundSummaryState.roundId = roundId;
+    // Reset leaderboard cache so a stale one from a previous summary
+    // doesn't show on this one. Fresh fetch kicks off on render.
+    roundSummaryState.leaderboardFor = null;
+    roundSummaryState.leaderboardRows = null;
+    roundSummaryState.leaderboardLoading = false;
+    roundSummaryState.lbLiveDoc = null;
+    roundSummaryState.lbLiveResults = null;
     showPanel('round-summary', null);
+  }
+
+  // Called when the user leaves the summary panel or opens a
+  // different round summary. Unhooks both leaderboard listeners so
+  // we don't continue streaming (and charging reads) when nobody's
+  // looking at them. Safe to call even when no subscriptions exist.
+  function teardownLeaderboardSubscriptions() {
+    if (typeof roundSummaryState.lbUnsubscribeDoc === 'function') {
+      try { roundSummaryState.lbUnsubscribeDoc(); } catch (_) {}
+    }
+    if (typeof roundSummaryState.lbUnsubscribeResults === 'function') {
+      try { roundSummaryState.lbUnsubscribeResults(); } catch (_) {}
+    }
+    roundSummaryState.lbUnsubscribeDoc = null;
+    roundSummaryState.lbUnsubscribeResults = null;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -40162,6 +41477,10 @@
         ` : ''}
       </div>
 
+      ${round.groupRoundId ? `
+        <div id="round-summary-leaderboard-mount" class="round-summary-leaderboard-mount"></div>
+      ` : ''}
+
       ${hasStatsTracking ? `
         <div class="round-summary-section-label">Ball Striking</div>
         <div class="round-summary-striking">
@@ -40219,6 +41538,468 @@
         <button class="round-summary-delete" onclick="deleteRoundFromSummary('${round.id}')">Delete this round</button>
       </div>
     `;
+
+    // Hydrate the leaderboard after the DOM is mounted. Gated on
+    // groupRoundId — solo rounds don't need any of this. Runs async
+    // so the summary itself paints immediately; the leaderboard slot
+    // shows a loading shimmer until the fetch returns.
+    if (round.groupRoundId) {
+      hydrateRoundSummaryLeaderboard(round);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Group round leaderboard (on summary screen)
+  // ─────────────────────────────────────────────────────────────
+  // When a group round completes, each player writes their totals to
+  // groupRounds/{id}/results/{uid} — a shared subcollection readable
+  // by everyone who was in the round. From the summary screen we pull
+  // that list and render a per-player leaderboard so the user sees
+  // how they placed. Completed rows show final totals; in-progress
+  // rows aren't in the subcollection yet and are reconstructed from
+  // the group round doc's live players[] array.
+
+  async function hydrateRoundSummaryLeaderboard(round) {
+    const mount = document.getElementById('round-summary-leaderboard-mount');
+    if (!mount) return;
+    const grId = round.groupRoundId;
+    if (!grId) return;
+
+    // If we already have live subscriptions running for THIS round,
+    // just re-render from the cached snapshots. The summary function
+    // can be called multiple times (e.g. after a privacy toggle) and
+    // we don't want to tear down and re-subscribe on every render.
+    if (roundSummaryState.leaderboardFor === grId && roundSummaryState.lbUnsubscribeDoc) {
+      if (roundSummaryState.leaderboardRows) {
+        mount.innerHTML = renderRoundSummaryLeaderboard(roundSummaryState.leaderboardRows, currentUser?.uid);
+      }
+      return;
+    }
+
+    // Different round or first open — clear any subscriptions from a
+    // previous round before starting new ones. Safe to call even when
+    // nothing's subscribed.
+    teardownLeaderboardSubscriptions();
+    roundSummaryState.lbLiveDoc = null;
+    roundSummaryState.lbLiveResults = null;
+
+    // Show a lightweight loading state while we wait for the first
+    // snapshot. Skeleton shape matches the loaded layout so there's
+    // no jarring shift when data arrives.
+    mount.innerHTML = `
+      <div class="round-summary-section-label">Leaderboard</div>
+      <div class="rs-lb-loading">Loading leaderboard…</div>
+    `;
+    roundSummaryState.leaderboardFor = grId;
+    roundSummaryState.leaderboardLoading = true;
+
+    // Handler that reshapes rows from whatever we currently have in
+    // state and renders. Called by both listeners whenever a new
+    // snapshot arrives, so the UI reflects the union of both feeds.
+    // Guarded against stale fires: if the user has navigated away
+    // to a different round before a snapshot lands, skip rendering.
+    const rerender = () => {
+      if (roundSummaryState.leaderboardFor !== grId) return;
+      const rows = shapeLeaderboardRows(
+        round,
+        roundSummaryState.lbLiveResults || [],
+        roundSummaryState.lbLiveDoc
+      );
+      roundSummaryState.leaderboardRows = rows;
+      roundSummaryState.leaderboardLoading = false;
+      // Mount might be gone if the panel unmounted between snapshot
+      // firing and this callback running — re-fetch each time.
+      const m = document.getElementById('round-summary-leaderboard-mount');
+      if (m) m.innerHTML = renderRoundSummaryLeaderboard(rows, currentUser?.uid);
+    };
+
+    // Subscribe to the parent group round doc — fires on every score
+    // update from still-playing players, as well as when someone is
+    // added/removed from the players array.
+    roundSummaryState.lbUnsubscribeDoc = window.fb.subscribeGroupRound(grId, (doc) => {
+      roundSummaryState.lbLiveDoc = doc; // null if the doc is unreadable / gone
+      rerender();
+    });
+
+    // Subscribe to the results subcollection — fires when any player
+    // writes their final results doc (completion event). The two
+    // listeners race on first load: whichever fires first renders
+    // immediately, the second enriches on arrival. That's the right
+    // UX — show something as soon as we have anything.
+    roundSummaryState.lbUnsubscribeResults = window.fb.subscribeGroupRoundResults(grId, (results) => {
+      roundSummaryState.lbLiveResults = results;
+      rerender();
+    });
+  }
+
+  // Pure row-shaping function — deterministic given the same inputs.
+  // Extracted from the hydrate flow so both the initial subscription
+  // callbacks and any future re-render paths produce consistent rows.
+  // Seed from round.groupOthers + self, enrich with results docs
+  // (authoritative) and live doc (for in-progress partials), then sort.
+  function shapeLeaderboardRows(round, results, liveDoc) {
+    const course = getCourse(round.courseId);
+    const byUid = new Map();
+
+    // Seed: everyone the round remembers was in the group. Using
+    // groupOthers + self gives us a complete roster even when live
+    // reads fail. Status defaults to 'in-progress' with no totals
+    // until we enrich below.
+    const seedPlayers = [
+      ...(round.groupOthers || []),
+      {
+        uid: currentUser?.uid,
+        displayName: (prefs.displayName || prefs.usernameDisplay || prefs.username || 'You'),
+        usernameDisplay: prefs.usernameDisplay || prefs.username || null,
+        username: prefs.username || null,
+        photoURL: prefs.photoURL || null,
+      }
+    ];
+    for (const seed of seedPlayers) {
+      if (!seed.uid) continue;
+      byUid.set(seed.uid, {
+        uid: seed.uid,
+        displayName: seed.displayName || seed.usernameDisplay || seed.username || 'Player',
+        photoURL: seed.photoURL || null,
+        tee: null,
+        totals: null,
+        status: 'in-progress'
+      });
+    }
+
+    // Enrich with completed-player result docs — authoritative final
+    // totals, so these override any earlier seed data.
+    for (const r of (results || [])) {
+      byUid.set(r.uid, {
+        uid: r.uid,
+        displayName: r.displayName || r.usernameDisplay || r.username || 'Player',
+        photoURL: r.photoURL || null,
+        tee: r.tee || null,
+        totals: r.totals || null,
+        // Per-hole scores — used by the individual/group scorecard
+        // views on the summary screen. Falsy for rows seeded without
+        // a results doc (still-playing players) until they finish.
+        scores: r.scores || {},
+        status: 'completed'
+      });
+    }
+
+    // Enrich with live players[] — for anyone NOT already marked
+    // completed (via results doc), compute their totals from the live
+    // scores. Player entries flagged status:'finished' on the group
+    // doc are treated as completed here too: they've submitted their
+    // round, their results doc is coming (or already arrived via the
+    // results listener), but we don't want to briefly show them as
+    // "In Progress" while waiting. Live doc is the authoritative
+    // signal for "are they still playing."
+    if (liveDoc && Array.isArray(liveDoc.players)) {
+      for (const p of liveDoc.players) {
+        const existing = byUid.get(p.uid);
+        if (existing && existing.status === 'completed') continue;
+        const liveTotals = course ? computeGroupPlayerTotals(p.scores || {}, course) : null;
+        const isFinished = p.status === 'finished';
+        byUid.set(p.uid, {
+          uid: p.uid,
+          displayName: p.displayName || p.usernameDisplay || p.username || existing?.displayName || 'Player',
+          photoURL: p.photoURL || existing?.photoURL || null,
+          tee: p.tee || null,
+          totals: liveTotals,
+          scores: p.scores || {},
+          status: isFinished ? 'completed' : 'in-progress'
+        });
+      }
+    }
+
+    // If somehow YOU ended up with no totals (edge: own result doc
+    // write failed AND you're not in live players[] anymore), fall
+    // back to round.totals from the summary card so you don't appear
+    // score-less on your own leaderboard.
+    if (currentUser) {
+      const meRow = byUid.get(currentUser.uid);
+      if (meRow && !meRow.totals && round.totals) {
+        meRow.totals = round.totals;
+        meRow.tee = round.teeName || meRow.tee;
+        meRow.scores = round.scores || meRow.scores || {};
+        meRow.status = 'completed';
+      }
+      // Even when meRow HAS totals (normal case), the results-doc path
+      // should have given it scores, but belt and suspenders: if scores
+      // are empty, fall back to round.scores. The summary always has
+      // your own scores on `round` — never show your own card score-less.
+      if (meRow && (!meRow.scores || Object.keys(meRow.scores).length === 0)) {
+        meRow.scores = round.scores || {};
+      }
+    }
+
+    const rows = Array.from(byUid.values());
+
+    // Sort: completed ahead of in-progress, then by strokes asc. Rows
+    // without totals sink to the bottom. Ties broken by vsPar then
+    // holesPlayed so the ordering is stable and meaningful.
+    rows.sort((a, b) => {
+      const aDone = a.status === 'completed' ? 0 : 1;
+      const bDone = b.status === 'completed' ? 0 : 1;
+      if (aDone !== bDone) return aDone - bDone;
+      const aStrokes = a.totals?.strokes ?? Infinity;
+      const bStrokes = b.totals?.strokes ?? Infinity;
+      if (aStrokes !== bStrokes) return aStrokes - bStrokes;
+      const aPar = a.totals?.vsPar ?? Infinity;
+      const bPar = b.totals?.vsPar ?? Infinity;
+      if (aPar !== bPar) return aPar - bPar;
+      return (b.totals?.holesPlayed ?? 0) - (a.totals?.holesPlayed ?? 0);
+    });
+
+    return rows;
+  }
+
+  // Pure render — takes the sorted row list and produces HTML. Kept
+  // separate from hydrate() so re-renders (e.g. after someone else's
+  // result doc lands) can reuse the shaped data without re-fetching.
+  function renderRoundSummaryLeaderboard(rows, myUid) {
+    if (!rows || rows.length === 0) {
+      return `
+        <div class="round-summary-section-label">Leaderboard</div>
+        <div class="rs-lb-empty">No results yet.</div>
+      `;
+    }
+    const rowsHtml = rows.map((r, idx) => {
+      const isCompleted = r.status === 'completed';
+      const isMe = r.uid === myUid;
+      const name = escapeHtml(r.displayName);
+      const teeStr = r.tee ? `<span class="rs-lb-tee">${escapeHtml(r.tee)}</span>` : '';
+
+      // Position number: only assigned to completed players. In-progress
+      // rows get a dash so the numbered podium only reflects folks who
+      // have actually posted a final score.
+      const pos = isCompleted ? (idx + 1) : '—';
+
+      // Score + through cells vary dramatically by status. Completed
+      // shows final strokes + vs-par + F/Thru N. In-progress shows a
+      // distinct "In Progress" pill occupying the score slot — no
+      // partial strokes (keeps the leaderboard from looking like
+      // someone's crushing when they're actually 3 holes in).
+      let scoreCell, throughCell;
+      if (isCompleted) {
+        const strokes = r.totals?.strokes ?? '—';
+        const vsPar = r.totals?.vsPar;
+        const vsParStr = vsPar == null ? '' : (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+        const holesPlayed = r.totals?.holesPlayed ?? 0;
+        const throughStr = holesPlayed >= 18 ? 'F' : (holesPlayed > 0 ? `Thru ${holesPlayed}` : '—');
+        scoreCell = `<div class="rs-lb-strokes">${strokes}${vsParStr ? ` <span class="rs-lb-vspar">${vsParStr}</span>` : ''}</div>`;
+        throughCell = `<div class="rs-lb-through">${throughStr}</div>`;
+      } else {
+        // In-progress: if we have live partial totals, surface them
+        // quietly (muted) alongside the "In Progress" pill so the
+        // user has SOME sense of where the player stands. If no
+        // totals (live doc unreadable), just show the pill.
+        const holesPlayed = r.totals?.holesPlayed ?? 0;
+        const throughStr = holesPlayed > 0 ? `Thru ${holesPlayed}` : 'Playing';
+        scoreCell = `<div class="rs-lb-strokes rs-lb-strokes-inprogress"><span class="rs-lb-inprogress-pill">In Progress</span></div>`;
+        throughCell = `<div class="rs-lb-through rs-lb-through-inprogress">${throughStr}</div>`;
+      }
+
+      // Row is tappable if the player has any scores logged — otherwise
+      // tapping opens an empty scorecard which is confusing. For most
+      // in-progress players this still works because they've played
+      // some holes; for just-joined players with no scores we keep the
+      // row display-only.
+      const hasData = r.scores && Object.keys(r.scores).length > 0;
+      const rowTag = hasData ? 'button' : 'div';
+      const rowTap = hasData ? `onclick="openSummaryPlayerScorecardSheet('${escapeAttr(r.uid)}')"` : '';
+      const rowAria = hasData ? `aria-label="View ${escapeAttr(r.displayName)}'s scorecard"` : '';
+      return `
+        <${rowTag} class="rs-lb-row${isMe ? ' is-me' : ''}${isCompleted ? '' : ' is-inprogress'}${hasData ? ' is-tappable' : ''}" ${rowTap} ${rowAria}>
+          <div class="rs-lb-pos">${pos}</div>
+          <div class="rs-lb-name">
+            ${name}${isMe ? ' <span class="rs-lb-you-tag">YOU</span>' : ''}
+            ${teeStr}
+          </div>
+          ${scoreCell}
+          ${throughCell}
+        </${rowTag}>`;
+    }).join('');
+
+    // Only show the group scorecard button if at least one other
+    // player has data. Otherwise the group view would be just you,
+    // which is what the individual "Hole by Hole" section shows.
+    const anyOthersHaveData = rows.some(r => r.uid !== myUid && r.scores && Object.keys(r.scores).length > 0);
+    const groupBtnHtml = anyOthersHaveData ? `
+      <button class="rs-lb-group-btn" onclick="openSummaryGroupScorecard()">
+        View group scorecard →
+      </button>
+    ` : '';
+
+    return `
+      <div class="round-summary-section-label">Leaderboard</div>
+      <div class="rs-lb-table">${rowsHtml}</div>
+      ${groupBtnHtml}
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Summary group scorecard — full-screen modal showing every
+  // player's hole-by-hole scores in a unified grid. Opened from the
+  // "View group scorecard" button below the leaderboard. Reads from
+  // the cached leaderboard rows (so it's free — no extra fetch) and
+  // uses the same visual language as the live gsc-* group scorecard.
+  // ─────────────────────────────────────────────────────────────
+  const summaryGroupScorecardState = { open: false };
+
+  function openSummaryGroupScorecard() {
+    if (summaryGroupScorecardState.open) return;
+    const rows = roundSummaryState.leaderboardRows;
+    if (!rows || rows.length === 0) {
+      showToast('No scorecard data yet', true);
+      return;
+    }
+    summaryGroupScorecardState.open = true;
+    acquireScrollLock();
+    renderSummaryGroupScorecard();
+  }
+
+  function closeSummaryGroupScorecard() {
+    if (!summaryGroupScorecardState.open) return;
+    const el = document.querySelector('.sgs-sheet');
+    const backdrop = document.querySelector('.sgs-backdrop');
+    const finish = () => {
+      summaryGroupScorecardState.open = false;
+      releaseScrollLock();
+      const mount = document.getElementById('summary-group-scorecard-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!el || !backdrop) { finish(); return; }
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+
+  function renderSummaryGroupScorecard() {
+    const mount = document.getElementById('summary-group-scorecard-mount');
+    if (!mount) return;
+    if (!summaryGroupScorecardState.open) { mount.innerHTML = ''; return; }
+
+    const rows = roundSummaryState.leaderboardRows || [];
+    const roundId = roundSummaryState.roundId;
+    const round = roundId ? recentRounds.find(r => r.id === roundId) : null;
+    if (!round) { closeSummaryGroupScorecard(); return; }
+    const course = getCourse(round.courseId);
+    if (!course) { closeSummaryGroupScorecard(); return; }
+    const myUid = currentUser?.uid;
+    const holes = course.holes;
+
+    // Player order: YOU first, then everyone else. Same pattern as
+    // the live group scorecard view. Filter out players with no
+    // scores at all so the grid doesn't have empty rows.
+    const withData = rows.filter(r => r.scores && Object.keys(r.scores).length > 0);
+    const ordered = [
+      ...withData.filter(r => r.uid === myUid),
+      ...withData.filter(r => r.uid !== myUid)
+    ];
+
+    const frontHoles = holes.slice(0, 9);
+    const backHoles  = holes.slice(9);
+
+    const nameFor = (r) => (r.uid === myUid) ? 'You' : r.displayName;
+
+    // Per-player row cells for a nine, reusing the gsc-* classes from
+    // the live view so styling is consistent.
+    const scoreRowCells = (row, nineHoles) => {
+      const scores = row.scores || {};
+      return nineHoles.map((h) => {
+        const s = scores[h.number]?.strokes;
+        if (s == null) {
+          return `<td class="gsc-strokes gsc-empty">—</td>`;
+        }
+        const diff = s - h.par;
+        let marker = '';
+        if (diff <= -2)       marker = ' gsc-eagle';
+        else if (diff === -1) marker = ' gsc-birdie';
+        else if (diff === 1)  marker = ' gsc-bogey';
+        else if (diff >= 2)   marker = ' gsc-double';
+        return `<td class="gsc-strokes${marker}"><span class="gsc-strokes-inner">${s}</span></td>`;
+      }).join('');
+    };
+
+    const buildNineHtml = (nineHoles, label) => {
+      const totalLabel = label === 'Front 9' ? 'Out' : 'In';
+      const ninePar = nineHoles.reduce((sum, h) => sum + h.par, 0);
+      const nums = nineHoles.map(h => `<th class="gsc-hole-num">${h.number}</th>`).join('');
+      const pars = nineHoles.map(h => `<td class="gsc-par">${h.par}</td>`).join('');
+      const playerRows = ordered.map(r => {
+        const isYou = r.uid === myUid;
+        const scores = r.scores || {};
+        const nineStrokes = nineHoles.reduce((sum, h) => sum + (scores[h.number]?.strokes || 0), 0);
+        const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
+        return `
+          <tr class="gsc-player-row${isYou ? ' gsc-player-you' : ''}">
+            <td class="gsc-player-cell" title="${escapeAttr(nameFor(r))}">${escapeHtml(nameFor(r))}</td>
+            ${scoreRowCells(r, nineHoles)}
+            <td class="gsc-total">${nineStrokesDisplay}</td>
+          </tr>`;
+      }).join('');
+      return `
+        <div class="gsc-nine">
+          <div class="gsc-nine-label">${label}</div>
+          <table class="gsc-table">
+            <thead>
+              <tr><th class="gsc-row-label">Hole</th>${nums}<th class="gsc-total-label">${totalLabel}</th></tr>
+              <tr><td class="gsc-row-label">Par</td>${pars}<td class="gsc-total gsc-par-total">${ninePar}</td></tr>
+            </thead>
+            <tbody>${playerRows}</tbody>
+          </table>
+        </div>`;
+    };
+
+    mount.innerHTML = `
+      <div class="sgs-backdrop opening" onclick="closeSummaryGroupScorecard()" aria-hidden="true"></div>
+      <div class="sgs-sheet opening" role="dialog" aria-modal="true" aria-label="Group scorecard">
+        <div class="sgs-header">
+          <div class="sgs-handle" aria-hidden="true"></div>
+          <div class="sgs-title-block">
+            <div class="sgs-eyebrow">Group Scorecard</div>
+            <div class="sgs-title">${escapeHtml(course.name)}</div>
+          </div>
+          <button class="sgs-close" onclick="closeSummaryGroupScorecard()" aria-label="Close">×</button>
+        </div>
+        <div class="sgs-body">
+          <div class="gsc-body">
+            ${buildNineHtml(frontHoles, 'Front 9')}
+            ${buildNineHtml(backHoles, 'Back 9')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Kick off slide-up animation on next frame
+    const sheet = mount.querySelector('.sgs-sheet.opening');
+    const backdrop = mount.querySelector('.sgs-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    // Wire drag-to-close on the header — same gesture as all the
+    // other bottom sheets. Helper guards against double-attach.
+    const fullSheet = mount.querySelector('.sgs-sheet');
+    const header = fullSheet?.querySelector('.sgs-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.sgs-backdrop',
+      ignoreSelector: '.sgs-close',
+      closeFn: closeSummaryGroupScorecard,
+    });
   }
 
   // Flip a round's individual visibility override. Rounds default to
