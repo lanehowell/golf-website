@@ -25922,18 +25922,31 @@
     // Tap-to-navigate: hitting the toast routes to the Social tab so
     // the user can accept/decline without digging. Longer duration
     // (5.5s) because the user might want to read + tap.
-    for (const inv of newlyArrived) {
-      const fromName = inv.fromDisplayName
-        || inv.fromUsernameDisplay
-        || inv.fromUsername
-        || 'Someone';
-      // Shorter message so it fits a narrow phone viewport. The
-      // toast is already actionable + has a chevron affordance, so
-      // "tap to view" is redundant phrasing.
-      showToast(`${fromName} invited you to a round`, false, {
-        duration: 5500,
-        onTap: () => showPanel('social', null)
-      });
+    //
+    // Skip the toast if the user is already on a panel where the
+    // invite is surfaced visually — the home banner, the play banner,
+    // or the social panel's invite cards. Stacking a toast on top of
+    // the banner looked weird and half-covered it. On any other
+    // panel the toast is still the primary arrival signal.
+    const panelHasInviteUi =
+      currentPanelId === 'home' ||
+      currentPanelId === 'play' ||
+      currentPanelId === 'social';
+
+    if (!panelHasInviteUi) {
+      for (const inv of newlyArrived) {
+        const fromName = inv.fromDisplayName
+          || inv.fromUsernameDisplay
+          || inv.fromUsername
+          || 'Someone';
+        // Shorter message so it fits a narrow phone viewport. The
+        // toast is already actionable + has a chevron affordance, so
+        // "tap to view" is redundant phrasing.
+        showToast(`${fromName} invited you to a round`, false, {
+          duration: 5500,
+          onTap: () => showPanel('social', null)
+        });
+      }
     }
 
     updateSocialBadge();
