@@ -7103,6 +7103,113 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     PRE-SHOT — dock tool for situation-based shot adjustments
+     ══════════════════════════════════════════════════════════════ */
+  .preshot-surface { padding: var(--space-3) var(--space-4) var(--space-4); }
+  .preshot-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .preshot-header-text { min-width: 0; flex: 1; }
+  .preshot-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-orange);
+    margin-bottom: 2px;
+  }
+  .preshot-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-tight);
+  }
+  /* Handedness pill — subtle indicator + tap-to-change. Taps navigate
+     to Profile so the user can flip the pref without hunting for it. */
+  .preshot-hand-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .preshot-hand-pill:active { transform: scale(0.97); }
+  @media (hover: hover) {
+    .preshot-hand-pill:hover {
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+
+  /* Body — sections by category, each with a small label + a stack
+     of tip cards */
+  .preshot-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .preshot-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .preshot-section-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .preshot-item {
+    padding: var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--color-orange);
+    border-radius: var(--radius-md);
+  }
+  .preshot-situation {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    letter-spacing: var(--tracking-tight);
+  }
+  .preshot-tip {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.45;
+  }
+  html.dark .preshot-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--color-orange);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      WEATHER — landing widget + dock tool
      ══════════════════════════════════════════════════════════════ */
 
@@ -23800,6 +23907,15 @@
     // manually-tappable suggestions and nothing auto-updates.
     bagAutoUpdate: false,
 
+    // ─── Personal golfer prefs ───────────────────────────────
+    // Which side of the ball you address it from. Affects any tool
+    // that gives direction-based advice — e.g. the Pre-Shot tool's
+    // lie-to-ball-flight mappings ("ball above feet tends LEFT for
+    // righties, RIGHT for lefties"). Stored as 'right' | 'left'.
+    // Default is 'right' since that's ~90% of golfers; a lefty
+    // flipping the toggle once in Profile is a one-time setup.
+    handedness: 'right',
+
     // ─── Social ──────────────────────────────────────────────
     // Social identity. All fields default empty/private — users opt IN
     // to social presence by setting a username and flipping visibility.
@@ -26361,6 +26477,7 @@
       ${renderAccountSection()}
       ${renderSocialSection()}
       ${renderBagSection()}
+      ${renderGameSection()}
       ${renderScheduleSection()}
       ${renderUnitsSection()}
       ${renderAppearanceSection()}
@@ -29247,7 +29364,8 @@
     { id: 'scorecard', label: 'Scorecard',   icon: '📋' },
     { id: 'shots',     label: 'Track Shots', icon: '📍' },
     { id: 'weather',   label: 'Weather',     icon: '🌤️' },
-    { id: 'caddie',    label: 'Club Caddie', icon: '🎯' },
+    { id: 'preshot',   label: 'Pre-Shot',    icon: '🎯' },
+    { id: 'caddie',    label: 'Club Caddie', icon: '🏌️' },
     { id: 'bag',       label: 'My Bag',      icon: '⛳' },
   ];
 
@@ -30017,6 +30135,7 @@
       scorecard: 'See your running scorecard',
       shots:     'Log each shot and club used',
       weather:   'Conditions at the course',
+      preshot:   'Situation-based shot reminders',
       caddie:    'Get a club suggestion',
       bag:       'Reference your club distances',
     };
@@ -30043,6 +30162,7 @@
     if (toolId === 'scorecard') return renderDockScorecard();
     if (toolId === 'weather')   return renderDockWeather();
     if (toolId === 'shots')     return renderShotsTool();
+    if (toolId === 'preshot')   return renderPreShotTool();
     return '';
   }
 
@@ -30800,6 +30920,118 @@
         <div class="weather-footer">
           ${humidity != null ? `<span>Humidity ${Math.round(humidity)}%</span>` : ''}
           <span>Updated ${fixAgeStr}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Pre-Shot tool — reference surface of situation → adjustment
+  // reminders. Reads prefs.handedness to flip direction words
+  // (right-handers see "tends LEFT", lefties see "tends RIGHT").
+  //
+  // Not a calculator, not an input form — just an at-a-glance
+  // checklist for things that are easy to forget mid-round.
+  // Each tip is { situation, tip, dirFlip } where dirFlip = true
+  // means the tip contains {L}/{R} placeholders to swap based on
+  // handedness. Keeps the data declarative and localization-ready.
+  // ─────────────────────────────────────────────────────────────
+  const PRESHOT_TIPS = [
+    {
+      category: 'Lie',
+      items: [
+        { situation: 'Ball above feet',  tip: 'Ball tends to pull {L} — aim {R} of target. Grip down ½ inch.', dirFlip: true },
+        { situation: 'Ball below feet',  tip: 'Ball tends to push {R} — aim {L} of target. Bend knees more, stay down through impact.', dirFlip: true },
+        { situation: 'Uphill lie',       tip: 'Add a club (ball flies higher, shorter). Tends to go {L}.', dirFlip: true },
+        { situation: 'Downhill lie',     tip: 'Take one less club (ball flies lower, longer). Tends to go {R}.', dirFlip: true },
+        { situation: 'Thick rough',      tip: 'Club up, grip firm, steeper swing. Expect less spin and a flier.' },
+        { situation: 'Fairway bunker',   tip: 'One more club, grip down, quiet lower body. Clip it clean — don\'t dig.' },
+        { situation: 'Hardpan / tight',  tip: 'Ball slightly back in stance, hands ahead. Hit down, accept less spin.' },
+        { situation: 'Wet lie',          tip: 'Possible flier — one less club OR swing easier. Clean the grooves.' },
+      ]
+    },
+    {
+      category: 'Wind',
+      items: [
+        { situation: 'Into the wind',    tip: 'Club up 1–2, swing 75%. "When it\'s breezy, swing easy."' },
+        { situation: 'Downwind',         tip: 'Less spin, more roll — ball will carry and run. Club down, don\'t overcook it.' },
+        { situation: 'Crosswind L→R',    tip: 'At 100y, aim ~1 yard {L} per 10 mph. Fight it or ride it — don\'t try both.', dirFlip: false },
+        { situation: 'Crosswind R→L',    tip: 'At 100y, aim ~1 yard {R} per 10 mph. Fight it or ride it — don\'t try both.', dirFlip: false },
+      ]
+    },
+    {
+      category: 'Elevation',
+      items: [
+        { situation: 'Elevated green',   tip: 'Add yardage (~1 club per 15 ft up). Ball lands softer — can be aggressive.' },
+        { situation: 'Green below',      tip: 'Subtract a little (~½ club per 15 ft down). Ball carries less flat vs downhill lie effect.' },
+      ]
+    },
+    {
+      category: 'Conditions',
+      items: [
+        { situation: 'Cold (<50°F)',     tip: 'Ball carries ~2 yards shorter per 10°F below 70°F. Club up.' },
+        { situation: 'Altitude',         tip: 'Ball carries ~2% farther per 1,000 ft. Denver: add ~10%.' },
+        { situation: 'Morning dew',      tip: 'Greens slower. Hit putts firmer. Clean clubface — dew reduces spin.' },
+      ]
+    },
+  ];
+
+  function renderPreShotTool() {
+    const handedness = prefs.handedness || 'right';
+    const isLefty = handedness === 'left';
+    // Direction substitution — {L}/{R} placeholders map to LEFT/RIGHT.
+    // For tips flagged dirFlip: true, the placeholders represent
+    // HANDEDNESS-RELATIVE directions (e.g. "ball above feet pulls
+    // left for a righty → right for a lefty"), so we swap on lefty.
+    // For tips with dirFlip: false (or omitted), placeholders are
+    // ABSOLUTE directions that don't depend on handedness — e.g. a
+    // crosswind L→R pushes the ball right regardless of who's
+    // hitting, so the aim correction is left for everyone.
+    const subst = (text, shouldFlip) => {
+      if (shouldFlip && isLefty) {
+        // Two-step swap via placeholder to avoid L→R→L double-replace
+        return text
+          .replace(/\{L\}/g, '__TMP_R__')
+          .replace(/\{R\}/g, 'LEFT')
+          .replace(/__TMP_R__/g, 'RIGHT');
+      }
+      return text
+        .replace(/\{L\}/g, 'LEFT')
+        .replace(/\{R\}/g, 'RIGHT');
+    };
+
+    const sectionsHtml = PRESHOT_TIPS.map(section => {
+      const itemsHtml = section.items.map(item => {
+        const shouldFlip = item.dirFlip !== false; // default true when omitted
+        const tipText = subst(item.tip, shouldFlip);
+        return `
+          <div class="preshot-item">
+            <div class="preshot-situation">${escapeHtml(item.situation)}</div>
+            <div class="preshot-tip">${tipText}</div>
+          </div>`;
+      }).join('');
+      return `
+        <div class="preshot-section">
+          <div class="preshot-section-label">${escapeHtml(section.category)}</div>
+          ${itemsHtml}
+        </div>`;
+    }).join('');
+
+    const handednessLabel = isLefty ? 'Left-handed' : 'Right-handed';
+    return `
+      <div class="round-dock-surface preshot-surface">
+        <div class="preshot-header">
+          <div class="preshot-header-text">
+            <div class="preshot-eyebrow">Pre-Shot</div>
+          </div>
+          <button class="preshot-hand-pill" onclick="showPanel('profile', null)"
+                  aria-label="Change handedness in Profile"
+                  title="Change in Profile">
+            ${handednessLabel}
+          </button>
+        </div>
+        <div class="preshot-body">
+          ${sectionsHtml}
         </div>
       </div>
     `;
@@ -43407,6 +43639,39 @@
       return `<strong>${heading}</strong> No workouts scheduled — every day is a rest day.`;
     }
     return `<strong>${heading}</strong> ${workoutDays.join(' · ')}`;
+  }
+
+  // "Your Game" section — personal golfer prefs that affect how the
+  // app gives you advice. Currently just handedness, which feeds into
+  // the Pre-Shot tool's directional reminders. Designed to grow: can
+  // host future prefs like dominant eye, playing style, etc.
+  function renderGameSection() {
+    const handedness = prefs.handedness || 'right';
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Your Game</div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Handedness</div>
+            <div class="settings-row-sub">Affects direction-based tips in the Pre-Shot tool (e.g. which way uneven lies push the ball).</div>
+          </div>
+          <div class="seg-control">
+            <button class="${handedness === 'right' ? 'active' : ''}" onclick="setHandedness('right')">Right</button>
+            <button class="${handedness === 'left' ? 'active' : ''}" onclick="setHandedness('left')">Left</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Toggle between 'right' and 'left'. Writes to prefs, persists, and
+  // re-renders Profile. No public-profile sync needed — this pref lives
+  // entirely on the client; only the Pre-Shot tool reads it.
+  function setHandedness(val) {
+    if (val !== 'right' && val !== 'left') return;
+    if (prefs.handedness === val) return;
+    prefs.handedness = val;
+    savePreferences();
+    renderProfile();
   }
 
   function renderUnitsSection() {
