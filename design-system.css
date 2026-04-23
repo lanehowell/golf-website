@@ -41,6 +41,13 @@
   --bg-elevated:      var(--color-white);
   --bg-accent-tint:   var(--color-orange-pale);
 
+  /* Hero card surface — the dramatic dark card used as the "today's
+     primary action" signature across Play, Train, etc. Deliberately
+     warm (deep espresso, not pure black) so it lives in the same
+     tonal family as the creams and orange rather than reading as a
+     foreign digital black. Paired with --text-inverse for body copy. */
+  --bg-hero:          #1F1714;
+
   --text-primary:     var(--color-black);
   --text-secondary:   var(--color-black-80);
   --text-muted:       var(--color-black-60);
@@ -140,6 +147,12 @@
 }
 
 
+/* Dark mode palette overrides live in golf-training-plan.html's inline
+   <style> block. Keeping them co-located with page-specific styles means
+   every update ships in a single file and we avoid browser-cache
+   mismatches between the HTML and this stylesheet. */
+
+
 /* ══════════════════════════════════════════════════════════════
    2. RESET & BASE
    ══════════════════════════════════════════════════════════════ */
@@ -153,6 +166,10 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* Always reserve space for the scrollbar so panels with shorter content
+     (e.g. Today) don't shift the page width vs panels that overflow.
+     Without this, the centered nav contents nudge ~15px when switching tabs. */
+  scrollbar-gutter: stable;
 }
 
 body {
