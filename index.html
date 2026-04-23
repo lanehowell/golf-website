@@ -1709,30 +1709,6 @@
     background: radial-gradient(circle, var(--color-orange-glow) 0%, transparent 65%);
     pointer-events: none;
   }
-  /* Oversized italic wordmark — echoes the "02" watermark treatment on
-     the Train today-card so the two signature hero cards share a visual
-     vocabulary. "Play" in Playfair italic sits behind the copy, low-
-     opacity orange, filling the empty right-side of the card so it
-     doesn't feel under-furnished compared to the Train card.
-     Only on the default/inactive hero — the active round variants
-     already have progress content filling that space. */
-  .play-hero:not(.play-hero-active)::after {
-    content: 'Play';
-    position: absolute;
-    bottom: -2rem;
-    right: -1.5rem;
-    font-family: var(--font-display);
-    font-weight: var(--weight-black);
-    font-style: italic;
-    font-size: clamp(10rem, 24vw, 18rem);
-    color: rgba(232, 93, 4, 0.14);
-    line-height: 0.82;
-    letter-spacing: -0.05em;
-    pointer-events: none;
-    user-select: none;
-  }
-  /* Content needs to sit above the decorative ::after */
-  .play-hero > * { position: relative; z-index: 1; }
   .play-hero-eyebrow {
     font-family: var(--font-body);
     font-size: var(--text-xs);
