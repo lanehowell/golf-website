@@ -944,7 +944,7 @@
   /* ── Today card (the main event) ──────────────────────────── */
   .today-card {
     position: relative;
-    background: var(--bg-hero);
+    background: var(--color-black);
     color: var(--text-inverse);
     border-radius: var(--radius-lg);
     padding: var(--space-8);
@@ -1689,7 +1689,7 @@
 
   /* Hero CTA — dark card mirrors the Today card's visual weight */
   .play-hero {
-    background: var(--bg-hero);
+    background: var(--color-black);
     color: var(--text-inverse);
     border-radius: var(--radius-xl);
     padding: var(--space-10) var(--space-8);
@@ -1697,8 +1697,7 @@
     position: relative;
     overflow: hidden;
   }
-  /* Subtle decorative orange glow in the top-right — the visual center
-     of the card's "warmth." */
+  /* Subtle decorative golf flag mark */
   .play-hero::before {
     content: '';
     position: absolute;
@@ -2312,11 +2311,7 @@
   }
   .tee-btn.active .tee-btn-yards { color: var(--color-orange-dark); }
 
-  /* Tee info strip — 1×4 grid of reference stats (yards / rating / slope
-     / par) for the selected tee. Previously a 2×2 grid which consumed
-     a full screenful before the scorecard preview. Going to a single
-     row keeps the tile feel and hero-serif numbers while cutting the
-     vertical footprint in half. */
+  /* Tee info strip — yards/rating/slope/par for the selected tee */
   .tee-info {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -2327,14 +2322,13 @@
     background: var(--color-cream-100);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
-    padding: var(--space-3) var(--space-2);
+    padding: var(--space-3);
     text-align: center;
-    min-width: 0; /* allow tiles to shrink so 4-up fits on narrow screens */
   }
   .tee-info-value {
     display: block;
     font-family: var(--font-display);
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
@@ -2343,9 +2337,9 @@
   .tee-info-label {
     display: block;
     font-family: var(--font-body);
-    font-size: 0.6rem;
+    font-size: 0.66rem;
     font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--text-muted);
   }
@@ -2495,21 +2489,15 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
-  /* Active-tab state — tinted with the orange accent so the chosen mode
-     is unmistakable at a glance. The previous treatment (just a raised
-     surface) was too subtle; users couldn't tell which mode they'd
-     committed to, which matters a lot because Solo vs With Friends is
-     the single most consequential choice on this screen. */
   .round-mode-tab.is-active {
-    background: var(--color-orange);
-    color: var(--text-inverse);
-    box-shadow: 0 1px 4px var(--color-orange-glow);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-xs, 0 1px 2px rgba(13, 13, 13, 0.08));
     font-weight: var(--weight-semibold);
   }
   html.dark .round-mode-tab.is-active {
-    background: var(--color-orange);
-    color: #fff;
-    box-shadow: 0 1px 6px rgba(232, 93, 4, 0.35);
+    background: var(--bg-elevated);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   @media (hover: hover) {
     .round-mode-tab:not(.is-active):hover {
@@ -2539,7 +2527,78 @@
   }
   /* Tee selector inside the Start card — tighter spacing than before */
   .start-round-card .tee-selector {
+    margin-bottom: var(--space-4);
+  }
+  /* Starting-hole picker row — appears between tee selector and CTA.
+     Most rounds start on hole 1, but busy courses use shotgun starts.
+     Label on left (hole number + par/yardage summary), stepper on right
+     (compact circular − / value / + buttons). */
+  .start-round-holepicker {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
     margin-bottom: var(--space-5);
+  }
+  .start-round-holepicker-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .start-round-holepicker-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.25;
+  }
+  .start-round-holepicker-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .start-round-holepicker-stepper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+  .start-round-holepicker-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-full, 999px);
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  }
+  .start-round-holepicker-btn:active {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    transform: scale(0.95);
+  }
+  .start-round-holepicker-value {
+    min-width: 32px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
   /* The Start button — full width inside the card, large thumb target.
      Dynamic label shows the currently-selected tee so the user sees
@@ -2600,6 +2659,7 @@
 
   @media (max-width: 480px) {
     .start-round-card { padding: var(--space-4) var(--space-5) var(--space-5); }
+    .tee-info { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -2797,6 +2857,21 @@
     font-family: var(--font-body);
     color: var(--text-secondary);
     font-weight: var(--weight-medium);
+  }
+  /* Starting hole callout — differentiated with orange accents since
+     it's noteworthy (shotgun / non-default start). Only rendered when
+     organizer picked a hole other than 1. */
+  .lobby-course-starting-hole {
+    padding-top: var(--space-2);
+    margin-top: var(--space-1);
+    border-top: 1px dashed var(--border-light);
+  }
+  .lobby-course-starting-hole .lobby-course-split-lbl {
+    color: var(--color-orange);
+  }
+  .lobby-course-starting-hole .lobby-course-split-val {
+    color: var(--color-orange);
+    font-weight: var(--weight-semibold);
   }
 
   /* ── Tee picker uses the shared .tee-selector / .tee-btn pattern
@@ -4072,6 +4147,178 @@
   .hole-picker-tile-score.is-bogey    { color: var(--text-secondary); }
   .hole-picker-tile-score.is-over     { color: var(--text-secondary); }
   .hole-picker-tile.is-current .hole-picker-tile-score { color: var(--color-white) !important; }
+
+  /* ══════════════════════════════════════════════════════════════
+     TOOLS EDITOR — configure in-round tools sheet
+     ══════════════════════════════════════════════════════════════ */
+  .tools-editor-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8700;
+    background: rgba(13, 13, 13, 0.5);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tools-editor-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8701;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.28), 0 -2px 8px rgba(13, 13, 13, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    animation: sheet-slide-up 260ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  @keyframes sheet-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .tools-editor-header {
+    position: relative;
+    padding: var(--space-5) var(--space-4) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .tools-editor-handle {
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 36px; height: 4px;
+    background: var(--border-medium);
+    border-radius: 2px;
+  }
+  .tools-editor-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+  .tools-editor-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-tight);
+  }
+  .tools-editor-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 var(--space-2);
+  }
+  .tools-editor-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+    line-height: 1.4;
+  }
+  .tools-editor-body {
+    padding: var(--space-3) var(--space-4);
+    overflow-y: auto;
+    flex: 1;
+  }
+  .tools-editor-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+    transition: opacity var(--transition-fast);
+  }
+  .tools-editor-row-hidden {
+    opacity: 0.5;
+  }
+  .tools-editor-row-reorder {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .tools-editor-move-btn {
+    width: 28px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 10px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+  }
+  .tools-editor-move-btn:active:not(:disabled) {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+  }
+  .tools-editor-move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .tools-editor-row-icon {
+    font-size: 22px;
+    line-height: 1;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .tools-editor-row-label {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    min-width: 0;
+  }
+  .tools-editor-visibility {
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+  .tools-editor-visibility.is-visible {
+    background: var(--color-orange-pale);
+    border-color: rgba(232, 93, 4, 0.4);
+    color: var(--color-orange);
+  }
+  .tools-editor-visibility.is-hidden {
+    background: transparent;
+    border-color: var(--border-medium);
+    color: var(--text-muted);
+  }
+  .tools-editor-footer {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .tools-editor-footer .btn {
+    flex: 1;
+  }
 
   .round-status-score {
     font-family: var(--font-display);
@@ -8387,6 +8634,33 @@
     font-style: italic;
     letter-spacing: 0.01em;
   }
+  /* Best-round badges — surface on round cards in history, round
+     summary header, and the user's own feed cards. Global best takes
+     visual priority (gold-tinted); course best uses the app's orange.
+     Both variants share the star-prefix + pill shape. */
+  .round-card-best-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    border-radius: var(--radius-pill);
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-2);
+    line-height: 1.6;
+  }
+  .round-card-best-global {
+    background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
+    color: #2A1800;
+    box-shadow: 0 1px 3px rgba(232, 166, 52, 0.3);
+  }
+  .round-card-best-course {
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    border: 1px solid rgba(232, 93, 4, 0.3);
+  }
   /* History-card variant: the condensed card layout needs the text
      pulled UP to sit tight against the meta row. Only applies when
      this line is inside an actual .round-card (the clickable card
@@ -10008,6 +10282,32 @@
     color: var(--text-muted);
   }
 
+  /* Best-round hero badge — larger, more prominent version for the
+     round summary page. Sits above the eyebrow so it's the FIRST
+     thing the user sees when they land on a best round. */
+  .round-summary-best-hero {
+    display: inline-block;
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    border-radius: var(--radius-pill);
+    margin-bottom: var(--space-3);
+    line-height: 1.4;
+  }
+  .round-summary-best-global {
+    background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
+    color: #2A1800;
+    box-shadow: 0 2px 8px rgba(232, 166, 52, 0.35);
+  }
+  .round-summary-best-course {
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    border: 1px solid rgba(232, 93, 4, 0.4);
+  }
+
   /* Totals — 4 stat cards, first one emphasized */
   .round-summary-totals {
     display: grid;
@@ -10056,6 +10356,82 @@
     text-transform: uppercase;
     color: var(--text-secondary);
     margin-bottom: var(--space-3);
+  }
+
+  /* TEMP — raw logged shots dump on round summary. Plain + utilitarian
+     on purpose; a proper per-club/dispersion view replaces this later. */
+  .shots-dump-temp-tag {
+    display: inline-block;
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    font-size: 9px;
+    font-weight: var(--weight-bold);
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    letter-spacing: var(--tracking-wide);
+    margin-left: var(--space-2);
+    vertical-align: middle;
+  }
+  .shots-dump-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+  .shots-dump-hole {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+  }
+  .shots-dump-hole-head {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .shots-dump-row {
+    padding: var(--space-2) 0;
+    border-bottom: 1px dashed var(--border-light);
+  }
+  .shots-dump-row:last-child { border-bottom: none; }
+  .shots-dump-row-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin-bottom: 4px;
+  }
+  .shots-dump-num {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    min-width: 28px;
+  }
+  .shots-dump-club {
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+  }
+  .shots-dump-dist {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--text-sm);
+  }
+  .shots-dump-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    padding-left: 32px;
+  }
+  .shots-dump-row-meta b {
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -15614,6 +15990,35 @@
     color: var(--color-orange);
     font-weight: var(--weight-semibold);
   }
+  /* Resync public rounds block — appears below the profile summary
+     when visibility is public. Gives user a recovery action for
+     rounds completed before new fields (like bestType) shipped. */
+  .social-resync-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-light);
+  }
+  .social-resync-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .social-resync-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .social-resync-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
   .social-viz-private {
     color: var(--text-muted);
     font-style: italic;
@@ -16399,6 +16804,31 @@
     letter-spacing: var(--tracking-wide);
     margin-top: 2px;
   }
+  /* Best-round badge on feed cards — only surfaces on the user's own
+     rounds (not friends'). Sized between round-card and summary-hero
+     versions. See renderFeedCard for the isMe gate. */
+  .feed-card-best-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    border-radius: var(--radius-pill);
+    margin-top: var(--space-2);
+    line-height: 1.6;
+  }
+  .feed-card-best-global {
+    background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
+    color: #2A1800;
+    box-shadow: 0 1px 3px rgba(232, 166, 52, 0.3);
+  }
+  .feed-card-best-course {
+    background: var(--color-orange-pale);
+    color: var(--color-orange);
+    border: 1px solid rgba(232, 93, 4, 0.3);
+  }
 
   /* Score display — the hero of the feed card */
   .feed-card-score {
@@ -17074,6 +17504,46 @@
     color: var(--text-muted);
     margin-top: 2px;
     line-height: 1.4;
+  }
+  /* Button variant of settings-row — used when the row opens a sheet
+     or editor instead of having inline controls. Carries the same
+     layout/border as other rows but adds tap affordance + chevron. */
+  button.settings-row-link {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast);
+  }
+  button.settings-row-link:last-child { border-bottom: none; }
+  button.settings-row-link:active {
+    background: var(--bg-elevated-hover, rgba(0,0,0,0.03));
+  }
+  .settings-row-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+  .settings-row-value {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+  }
+  .settings-row-chevron {
+    color: var(--text-muted);
+    font-size: var(--text-lg);
+    line-height: 1;
   }
 
   /* Settings link row — a settings row that acts as a nav link to a
@@ -19753,6 +20223,13 @@
      Body-level so it escapes any ancestor transforms. Works for
      both solo and group rounds. -->
 <div id="hole-picker-mount"></div>
+
+<!-- TOOLS EDITOR sheet mount — populated by renderToolsEditorSheet()
+     when user taps "In-round tools" in Profile > Your Game. Lets
+     user show/hide + reorder the tools that appear in the round's
+     tools sheet. Body-level so it doesn't inherit panel-switching
+     display toggles. -->
+<div id="tools-editor-mount"></div>
 
 <!-- FINISH ROUND sheet mount — populated by renderFinishRoundSheet()
      when a player taps "Finish Round" on a partial round. Presents the
@@ -23927,6 +24404,20 @@
     // flipping the toggle once in Profile is a one-time setup.
     handedness: 'right',
 
+    // Round tools sheet configuration — user's hide/show + reorder
+    // for the in-round tools menu. When null, the sheet renders the
+    // full DOCK_TOOLS catalog in catalog order (default behavior).
+    // When set, it's an array: [{ id, visible }, ...]
+    //   - Order of array = display order in the sheet
+    //   - visible: false entries are hidden (can be re-enabled later
+    //     without losing their position)
+    //   - New tools added to DOCK_TOOLS later (not yet in a user's
+    //     config) are treated as visible and appended at the end —
+    //     forward-compatible: adding Pre-Shot style tools won't
+    //     disappear for existing users.
+    //   - At least one tool must remain visible (UI enforces this).
+    toolsConfig: null,
+
     // ─── Social ──────────────────────────────────────────────
     // Social identity. All fields default empty/private — users opt IN
     // to social presence by setting a username and flipping visibility.
@@ -25031,6 +25522,13 @@
       quickScore: !!round.quickScore,
       totals:     round.totals || {},
       scores:     round.scores || {},   // per-hole detail — public if round is public
+      // Best-round indicator. 'global' | 'course' | null. Friends reading
+      // the shared feed use this to decide whether to show a badge on
+      // the card — they can't compute it themselves (they don't have my
+      // full history). Computed against MY private rounds at save time
+      // by the completion flow; kept in sync via findDisplacedBestRounds
+      // when a new round dethrones an old one.
+      bestType: round.bestType || null,
       // Preserve existing comment count when re-mirroring so resync doesn't
       // zero out comments. Falls back to 0 only if the round was never mirrored.
       commentCount: (round._publicCommentCount != null)
@@ -25118,10 +25616,71 @@
       return;
     }
     const completed = (recentRounds || []).filter(r => r.status === 'completed');
+    // Pre-compute bests across all completed rounds so each round mirrored
+    // carries the correct bestType. Otherwise friends viewing a newly-
+    // public profile would see every round WITHOUT a badge until the
+    // user completed a fresh round.
+    const bests = computeMyBestRounds(completed);
     // Serial rather than parallel — easier on rate limits, and this only
     // runs on explicit visibility toggles (not every round save).
     for (const round of completed) {
+      // Decorate the round with its bestType BEFORE mirroring so
+      // buildPublicRoundDoc picks it up. Also update the in-memory cache
+      // so the user's own history view reflects the badge after the flip.
+      let bestType = null;
+      if (round.id === bests.globalBestId) bestType = 'global';
+      else if (bests.courseBestIds.has(round.id)) bestType = 'course';
+      round.bestType = bestType;
       await syncRoundToPublic(round);
+    }
+  }
+
+  // User-initiated resync of all public rounds. Primary use case: a user
+  // has rounds completed before the bestType feature shipped — those
+  // rounds have no bestType in their public mirror, so friends don't
+  // see Best Round badges on them. Running this recomputes + writes
+  // bestType across the full history in one pass.
+  //
+  // Also useful if data drift happens for any other reason: totals
+  // schema changes, groupOthers denormalization bugs, etc. — this is
+  // the user-visible "make the public copy match the private copy".
+  async function handleResyncPublicRounds() {
+    const btn = document.getElementById('social-resync-btn');
+    if (!currentUser || !window.fb) {
+      showToast('Sign in to resync', true);
+      return;
+    }
+    if (!roundsLoaded) {
+      showToast('Rounds still loading — try again in a moment', true);
+      return;
+    }
+    if (prefs.profileVisibility !== 'public') {
+      showToast('Profile must be public to resync', true);
+      return;
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Resyncing…';
+    }
+    try {
+      await syncAllRoundsToPublic();
+      // Invalidate my own social feed cache so my next Social visit
+      // reflects the updated bestType on my own rounds. Friends'
+      // caches will expire via TTL (see FEED_CACHE_TTL_MS) or reload.
+      if (typeof socialState !== 'undefined') {
+        socialState.feedLoaded = false;
+        socialState.feedLoadedAt = 0;
+      }
+      showToast('Public rounds resynced');
+      // Re-render profile to reset the button state
+      renderProfile();
+    } catch (err) {
+      console.error('Resync failed:', err);
+      showToast('Resync failed — see console', true);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Resync';
+      }
     }
   }
 
@@ -26290,6 +26849,143 @@
     }
   }
 
+  // Identify the user's best rounds for badging purposes. Returns:
+  //   { globalBestId: string | null, courseBestIds: Set<string> }
+  //
+  // "Best" is defined as the LOWEST vs-par on a COMPLETED 18-hole round.
+  // Partial rounds are excluded because comparing "shot +2 through 9
+  // holes" to a full 18 isn't meaningful. Ties broken by most recent
+  // startTime (the "current champion" is the newer round — makes the
+  // badge feel fresh).
+  //
+  // Returns empty structure if the user has no qualifying rounds yet.
+  //
+  // Global best is ONE round total across all history. Course best is
+  // ONE round per courseId (only surfaces on courses the user has
+  // played ≥2 completed 18-hole rounds at — a single round at a course
+  // isn't meaningfully "best" until there's something to compare).
+  //
+  // A round can be both global and course best at the same time. The
+  // render layer decides which badge to show (global outranks course).
+  function computeMyBestRounds(rounds) {
+    const result = { globalBestId: null, courseBestIds: new Set() };
+    if (!Array.isArray(rounds) || rounds.length === 0) return result;
+
+    // Filter to completed 18-hole rounds
+    const eligible = rounds.filter(r =>
+      r
+      && r.status === 'completed'
+      && (r.totals?.holesPlayed || 0) >= 18
+      && typeof r.totals?.vsPar === 'number'
+      && typeof r.id === 'string'
+    );
+    if (eligible.length === 0) return result;
+
+    // Global best: lowest vsPar, ties broken by most recent
+    let globalBest = eligible[0];
+    for (const r of eligible) {
+      if (r.totals.vsPar < globalBest.totals.vsPar) {
+        globalBest = r;
+      } else if (
+        r.totals.vsPar === globalBest.totals.vsPar
+        && (r.startTime || 0) > (globalBest.startTime || 0)
+      ) {
+        globalBest = r;
+      }
+    }
+    result.globalBestId = globalBest.id;
+
+    // Per-course best: group by courseId, only include courses with ≥2 rounds
+    const byCourse = new Map();
+    for (const r of eligible) {
+      const cid = r.courseId;
+      if (!cid) continue;
+      if (!byCourse.has(cid)) byCourse.set(cid, []);
+      byCourse.get(cid).push(r);
+    }
+    for (const [cid, list] of byCourse.entries()) {
+      if (list.length < 2) continue;
+      let best = list[0];
+      for (const r of list) {
+        if (r.totals.vsPar < best.totals.vsPar) {
+          best = r;
+        } else if (
+          r.totals.vsPar === best.totals.vsPar
+          && (r.startTime || 0) > (best.startTime || 0)
+        ) {
+          best = r;
+        }
+      }
+      result.courseBestIds.add(best.id);
+    }
+
+    return result;
+  }
+
+  // Determine what bestType a specific round should carry, given the
+  // full list of the user's rounds. Returns 'global' | 'course' | null.
+  //
+  // Unlike computeMyBestRounds (which returns sets for rendering a
+  // list), this is for DENORMALIZING onto a single round's doc at
+  // save time. Friends' clients read this field directly to decide
+  // whether to show a badge on the shared feed.
+  //
+  // Global outranks course: if a round qualifies as both, we write
+  // 'global' (the badge renderer knows global supersedes).
+  function computeBestTypeForRound(round, allRounds) {
+    if (!round || !round.id) return null;
+    // Must be a completed 18-hole round to qualify at all
+    if (round.status !== 'completed') return null;
+    if ((round.totals?.holesPlayed || 0) < 18) return null;
+    if (typeof round.totals?.vsPar !== 'number') return null;
+
+    const bests = computeMyBestRounds(allRounds || []);
+    if (round.id === bests.globalBestId) return 'global';
+    if (bests.courseBestIds.has(round.id)) return 'course';
+    return null;
+  }
+
+  // When a new round is saved and earns a bestType, any OTHER round
+  // that previously held that title (global or that course's best)
+  // needs to have its bestType cleared so the badge only appears on
+  // the current champion. Returns an array of { roundId, reason }
+  // where reason is 'global' or 'course'.
+  //
+  // Best-effort semantics: the caller should attempt the clears but
+  // not fail the overall round save if they don't all succeed.
+  //
+  // Takes `allRounds` as-of-BEFORE the new round was added. This
+  // lets us identify the prior champion correctly — we want the
+  // round that WAS best before this new one dethroned it.
+  function findDisplacedBestRounds(newRound, allRounds) {
+    if (!newRound) return [];
+    const displaced = [];
+    // Compute what the bests looked like before newRound existed
+    const priorRounds = (allRounds || []).filter(r => r.id !== newRound.id);
+    const priorBests = computeMyBestRounds(priorRounds);
+
+    // Now compute what they look like after newRound is added
+    const currentRounds = [...priorRounds, newRound];
+    const currentBests = computeMyBestRounds(currentRounds);
+
+    // Global changed?
+    if (priorBests.globalBestId && priorBests.globalBestId !== currentBests.globalBestId) {
+      displaced.push({ roundId: priorBests.globalBestId, reason: 'global' });
+    }
+    // Course best for THIS round's course changed?
+    if (newRound.courseId) {
+      const courseRounds = priorRounds.filter(r => r.courseId === newRound.courseId);
+      if (courseRounds.length >= 1) {
+        // Find the prior course-best for this course among priorBests
+        const priorCourseBest = courseRounds.find(r => priorBests.courseBestIds.has(r.id));
+        if (priorCourseBest && !currentBests.courseBestIds.has(priorCourseBest.id)) {
+          displaced.push({ roundId: priorCourseBest.id, reason: 'course' });
+        }
+      }
+    }
+    return displaced;
+  }
+
   // Compute running totals for the round — strokes, putts, holes played, vs par.
   function computeRoundTotals() {
     const course = getCourse(roundState.courseId);
@@ -26519,7 +27215,34 @@
   // a regular round, 'group' creates a group round lobby. Set by the
   // navigation path (Play → "Start Round" → solo; Play → "Play Together"
   // → group).
-  const courseDetailState = { selectedTeeByCourse: {}, activeCourseId: null, pickMode: 'solo' };
+  //
+  // `startingHoleIndexByCourse` lets the user start at a non-hole-1 hole
+  // (common at busy courses with shotgun starts or split tees). 0-based
+  // index. Defaults to 0 (hole 1). Persisted per-course via key so
+  // toggling between courses remembers each course's last choice.
+  const courseDetailState = {
+    selectedTeeByCourse: {},
+    activeCourseId: null,
+    pickMode: 'solo',
+    startingHoleIndexByCourse: {},
+  };
+
+  function getStartingHoleIndex(courseId) {
+    const v = courseDetailState.startingHoleIndexByCourse[courseId];
+    return typeof v === 'number' && v >= 0 ? v : 0;
+  }
+  function setStartingHoleIndex(courseId, idx) {
+    const course = getCourse(courseId);
+    if (!course) return;
+    const total = course.holes.length;
+    // Wrap for nicer stepper UX — tap past 18 → back to 1, past 1 → to 18.
+    // Keeps both buttons always-enabled (no dead taps near the edges).
+    let wrapped = idx;
+    while (wrapped < 0) wrapped += total;
+    wrapped = wrapped % total;
+    courseDetailState.startingHoleIndexByCourse[courseId] = wrapped;
+    renderCourseDetail();
+  }
 
   // Update the count shown on the Play landing's "Browse Courses" link.
   function updatePlayCoursesCount() {
@@ -26767,6 +27490,24 @@
         </div>
         <div class="start-round-eyebrow">${courseDetailState.pickMode === 'group' ? 'Playing With Friends' : 'Playing From'}</div>
         <div class="tee-selector">${teeButtons}</div>
+        <!-- Starting hole picker. Most rounds start on hole 1, but busy
+             courses often use shotgun starts (everyone tees off on a
+             different hole simultaneously) or just send later groups out
+             on the back nine. Defaulting to 1 keeps the common case one
+             tap; a stepper surfaces the option without burying it. In
+             group rounds, this value propagates to ALL players so
+             everyone starts on the same hole. -->
+        <div class="start-round-holepicker">
+          <div class="start-round-holepicker-info">
+            <div class="start-round-holepicker-label">Starting hole</div>
+            <div class="start-round-holepicker-sub">Par ${course.holes[getStartingHoleIndex(course.id)].par} · ${tee.yardages[getStartingHoleIndex(course.id)].toLocaleString()} yd</div>
+          </div>
+          <div class="start-round-holepicker-stepper">
+            <button class="start-round-holepicker-btn" onclick="setStartingHoleIndex('${course.id}', ${getStartingHoleIndex(course.id) - 1})" aria-label="Previous hole">−</button>
+            <div class="start-round-holepicker-value">${course.holes[getStartingHoleIndex(course.id)].number}</div>
+            <button class="start-round-holepicker-btn" onclick="setStartingHoleIndex('${course.id}', ${getStartingHoleIndex(course.id) + 1})" aria-label="Next hole">+</button>
+          </div>
+        </div>
         <button class="start-round-cta" onclick="${courseDetailState.pickMode === 'group' ? `createGroupRoundFromCourse('${course.id}', '${tee.name}')` : `startRoundFromCourse('${course.id}', '${tee.name}')`}">
           <span>${courseDetailState.pickMode === 'group' ? 'Create Round' : 'Start Round'} — ${escapeHtml(tee.name)}</span>
           <span class="start-round-cta-arrow" aria-hidden="true">→</span>
@@ -26991,6 +27732,9 @@
     groupRoundState.doc = null;
     myGroupRounds = myGroupRounds.filter(r => r.id !== id);
     __groupRoundInvitesSent.clear();
+    // Clean up per-round local state
+    try { localStorage.removeItem(`golfapp.grCursor.${id}`); } catch (_) {}
+    clearScoreScratchpad(id);
     renderPlayLanding();
     updateRoundBanner();
   }
@@ -27025,10 +27769,17 @@
     roundState.docId = newRoundId(courseId, startMs);
     roundState.courseId = courseId;
     roundState.teeName = teeName;
-    roundState.holeIndex = 0;
+    // Starting hole — user's pick from the course detail page stepper.
+    // Defaults to 0 (hole 1) when they haven't touched it. This is the
+    // hole they land on first; saveAndNext handles wrap-around to play
+    // any unplayed holes until the round is complete.
+    roundState.holeIndex = getStartingHoleIndex(courseId);
     roundState.scores = {};
     roundState.shots = {};
     roundState.started = startMs;
+    // Persist the cursor to localStorage right away — establishes the
+    // initial value so close-and-reopen before any nav lands correctly.
+    saveSoloRoundCursor();
     // Initial save so an in-progress doc exists for resume detection
     await autoSaveRound();
     showPanel('round', null);
@@ -27040,11 +27791,22 @@
     roundState.docId = roundDoc.id;
     roundState.courseId = roundDoc.courseId;
     roundState.teeName = roundDoc.teeName;
-    roundState.holeIndex = roundDoc.currentHoleIndex || 0;
+    // Cursor precedence: localStorage (updated on every nav) over
+    // Firestore's currentHoleIndex (only updated on flush-nav). This
+    // means if the user scrubbed through holes without editing, then
+    // closed the app, we still land them on their actual last hole.
+    const localCursor = loadSoloRoundCursor(roundDoc.id);
+    roundState.holeIndex = localCursor != null
+      ? localCursor
+      : (roundDoc.currentHoleIndex || 0);
     roundState.scores = roundDoc.scores || {};
     roundState.shots = roundDoc.shots || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
+    // Merge any in-progress mid-hole edits from the scratchpad back
+    // into local state. If the user was mid-stroke-entry when they
+    // closed the app, this restores those taps as if they never left.
+    restoreScoreScratchpadToActiveRound();
     showPanel('round', null);
   }
 
@@ -27065,6 +27827,10 @@
     if (!isRoundActive()) return;
     const docId = roundState.docId;
     clearRoundState();
+    // Purge per-round local state — no reason to keep scratchpad or
+    // cursor for a round that no longer exists.
+    clearScoreScratchpad(docId);
+    clearSoloRoundCursor(docId);
     if (currentUser && window.fb) {
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${docId}`);
@@ -27095,28 +27861,43 @@
       //
       // Edge case: a player who left and rejoined (or accepted from
       // a different device than they originally played on) will have
-      // a stale/missing localStorage cursor. Fall back to the highest
-      // hole number they've actually scored — that's the natural
-      // "next hole" to land on.
+      // a missing localStorage cursor. In THAT case, fall back to the
+      // highest hole number they've actually scored — that's the
+      // natural "next hole" to land on.
+      //
+      // In the NORMAL case (user has a real stored cursor), we trust
+      // it unconditionally. Previously this code used max(stored,
+      // derived-from-max-played) which broke round-robin play orders:
+      // if you started on hole 10, played through 18, then went back
+      // to 1, your stored cursor correctly pointed at hole 1 but
+      // max-played was 18, so every re-entry jumped you to hole 18.
       const stored = loadGroupRoundCursor();
-      const me = getMyGroupRoundPlayer();
-      const course = getCourse(groupRoundState.doc.courseId);
-      let cursor = stored;
-      if (me && course) {
-        const playedHoleNums = Object.keys(me.scores || {}).map(Number).filter(n => !isNaN(n));
-        if (playedHoleNums.length) {
-          const maxPlayed = Math.max(...playedHoleNums);
-          // Hole numbers are 1-based; cursor is 0-based course.holes index.
-          const nextIdx = Math.min(maxPlayed, course.holes.length - 1);
-          // Use the max of stored and derived — whichever is further
-          // along. Protects both the rejoin case (stored=0, derived
-          // points at last played) AND the normal case (stored is
-          // accurate, derived might be lower if the user scored hole
-          // 5 then jumped back to hole 3 to fix a typo).
-          cursor = Math.max(stored, nextIdx);
+      let cursor;
+      if (stored != null) {
+        cursor = stored;
+      } else {
+        // No stored cursor — derive from play history, falling back to
+        // the round's starting hole (so a player rejoining on a fresh
+        // device before logging any holes lands on the right hole).
+        const me = getMyGroupRoundPlayer();
+        const course = getCourse(groupRoundState.doc.courseId);
+        const startIdx = typeof groupRoundState.doc.startingHoleIndex === 'number'
+          ? groupRoundState.doc.startingHoleIndex
+          : 0;
+        cursor = startIdx;
+        if (me && course) {
+          const playedHoleNums = Object.keys(me.scores || {}).map(Number).filter(n => !isNaN(n));
+          if (playedHoleNums.length) {
+            const maxPlayed = Math.max(...playedHoleNums);
+            cursor = Math.min(maxPlayed, course.holes.length - 1);
+          }
         }
       }
       groupRoundState.yourHoleIndex = cursor;
+      // Merge any in-progress mid-hole edits from the scratchpad back
+      // into local state. Fires AFTER cursor is set so the restore
+      // logic can match holeNum against the correct current hole.
+      restoreScoreScratchpadToActiveRound();
       showPanel('group-round', null);
     }
   }
@@ -27177,6 +27958,10 @@
       startTime: startMs,
       endTime: null,
       status: 'lobby',
+      // Starting hole — organizer's pick. All players will land on this
+      // hole when the round begins. Read by the in-progress render and
+      // by openActiveGroupRound's fallback path. Stored as 0-based index.
+      startingHoleIndex: getStartingHoleIndex(courseId),
       players: [organizer],
       playerUids: [currentUser.uid]
     };
@@ -27335,6 +28120,18 @@
       const frontYards = myTee.yardages.slice(0, 9).reduce((s, y) => s + y, 0);
       const backYards = myTee.yardages.slice(9).reduce((s, y) => s + y, 0);
       const totalYards = myTee.totalYards || (frontYards + backYards);
+      // Starting hole callout — only shown when organizer picked a
+      // non-default hole. Most rounds start on 1; calling that out
+      // would be noise. Non-1 picks are noteworthy (shotgun starts,
+      // back-9 starts) and worth prominently displaying.
+      const startIdx = typeof gr.startingHoleIndex === 'number' ? gr.startingHoleIndex : 0;
+      const startingHoleHtml = startIdx > 0
+        ? `
+            <div class="lobby-course-split lobby-course-starting-hole">
+              <span class="lobby-course-split-lbl">Starting on</span>
+              <span class="lobby-course-split-val">Hole ${course.holes[startIdx].number} · Par ${course.holes[startIdx].par}</span>
+            </div>`
+        : '';
       coursePreviewHtml = `
         <div class="lobby-section">
           <div class="lobby-section-label">Course</div>
@@ -27365,6 +28162,7 @@
                 <span class="lobby-course-split-lbl">Back 9</span>
                 <span class="lobby-course-split-val">Par ${backPar} · ${backYards.toLocaleString()} yd</span>
               </div>
+              ${startingHoleHtml}
             </div>
           </div>
         </div>`;
@@ -27523,10 +28321,14 @@
       showToast('Only the organizer can start the round', true);
       return;
     }
+    // Starting hole to land on — from the doc (set at creation time
+    // by the organizer via the starting-hole stepper). Older lobbies
+    // predate this field; fall back to 0 (hole 1).
+    const startIdx = typeof gr.startingHoleIndex === 'number' ? gr.startingHoleIndex : 0;
     if (gr.status !== 'lobby') {
       // Already started (possibly by another tab / a racing click).
       // Just navigate to the in-progress view.
-      groupRoundState.yourHoleIndex = 0;
+      groupRoundState.yourHoleIndex = startIdx;
       showPanel('group-round', null);
       return;
     }
@@ -27535,7 +28337,7 @@
       // Optimistically mutate the local copy so the next render
       // picks up the new status without waiting for the snapshot.
       groupRoundState.doc = { ...gr, status: 'in-progress' };
-      groupRoundState.yourHoleIndex = 0;
+      groupRoundState.yourHoleIndex = startIdx;
 
       // Cancel any outstanding invites we sent for this round — the
       // round has started, so friends who hadn't accepted yet can't
@@ -27828,7 +28630,12 @@
 
   // Persist / restore yourHoleIndex per group round so reloads resume
   // at the same hole. Keyed by docId since a user might have been in
-  // multiple rounds over time.
+  // multiple rounds over time. Returns null when no cursor is stored
+  // (distinct from 0, which is a valid cursor meaning "hole 1"). This
+  // distinction matters in openActiveGroupRound where we fall back to
+  // max-played ONLY when the user has never had a cursor in this round
+  // (e.g. rejoining from a new device); for a real cursor of 0 we
+  // trust it.
   function saveGroupRoundCursor() {
     if (!groupRoundState.docId) return;
     try {
@@ -27839,12 +28646,212 @@
     } catch (_) { /* quota/private-mode; ignore */ }
   }
   function loadGroupRoundCursor() {
-    if (!groupRoundState.docId) return 0;
+    if (!groupRoundState.docId) return null;
     try {
       const v = localStorage.getItem(`golfapp.grCursor.${groupRoundState.docId}`);
-      const n = v == null ? 0 : parseInt(v, 10);
-      return Number.isFinite(n) && n >= 0 ? n : 0;
-    } catch (_) { return 0; }
+      if (v == null) return null;
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    } catch (_) { return null; }
+  }
+
+  // Solo round cursor — mirrors the group round pattern. Necessary
+  // because save-on-nav means Firestore's currentHoleIndex is only
+  // updated when the user triggers a write (Save & Next, or a nav
+  // that flushes dirty data). Pure-scrub nav (Previous / picker with
+  // no edits) leaves Firestore's cursor stale — so on app close +
+  // reopen, resumeRound would land the user on the wrong hole and
+  // discard any scratchpad for their actual hole.
+  //
+  // localStorage takes precedence over Firestore's currentHoleIndex
+  // in resumeRound. Same null-vs-zero distinction: null means "no
+  // cursor stored yet" (first open of this round), 0 means "hole 1".
+  function saveSoloRoundCursor() {
+    if (!roundState.docId) return;
+    try {
+      localStorage.setItem(
+        `golfapp.soloCursor.${roundState.docId}`,
+        String(roundState.holeIndex)
+      );
+    } catch (_) { /* quota/private-mode; ignore */ }
+  }
+  function loadSoloRoundCursor(roundId) {
+    if (!roundId) return null;
+    try {
+      const v = localStorage.getItem(`golfapp.soloCursor.${roundId}`);
+      if (v == null) return null;
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    } catch (_) { return null; }
+  }
+  function clearSoloRoundCursor(roundId) {
+    if (!roundId) return;
+    try {
+      localStorage.removeItem(`golfapp.soloCursor.${roundId}`);
+    } catch (_) { /* ignore */ }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Score scratchpad — local-first persistence for mid-hole edits.
+  //
+  // Background: round saves used to fire on every stepper tap,
+  // tristate toggle, and miss pick (~5–10 Firestore writes per hole
+  // × 18 holes × N players). Cost scales with activity and doesn't
+  // provide much value — the live leaderboard refresh on nav is
+  // enough for group rounds. So we moved to save-on-nav: Firestore
+  // writes only happen on Save & Next, Previous Hole, hole picker
+  // jump, and round completion.
+  //
+  // Downside of pure save-on-nav: if the user closes the app mid-
+  // hole (tapped strokes up a few times, reached for their phone to
+  // check a text, app got killed in the background), those edits
+  // are lost. The scratchpad catches that — every local mutation
+  // writes the current hole's entry + shots to localStorage, so on
+  // reopen we can restore in-progress work.
+  //
+  // Scope: only ONE hole at a time can have uncommitted data,
+  // because nav events are the flush points. The scratchpad stores
+  // {holeNum, entry, shots}. Keyed by round doc id.
+  //
+  // Applies to both solo and group rounds — unified API that reads
+  // from the active round state.
+  // ─────────────────────────────────────────────────────────────
+
+  function scratchpadKey(roundId) {
+    return `golfapp.scratchpad.${roundId}`;
+  }
+
+  // Write the current hole's in-progress state to localStorage.
+  // Called from every local-mutation path (stepper, tristate, miss,
+  // penalty, shot save/delete). Silent on quota/private-mode errors.
+  //
+  // Also marks the hole as DIRTY on the active round state. Dirty
+  // means "user has edited this hole since its last Firestore save."
+  // Nav handlers (Previous, Hole Picker) read this flag to decide
+  // whether moving away requires a flush. Saves on scrubbing-without-
+  // editing; still saves on real edits.
+  function writeScoreScratchpad() {
+    try {
+      if (isGroupRoundActive()) {
+        const gr = groupRoundState.doc;
+        const course = getCourse(gr.courseId);
+        const me = getMyGroupRoundPlayer();
+        if (!course || !me) return;
+        const idx = groupRoundState.yourHoleIndex;
+        if (idx < 0 || idx >= course.holes.length) return;
+        const holeNum = course.holes[idx].number;
+        const entry = me.scores?.[holeNum];
+        const shots = (me.shots || {})[holeNum];
+        // Only write if there's something meaningful to capture
+        if (!entry && !shots) return;
+        localStorage.setItem(scratchpadKey(groupRoundState.docId), JSON.stringify({
+          holeNum,
+          entry: entry || null,
+          shots: shots || null,
+        }));
+        groupRoundState._dirtyHole = holeNum;
+      } else if (isRoundActive()) {
+        const course = getCourse(roundState.courseId);
+        if (!course) return;
+        const idx = roundState.holeIndex;
+        if (idx < 0 || idx >= course.holes.length) return;
+        const holeNum = course.holes[idx].number;
+        const entry = roundState.scores?.[holeNum];
+        const shots = (roundState.shots || {})[holeNum];
+        if (!entry && !shots) return;
+        localStorage.setItem(scratchpadKey(roundState.docId), JSON.stringify({
+          holeNum,
+          entry: entry || null,
+          shots: shots || null,
+        }));
+        roundState._dirtyHole = holeNum;
+      }
+    } catch (_) { /* quota/private-mode; ignore */ }
+  }
+
+  // Read the scratchpad for the given round id. Returns the parsed
+  // object or null if absent/corrupted. Caller decides whether to
+  // apply it based on current hole context.
+  function readScoreScratchpad(roundId) {
+    if (!roundId) return null;
+    try {
+      const raw = localStorage.getItem(scratchpadKey(roundId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+      if (typeof parsed.holeNum !== 'number') return null;
+      return parsed;
+    } catch (_) { return null; }
+  }
+
+  // Remove the scratchpad after a real save flushes. Called from
+  // every commit path (Save & Next, Previous, picker jump, finish).
+  // Also clears the dirty flag on the active round state since the
+  // hole's edits have been persisted to Firestore.
+  function clearScoreScratchpad(roundId) {
+    if (!roundId) return;
+    try {
+      localStorage.removeItem(scratchpadKey(roundId));
+    } catch (_) { /* ignore */ }
+    // Clear dirty flag on whichever round state matches. Hand-walk
+    // both since we don't always know which mode is active when called.
+    if (typeof roundState !== 'undefined' && roundState.docId === roundId) {
+      roundState._dirtyHole = null;
+    }
+    if (typeof groupRoundState !== 'undefined' && groupRoundState.docId === roundId) {
+      groupRoundState._dirtyHole = null;
+    }
+  }
+
+  // Apply a scratchpad to the active round state. Called on round
+  // open / resume. If the scratchpad's holeNum matches the current
+  // hole, merge entry + shots into local state. Otherwise discard
+  // (staleness suggests the user navigated on another device).
+  //
+  // After restore, marks the hole DIRTY — the restored edits haven't
+  // been flushed to Firestore yet (that's the whole point — they
+  // were mid-hole when the app was closed). Next nav action will
+  // commit them.
+  function restoreScoreScratchpadToActiveRound() {
+    if (isGroupRoundActive()) {
+      const gr = groupRoundState.doc;
+      const scratch = readScoreScratchpad(groupRoundState.docId);
+      if (!scratch) return;
+      const course = getCourse(gr.courseId);
+      if (!course) return;
+      const idx = groupRoundState.yourHoleIndex;
+      if (idx < 0 || idx >= course.holes.length) return;
+      const currentHoleNum = course.holes[idx].number;
+      if (scratch.holeNum !== currentHoleNum) {
+        // Stale — discard rather than mis-apply to wrong hole
+        clearScoreScratchpad(groupRoundState.docId);
+        return;
+      }
+      const me = getMyGroupRoundPlayer();
+      if (!me) return;
+      if (!me.scores) me.scores = {};
+      if (!me.shots) me.shots = {};
+      if (scratch.entry) me.scores[scratch.holeNum] = scratch.entry;
+      if (scratch.shots) me.shots[scratch.holeNum] = scratch.shots;
+      groupRoundState._dirtyHole = scratch.holeNum;
+    } else if (isRoundActive()) {
+      const scratch = readScoreScratchpad(roundState.docId);
+      if (!scratch) return;
+      const course = getCourse(roundState.courseId);
+      if (!course) return;
+      const idx = roundState.holeIndex;
+      if (idx < 0 || idx >= course.holes.length) return;
+      const currentHoleNum = course.holes[idx].number;
+      if (scratch.holeNum !== currentHoleNum) {
+        clearScoreScratchpad(roundState.docId);
+        return;
+      }
+      if (!roundState.scores) roundState.scores = {};
+      if (!roundState.shots) roundState.shots = {};
+      if (scratch.entry) roundState.scores[scratch.holeNum] = scratch.entry;
+      if (scratch.shots) roundState.shots[scratch.holeNum] = scratch.shots;
+      roundState._dirtyHole = scratch.holeNum;
+    }
   }
 
   // Read YOUR current entry for the YOUR-hole, applying defaults so the
@@ -27888,6 +28895,51 @@
   // { entry, hole, isPar3, holeNum } or null. Mutates the in-memory
   // doc so subsequent renders reflect the edit immediately; persistence
   // happens via saveGroupRoundHole().
+  // READ-ONLY entry resolver for rendering. Returns the stored entry if
+  // present, OR a default-filled entry if not — but NEVER mutates
+  // me.scores. This is critical: merely RENDERING a hole must not cause
+  // the app to treat it as "played". Previously this function would add
+  // an entry to me.scores as a side effect, which meant tapping through
+  // the hole picker populated the scorecard with fake par scores for
+  // every hole the user happened to look at.
+  //
+  // Returns { entry, hole, isPar3, holeNum, me, isStored } — isStored
+  // flag lets callers distinguish "user has saved this hole" from
+  // "we're filling in defaults for display only".
+  function readGroupHoleEntry() {
+    if (!isGroupRoundActive()) return null;
+    const gr = groupRoundState.doc;
+    const course = getCourse(gr.courseId);
+    if (!course) return null;
+    const me = getMyGroupRoundPlayer();
+    if (!me) return null;
+    const idx = groupRoundState.yourHoleIndex;
+    if (idx < 0 || idx >= course.holes.length) return null;
+    const hole = course.holes[idx];
+    const holeNum = hole.number;
+    const isPar3 = hole.par === 3;
+    const stored = me.scores?.[holeNum];
+    const entry = {
+      strokes: stored?.strokes ?? hole.par,
+      putts: stored?.putts ?? 2,
+      // null = "not recorded" — never auto-fill to true (see solo round)
+      fir: isPar3 ? null : (stored?.fir ?? null),
+      gir: stored?.gir ?? null,
+      firMiss: stored?.firMiss ?? null,
+      girMiss: stored?.girMiss ?? null,
+      penalties: stored?.penalties ?? 0,
+    };
+    return { entry, hole, isPar3, holeNum, me, isStored: !!stored };
+  }
+
+  // MUTATING entry resolver for user actions (stepper taps, toggles,
+  // Save & Next). Ensures an entry for the current hole exists in
+  // me.scores, creating one with par defaults if needed. Returns the
+  // live entry reference so the caller can mutate it.
+  //
+  // Only callers that represent an explicit user action should use this
+  // function — otherwise we get the "scorecard shows fake pars for every
+  // hole the user peeked at" bug.
   function getOrInitGroupHoleEntry() {
     if (!isGroupRoundActive()) return null;
     const gr = groupRoundState.doc;
@@ -27905,20 +28957,19 @@
       me.scores[holeNum] = {
         strokes: hole.par,
         putts: 2,
-        // Null = "not recorded". See solo round init for rationale —
-        // never silently count untouched holes as hits.
         fir: null,
-        gir: null
+        gir: null,
+        firMiss: null,
+        girMiss: null,
+        penalties: 0,
       };
     } else {
       // Backfill missing fields with defaults
       const s = me.scores[holeNum];
       if (s.strokes == null) s.strokes = hole.par;
       if (s.putts == null) s.putts = 2;
-      // Don't auto-fill fir/gir here either — keep them null until
-      // explicitly recorded by the user. Par 3s have fir forced to
-      // null below regardless.
       if (s.fir !== undefined && isPar3) s.fir = null;
+      if (s.penalties == null) s.penalties = 0;
     }
     return { entry: me.scores[holeNum], hole, isPar3, holeNum, me };
   }
@@ -27988,7 +29039,7 @@
     groupRoundState._bumpTotal = true;
     haptic('light');
     renderGroupRoundPanel();
-    queueSaveMyGroupScores();
+    writeScoreScratchpad();
   }
   function grAdjustPutts(delta) {
     const ctx = getOrInitGroupHoleEntry();
@@ -28003,7 +29054,26 @@
     groupRoundState._bumpPutts = true;
     haptic('light');
     renderGroupRoundPanel();
-    queueSaveMyGroupScores();
+    writeScoreScratchpad();
+  }
+
+  // Penalty strokes on this hole. Same clamp + sanity ceiling as solo
+  // (0–6). These are informational — adjusting penalties doesn't
+  // automatically bump strokes; the player already stepped total
+  // strokes up to reflect the full score. Stored alongside so stats
+  // can separate "played badly" from "lost a ball."
+  function grAdjustPenalties(delta) {
+    const ctx = getOrInitGroupHoleEntry();
+    if (!ctx) return;
+    const { entry } = ctx;
+    let next = (entry.penalties || 0) + delta;
+    if (next < 0) next = 0;
+    if (next > 6) next = 6;
+    if (next === entry.penalties) return;
+    entry.penalties = next;
+    haptic('light');
+    renderGroupRoundPanel();
+    writeScoreScratchpad();
   }
 
   // Save + advance to next hole. On the final hole, prompts to finish
@@ -28024,9 +29094,29 @@
       __groupRoundSaveTimer = null;
     }
     await saveMyGroupScoresNow();
+    // Flush succeeded — clear the scratchpad. The current hole's
+    // data is now in Firestore, so a subsequent app-close-and-reopen
+    // will restore from Firestore rather than scratchpad.
+    clearScoreScratchpad(groupRoundState.docId);
 
-    if (groupRoundState.yourHoleIndex < course.holes.length - 1) {
-      groupRoundState.yourHoleIndex += 1;
+    // Check if saving this hole completes MY 18-hole round. Mirrors
+    // solo saveAndNext — not "am I on the final hole by course order?"
+    // but "are all 18 holes scored after this save?". Matters for mid-
+    // course starts: started on 10 + played to 18 still has 1–9 unplayed.
+    const me = getMyGroupRoundPlayer();
+    const myScores = me ? (me.scores || {}) : {};
+    const scoredCount = Object.keys(myScores).length;
+    const willBeComplete = scoredCount >= course.holes.length;
+
+    if (!willBeComplete) {
+      const nextUnplayedIdx = findNextUnplayedHoleIndex(course, myScores, groupRoundState.yourHoleIndex);
+      if (nextUnplayedIdx === null) {
+        // Defensive fallback — shouldn't hit since willBeComplete would
+        // be true, but treat as complete if no unplayed hole exists.
+        await confirmCompleteMyGroupRound();
+        return;
+      }
+      groupRoundState.yourHoleIndex = nextUnplayedIdx;
       saveGroupRoundCursor();
       // Slide-animation hint for the next render. 'forward' = new hole
       // slides in from the right, same as solo round.
@@ -28036,20 +29126,28 @@
       // card jump-cuts away before the new one arrives.
       animateHoleTransitionOut('forward');
       renderGroupRoundPanel();
-    } else {
-      // Last hole — prompt to finish YOUR round. Others continue playing.
-      await confirmCompleteMyGroupRound();
+      return;
     }
+
+    // All 18 holes scored — prompt to finish MY round. Others continue playing.
+    await confirmCompleteMyGroupRound();
   }
 
   function grGoPreviousHole() {
     if (!isGroupRoundActive()) return;
     if (groupRoundState.yourHoleIndex > 0) {
-      // Flush pending write so we don't lose edits when switching holes
-      if (__groupRoundSaveTimer) {
-        clearTimeout(__groupRoundSaveTimer);
-        __groupRoundSaveTimer = null;
+      // Nav flush — write only if the current hole has unsaved edits.
+      // A player scrubbing through holes (Previous → Previous → …) to
+      // review a prior hole doesn't generate writes. A player who
+      // edited the current hole does. The _dirtyHole flag is set by
+      // writeScoreScratchpad on any edit and cleared on any flush.
+      const course = getCourse(groupRoundState.doc.courseId);
+      const currentHoleNum = course?.holes[groupRoundState.yourHoleIndex]?.number;
+      const needsFlush = groupRoundState._dirtyHole != null
+        && groupRoundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
         saveMyGroupScoresNow();
+        clearScoreScratchpad(groupRoundState.docId);
       }
       groupRoundState.yourHoleIndex -= 1;
       saveGroupRoundCursor();
@@ -28297,6 +29395,8 @@
       __groupRoundSaveTimer = null;
     }
     await saveMyGroupScoresNow();
+    // Scratchpad is now redundant — all data is in Firestore.
+    clearScoreScratchpad(groupRoundState.docId);
 
     const endMs = Date.now();
     const totals = computeGroupPlayerTotals(me.scores || {}, course);
@@ -28344,6 +29444,19 @@
       groupOthers: otherPlayers
     };
 
+    // Compute bestType for this group round against full history.
+    // Same logic as solo completion — friends on the shared feed rely
+    // on this denormalized field to decide whether to show a "Best
+    // Round" badge on our round card.
+    const candidateForBest = { id: personalRoundId, ...personalPayload };
+    const historyWithThis = [
+      ...(recentRounds || []).filter(r => r.id !== personalRoundId),
+      candidateForBest,
+    ];
+    const bestType = computeBestTypeForRound(candidateForBest, historyWithThis);
+    const displaced = findDisplacedBestRounds(candidateForBest, historyWithThis);
+    personalPayload.bestType = bestType;
+
     try {
       await window.fb.setDoc(`users/${currentUser.uid}/rounds/${personalRoundId}`, personalPayload);
       // Update recentRounds cache
@@ -28351,6 +29464,9 @@
       const idx = recentRounds.findIndex(r => r.id === personalRoundId);
       if (idx >= 0) recentRounds[idx] = cachedRound;
       else recentRounds.unshift(cachedRound);
+      // Clear bestType on any displaced prior records (private + public).
+      // Best-effort — non-fatal if reconciliation fails.
+      await reconcileDisplacedBestRounds(displaced);
       // Mirror to public + refresh profile (same as solo completion)
       syncRoundToPublic(cachedRound);
       syncPublicProfile();
@@ -28449,8 +29565,11 @@
       groupRoundState.unsubscribe = null;
     }
     myGroupRounds = myGroupRounds.filter(r => r.id !== completedId);
-    // Clear the per-round cursor
+    // Clear the per-round cursor + scratchpad. Scratchpad holds any
+    // lingering mid-hole edits which are now fully persisted (and the
+    // round is done anyway).
     try { localStorage.removeItem(`golfapp.grCursor.${completedId}`); } catch (_) {}
+    clearScoreScratchpad(completedId);
 
     // Navigate to the round summary — same surface solo rounds use.
     updateRoundBanner();
@@ -28533,6 +29652,17 @@
       const course = getCourse(groupRoundState.doc.courseId);
       if (!course) return;
       if (holeIdx < 0 || holeIdx >= course.holes.length) return;
+      // Nav flush — only if the current hole is dirty. Players often
+      // jump around to inspect other holes (check a past score, peek
+      // at the par of an upcoming hole) without editing. Those jumps
+      // shouldn't write to Firestore.
+      const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
+      const needsFlush = groupRoundState._dirtyHole != null
+        && groupRoundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
+        saveMyGroupScoresNow();
+        clearScoreScratchpad(groupRoundState.docId);
+      }
       // Use the same slide direction the user would see if they tapped
       // Previous/Next the right number of times — keeps motion direction
       // consistent with semantic direction (earlier hole = slides from
@@ -28552,9 +29682,21 @@
       const course = getCourse(roundState.courseId);
       if (!course) return;
       if (holeIdx < 0 || holeIdx >= course.holes.length) return;
+      // Nav flush — only if the current hole is dirty. Matches the
+      // group-round path above.
+      const currentHoleNum = course.holes[roundState.holeIndex]?.number;
+      const needsFlush = roundState._dirtyHole != null
+        && roundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
+        autoSaveRound().catch(err => console.error('Failed to save on jump:', err));
+        clearScoreScratchpad(roundState.docId);
+      }
       const currentIdx = roundState.holeIndex;
       const direction = holeIdx > currentIdx ? 'forward' : (holeIdx < currentIdx ? 'back' : null);
       roundState.holeIndex = holeIdx;
+      // Cursor persists to localStorage on every jump — see the
+      // corresponding note in goPreviousHole for the rationale.
+      saveSoloRoundCursor();
       // Hole-specific dock state that should reset on jump (same as
       // linear next/prev does)
       dockState.caddie.targetDistance = null;
@@ -28921,15 +30063,21 @@
     const yards = tee.yardages[groupRoundState.yourHoleIndex];
     const isPar3 = hole.par === 3;
 
-    // My current entry (ensure defaults)
-    getOrInitGroupHoleEntry();
-    const entry = me.scores[holeNum];
+    // My current entry — read-only resolver returns stored data or
+    // default-filled values for display. Critically, this does NOT
+    // write to me.scores, so merely viewing a hole doesn't mark it as
+    // played. Only explicit user actions (stepper taps, toggles, Save
+    // & Next) route through getOrInitGroupHoleEntry and actually
+    // populate scores[].
+    const ctx = readGroupHoleEntry();
+    const entry = ctx.entry;
     const strokes = entry.strokes;
     const putts   = entry.putts;
     const fir     = entry.fir;
     const gir     = entry.gir;
     const firMiss = entry.firMiss ?? null;
     const girMiss = entry.girMiss ?? null;
+    const penalties = entry.penalties ?? 0;
 
     const diff = strokes - hole.par;
     let scoreClass = 'par';
@@ -29101,6 +30249,27 @@
             <button class="round-card-putts-btn" onclick="grAdjustPutts(1)" aria-label="Increase putts">+</button>
           </div>
         </div>
+
+        <!-- Penalties — same pattern as solo round. Collapsed when 0
+             (single "Add penalty stroke" button), expands to a stepper
+             once any are added. Penalty strokes are part of total
+             strokes for the hole via adjustStrokes already; this field
+             just tags how many of those strokes were penalties so stats
+             can separate "played badly" from "lost a ball." -->
+        <div class="round-card-penalties${penalties > 0 ? ' is-active' : ''}">
+          ${penalties > 0 ? `
+            <div class="round-card-penalties-label">Penalties</div>
+            <div class="round-card-penalties-step">
+              <button class="round-card-putts-btn" onclick="grAdjustPenalties(-1)" aria-label="Decrease penalties">−</button>
+              <div class="round-card-penalties-value">${penalties}</div>
+              <button class="round-card-putts-btn" onclick="grAdjustPenalties(1)" aria-label="Increase penalties">+</button>
+            </div>
+          ` : `
+            <button class="round-card-penalties-add" onclick="grAdjustPenalties(1)">
+              + Add penalty stroke
+            </button>
+          `}
+        </div>
       </div>
 
       <!-- Action footer — secondary actions only. Primary "Save & Next"
@@ -29128,7 +30297,7 @@
     if (!course) return false;
     const totals = computeRoundTotals();
     const endMs = Date.now();
-    const payload = {
+    const basePayload = {
       courseId: roundState.courseId,
       courseName: course.name,
       teeName: roundState.teeName,
@@ -29138,8 +30307,28 @@
       status: 'completed',
       currentHoleIndex: roundState.holeIndex,
       scores: roundState.scores,
+      // Preserve shots on the completed round — same shape as autoSaveRound
+      // uses during in-progress writes, and same shape as completeMyGroupRound
+      // uses for group rounds. Without this the setDoc below would overwrite
+      // the prior auto-save (which includes shots) with a shots-free doc,
+      // wiping the user's shot tracking data the instant they finish.
+      shots: roundState.shots || {},
       totals
     };
+
+    // Compute bestType for this round against the user's full history
+    // (including this round itself). Writing this denormalized onto the
+    // doc is what lets friends see a "Best Round" badge on the shared
+    // feed — they can't compute it from their own data.
+    const candidate = { id: roundState.docId, ...basePayload };
+    const historyWithThis = [
+      ...(recentRounds || []).filter(r => r.id !== roundState.docId),
+      candidate,
+    ];
+    const bestType = computeBestTypeForRound(candidate, historyWithThis);
+    const displaced = findDisplacedBestRounds(candidate, historyWithThis);
+    const payload = { ...basePayload, bestType };
+
     if (currentUser && window.fb) {
       try {
         const path = `users/${currentUser.uid}/rounds/${roundState.docId}`;
@@ -29149,6 +30338,14 @@
         const cached = { id: roundState.docId, ...payload };
         if (idx >= 0) recentRounds[idx] = cached;
         else recentRounds.unshift(cached);
+
+        // Clear bestType on any prior rounds we just dethroned. Two
+        // targets per displaced entry: the private copy (so the
+        // badge disappears from history/summary) and the public
+        // mirror (so friends' feed cards stop showing the badge).
+        // Best-effort — non-fatal if any write fails.
+        await reconcileDisplacedBestRounds(displaced);
+
         // Best-effort mirror to the public collection. Runs only if the
         // user's profile is public AND this specific round isn't marked
         // private. Errors here don't fail the save (private data is safe).
@@ -29158,6 +30355,11 @@
         syncPublicProfile();
         // Invalidate social feed cache so next visit shows the new round
         if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+        // Clean up per-round local state now that the round is final.
+        // Prevents stale scratchpad + cursor entries from accumulating
+        // in localStorage across many completed rounds.
+        clearScoreScratchpad(roundState.docId);
+        clearSoloRoundCursor(roundState.docId);
       } catch (err) {
         console.error('Failed to complete round:', err);
         showToast('Save failed — see console', true);
@@ -29166,6 +30368,42 @@
     }
     updateRoundBanner();
     return true;
+  }
+
+  // Clear bestType on rounds that were dethroned by a new best. Takes
+  // the output of findDisplacedBestRounds. Updates both the in-memory
+  // cache AND Firestore (private + public mirror). Best-effort — a
+  // failed write just leaves a stale badge on the old record, which
+  // is visually weird but not data-corrupting (next re-completion
+  // will re-reconcile).
+  async function reconcileDisplacedBestRounds(displaced) {
+    if (!Array.isArray(displaced) || displaced.length === 0) return;
+    if (!currentUser || !window.fb) return;
+    const uid = currentUser.uid;
+    for (const { roundId } of displaced) {
+      // Update the in-memory cache first so UI re-renders show the
+      // cleared badge even before Firestore confirms.
+      const cached = (recentRounds || []).find(r => r.id === roundId);
+      if (cached) cached.bestType = null;
+      // Private write — overwrite the round doc with the cleared field.
+      // Use setDoc to preserve shape; reads the current cached version
+      // (which we just mutated above) to avoid re-fetching.
+      if (cached) {
+        try {
+          await window.fb.setDoc(`users/${uid}/rounds/${roundId}`, { ...cached, bestType: null });
+        } catch (err) {
+          console.warn('Failed to clear private bestType for', roundId, err);
+        }
+        // Public mirror — re-run syncRoundToPublic which will write the
+        // new (now-null) bestType into the mirror's payload. Preserves
+        // commentCount via the internal existing-doc read.
+        try {
+          await syncRoundToPublic(cached);
+        } catch (err) {
+          console.warn('Failed to clear public bestType for', roundId, err);
+        }
+      }
+    }
   }
 
   function renderRound() {
@@ -29392,6 +30630,41 @@
     { id: 'caddie',    label: 'Club Caddie', icon: '🏌️' },
     { id: 'bag',       label: 'My Bag',      icon: '⛳' },
   ];
+
+  // Compute the tools list the user actually sees in the sheet, applying
+  // their toolsConfig (hide/show + reorder). Always returns at least one
+  // tool — if somehow every entry is hidden (shouldn't happen since UI
+  // blocks it, but be defensive), falls back to the catalog default.
+  //
+  // Forward compat: if the user's config doesn't mention a tool that
+  // exists in the catalog (e.g. we added Pre-Shot after they'd already
+  // saved a config), that tool gets appended at the end and defaults to
+  // visible. Ensures new tools aren't silently missing.
+  function getEffectiveDockTools() {
+    const config = prefs.toolsConfig;
+    // No config saved — just return the catalog as-is.
+    if (!Array.isArray(config) || config.length === 0) {
+      return DOCK_TOOLS.slice();
+    }
+    const byId = Object.fromEntries(DOCK_TOOLS.map(t => [t.id, t]));
+    // First: tools in config order, mapped to real catalog entries.
+    // Filter out any stale config entries (tools removed from catalog).
+    const ordered = [];
+    const seen = new Set();
+    for (const entry of config) {
+      if (!entry || !entry.id) continue;
+      const tool = byId[entry.id];
+      if (!tool) continue;
+      if (entry.visible !== false) ordered.push(tool);
+      seen.add(entry.id);
+    }
+    // Then: any catalog tools not mentioned in config — append, visible
+    for (const tool of DOCK_TOOLS) {
+      if (!seen.has(tool.id)) ordered.push(tool);
+    }
+    // Defensive fallback — catalog if config somehow yielded nothing.
+    return ordered.length > 0 ? ordered : DOCK_TOOLS.slice();
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Shot tracking — constants + per-hole shot list helpers.
@@ -30012,7 +31285,11 @@
     }
 
     // Save button label + function based on context (solo vs group)
-    // and whether this is the final hole of the round.
+    // and whether saving THIS hole would complete the full round. The
+    // "final hole" concept is misleading — it's not about being on hole
+    // 18, it's about whether all holes will have scores after this save.
+    // That distinction matters for mid-course starts (shotgun or similar)
+    // where the user can reach hole 18 with holes 1–9 still unplayed.
     const isGroup = currentPanelId === 'group-round';
     const saveFn = isGroup ? 'grSaveAndNext()' : 'saveAndNext()';
     let isFinalHole = false;
@@ -30020,14 +31297,23 @@
     try {
       if (isGroup && groupRoundState.doc) {
         const course = getCourse(groupRoundState.doc.courseId);
-        if (course) {
-          isFinalHole = groupRoundState.yourHoleIndex >= course.holes.length - 1;
+        const me = getMyGroupRoundPlayer();
+        if (course && me) {
+          // Count MY scores + whether the current hole is already scored
+          const myScores = me.scores || {};
+          const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
+          const currentAlreadyScored = currentHoleNum != null && !!myScores[currentHoleNum];
+          const scoredCount = Object.keys(myScores).length + (currentAlreadyScored ? 0 : 1);
+          isFinalHole = scoredCount >= course.holes.length;
           saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
         }
       } else if (!isGroup) {
         const course = getCourse(roundState.courseId);
         if (course) {
-          isFinalHole = roundState.holeIndex >= course.holes.length - 1;
+          const currentHoleNum = course.holes[roundState.holeIndex]?.number;
+          const currentAlreadyScored = currentHoleNum != null && !!roundState.scores[currentHoleNum];
+          const scoredCount = Object.keys(roundState.scores).length + (currentAlreadyScored ? 0 : 1);
+          isFinalHole = scoredCount >= course.holes.length;
           saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
         }
       }
@@ -30163,7 +31449,7 @@
       caddie:    'Get a club suggestion',
       bag:       'Reference your club distances',
     };
-    const rows = DOCK_TOOLS.map(tool => `
+    const rows = getEffectiveDockTools().map(tool => `
       <button class="tools-list-row" onclick="selectTool('${tool.id}')">
         <span class="tools-list-row-icon" aria-hidden="true">${tool.icon}</span>
         <span class="tools-list-row-body">
@@ -30449,14 +31735,9 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    // Persist through the active round's save path. Group rounds write
-    // shots alongside scores in a single updateGroupRoundPlayer call,
-    // debounced by queueSaveMyGroupScores; solo rounds use autoSaveRound.
-    if (isGroupRoundActive()) {
-      queueSaveMyGroupScores();
-    } else {
-      autoSaveRound().catch(err => console.error('Failed to save shot:', err));
-    }
+    // Scratchpad for crash-recovery; real Firestore write fires on
+    // next nav event (Save & Next, Previous, picker jump).
+    writeScoreScratchpad();
   }
 
   // Delete flow — confirm then drop from the shots array. Accessible
@@ -30483,12 +31764,8 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    // Persist — same branching as saveShotDraft above.
-    if (isGroupRoundActive()) {
-      queueSaveMyGroupScores();
-    } else {
-      autoSaveRound().catch(err => console.error('Failed to delete shot:', err));
-    }
+    // Scratchpad — same save-on-nav model as shot save above.
+    writeScoreScratchpad();
   }
 
   function renderShotEditSheet() {
@@ -31452,6 +32729,7 @@
     roundState._bumpTotal = true;
     haptic('light');
     renderRound();
+    writeScoreScratchpad();
   }
   function adjustPutts(delta) {
     const ctx = getOrInitHoleEntry();
@@ -31466,6 +32744,7 @@
     roundState._bumpPutts = true;
     haptic('light');
     renderRound();
+    writeScoreScratchpad();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -31575,18 +32854,13 @@
     // Get the right entry reference for solo vs group
     let entry;
     if (isGroup) {
-      const gr = groupRoundState.doc;
-      if (!gr || !currentUser) return;
-      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
-      if (!me) return;
-      const holeIdx = groupRoundState.yourHoleIndex;
-      const course = getCourse(gr.courseId);
-      if (!course) return;
-      const holeNum = course.holes[holeIdx].number;
-      entry = me.scores[holeNum];
-      if (!entry) return;
-      // Guard: par 3 fir no-op
-      if (statKey === 'fir' && course.holes[holeIdx].par === 3) return;
+      // User explicitly tapped fir/gir — init the entry if not present.
+      // This is an actual interaction worth persisting (unlike merely
+      // rendering the hole, which reads without mutating).
+      const ctx = getOrInitGroupHoleEntry();
+      if (!ctx) return;
+      if (statKey === 'fir' && ctx.isPar3) return;
+      entry = ctx.entry;
     } else {
       const ctx = getOrInitHoleEntry();
       if (!ctx) return;
@@ -31618,6 +32892,11 @@
     // Re-render the appropriate round surface
     if (isGroup) renderGroupRoundPanel();
     else renderRound();
+
+    // Scratchpad — persist mid-hole edits locally so a mid-hole app
+    // close doesn't lose them. The real Firestore save fires later
+    // on nav (Save & Next, Previous, picker jump).
+    writeScoreScratchpad();
 
     // If the user just selected "miss", pop the direction modal so
     // they can specify where they missed. Current recorded direction
@@ -31732,14 +33011,9 @@
 
     let entry;
     if (isGroup) {
-      const gr = groupRoundState.doc;
-      if (!gr || !currentUser) { closeMissModal(); return; }
-      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
-      if (!me) { closeMissModal(); return; }
-      const course = getCourse(gr.courseId);
-      if (!course) { closeMissModal(); return; }
-      const holeNum = course.holes[groupRoundState.yourHoleIndex].number;
-      entry = me.scores[holeNum];
+      const ctx = getOrInitGroupHoleEntry();
+      if (!ctx) { closeMissModal(); return; }
+      entry = ctx.entry;
     } else {
       const ctx = getOrInitHoleEntry();
       if (!ctx) { closeMissModal(); return; }
@@ -31748,6 +33022,10 @@
     if (!entry) { closeMissModal(); return; }
     entry[statKey] = false;
     entry[missKey] = direction;
+
+    // Scratchpad — preserve mid-hole edit locally. Firestore save
+    // waits for the next nav event.
+    writeScoreScratchpad();
 
     // Close the modal and defer the round re-render until AFTER the
     // close animation is fully complete + DOM wiped. Running
@@ -32521,6 +33799,7 @@
     if (next > 6) next = 6;  // sanity ceiling — even disaster holes rarely exceed
     ctx.entry.penalties = next;
     renderRound();
+    writeScoreScratchpad();
   }
 
   // Save the current hole + advance, OR finish the round on hole 18.
@@ -32534,37 +33813,108 @@
     // Tactile commit — mirrors group round's grSaveAndNext.
     haptic('medium');
 
-    if (roundState.holeIndex < course.holes.length - 1) {
-      // Advance to next hole, persist the in-progress state silently
-      roundState.holeIndex += 1;
+    // Determine whether saving this hole completes the full round. This
+    // is the right question to ask — NOT "is this the final hole in
+    // course order?". Players often start on a non-hole-1 tee (common
+    // for shotgun starts or when busy courses split groups) and play
+    // around, so hole 18 by course-order might still have 1–9 unplayed.
+    // After getOrInitHoleEntry, scores has an entry for the current
+    // hole, so we can count directly.
+    const playedCount = Object.keys(roundState.scores).length;
+    const totalHoles = course.holes.length;
+    const willBeComplete = playedCount >= totalHoles;
+
+    if (!willBeComplete) {
+      // Advance to the next UNPLAYED hole, wrapping around the course.
+      // Before today's fix this used holeIndex + 1 which broke when the
+      // user started mid-course (e.g. started on 10, needed to wrap from
+      // 18 → 1 to play their front nine).
+      const nextUnplayedIdx = findNextUnplayedHoleIndex(course, roundState.scores, roundState.holeIndex);
+      if (nextUnplayedIdx === null) {
+        // Defensive — shouldn't hit since willBeComplete would have been
+        // true, but if no unplayed hole is found, treat as complete.
+        await finishRoundWithConfirm();
+        return;
+      }
       // Caddie target is hole-specific — reset for the new hole. Dock
       // stays open/closed based on user's expansion state.
       dockState.caddie.targetDistance = null;
+      roundState.holeIndex = nextUnplayedIdx;
+      saveSoloRoundCursor();
       // Hint for the renderer to add a slide-in animation on the hole
-      // card so the user sees the transition. 'forward' = card slides in
-      // from the right; 'back' = slides in from the left. Consumed and
-      // cleared inside renderRound.
+      // card. 'forward' fits both normal advance AND wrap-around
+      // (semantically, you're moving to your "next hole" either way).
       roundState._holeSlideDirection = 'forward';
-      // Cross-fade: clone the outgoing card before re-render so both
-      // cards animate simultaneously (old out, new in). See
-      // animateHoleTransitionOut for the clone mechanics.
       animateHoleTransitionOut('forward');
       renderRound();
       autoSaveRound(); // fire-and-forget; render doesn't wait on network
-    } else {
-      // Final hole — flip to completed, navigate to summary
-      const ok = await completeCurrentRound();
-      if (!ok) return;
-      const finishedRoundId = roundState.docId;
-      clearRoundState();
-      renderPlayLanding();
-      // Navigate to the summary, passing the just-completed round id
-      openRoundSummary(finishedRoundId);
+      // Scratchpad for prior hole's in-progress edits is now persisted
+      // (autoSaveRound writes the full scores map). Clear it so a later
+      // crash-recovery doesn't re-apply the now-stale scratchpad to the
+      // new hole.
+      clearScoreScratchpad(roundState.docId);
+      return;
     }
+
+    // All 18 holes will have scores after this save — confirm then finish.
+    await finishRoundWithConfirm();
+  }
+
+  // Find the next unplayed hole starting from afterIdx + 1, wrapping back
+  // to the start if needed. Returns null if ALL holes are already played.
+  // Used by saveAndNext to advance to the right hole after a mid-course
+  // start (shotgun/wrap-around play order).
+  function findNextUnplayedHoleIndex(course, scores, afterIdx) {
+    const total = course.holes.length;
+    for (let step = 1; step <= total; step++) {
+      const idx = (afterIdx + step) % total;
+      const holeNum = course.holes[idx].number;
+      if (!scores[holeNum]) return idx;
+    }
+    return null;
+  }
+
+  // Confirm-and-finish for solo rounds. Lightweight confirm — the user
+  // already tapped "Save & Finish", this is just the accidental-tap
+  // guard. Mirrors the group round's 18-hole completion pattern.
+  async function finishRoundWithConfirm() {
+    const ok = await confirmDialog({
+      eyebrow: 'Finish Round',
+      eyebrowStyle: 'warning',
+      title: 'Save your round?',
+      message: 'Your 18-hole round will be saved to your history.',
+      confirmText: 'Save Round',
+      cancelText: 'Keep Playing',
+      destructive: false,
+    });
+    if (!ok) return;
+    const ok2 = await completeCurrentRound();
+    if (!ok2) return;
+    const finishedRoundId = roundState.docId;
+    clearRoundState();
+    renderPlayLanding();
+    openRoundSummary(finishedRoundId);
   }
   function goPreviousHole() {
     if (roundState.holeIndex > 0) {
+      // Nav flush — only if the current hole has unsaved edits.
+      // Scrubbing through holes to review earlier work doesn't write.
+      // See grGoPreviousHole for the matching group-round logic.
+      const course = getCourse(roundState.courseId);
+      const currentHoleNum = course?.holes[roundState.holeIndex]?.number;
+      const needsFlush = roundState._dirtyHole != null
+        && roundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
+        autoSaveRound().catch(err => console.error('Failed to save on previous:', err));
+        clearScoreScratchpad(roundState.docId);
+      }
       roundState.holeIndex -= 1;
+      // Persist cursor to localStorage unconditionally. Previously we
+      // relied on Firestore's currentHoleIndex, but save-on-nav means
+      // scrubbing without edits doesn't update Firestore — leaving
+      // resume to land the user on whatever hole was last committed,
+      // not where they actually are.
+      saveSoloRoundCursor();
       dockState.caddie.targetDistance = null;
       roundState._holeSlideDirection = 'back';
       animateHoleTransitionOut('back');
@@ -35809,16 +37159,22 @@
     // Race guard: if WE have a pending OR in-flight score write, preserve
     // our local `me.scores` (and `me.shots`, since they write together)
     // in the merged doc. A snapshot arriving during the debounce window
-    // OR mid-write could otherwise overwrite uncommitted edits with
-    // stale server data. Two flags cover both windows:
-    // __groupRoundSaveTimer (debounce pending) and
-    // __groupRoundSaveInFlight (write in flight).
+    // Merge guard: ALWAYS preserve my local scores + shots through a
+    // snapshot refresh. Source of truth for my own data is the local
+    // state, not Firestore, until I explicitly commit via nav. Without
+    // this, another player's snapshot update would overwrite any mid-
+    // hole edits I've made with stale server data.
+    //
+    // Previously this guard was gated on save-in-flight / debounce-
+    // pending windows, which made sense when every edit auto-saved.
+    // Under the save-on-nav model there's no debounce timer during
+    // mid-hole tapping, so the guard needs to be unconditional.
     //
     // The race guard only kicks in when we're STILL in the round per
     // the fresh doc — the kicked-detection branch above runs first
     // and returns early if not.
     let mergedDoc = freshDoc;
-    if ((__groupRoundSaveTimer || __groupRoundSaveInFlight) && currentUser) {
+    if (currentUser) {
       const localMe = getMyGroupRoundPlayer();
       const stillInFresh = (freshDoc.players || []).some(p => p.uid === currentUser.uid);
       if (localMe && stillInFresh) {
@@ -35881,7 +37237,14 @@
       if (newStatus === 'in-progress' && currentPanelId === 'group-lobby') {
         // Organizer (or someone with equivalent power) started the round.
         // Navigate all clients into the scorecard panel automatically.
-        groupRoundState.yourHoleIndex = loadGroupRoundCursor();
+        // First start of a round typically has no stored cursor; default
+        // to the round's startingHoleIndex (hole 1 if unset). If a cursor
+        // does exist — e.g. the user rejoined an in-progress round via
+        // the lobby path — trust it.
+        const startIdx = typeof mergedDoc.startingHoleIndex === 'number'
+          ? mergedDoc.startingHoleIndex
+          : 0;
+        groupRoundState.yourHoleIndex = loadGroupRoundCursor() ?? startIdx;
         showPanel('group-round', null);
         return; // showPanel triggers a render already
       }
@@ -36635,7 +37998,10 @@
       roundState.docId = inProgress.id;
       roundState.courseId = inProgress.courseId;
       roundState.teeName = inProgress.teeName;
-      roundState.holeIndex = inProgress.currentHoleIndex || 0;
+      const localCursor = loadSoloRoundCursor(inProgress.id);
+      roundState.holeIndex = localCursor != null
+        ? localCursor
+        : (inProgress.currentHoleIndex || 0);
       roundState.scores = inProgress.scores || {};
       roundState.started = inProgress.startTime;
       roundState.dateKey = inProgress.dateKey;
@@ -37430,6 +38796,18 @@
 
     if (currentUser && window.fb) {
       try {
+        // Compute bestType for this round (if 18 holes completed — the
+        // compute helper handles the partial case by returning null).
+        // Quick Score rounds CAN qualify as best — they record strokes
+        // and vsPar the same way.
+        const candidateForBest = { id: docId, ...payload };
+        const historyWithThis = [
+          ...(recentRounds || []).filter(r => r.id !== docId),
+          candidateForBest,
+        ];
+        payload.bestType = computeBestTypeForRound(candidateForBest, historyWithThis);
+        const displaced = findDisplacedBestRounds(candidateForBest, historyWithThis);
+
         const path = `users/${currentUser.uid}/rounds/${docId}`;
         await window.fb.setDoc(path, payload);
         // Update the local cache. If editing, replace in place (preserve list
@@ -37442,6 +38820,7 @@
         } else {
           recentRounds.unshift(cached);
         }
+        await reconcileDisplacedBestRounds(displaced);
         // Best-effort mirror to the public collection (if profile is public
         // and this round isn't marked private).
         syncRoundToPublic(cached);
@@ -37688,6 +39067,10 @@
         </div>`;
       return;
     }
+    // Compute best-round identifiers once for this render pass so each
+    // card's badge lookup is O(1). Stored on window so renderRoundCard
+    // can read it without threading through the param list.
+    window.__bestRoundsCache = computeMyBestRounds(recentRounds);
     const sorted = completed.slice().sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
     const top = sorted.slice(0, 3);
     const cards = top.map(renderRoundCard).join('');
@@ -38240,12 +39623,25 @@
     feed: [],               // merged activity feed: friends' + own rounds
     feedLoading: false,     // true while loading
     feedLoaded: false,      // true once at least one load has completed
+    feedLoadedAt: 0,        // ms timestamp of last successful load — used for TTL
     feedFilter: 'all',      // 'all' | 'friends' — whether to include my own rounds
     // Inline-expanded feed cards: Map keyed by "authorUid|roundId" so each
     // card's expansion state is independent. Value shape:
     //   { loading, comments: [], draft: '', posting }
     expandedComments: new Map(),
   };
+
+  // Feed cache TTL. After this window, opening Social refetches so new
+  // rounds posted by friends (including new bestType updates) are shown
+  // without requiring a page reload. Two minutes balances staleness
+  // against Firestore read cost — the feed is N+1 reads (profiles +
+  // per-friend rounds), so we don't want to refetch every panel entry.
+  const FEED_CACHE_TTL_MS = 2 * 60 * 1000;
+
+  function isFeedStale() {
+    if (!socialState.feedLoaded) return true;
+    return (Date.now() - socialState.feedLoadedAt) > FEED_CACHE_TTL_MS;
+  }
 
   // Load the activity feed — friends' public rounds + your own public rounds,
   // merged and sorted most-recent-first. Fan-out-on-read: queries each
@@ -38294,6 +39690,7 @@
     }
     socialState.feedLoading = false;
     socialState.feedLoaded = true;
+    socialState.feedLoadedAt = Date.now();
   }
 
   // Handle typing in the Social tab's search box. Debounced via sequence
@@ -38415,9 +39812,11 @@
       ${renderSocialFriends()}
     `;
 
-    // Kick off async feed load if we haven't yet. Initial render shows
-    // a loading placeholder; re-render happens when data arrives.
-    if (!socialState.feedLoaded && !socialState.feedLoading) {
+    // Kick off async feed load if stale or never loaded. 2-minute TTL
+    // means new rounds (and updated bestType badges) appear on friend
+    // devices without needing a full page reload. If a load is already
+    // in flight, skip — it'll complete and re-render on its own.
+    if (isFeedStale() && !socialState.feedLoading) {
       loadActivityFeed().then(() => {
         const feedMount = document.getElementById('social-feed-mount');
         if (feedMount) feedMount.innerHTML = renderSocialFeed();
@@ -38474,6 +39873,11 @@
           </div>
         </div>`;
     }
+    // Populate best-rounds cache so each card (renderFeedCard) can
+    // do an O(1) lookup rather than recomputing. Only affects my own
+    // rounds in the feed — renderFeedCard gates best-badge display
+    // on isMe.
+    window.__bestRoundsCache = computeMyBestRounds(recentRounds || []);
     const cards = filtered.map(renderFeedCard).join('');
     return `
       <div class="social-section">
@@ -38583,6 +39987,26 @@
       ? 'Add a comment'
       : `${commentCount} comment${commentCount === 1 ? '' : 's'}`;
 
+    // Best-round badge. Primary source: the denormalized `bestType`
+    // field on the round doc (written at completion time, readable by
+    // anyone viewing the round). Fallback for my own rounds: runtime
+    // compute against recentRounds — covers the gap where I just
+    // finished a round and the public mirror hasn't written yet. For
+    // friends' rounds we can't fall back to compute (we don't have
+    // their history), so we trust their stored bestType.
+    let feedBestBadge = '';
+    let bestType = round.bestType || null;
+    if (!bestType && isMe) {
+      const bests = window.__bestRoundsCache || computeMyBestRounds(recentRounds || []);
+      if (round.id === bests.globalBestId) bestType = 'global';
+      else if (bests.courseBestIds.has(round.id)) bestType = 'course';
+    }
+    if (bestType === 'global') {
+      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-global">★ Best Round Ever</div>';
+    } else if (bestType === 'course') {
+      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-course">★ Best at This Course</div>';
+    }
+
     return `
       <div class="feed-card ${isExpanded ? 'feed-card-expanded' : ''}">
         <div class="feed-card-body" onclick="openPublicRound('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')">
@@ -38594,6 +40018,7 @@
                 ${!isMe && handle ? `<span class="feed-card-handle">@${escapeHtml(handle)}</span>` : ''}
               </div>
               <div class="feed-card-action">Played ${escapeHtml(round.courseName || 'a round')} · ${escapeHtml(timeAgo)}</div>
+              ${feedBestBadge}
             </div>
           </div>
           <div class="feed-card-score">
@@ -39701,7 +41126,19 @@
       <div class="public-round-info-note">Quick Score round — no hole-by-hole data.</div>
     ` : '');
 
+    // Best-round hero badge. If the author flagged this as their best
+    // (either global or course), show a prominent badge at the top of
+    // the public view. Same treatment as MY summary but reads from the
+    // stored field since we're viewing someone else's data.
+    let publicBestHero = '';
+    if (r.bestType === 'global') {
+      publicBestHero = '<div class="round-summary-best-hero round-summary-best-global">★ Best Round Ever</div>';
+    } else if (r.bestType === 'course') {
+      publicBestHero = '<div class="round-summary-best-hero round-summary-best-course">★ Best at This Course</div>';
+    }
+
     mount.innerHTML = `
+      ${publicBestHero}
       <!-- Header: who played, when, where -->
       <div class="public-round-header">
         <div class="public-round-author" ${!isMe ? `onclick="openUserProfile('${escapeHtml(publicRoundState.authorUid)}')"` : ''}>
@@ -41282,6 +42719,10 @@
     }
 
     // Build the list. "Recent" sort groups by month; "Best" sort doesn't
+    // Compute best-round identifiers once for this render pass so each
+    // card's badge lookup is O(1). See computeMyBestRounds for criteria.
+    window.__bestRoundsCache = computeMyBestRounds(recentRounds);
+
     // group (mixing months in a best-score ranking is the whole point).
     let listHtml = '';
     if (roundsPageState.sort === 'best') {
@@ -42723,6 +44164,19 @@
     const groupBadge = r.groupRoundId
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
+    // Best-round badge. Global best outranks course best — if this
+    // round is the global best, show that; else if it's a course best,
+    // show that. bestRoundInfo is memoized across a render pass by
+    // renderHistory / renderRoundsPage which call computeMyBestRounds
+    // once and pass the result down; direct callers fall back to a
+    // per-round compute (cheap for small lists).
+    const bests = window.__bestRoundsCache || computeMyBestRounds(recentRounds || []);
+    let bestBadge = '';
+    if (r.id === bests.globalBestId) {
+      bestBadge = '<span class="round-card-best-badge round-card-best-global" title="Your best round ever">★ Best Round</span>';
+    } else if (bests.courseBestIds && bests.courseBestIds.has(r.id)) {
+      bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
+    }
     return `
       <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}" onclick="openRoundSummary('${r.id}')">
         <div class="round-card-head">
@@ -42731,6 +44185,7 @@
         </div>
         <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
         ${groupLine}
+        ${bestBadge}
         <div class="round-card-score-row">
           <div class="round-card-score">${score}</div>
           ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
@@ -42771,6 +44226,16 @@
     const groupBadge = r.groupRoundId
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
+    // Best-round badge from the stored bestType field on the mirrored
+    // round. Author's client wrote this when they completed. We don't
+    // have enough data to recompute for someone else's rounds, so we
+    // trust what they wrote.
+    let bestBadge = '';
+    if (r.bestType === 'global') {
+      bestBadge = '<span class="round-card-best-badge round-card-best-global" title="Best round ever">★ Best Round</span>';
+    } else if (r.bestType === 'course') {
+      bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Best at this course">★ Course Best</span>';
+    }
     return `
       <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}" onclick="openPublicRound('${escapeHtml(authorUid)}', '${escapeHtml(r.id)}')">
         <div class="round-card-head">
@@ -42779,6 +44244,7 @@
         </div>
         <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
         ${groupLine}
+        ${bestBadge}
         <div class="round-card-score-row">
           <div class="round-card-score">${score}</div>
           ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
@@ -42789,6 +44255,67 @@
   // ─────────────────────────────────────────────────────────────
   // Round summary panel
   // ─────────────────────────────────────────────────────────────
+  // TEMP — logged shots dump. Displays raw shot data below the hole-
+  // by-hole table on the round summary so the user can verify shots
+  // were captured correctly. Will be replaced by a proper stats view
+  // (per-club distances, dispersion patterns, etc.) once the shot
+  // corpus is big enough to do real analysis.
+  function renderLoggedShotsDump(round, course) {
+    const shots = round?.shots || {};
+    const holeNums = Object.keys(shots)
+      .map(Number)
+      .filter(n => Array.isArray(shots[n]) && shots[n].length > 0)
+      .sort((a, b) => a - b);
+    if (holeNums.length === 0) return '';
+
+    // Small lookup builders for label text. Fall back to raw id if
+    // the constant lookup misses (defensive — e.g. old data with an
+    // intent value we've since renamed).
+    const lieLabel = (id) => (SHOT_START_LIES.find(l => l.id === id)?.label) || id || '—';
+    const intentLabel = (id) => (SHOT_INTENTS.find(i => i.id === id)?.label) || id || '—';
+    const mishitLabel = (id) => (SHOT_MISHITS.find(m => m.id === id)?.label) || id || '—';
+    const resultLabel = (id) => (SHOT_RESULTS.find(r => r.id === id)?.label) || id || '—';
+
+    const holeCards = holeNums.map(holeNum => {
+      const hole = course?.holes?.find(h => h.number === holeNum);
+      const parStr = hole ? ` · Par ${hole.par}` : '';
+      const shotLines = shots[holeNum].map((s, i) => {
+        const num = i + 1;
+        const club = s.club || '—';
+        const dist = s.distance != null ? `${s.distance}y` : '—';
+        const lie = lieLabel(s.startLie);
+        const intent = intentLabel(s.intent);
+        const result = s.result ? resultLabel(s.result) : '—';
+        const mishit = s.mishit ? mishitLabel(s.mishit) : '—';
+        return `
+          <div class="shots-dump-row">
+            <div class="shots-dump-row-head">
+              <span class="shots-dump-num">#${num}</span>
+              <span class="shots-dump-club">${escapeHtml(club)}</span>
+              <span class="shots-dump-dist">${escapeHtml(dist)}</span>
+            </div>
+            <div class="shots-dump-row-meta">
+              <span><b>Intent:</b> ${escapeHtml(intent)}</span>
+              <span><b>Lie:</b> ${escapeHtml(lie)}</span>
+              <span><b>Result:</b> ${escapeHtml(result)}</span>
+              <span><b>Mishit:</b> ${escapeHtml(mishit)}</span>
+            </div>
+          </div>`;
+      }).join('');
+      return `
+        <div class="shots-dump-hole">
+          <div class="shots-dump-hole-head">Hole ${holeNum}${parStr} · ${shots[holeNum].length} shot${shots[holeNum].length === 1 ? '' : 's'}</div>
+          ${shotLines}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="round-summary-section-label">Logged Shots <span class="shots-dump-temp-tag">TEMP</span></div>
+      <div class="shots-dump-wrap">
+        ${holeCards}
+      </div>`;
+  }
+
   function renderRoundSummary() {
     const mount = document.getElementById('round-summary-mount');
     if (!mount) return;
@@ -42813,6 +44340,16 @@
     const vsParStr = vsPar === 0 ? 'Even' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
     const dateStr = formatRoundDate(round.startTime);
     const isQuickScore = !!round.quickScore;
+
+    // Best-round badge — surfaces prominently at top of the summary
+    // when this round qualifies. Global outranks course.
+    const bests = computeMyBestRounds(recentRounds || []);
+    let bestHeroBadge = '';
+    if (round.id === bests.globalBestId) {
+      bestHeroBadge = '<div class="round-summary-best-hero round-summary-best-global">★ Best Round Ever</div>';
+    } else if (bests.courseBestIds.has(round.id)) {
+      bestHeroBadge = '<div class="round-summary-best-hero round-summary-best-course">★ Best at This Course</div>';
+    }
 
     // FIR / GIR stats. Quick Score rounds store raw counts (fir/gir with
     // firMax/girMax) in totals; live-tracked rounds store eligibility
@@ -42914,6 +44451,7 @@
 
     mount.innerHTML = `
       <div class="round-summary-head">
+        ${bestHeroBadge}
         <div class="round-summary-eyebrow">
           ${round.groupRoundId ? '<span class="round-summary-group-badge">👥 Group Round</span> · ' : ''}${isQuickScore ? 'Quick Score' : (holesPlayed >= 18 ? 'Round Complete' : `${holesPlayed}-Hole Round`)}
         </div>
@@ -42986,6 +44524,8 @@
           </table>
         </div>
       ` : ''}
+
+      ${renderLoggedShotsDump(round, course)}
 
       ${prefs.profileVisibility === 'public' ? `
         <div class="round-summary-section-label">Visibility</div>
@@ -43671,6 +45211,11 @@
   // host future prefs like dominant eye, playing style, etc.
   function renderGameSection() {
     const handedness = prefs.handedness || 'right';
+    // Compute visible-tools summary for the Tools row
+    const effective = getEffectiveDockTools();
+    const toolsSummary = effective.length === DOCK_TOOLS.length
+      ? `${effective.length} tools`
+      : `${effective.length} of ${DOCK_TOOLS.length} tools`;
     return `
       <div class="settings-section">
         <div class="settings-section-title">Your Game</div>
@@ -43684,6 +45229,16 @@
             <button class="${handedness === 'left' ? 'active' : ''}" onclick="setHandedness('left')">Left</button>
           </div>
         </div>
+        <button class="settings-row settings-row-link" onclick="openToolsEditorSheet()">
+          <div class="settings-row-info">
+            <div class="settings-row-label">In-round tools</div>
+            <div class="settings-row-sub">Choose which tools appear in the round sheet and drag to reorder.</div>
+          </div>
+          <div class="settings-row-meta">
+            <span class="settings-row-value">${toolsSummary}</span>
+            <span class="settings-row-chevron" aria-hidden="true">→</span>
+          </div>
+        </button>
       </div>`;
   }
 
@@ -43696,6 +45251,177 @@
     prefs.handedness = val;
     savePreferences();
     renderProfile();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Tools editor sheet — configure the in-round tools sheet.
+  //
+  // State mirrors the sheet pattern used elsewhere (hole picker,
+  // manage players). Editor operates on a DRAFT of the config so
+  // the user can rearrange freely without persisting until they've
+  // committed via the Save button. Saving writes prefs and closes;
+  // cancelling discards the draft.
+  // ─────────────────────────────────────────────────────────────
+  const toolsEditorState = {
+    open: false,
+    draft: null,      // [{ id, visible }] — current working config
+    draggingId: null, // id of the tool being dragged, null when idle
+  };
+
+  // Build the initial draft from the current effective state. Uses
+  // getEffectiveDockTools so a user who has never touched the editor
+  // sees the full catalog in catalog order, all visible. Converts to
+  // the config array shape used by toolsConfig.
+  function buildToolsEditorDraft() {
+    const current = prefs.toolsConfig;
+    if (Array.isArray(current) && current.length > 0) {
+      // Reconcile against current catalog: keep existing order for
+      // known ids, append any new catalog tools as visible.
+      const byId = Object.fromEntries(DOCK_TOOLS.map(t => [t.id, true]));
+      const seen = new Set();
+      const draft = [];
+      for (const entry of current) {
+        if (!entry || !entry.id || !byId[entry.id]) continue;
+        draft.push({ id: entry.id, visible: entry.visible !== false });
+        seen.add(entry.id);
+      }
+      for (const tool of DOCK_TOOLS) {
+        if (!seen.has(tool.id)) draft.push({ id: tool.id, visible: true });
+      }
+      return draft;
+    }
+    // No saved config — default: full catalog, all visible, catalog order.
+    return DOCK_TOOLS.map(t => ({ id: t.id, visible: true }));
+  }
+
+  function openToolsEditorSheet() {
+    if (toolsEditorState.open) return;
+    toolsEditorState.open = true;
+    toolsEditorState.draft = buildToolsEditorDraft();
+    toolsEditorState.draggingId = null;
+    renderToolsEditorSheet();
+  }
+
+  function closeToolsEditorSheet() {
+    toolsEditorState.open = false;
+    toolsEditorState.draft = null;
+    toolsEditorState.draggingId = null;
+    const mount = document.getElementById('tools-editor-mount');
+    if (mount) mount.innerHTML = '';
+  }
+
+  // Toggle a tool's visibility in the draft. Enforces at-least-one
+  // rule: can't hide the last visible tool.
+  function toolsEditorToggleVisibility(id) {
+    if (!toolsEditorState.draft) return;
+    const entry = toolsEditorState.draft.find(e => e.id === id);
+    if (!entry) return;
+    const visibleCount = toolsEditorState.draft.filter(e => e.visible !== false).length;
+    // Prevent hiding the last visible tool
+    if (entry.visible !== false && visibleCount <= 1) {
+      showToast('At least one tool must stay visible', true);
+      return;
+    }
+    entry.visible = entry.visible === false;
+    haptic('light');
+    renderToolsEditorSheet();
+  }
+
+  // Move a tool up or down in the draft order. Simple button-based
+  // reorder — more reliable than drag on mobile and keyboard-accessible.
+  function toolsEditorMove(id, direction) {
+    if (!toolsEditorState.draft) return;
+    const idx = toolsEditorState.draft.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    const newIdx = idx + (direction === 'up' ? -1 : 1);
+    if (newIdx < 0 || newIdx >= toolsEditorState.draft.length) return;
+    // Swap
+    const [item] = toolsEditorState.draft.splice(idx, 1);
+    toolsEditorState.draft.splice(newIdx, 0, item);
+    haptic('light');
+    renderToolsEditorSheet();
+  }
+
+  // Reset to catalog defaults — clears the config so the sheet
+  // reverts to showing all tools in catalog order.
+  function toolsEditorReset() {
+    toolsEditorState.draft = DOCK_TOOLS.map(t => ({ id: t.id, visible: true }));
+    haptic('light');
+    renderToolsEditorSheet();
+  }
+
+  // Commit draft to prefs. If the draft matches the default exactly
+  // (all visible, catalog order), store null to indicate "no custom
+  // config" — simpler mental model + forward-compat when we add new
+  // tools to the catalog later.
+  function toolsEditorSave() {
+    if (!toolsEditorState.draft) return;
+    const draft = toolsEditorState.draft;
+    const isDefault = draft.length === DOCK_TOOLS.length
+      && draft.every((e, i) => e.id === DOCK_TOOLS[i].id && e.visible !== false);
+    prefs.toolsConfig = isDefault ? null : draft.slice();
+    savePreferences();
+    closeToolsEditorSheet();
+    renderProfile();
+    showToast('Tools updated');
+  }
+
+  function renderToolsEditorSheet() {
+    const mount = document.getElementById('tools-editor-mount');
+    if (!mount) return;
+    if (!toolsEditorState.open || !toolsEditorState.draft) {
+      mount.innerHTML = '';
+      return;
+    }
+    const draft = toolsEditorState.draft;
+    const byId = Object.fromEntries(DOCK_TOOLS.map(t => [t.id, t]));
+
+    const rowsHtml = draft.map((entry, idx) => {
+      const tool = byId[entry.id];
+      if (!tool) return '';
+      const isVisible = entry.visible !== false;
+      const isFirst = idx === 0;
+      const isLast = idx === draft.length - 1;
+      return `
+        <div class="tools-editor-row ${isVisible ? '' : 'tools-editor-row-hidden'}">
+          <div class="tools-editor-row-reorder">
+            <button class="tools-editor-move-btn" ${isFirst ? 'disabled' : ''}
+                    onclick="toolsEditorMove('${tool.id}', 'up')"
+                    aria-label="Move ${escapeHtml(tool.label)} up">▲</button>
+            <button class="tools-editor-move-btn" ${isLast ? 'disabled' : ''}
+                    onclick="toolsEditorMove('${tool.id}', 'down')"
+                    aria-label="Move ${escapeHtml(tool.label)} down">▼</button>
+          </div>
+          <span class="tools-editor-row-icon" aria-hidden="true">${tool.icon}</span>
+          <span class="tools-editor-row-label">${escapeHtml(tool.label)}</span>
+          <button class="tools-editor-visibility ${isVisible ? 'is-visible' : 'is-hidden'}"
+                  onclick="toolsEditorToggleVisibility('${tool.id}')"
+                  aria-label="${isVisible ? 'Hide' : 'Show'} ${escapeHtml(tool.label)}">
+            ${isVisible ? 'Shown' : 'Hidden'}
+          </button>
+        </div>`;
+    }).join('');
+
+    mount.innerHTML = `
+      <div class="tools-editor-backdrop" onclick="closeToolsEditorSheet()"></div>
+      <div class="tools-editor-sheet" role="dialog" aria-modal="true" aria-label="Configure tools">
+        <div class="tools-editor-header">
+          <div class="tools-editor-handle" aria-hidden="true"></div>
+          <div class="tools-editor-title-row">
+            <div class="tools-editor-title">In-round Tools</div>
+            <button class="tools-editor-close" onclick="closeToolsEditorSheet()" aria-label="Close">×</button>
+          </div>
+          <div class="tools-editor-hint">Use arrows to reorder. Tap Shown/Hidden to toggle visibility.</div>
+        </div>
+        <div class="tools-editor-body">
+          ${rowsHtml}
+        </div>
+        <div class="tools-editor-footer">
+          <button class="btn btn-ghost" onclick="toolsEditorReset()">Reset to defaults</button>
+          <button class="btn btn-primary" onclick="toolsEditorSave()">Save</button>
+        </div>
+      </div>
+    `;
   }
 
   function renderUnitsSection() {
@@ -44120,6 +45846,14 @@
               <span class="social-summary-value ${visibilityClass}">${visibilityLabel}</span>
             </div>
           </div>
+          ${visibility === 'public' ? `
+            <div class="social-resync-block">
+              <div class="social-resync-info">
+                <div class="social-resync-title">Resync public rounds</div>
+                <div class="social-resync-sub">Re-mirror your round history so friends see the latest data — including Best Round badges on existing rounds.</div>
+              </div>
+              <button id="social-resync-btn" class="btn btn-outline btn-sm" onclick="handleResyncPublicRounds()">Resync</button>
+            </div>` : ''}
         </div>`;
     }
 
