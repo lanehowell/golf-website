@@ -2311,7 +2311,11 @@
   }
   .tee-btn.active .tee-btn-yards { color: var(--color-orange-dark); }
 
-  /* Tee info strip — yards/rating/slope/par for the selected tee */
+  /* Tee info strip — 1×4 grid of reference stats (yards / rating / slope
+     / par) for the selected tee. Previously a 2×2 grid which consumed
+     a full screenful before the scorecard preview. Going to a single
+     row keeps the tile feel and hero-serif numbers while cutting the
+     vertical footprint in half. */
   .tee-info {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -2322,13 +2326,14 @@
     background: var(--color-cream-100);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
-    padding: var(--space-3);
+    padding: var(--space-3) var(--space-2);
     text-align: center;
+    min-width: 0; /* allow tiles to shrink so 4-up fits on narrow screens */
   }
   .tee-info-value {
     display: block;
     font-family: var(--font-display);
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
@@ -2337,9 +2342,9 @@
   .tee-info-label {
     display: block;
     font-family: var(--font-body);
-    font-size: 0.66rem;
+    font-size: 0.6rem;
     font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--text-muted);
   }
@@ -2489,15 +2494,21 @@
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
+  /* Active-tab state — tinted with the orange accent so the chosen mode
+     is unmistakable at a glance. The previous treatment (just a raised
+     surface) was too subtle; users couldn't tell which mode they'd
+     committed to, which matters a lot because Solo vs With Friends is
+     the single most consequential choice on this screen. */
   .round-mode-tab.is-active {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    box-shadow: var(--shadow-xs, 0 1px 2px rgba(13, 13, 13, 0.08));
+    background: var(--color-orange);
+    color: var(--text-inverse);
+    box-shadow: 0 1px 4px var(--color-orange-glow);
     font-weight: var(--weight-semibold);
   }
   html.dark .round-mode-tab.is-active {
-    background: var(--bg-elevated);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    background: var(--color-orange);
+    color: #fff;
+    box-shadow: 0 1px 6px rgba(232, 93, 4, 0.35);
   }
   @media (hover: hover) {
     .round-mode-tab:not(.is-active):hover {
@@ -2588,7 +2599,6 @@
 
   @media (max-width: 480px) {
     .start-round-card { padding: var(--space-4) var(--space-5) var(--space-5); }
-    .tee-info { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* ══════════════════════════════════════════════════════════════
