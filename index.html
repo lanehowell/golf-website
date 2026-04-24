@@ -2259,6 +2259,45 @@
   }
   .course-detail-section-label:first-child { margin-top: 0; }
 
+  /* GPS section card on course detail page — shows "N/18 pinned"
+     status and the button to open the Pin Greens flow. Layout
+     matches other cards on this page (elevated bg, rounded corners,
+     padded). */
+  .course-gps-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6);
+  }
+  .course-gps-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .course-gps-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .course-gps-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .course-gps-btn {
+    width: auto;
+    padding: 10px 16px;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
   /* Tee box selector — color swatch + name + distance per tee */
   .tee-selector {
     display: grid;
@@ -4181,6 +4220,199 @@
     background: rgba(13, 13, 13, 0.5);
     -webkit-tap-highlight-color: transparent;
   }
+  /* ──────────────────────────────────────────────────────────
+     Pin Greens sheet — Phase 1 admin flow for entering green
+     coordinates per hole. Full-screen Mapbox-powered view with
+     tap-to-pin + per-hole navigation. Higher z-index than the
+     regular sheets since it's full-screen and dismissal is via
+     its own close button, not a backdrop tap.
+     ────────────────────────────────────────────────────────── */
+  .pin-greens-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: var(--bg-page);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pin-greens-topbar {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .pin-greens-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-greens-title-block {
+    min-width: 0;
+  }
+  .pin-greens-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .pin-greens-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .pin-greens-progress {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    font-variant-numeric: tabular-nums;
+    padding: 6px 12px;
+    background: var(--color-orange-pale);
+    border-radius: var(--radius-pill);
+  }
+  html.dark .pin-greens-progress {
+    background: rgba(232, 93, 4, 0.22);
+  }
+  /* Map container — fills all remaining vertical space between the
+     topbar and footer. Position relative so the crosshair overlay
+     can absolute-position inside it. */
+  .pin-greens-map-wrap {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+  #pin-greens-map {
+    position: absolute;
+    inset: 0;
+  }
+  /* Crosshair sits dead-center over the map to help the user aim
+     the tap. Pointer-events none so it doesn't eat the map's click
+     events. Semi-transparent so it's visible but not intrusive. */
+  .pin-greens-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 24px;
+    font-weight: 300;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .pin-greens-footer {
+    flex-shrink: 0;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-light);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .pin-greens-instruction {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+  }
+  .pin-greens-controls {
+    display: grid;
+    grid-template-columns: 48px 1fr 48px;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .pin-greens-nav-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-greens-nav-btn[disabled] {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .pin-greens-hole-indicator {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    text-align: center;
+  }
+  .pin-greens-hole-num {
+    color: var(--color-orange);
+  }
+  .pin-greens-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    border: none;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+  }
+  .pin-greens-btn-primary {
+    background: var(--color-orange);
+    color: #fff;
+  }
+  .pin-greens-btn-secondary {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+  }
+  /* Fallback state — shown when Mapbox fails to load. Same sheet
+     shell but no map, just a message + close button. */
+  .pin-greens-fallback {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-8);
+    gap: var(--space-4);
+  }
+  .pin-greens-fallback-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .pin-greens-fallback-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 30ch;
+  }
+
   .tools-editor-sheet {
     position: fixed;
     left: 0;
@@ -22114,6 +22346,13 @@
      button or hash removal. Not linked from anywhere in the UI. -->
 <div id="gps-test-mount"></div>
 
+<!-- PIN GREENS sheet mount — populated by renderPinGreensSheet() when
+     the user taps "Pin greens" on a course detail page. Full-screen
+     bottom sheet with a satellite map + tap-to-pin flow for each
+     hole. Body-level so the map can cover chrome without ancestor
+     transform issues. -->
+<div id="pin-greens-mount"></div>
+
 <!-- RECOVERY sheet mount — populated by renderRecoverySheet() when
      the user taps the pending-rounds banner on the Play screen.
      Shows the captured scorecard + Save / Continue solo / Discard
@@ -24213,7 +24452,35 @@
 
   // Helper: look up a course by id
   function getCourse(courseId) {
-    return COURSES.find(c => c.id === courseId) || null;
+    const base = COURSES.find(c => c.id === courseId);
+    if (!base) return null;
+    // Merge any user-pinned green coords into the holes array. We do
+    // this on-read rather than mutating COURSES so the catalog stays
+    // as a pristine reference and pinning is purely per-user state.
+    // Phase 4 will add a fallback to shared publicCourses data.
+    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || null;
+    if (!pins) return base;
+    const mergedHoles = base.holes.map(h => {
+      const pin = pins[h.number];
+      if (!pin || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return h;
+      return { ...h, greenLat: pin.lat, greenLng: pin.lng };
+    });
+    return { ...base, holes: mergedHoles };
+  }
+
+  // Great-circle distance in yards. Used by GPS features for
+  // tee/green/position math. Miles version (haversineMiles) lives
+  // below and is used for course-list sorting.
+  function haversineYards(lat1, lng1, lat2, lng2) {
+    const R = 6371000; // earth radius in meters
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c * 1.0936;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -26371,6 +26638,15 @@
     location: null,              // optional free-text (e.g. "Dallas, TX")
     profileVisibility: 'private',// 'public' | 'private' — whether publicProfiles/{uid} is populated
     usernameChangedAt: null,     // ms timestamp; enforces 7-day cooldown between changes
+
+    // ─── GPS / Course green coordinates ──────────────────────
+    // User-pinned green coordinates, keyed by courseId and hole number.
+    // Shape: { [courseId]: { [holeNumber]: { lat, lng } } }
+    // Missing entries = not pinned. Used by the in-round GPS view to
+    // show distance-to-green. Phase 1 scope: per-user only; Phase 4
+    // will migrate to a shared publicCourses collection so one user's
+    // pins benefit everyone playing the same course.
+    greenCoords: {},
   };
   let prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
   // Whether preferences have been loaded from Firestore for the currently
@@ -30176,6 +30452,23 @@
       <div class="scorecard-total">
         <span>Total</span>
         <span>${tee.totalYards.toLocaleString()} yd · Par ${totalPar}</span>
+      </div>
+
+      <!-- GPS / Green coordinates section — Phase 1 of the GPS feature.
+           Shows how many greens have been pinned and provides a button
+           to open the pinning flow. Hidden / minimized if nothing's
+           needed here yet, but showing it now helps onboard the
+           feature. -->
+      <div class="course-detail-section-label">GPS</div>
+      <div class="course-gps-card">
+        <div class="course-gps-info">
+          <div class="course-gps-title">Green coordinates</div>
+          <div class="course-gps-sub">${pinGreensCountSaved(course.id)}/18 pinned</div>
+        </div>
+        <button class="pin-greens-btn pin-greens-btn-primary course-gps-btn"
+                onclick="openPinGreensSheet('${escapeAttr(course.id)}')">
+          ${pinGreensCountSaved(course.id) > 0 ? 'Edit pins' : 'Pin greens'}
+        </button>
       </div>
     `;
   }
@@ -51103,6 +51396,327 @@
   setTimeout(checkGpsTestHash, 500);
   // Expose close fn globally for the inline onclick in the panel markup.
   window.closeGpsTestPanel = closeGpsTestPanel;
+
+  // ─────────────────────────────────────────────────────────────
+  // Pin Greens (Phase 1)
+  // ─────────────────────────────────────────────────────────────
+  // Per-course flow for pinning green coordinates. User opens from
+  // the Course Detail page, works through holes 1-18 one at a time,
+  // taps a point on a Mapbox satellite view to drop a pin, confirms,
+  // advances. Saves to prefs.greenCoords after each hole so bailing
+  // mid-course doesn't lose progress.
+  //
+  // State machine per hole:
+  //   'empty'   = no pin yet, showing "Tap the green for hole N"
+  //   'pending' = user tapped, pin is showing, "Save this pin" button visible
+  //   'saved'   = coordinates in prefs, map shows the saved pin, can re-pin
+
+  const pinGreensState = {
+    open: false,
+    courseId: null,
+    holeNumber: 1,           // which hole is currently being pinned
+    map: null,
+    pinMarker: null,         // current pending or saved pin marker
+    pendingLat: null,
+    pendingLng: null,
+    mode: 'empty',           // 'empty' | 'pending' | 'saved'
+  };
+
+  // Entry point — called from the course detail page.
+  function openPinGreensSheet(courseId) {
+    if (pinGreensState.open) return;
+    const course = getCourse(courseId);
+    if (!course) return;
+    pinGreensState.open = true;
+    pinGreensState.courseId = courseId;
+    pinGreensState.holeNumber = 1;
+    pinGreensState.map = null;
+    pinGreensState.pinMarker = null;
+    pinGreensState.pendingLat = null;
+    pinGreensState.pendingLng = null;
+    pinGreensState.mode = 'empty';
+    acquireScrollLock();
+    renderPinGreensSheet();
+  }
+  window.openPinGreensSheet = openPinGreensSheet;
+
+  function closePinGreensSheet() {
+    if (!pinGreensState.open) return;
+    if (pinGreensState.map) {
+      try { pinGreensState.map.remove(); } catch (_) {}
+    }
+    pinGreensState.open = false;
+    pinGreensState.courseId = null;
+    pinGreensState.map = null;
+    pinGreensState.pinMarker = null;
+    pinGreensState.pendingLat = null;
+    pinGreensState.pendingLng = null;
+    pinGreensState.mode = 'empty';
+    releaseScrollLock();
+    const mount = document.getElementById('pin-greens-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closePinGreensSheet = closePinGreensSheet;
+
+  // Load stored pin for the currently-selected hole, if any.
+  function pinGreensLoadStoredPin() {
+    const { courseId, holeNumber } = pinGreensState;
+    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
+    const pin = pins[holeNumber];
+    if (pin && typeof pin.lat === 'number' && typeof pin.lng === 'number') {
+      return { lat: pin.lat, lng: pin.lng };
+    }
+    return null;
+  }
+
+  // How many holes in this course already have pins? Used for the
+  // "N / 18 pinned" progress indicator in the header.
+  function pinGreensCountSaved(courseId) {
+    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
+    return Object.keys(pins).filter(k => {
+      const p = pins[k];
+      return p && typeof p.lat === 'number' && typeof p.lng === 'number';
+    }).length;
+  }
+
+  function renderPinGreensSheet() {
+    const mount = document.getElementById('pin-greens-mount');
+    if (!mount) return;
+    if (!pinGreensState.open) { mount.innerHTML = ''; return; }
+
+    const course = getCourse(pinGreensState.courseId);
+    if (!course) { closePinGreensSheet(); return; }
+
+    // Mapbox absence check — graceful fallback if the CDN script
+    // hasn't loaded yet (rare, but network hiccups happen).
+    if (typeof mapboxgl === 'undefined') {
+      mount.innerHTML = `
+        <div class="pin-greens-sheet pin-greens-fallback">
+          <div class="pin-greens-fallback-title">Map didn't load</div>
+          <div class="pin-greens-fallback-body">Check your network and try again.</div>
+          <button class="pin-greens-btn pin-greens-btn-secondary" onclick="closePinGreensSheet()">Close</button>
+        </div>`;
+      return;
+    }
+
+    const h = pinGreensState.holeNumber;
+    const savedCount = pinGreensCountSaved(pinGreensState.courseId);
+    const storedPin = pinGreensLoadStoredPin();
+    const hasSaved = !!storedPin;
+
+    // Only write the sheet shell on first render. Subsequent renders
+    // (hole-change, save, re-pin) surgically update the header + the
+    // footer controls so the map doesn't re-initialize (expensive +
+    // disruptive). The hole change flow tears down just the marker
+    // and re-centers the map in pinGreensGoToHole.
+    const existing = mount.querySelector('.pin-greens-sheet');
+    if (!existing) {
+      mount.innerHTML = `
+        <div class="pin-greens-sheet">
+          <!-- Top bar: back button, title, progress -->
+          <div class="pin-greens-topbar">
+            <button class="pin-greens-close" onclick="closePinGreensSheet()" aria-label="Close">×</button>
+            <div class="pin-greens-title-block">
+              <div class="pin-greens-eyebrow">Pin Greens</div>
+              <div class="pin-greens-title">${escapeHtml(course.name)}</div>
+            </div>
+            <div class="pin-greens-progress" id="pin-greens-progress">${savedCount}/18</div>
+          </div>
+
+          <!-- Map fills the remaining vertical space. Initialized once,
+               re-centered on hole change. -->
+          <div class="pin-greens-map-wrap">
+            <div id="pin-greens-map"></div>
+            <!-- Crosshair overlay helps the user aim the tap precisely -->
+            <div class="pin-greens-crosshair" aria-hidden="true">+</div>
+          </div>
+
+          <!-- Footer: hole indicator, navigation, instruction/action -->
+          <div class="pin-greens-footer" id="pin-greens-footer">
+            <!-- populated by pinGreensRenderFooter below -->
+          </div>
+        </div>`;
+
+      // Initialize the Mapbox map. Center on the course lat/lng
+      // (good-enough starting point for the user to then pan/zoom
+      // to the specific green).
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      const map = new mapboxgl.Map({
+        container: 'pin-greens-map',
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [course.lng, course.lat],
+        zoom: 17,  // Zoomed tighter than the Phase 0 test — user's
+                   // probably going to zoom in further, but 17 gets
+                   // them close to "a hole" without needing 5 pinches.
+        attributionControl: true,
+      });
+      pinGreensState.map = map;
+
+      // Tap handler — drop / move a pin at the clicked spot.
+      map.on('click', (e) => {
+        pinGreensHandleMapTap(e.lngLat.lat, e.lngLat.lng);
+      });
+    }
+
+    // Render footer controls + pin state.
+    pinGreensRenderFooter();
+
+    // If this hole already has a saved pin, restore it and center.
+    if (hasSaved) {
+      pinGreensSetPinMarker(storedPin.lat, storedPin.lng, 'saved');
+      if (pinGreensState.map) {
+        pinGreensState.map.flyTo({
+          center: [storedPin.lng, storedPin.lat],
+          zoom: Math.max(pinGreensState.map.getZoom(), 17),
+          duration: 600,
+        });
+      }
+      pinGreensState.mode = 'saved';
+    } else {
+      pinGreensState.mode = 'empty';
+      pinGreensClearPinMarker();
+    }
+  }
+
+  // Re-render just the footer. The footer content depends on mode
+  // and the currently-selected hole, so this runs on every state
+  // transition within the sheet.
+  function pinGreensRenderFooter() {
+    const footer = document.getElementById('pin-greens-footer');
+    if (!footer) return;
+    const h = pinGreensState.holeNumber;
+
+    let instruction, actionBtn;
+    if (pinGreensState.mode === 'empty') {
+      instruction = `Tap the middle of the green for hole ${h}`;
+      actionBtn = '';
+    } else if (pinGreensState.mode === 'pending') {
+      instruction = `Pin dropped. Tap again to adjust, or save.`;
+      actionBtn = `<button class="pin-greens-btn pin-greens-btn-primary" onclick="pinGreensSavePin()">Save this pin</button>`;
+    } else {
+      // saved
+      instruction = `Hole ${h} pinned. Tap to adjust, or move on.`;
+      actionBtn = '';
+    }
+
+    const prevDisabled = h <= 1 ? 'disabled' : '';
+    const nextDisabled = h >= 18 ? 'disabled' : '';
+
+    footer.innerHTML = `
+      <div class="pin-greens-instruction">${instruction}</div>
+      <div class="pin-greens-controls">
+        <button class="pin-greens-nav-btn" onclick="pinGreensPrevHole()" ${prevDisabled} aria-label="Previous hole">‹</button>
+        <div class="pin-greens-hole-indicator">Hole <span class="pin-greens-hole-num">${h}</span></div>
+        <button class="pin-greens-nav-btn" onclick="pinGreensNextHole()" ${nextDisabled} aria-label="Next hole">›</button>
+      </div>
+      ${actionBtn}
+    `;
+  }
+
+  // Tap handler — creates or moves the pending pin marker.
+  function pinGreensHandleMapTap(lat, lng) {
+    pinGreensState.pendingLat = lat;
+    pinGreensState.pendingLng = lng;
+    pinGreensSetPinMarker(lat, lng, 'pending');
+    pinGreensState.mode = 'pending';
+    pinGreensRenderFooter();
+  }
+
+  // Create or update the pin marker on the map. Color varies by
+  // state so users can see at a glance whether this pin is saved or
+  // still pending.
+  function pinGreensSetPinMarker(lat, lng, state) {
+    if (!pinGreensState.map) return;
+    if (pinGreensState.pinMarker) {
+      pinGreensState.pinMarker.setLngLat([lng, lat]);
+      // Update color on state change — recreate the inner element.
+      const el = pinGreensState.pinMarker.getElement();
+      el.style.background = state === 'saved' ? '#2D6E34' : '#E85D04';
+      return;
+    }
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 20px; height: 20px; border-radius: 50%;
+      background: ${state === 'saved' ? '#2D6E34' : '#E85D04'};
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+    pinGreensState.pinMarker = new mapboxgl.Marker(el)
+      .setLngLat([lng, lat])
+      .addTo(pinGreensState.map);
+  }
+
+  function pinGreensClearPinMarker() {
+    if (pinGreensState.pinMarker) {
+      try { pinGreensState.pinMarker.remove(); } catch (_) {}
+      pinGreensState.pinMarker = null;
+    }
+    pinGreensState.pendingLat = null;
+    pinGreensState.pendingLng = null;
+  }
+
+  // Persist the pending pin to prefs.greenCoords + savePreferences.
+  async function pinGreensSavePin() {
+    const { courseId, holeNumber, pendingLat, pendingLng } = pinGreensState;
+    if (pendingLat == null || pendingLng == null) return;
+    if (!prefs.greenCoords) prefs.greenCoords = {};
+    if (!prefs.greenCoords[courseId]) prefs.greenCoords[courseId] = {};
+    prefs.greenCoords[courseId][holeNumber] = { lat: pendingLat, lng: pendingLng };
+    try {
+      await savePreferences();
+    } catch (err) {
+      console.error('Failed to save green pin:', err);
+      showToast('Could not save pin', true);
+      return;
+    }
+    // Update marker color to "saved" green, update progress, advance
+    // the state machine. Don't auto-advance to the next hole — the
+    // user might want to adjust; they advance with the › button.
+    pinGreensState.mode = 'saved';
+    pinGreensSetPinMarker(pendingLat, pendingLng, 'saved');
+    pinGreensState.pendingLat = null;
+    pinGreensState.pendingLng = null;
+    const progressEl = document.getElementById('pin-greens-progress');
+    if (progressEl) progressEl.textContent = `${pinGreensCountSaved(courseId)}/18`;
+    pinGreensRenderFooter();
+    showToast(`Hole ${holeNumber} pinned`);
+  }
+  window.pinGreensSavePin = pinGreensSavePin;
+
+  function pinGreensPrevHole() {
+    if (pinGreensState.holeNumber <= 1) return;
+    pinGreensGoToHole(pinGreensState.holeNumber - 1);
+  }
+  window.pinGreensPrevHole = pinGreensPrevHole;
+
+  function pinGreensNextHole() {
+    if (pinGreensState.holeNumber >= 18) return;
+    pinGreensGoToHole(pinGreensState.holeNumber + 1);
+  }
+  window.pinGreensNextHole = pinGreensNextHole;
+
+  // Switch holes in place — no DOM rebuild, just marker + footer
+  // swap. Keeps the map instance alive (fast + preserves zoom level
+  // user has chosen).
+  function pinGreensGoToHole(holeNumber) {
+    pinGreensState.holeNumber = holeNumber;
+    pinGreensClearPinMarker();
+    const stored = pinGreensLoadStoredPin();
+    if (stored) {
+      pinGreensSetPinMarker(stored.lat, stored.lng, 'saved');
+      pinGreensState.mode = 'saved';
+      if (pinGreensState.map) {
+        pinGreensState.map.flyTo({
+          center: [stored.lng, stored.lat],
+          zoom: Math.max(pinGreensState.map.getZoom(), 17),
+          duration: 600,
+        });
+      }
+    } else {
+      pinGreensState.mode = 'empty';
+    }
+    pinGreensRenderFooter();
+  }
+  window.pinGreensGoToHole = pinGreensGoToHole;
 
   // ─────────────────────────────────────────────────────────────
   // Init
