@@ -6901,7 +6901,11 @@
   body[data-current-panel="group-lobby"] .training-nav,
   body[data-current-panel="group-lobby"] .mobile-bottomnav,
   body[data-current-panel="range-session"] .training-nav,
+  body[data-current-panel="shortgame-session"] .training-nav,
+  body[data-current-panel="course-practice-session"] .training-nav,
   body[data-current-panel="range-session"] .mobile-bottomnav,
+  body[data-current-panel="shortgame-session"] .mobile-bottomnav,
+  body[data-current-panel="course-practice-session"] .mobile-bottomnav,
   body[data-current-panel="shortgame-session"] .training-nav,
   body[data-current-panel="shortgame-session"] .mobile-bottomnav,
   body[data-current-panel="course-practice-session"] .training-nav,
@@ -6994,6 +6998,211 @@
     letter-spacing: var(--tracking-wide);
   }
 
+  /* ─── Practice-session action bar ───────────────────────────────
+     Fixed at the bottom of the viewport on the three session panels
+     (range, shortgame, course practice). Hosts the ellipsis menu
+     button. Same gradient-to-transparent fade + safe-area awareness
+     as .round-action-bar so the session feels like a first-class
+     context just like an in-progress round. */
+  .session-action-bar {
+    display: none;  /* toggled on via CSS for matching panels below */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-raised);
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      var(--bg-base) 0%,
+      var(--bg-base) 60%,
+      rgba(255, 253, 249, 0) 100%
+    );
+    pointer-events: none;  /* let page behind scroll; children opt back in */
+  }
+  html.dark .session-action-bar {
+    background: linear-gradient(
+      to top,
+      var(--bg-base) 0%,
+      var(--bg-base) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+  .session-action-bar > * { pointer-events: auto; }
+  body[data-current-panel="range-session"] .session-action-bar,
+  body[data-current-panel="shortgame-session"] .session-action-bar,
+  body[data-current-panel="course-practice-session"] .session-action-bar {
+    display: flex;
+  }
+
+  /* Ellipsis menu button — mirrors .round-tools-btn treatment: same
+     52px min-height, rounded-xl, elevated card with shadow, orange
+     hover. Icon-only since we only have the ellipsis — saves width
+     at the bottom edge and keeps content focus on the card above. */
+  .session-menu-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(13, 13, 13, 0.10), 0 1px 3px rgba(13, 13, 13, 0.06);
+    transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    min-height: 52px;
+    min-width: 52px;
+  }
+  @media (hover: hover) {
+    .session-menu-btn:hover {
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+  .session-menu-btn-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    font-weight: var(--weight-bold);
+    letter-spacing: 1px;
+  }
+
+  /* ─── Session menu bottom sheet ─────────────────────────────────
+     Pops from the bottom when the user taps the ellipsis. Holds
+     finish + delete actions. Standard sheet pattern: backdrop that
+     taps-to-close, sliding rounded-top panel with drag handle,
+     stacked action rows. Destructive (delete) row is visually
+     distinct so the user can't miss what they're tapping. */
+  .session-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 13, 13, 0.55);
+    z-index: var(--z-modal);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .session-menu-backdrop.opening,
+  .session-menu-backdrop.closing { opacity: 0; }
+
+  .session-menu-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-modal) + 1);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.18);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .session-menu-sheet.opening,
+  .session-menu-sheet.closing { transform: translateY(100%); }
+  .session-menu-sheet.is-dragging { transition: none; }
+  .session-menu-header {
+    padding: var(--space-3) var(--space-5) var(--space-2);
+    cursor: grab;
+    touch-action: none;
+  }
+  .session-menu-sheet.is-dragging .session-menu-header { cursor: grabbing; }
+  .session-menu-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--border-medium);
+    margin: 0 auto;
+  }
+  .session-menu-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    text-align: center;
+    margin-top: var(--space-2);
+  }
+  .session-menu-body {
+    padding: var(--space-2) var(--space-4) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .session-menu-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .session-menu-row:hover {
+      border-color: var(--color-orange);
+      background: var(--color-orange-pale);
+    }
+  }
+  .session-menu-row-icon {
+    font-size: 1.2rem;
+    width: 28px;
+    flex-shrink: 0;
+    text-align: center;
+    line-height: 1;
+  }
+  .session-menu-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .session-menu-row-title {
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-md);
+  }
+  .session-menu-row-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  /* Destructive row — delete session. Red-ish accent + clearer
+     warning styling so it's unmissable. */
+  .session-menu-row-destructive {
+    color: #C23600;
+    border-color: rgba(194, 54, 0, 0.25);
+  }
+  .session-menu-row-destructive .session-menu-row-sub {
+    color: rgba(194, 54, 0, 0.75);
+  }
+  @media (hover: hover) {
+    .session-menu-row-destructive:hover {
+      background: rgba(194, 54, 0, 0.08);
+      border-color: #C23600;
+    }
+  }
+  html.dark .session-menu-row-destructive {
+    color: #FF8A4A;
+    border-color: rgba(255, 138, 74, 0.35);
+  }
+  html.dark .session-menu-row-destructive .session-menu-row-sub {
+    color: rgba(255, 138, 74, 0.7);
+  }
+
   /* Save & Next — orange primary pill filling remaining row. Same
      rounded corners as the Tools button for visual harmony. */
   .round-save-btn {
@@ -7050,10 +7259,15 @@
   /* Reserve space at the bottom of round/lobby panel content so the
      fixed action bar never obscures the last card / secondary actions.
      Same 92px reservation works for all three since they all use the
-     same 52px pill button + 20px combined padding above + below. */
+     same 52px pill button + 20px combined padding above + below.
+     Practice session panels (range, shortgame, course practice) also
+     reserve space since they now have a matching session-action-bar. */
   #panel-round,
   #panel-group-round,
-  #panel-group-lobby {
+  #panel-group-lobby,
+  #panel-range-session,
+  #panel-shortgame-session,
+  #panel-course-practice-session {
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
   /* Horizontal-overflow containment is round-specific (the hole card
@@ -11567,9 +11781,15 @@
   }
 }
   .range-swing-btn.active {
-    background: var(--bg-elevated);
-    color: var(--color-orange);
+    background: var(--color-orange);
+    color: var(--color-white);
     box-shadow: var(--shadow-xs);
+  }
+  html.dark .range-swing-btn.active {
+    /* Keep it orange in dark mode, but soften so it doesn't glare.
+       Still clearly the "selected" state. */
+    background: var(--color-orange);
+    color: var(--color-white);
   }
 
   /* Distance input — big, numeric, center-weighted */
@@ -11587,6 +11807,82 @@
     font-size: var(--text-md);
     color: var(--text-muted);
   }
+
+  /* Optional-field decoration — direction + contact chips.
+     Visually distinct from required fields: smaller label, "Optional"
+     badge inline, chips with neutral stroke until selected. */
+  .range-field-optional .label-text {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .range-field-optional-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-page);
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+  }
+  .range-tag-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+  }
+  .range-tag-chip {
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .range-tag-chip:hover:not(.active) {
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+  }
+  .range-tag-chip.active {
+    background: var(--color-orange-pale);
+    border-color: var(--color-orange);
+    color: var(--color-orange);
+  }
+
+  /* Shot-list row tags — show direction + contact when recorded.
+     Sized smaller than form chips, neutral styling so they read as
+     metadata rather than interactive controls. */
+  .range-shot-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .range-shot-tag {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .range-shot-tag-dir { /* direction tag variant — reserved for future styling */ }
+  .range-shot-tag-contact { /* contact tag variant — reserved for future styling */ }
 
   /* Shot list below the entry card */
   .range-shotlist-section {
@@ -11623,10 +11919,16 @@
     font-style: italic;
   }
 
-  /* Individual shot row — mono font, quick-scan layout */
+  /* Individual shot row — mono font, quick-scan layout.
+     Two-row grid: the top row is the primary data (num/club/swing/
+     distance/delete); the second row is reserved for optional tags
+     (direction + contact) and only visible when tags exist. The
+     two-row layout keeps tagless rows compact and lets tags wrap
+     freely on narrow screens without squeezing the distance column. */
   .range-shot-row {
     display: grid;
     grid-template-columns: 48px 1fr 56px 96px 32px;
+    grid-template-rows: auto auto;
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
@@ -11634,7 +11936,20 @@
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     transition: border-color var(--transition-fast);
+  }
+  /* Only the row that was JUST added gets the fade-in animation.
+     Other renders (club/swing/chip/delete) don't re-animate existing
+     rows. See `_animateLatestShot` in practiceSessionState. */
+  .range-shot-row-new {
     animation: fadeUp 0.3s ease both;
+  }
+  .range-shot-row > .range-shot-tags {
+    /* Span the club + swing + distance columns, positioned on the
+       second grid row. Num column stays narrow on the left; delete
+       button stays on the right. Tags flow horizontally here. */
+    grid-column: 2 / span 3;
+    grid-row: 2;
+    margin-top: 4px;
   }
   @media (hover: hover) {
   .range-shot-row:hover {
@@ -18863,10 +19178,10 @@
     /* Sub-panels: the back arrow floats fixed at the top, so panel
        content needs top padding to start BELOW where the arrow floats.
        44px arrow + breathing room = ~60px reserved at the top. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .page-main {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .page-main {
       padding-top: 0;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .panel {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .panel {
       padding-top: calc(44px + var(--space-4));
     }
 
@@ -18893,7 +19208,10 @@
        we don't duplicate them here. */
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
-    body[data-current-panel="group-lobby"] #round-banner {
+    body[data-current-panel="group-lobby"] #round-banner,
+    body[data-current-panel="range-session"] #round-banner,
+    body[data-current-panel="shortgame-session"] #round-banner,
+    body[data-current-panel="course-practice-session"] #round-banner {
       display: none !important;
     }
     /* Swap the back arrow for a circled-X glyph on all round-context
@@ -18904,13 +19222,19 @@
        geometrically perfect. */
     body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow,
+    body[data-current-panel="range-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back .mobile-topbar-back-arrow {
       font-size: 0;
       line-height: 0;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back,
+    body[data-current-panel="range-session"] .mobile-topbar-back,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back {
       /* Frosted-glass fill behind the X — matches the LIVE pill's
          treatment on the right side of the topbar so the close button
          stays legible over scrolling content. Button is 44×44 for the
@@ -18926,7 +19250,10 @@
        icon circle (28px) rather than the 44px tap target. */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
+    body[data-current-panel="range-session"] .mobile-topbar-back::before,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
       content: '';
       position: absolute;
       top: 50%;
@@ -18941,7 +19268,10 @@
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
       background-color: rgba(13, 13, 13, 0.6);
     }
     /* SVG icon — drawn on the ::after pseudo so it paints ABOVE the
@@ -18949,7 +19279,10 @@
        content, ::after). No z-index needed. */
     body[data-current-panel="round"] .mobile-topbar-back::after,
     body[data-current-panel="group-round"] .mobile-topbar-back::after,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
+    body[data-current-panel="range-session"] .mobile-topbar-back::after,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
       content: '';
       position: absolute;
       top: 50%;
@@ -18964,12 +19297,18 @@
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::after,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back:active {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back:active,
+    body[data-current-panel="range-session"] .mobile-topbar-back:active,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back:active,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back:active {
       opacity: 0.6;
     }
     /* Live indicator — right-aligned in the topbar, visible on all
@@ -19009,6 +19348,54 @@
     html.dark body[data-current-panel="group-round"] .mobile-topbar-live,
     html.dark body[data-current-panel="group-lobby"] .mobile-topbar-live {
       background-color: rgba(13, 13, 13, 0.6);
+    }
+
+    /* Timer indicator — analogous to the LIVE pill, shown only on
+       the range session panel. Displays the elapsed session time
+       (MM:SS or H:MM:SS) with a pulsing orange dot to signal live
+       state. Orange monospaced numerals so it reads clearly against
+       the frosted pill in bright outdoor conditions. */
+    .mobile-topbar-timer {
+      display: none;
+      align-items: center;
+      gap: var(--space-2);
+      position: absolute;
+      right: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: var(--weight-semibold);
+      letter-spacing: var(--tracking-wide);
+      color: var(--color-orange);
+      pointer-events: none;
+      font-variant-numeric: tabular-nums;
+    }
+    body[data-current-panel="range-session"] .mobile-topbar-timer,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
+      display: inline-flex;
+      padding: 4px var(--space-3) 4px var(--space-2);
+      background-color: rgba(255, 253, 247, 0.72);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      border-radius: var(--radius-pill);
+    }
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-timer,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
+      background-color: rgba(13, 13, 13, 0.6);
+    }
+    /* Pulsing dot inside the timer — reuses the same keyframes as
+       the round-panel LIVE indicator so the two read as a pair. */
+    .mobile-topbar-timer-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-orange);
+      box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.5);
+      animation: topbar-live-pulse 1.6s ease-in-out infinite;
+      flex-shrink: 0;
     }
     .mobile-topbar-live-dot {
       width: 8px;
@@ -19125,14 +19512,14 @@
        the actual sticky behavior lives on the button itself so content
        can flow up to and around the arrow without an opaque strip
        cutting across the page. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar {
       position: static;
       height: auto;
       padding: 0;
       background: transparent;
       z-index: auto;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-inner {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-inner {
       height: auto;
     }
     /* Floating fixed back arrow — no surrounding bar. Pins to the
@@ -19142,7 +19529,7 @@
        because the button needs to pin to the viewport, not scroll
        within a parent — and the parent .mobile-topbar collapses to
        just the button height, so sticky has nothing to scroll within. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
       position: fixed;
       top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
       left: var(--space-2);
@@ -19154,15 +19541,15 @@
       z-index: calc(var(--z-dropdown) - 1);
     }
     /* When a banner is active, pin below it. */
-    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back,
-    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back,
+    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) + var(--space-2));
     }
-    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
+    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2 + var(--space-2));
     }
     /* Chunky arrow glyph — match the Strava look. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back-arrow {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
       font-size: 28px;
       font-weight: 300;
       line-height: 1;
@@ -19187,29 +19574,37 @@
     /* Sub-panels: topbar is now static (flows with content), so the
        body doesn't need to reserve vertical space for it. Only reserve
        the safe-area inset (and the banner heights when active). */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not(.session-active):not(.round-active) {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]):not(.session-active):not(.round-active) {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).round-active,
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).round-active,
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active {
       padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active.round-active {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active.round-active {
       padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
     }
 
     /* Round-context panels keep the floating X close + LIVE indicator
        treatment — topbar transparent, no border, no reserved height
        (the X overlays content like before). Round-banner is also
-       hidden in this mode so the screen stays minimal. */
+       hidden in this mode so the screen stays minimal. Range session
+       opts into the same treatment since its session-in-progress UX
+       mirrors the round panel's. */
     body[data-current-panel="round"],
     body[data-current-panel="group-round"],
-    body[data-current-panel="group-lobby"] {
+    body[data-current-panel="group-lobby"],
+    body[data-current-panel="range-session"],
+    body[data-current-panel="shortgame-session"],
+    body[data-current-panel="course-practice-session"] {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body[data-current-panel="round"] .mobile-topbar,
     body[data-current-panel="group-round"] .mobile-topbar,
-    body[data-current-panel="group-lobby"] .mobile-topbar {
+    body[data-current-panel="group-lobby"] .mobile-topbar,
+    body[data-current-panel="range-session"] .mobile-topbar,
+    body[data-current-panel="shortgame-session"] .mobile-topbar,
+    body[data-current-panel="course-practice-session"] .mobile-topbar {
       background: transparent;
       border-bottom: none;
       pointer-events: none;
@@ -19217,14 +19612,23 @@
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
     body[data-current-panel="group-lobby"] .mobile-topbar-back,
+    body[data-current-panel="range-session"] .mobile-topbar-back,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back,
     body[data-current-panel="round"] .mobile-topbar-live,
     body[data-current-panel="group-round"] .mobile-topbar-live,
-    body[data-current-panel="group-lobby"] .mobile-topbar-live {
+    body[data-current-panel="group-lobby"] .mobile-topbar-live,
+    body[data-current-panel="range-session"] .mobile-topbar-timer,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
       pointer-events: auto;
     }
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
-    body[data-current-panel="group-lobby"] #round-banner {
+    body[data-current-panel="group-lobby"] #round-banner,
+    body[data-current-panel="range-session"] #round-banner,
+    body[data-current-panel="shortgame-session"] #round-banner,
+    body[data-current-panel="course-practice-session"] #round-banner {
       display: none !important;
     }
 
@@ -19278,6 +19682,8 @@
     body[data-current-panel="public-round"] .mobile-topbar-back,
     body[data-current-panel="bag"] .mobile-topbar-back,
     body[data-current-panel="range-session"] .mobile-topbar-back,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back,
     body[data-current-panel="range-history"] .mobile-topbar-back,
     body[data-current-panel="range-session-detail"] .mobile-topbar-back,
     body[data-current-panel="range-session-club-detail"] .mobile-topbar-back,
@@ -19296,7 +19702,10 @@
     body[data-current-panel="round"] .panel.active,
     body[data-current-panel="round-summary"] .panel.active,
     body[data-current-panel="group-lobby"] .panel.active,
-    body[data-current-panel="group-round"] .panel.active {
+    body[data-current-panel="group-round"] .panel.active,
+    body[data-current-panel="range-session"] .panel.active,
+    body[data-current-panel="shortgame-session"] .panel.active,
+    body[data-current-panel="course-practice-session"] .panel.active {
       padding-top: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     .mobile-topbar-back-arrow {
@@ -19515,6 +19924,15 @@
     <div class="mobile-topbar-live" aria-hidden="true">
       <span class="mobile-topbar-live-dot"></span>
       <span class="mobile-topbar-live-label">Live</span>
+    </div>
+    <!-- Timer — shown only on the range-session panel (via CSS). Ticks
+         every second while the session is active. Populated by
+         tickRangeSessionTimer, started when the range panel is opened
+         and stopped when it's left. Pulsing orange dot mirrors the LIVE
+         indicator so the two treatments read as a pair. -->
+    <div class="mobile-topbar-timer" aria-hidden="true">
+      <span class="mobile-topbar-timer-dot"></span>
+      <span id="mobile-topbar-timer">00:00</span>
     </div>
     <span class="mobile-topbar-spacer" aria-hidden="true"></span>
   </div>
@@ -20223,6 +20641,22 @@
      Body-level so it escapes any ancestor transforms. Works for
      both solo and group rounds. -->
 <div id="hole-picker-mount"></div>
+
+<!-- SESSION ACTION BAR — fixed at bottom of viewport, shown only on
+     practice session panels (range, shortgame, course practice).
+     Holds the ellipsis menu trigger for finish/delete actions.
+     Mirrors the .round-action-bar pattern used on the round panel. -->
+<div class="session-action-bar" id="session-action-bar" aria-hidden="true">
+  <button class="session-menu-btn" id="session-menu-btn" onclick="openSessionMenuSheet()" aria-label="Session menu">
+    <span class="session-menu-btn-icon" aria-hidden="true">•••</span>
+  </button>
+</div>
+
+<!-- SESSION MENU sheet mount — populated by renderSessionMenuSheet()
+     when user taps the ellipsis on a practice session. Holds
+     Finish / Delete actions. Body-level for ancestor-transform
+     escape, same as the other sheet mounts. -->
+<div id="session-menu-mount"></div>
 
 <!-- TOOLS EDITOR sheet mount — populated by renderToolsEditorSheet()
      when user taps "In-round tools" in Profile > Your Game. Lets
@@ -23214,6 +23648,32 @@
     const roundPanels = ['round', 'group-round'];
     if (roundPanels.includes(prevId) && !roundPanels.includes(id)) {
       if (holePickerState.open) closeHolePicker();
+    }
+
+    // Tools editor is profile-scoped. Close it on navigation away so
+    // it doesn't hang around on the next panel with an active scroll
+    // lock.
+    if (prevId === 'profile' && id !== 'profile' && toolsEditorState.open) {
+      closeToolsEditorSheet();
+    }
+
+    // Session menu is tied to practice session panels. Close on any
+    // nav-away so the sheet doesn't linger with an active scroll lock
+    // on the next screen.
+    if (sessionMenuState.open) {
+      closeSessionMenuSheet();
+    }
+
+    // Session timer — start ticking when entering any session panel
+    // (range, short game, course practice), stop when leaving. The
+    // display element lives in the topbar and is CSS-gated to show
+    // only on these panels, so the interval just keeps its text
+    // current.
+    const timerPanels = new Set(['range-session', 'shortgame-session', 'course-practice-session']);
+    if (timerPanels.has(id)) {
+      startSessionTimer();
+    } else if (timerPanels.has(prevId)) {
+      stopSessionTimer();
     }
 
     document.querySelectorAll('.panel').forEach(p => {
@@ -27098,7 +27558,7 @@
       // Clear practice session state — no resume across users
       practiceSessionState.docId = null;
       practiceSessionState.doc = null;
-      practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '' };
+      practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '', direction: null, contact: null };
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       // Not signed in — vacuously "loaded" (no doc to read). Setting these
@@ -34165,6 +34625,12 @@
       // Last computed proximity for the "just logged" ephemeral flash
       lastDelta: null,
     },
+    // Render-time flag: true means the next renderRangeSession pass
+    // should mark the most recently added shot row with an animation
+    // class, so the row fades in. Cleared after it's consumed. Set
+    // by practiceAddShot; NOT set by club/swing/chip taps, so those
+    // re-renders leave the shot list visually static.
+    _animateLatestShot: false,
   };
 
   let __practiceSessionSaveTimer = null;
@@ -34303,11 +34769,23 @@
       return;
     }
 
-    // Default draft club to the first club in the bag (usually driver)
+    // Default draft club to the first club in the bag (usually driver).
+    // Direction + contact default to null — they're optional per-shot
+    // attributes. Most users log club + distance only; users who want
+    // to track misses/contact quality tap the chips to record. Defaults
+    // are NOT pre-set to "good" values (clean/straight) because that
+    // would silently record data for users who aren't tracking these,
+    // poisoning later stats.
+    //
+    // If the user DOES set these on a shot, the values stay sticky for
+    // the next shot (common case: a series of thin pulls gets logged
+    // without re-tapping).
     practiceSessionState.draft = {
       clubId: bag[0].id || bag[0].name || null,
       swingPct: 100,
       distance: '',
+      direction: null,
+      contact: null,
     };
 
     const startMs = Date.now();
@@ -34382,6 +34860,44 @@
     practiceSessionState.draft.swingPct = pct;
     renderRangeSession();
   }
+  // Direction + contact chips — both optional. Tap to select; tap the
+  // same chip again to clear back to null. Values stay sticky between
+  // shots (see comment on practiceAddShot for rationale).
+  //
+  // Uses targeted DOM updates (toggle .active class) instead of a
+  // full renderRangeSession(). Rerendering would rebuild the shot
+  // list below and replay the per-row fadeUp animation on every tap,
+  // which looks chaotic. Also would steal focus from the distance
+  // input if the user was about to type.
+  function practiceSelectDirection(dir) {
+    const d = practiceSessionState.draft;
+    d.direction = d.direction === dir ? null : dir;
+    updateOptionalChipStates('direction', d.direction);
+  }
+  function practiceSelectContact(c) {
+    const d = practiceSessionState.draft;
+    d.contact = d.contact === c ? null : c;
+    updateOptionalChipStates('contact', d.contact);
+  }
+  // Update just the active states on the chip group for the given
+  // kind — no re-render. Chips share a common onclick format; we find
+  // them by the function they call + the value they pass.
+  function updateOptionalChipStates(kind, selectedValue) {
+    const fnName = kind === 'direction' ? 'practiceSelectDirection' : 'practiceSelectContact';
+    const chips = document.querySelectorAll('.range-tag-chip');
+    chips.forEach(chip => {
+      const onclick = chip.getAttribute('onclick') || '';
+      if (!onclick.includes(fnName)) return;
+      // Extract the value from onclick="practiceSelectDirection('left')"
+      const match = onclick.match(/'([^']+)'/);
+      const value = match ? match[1] : null;
+      if (value === selectedValue) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
+  }
   function practiceSetDistance(val) {
     // Keep the raw string so "1" → "12" typing feels natural; validate on add
     practiceSessionState.draft.distance = val;
@@ -34410,13 +34926,25 @@
     const shot = {
       clubId: d.clubId,
       swingPct: d.swingPct,
-      distance: parseInt(d.distance, 10),
+      distanceActual: parseInt(d.distance, 10),
+      // direction and contact are optional. Store null (not a default)
+      // when the user didn't tap a chip — downstream stats know the
+      // difference between "user didn't track this" and "user recorded
+      // a clean straight shot."
+      direction: d.direction || null,
+      contact: d.contact || null,
       capturedAt: Date.now(),
     };
     const doc = practiceSessionState.doc;
     doc.shots = [...(doc.shots || []), shot];
-    // Reset distance but keep club + swingPct so next shot flows quickly
-    // (most range reps are "same club, same swing, repeat").
+    // Flag the next render to animate the just-added shot row. Other
+    // re-render paths (club/swing/chip taps) don't set this, so the
+    // shot list stays visually static in those cases.
+    practiceSessionState._animateLatestShot = true;
+    // Reset distance but keep everything else sticky. If the user set
+    // contact=thin on this shot and is about to log another thin one,
+    // they don't want to re-tap. If they didn't set either, the next
+    // shot also has them unset.
     practiceSessionState.draft.distance = '';
     queueSavePracticeSession();
     renderRangeSession();
@@ -34520,13 +35048,36 @@
   function computeSessionTotals(shots) {
     const count = (shots || []).length;
     if (count === 0) return { count: 0, avg: 0, max: 0, lastDistance: null };
-    const distances = shots.map(s => s.distance || 0);
+    // Lazy-read: sessions logged before the field rename used `distance`;
+    // newer ones use `distanceActual`. Nullish coalesce so both work.
+    const distances = shots.map(s => (s.distanceActual ?? s.distance) || 0);
     const sum = distances.reduce((a, b) => a + b, 0);
     const max = Math.max(...distances);
     return {
       count,
       avg: Math.round(sum / count),
       max,
+      lastDistance: distances[distances.length - 1],
+    };
+  }
+
+  // Per-club session totals — used in the status strip at the top of
+  // an active range session. Mixed-club aggregates ("avg across 3
+  // clubs") are meaningless, so the strip now shows stats contextual
+  // to the CURRENTLY SELECTED club in the entry card. Empty state is
+  // clean (zero shots for this club in this session → null avg/last).
+  function computeClubSessionTotals(shots, clubId) {
+    if (!clubId || !Array.isArray(shots)) {
+      return { count: 0, avg: null, lastDistance: null };
+    }
+    const clubShots = shots.filter(s => s.clubId === clubId);
+    const count = clubShots.length;
+    if (count === 0) return { count: 0, avg: null, lastDistance: null };
+    const distances = clubShots.map(s => (s.distanceActual ?? s.distance) || 0);
+    const sum = distances.reduce((a, b) => a + b, 0);
+    return {
+      count,
+      avg: Math.round(sum / count),
       lastDistance: distances[distances.length - 1],
     };
   }
@@ -34615,7 +35166,15 @@
       for (const shot of (session.shots || [])) {
         const clubId = shot.clubId;
         if (!clubId) continue;
-        const dist = shot.distance;
+        // Authoritative distance — actual ball-flight yards from range
+        // logging. Lazy-read: newer shots use `distanceActual`, older
+        // ones used `distance`. In-round shots never fill either of
+        // these fields (they use `distance` for to-target yards), so
+        // they're naturally excluded from club averages — which is
+        // exactly what we want. To-target yards aren't authoritative
+        // for "how far does my 7 iron go" since they're relative to
+        // what the user was aiming at, not what the ball actually did.
+        const dist = shot.distanceActual ?? shot.distance;
         if (typeof dist !== 'number' || dist <= 0) continue;
         // Treat missing swingPct as 100% (pre-field data)
         const pct = shot.swingPct || 100;
@@ -34837,7 +35396,7 @@
     if (count === 0) {
       return { count: 0, avg: 0, max: 0, clubCount: 0, durationMin: 0 };
     }
-    const distances = shots.map(s => s.distance || 0);
+    const distances = shots.map(s => (s.distanceActual ?? s.distance) || 0);
     const avg = Math.round(distances.reduce((a, b) => a + b, 0) / count);
     const max = Math.max(...distances);
     // Unique clubs hit
@@ -34863,7 +35422,7 @@
       map.set(key, bucket);
     }
     const groups = Array.from(map.values()).map(g => {
-      const distances = g.shots.map(s => s.distance || 0);
+      const distances = g.shots.map(s => (s.distanceActual ?? s.distance) || 0);
       const avg = distances.length > 0
         ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
         : 0;
@@ -34876,7 +35435,7 @@
       // 100% (older data predates the field) — this matches how the
       // range entry UI treats the default.
       const fullSwingShots = g.shots.filter(s => (s.swingPct || 100) === 100);
-      const fullSwingDistances = fullSwingShots.map(s => s.distance || 0);
+      const fullSwingDistances = fullSwingShots.map(s => (s.distanceActual ?? s.distance) || 0);
       const avg100 = fullSwingDistances.length > 0
         ? Math.round(fullSwingDistances.reduce((a, b) => a + b, 0) / fullSwingDistances.length)
         : null;  // null = no 100% shots → dash in UI
@@ -35128,13 +35687,16 @@
 
     // Shot rows — chronological order (as they were hit during the
     // session). Show #N, swing %, distance.
-    const shotRowsHtml = group.shots.map((shot, idx) => `
+    const shotRowsHtml = group.shots.map((shot, idx) => {
+      const dist = shot.distanceActual ?? shot.distance;
+      return `
       <div class="range-shot-row">
         <div class="range-shot-num">#${idx + 1}</div>
         <div class="range-shot-swing">${shot.swingPct || 100}%</div>
-        <div class="range-shot-distance">${shot.distance}<span>${distanceUnit()}</span></div>
+        <div class="range-shot-distance">${dist}<span>${distanceUnit()}</span></div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     mount.innerHTML = `
       <div class="panel-head">
@@ -35724,7 +36286,6 @@
            focused on the single active task. -->
       <div class="shortgame-secondary-actions">
         ${shots.length > 0 ? `<button class="round-btn-link" onclick="undoLastShortGameShot()">↶ Undo Last</button>` : '<span></span>'}
-        <button class="round-btn-link round-btn-end" onclick="endShortGameSession()">End Session</button>
       </div>
 
       <!-- Shot list — visible below when you scroll, not blocking play -->
@@ -36770,7 +37331,6 @@
               ? `<button class="round-btn-link" onclick="undoLastCoursePracticeShot()">↶ Undo</button>`
               : ''}
             <button class="round-btn-link" onclick="skipCoursePracticeHole()">Skip Hole</button>
-            <button class="round-btn-link round-btn-end" onclick="endCoursePracticeSession()">End Session</button>
           </div>
         </div>
       </div>
@@ -36794,6 +37354,47 @@
   }
 
   // Main render — branches on "active session?" and routes accordingly.
+  // Ticks the active session's elapsed-time display in the topbar
+  // once a second. Works for range, short game, and course practice
+  // sessions — all three store startTime on practiceSessionState.doc,
+  // and at most one of these can be active at a time.
+  let __sessionTimerHandle = null;
+
+  function formatElapsed(ms) {
+    if (!Number.isFinite(ms) || ms < 0) ms = 0;
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }
+
+  function tickSessionTimer() {
+    const el = document.getElementById('mobile-topbar-timer');
+    if (!el) return;
+    if (!isAnyPracticeSessionActive()) {
+      el.textContent = '00:00';
+      return;
+    }
+    const started = practiceSessionState.doc?.startTime || Date.now();
+    el.textContent = formatElapsed(Date.now() - started);
+  }
+
+  function startSessionTimer() {
+    // Tick once immediately so the display isn't stuck on 00:00 until
+    // the first interval fires
+    tickSessionTimer();
+    if (__sessionTimerHandle) return;
+    __sessionTimerHandle = setInterval(tickSessionTimer, 1000);
+  }
+
+  function stopSessionTimer() {
+    if (!__sessionTimerHandle) return;
+    clearInterval(__sessionTimerHandle);
+    __sessionTimerHandle = null;
+  }
+
   function renderRangeSession() {
     const mount = document.getElementById('range-session-mount');
     if (!mount) return;
@@ -36830,11 +37431,15 @@
 
     const doc = practiceSessionState.doc;
     const shots = doc.shots || [];
-    const totals = computeSessionTotals(shots);
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const d = practiceSessionState.draft;
     const selectedClub = bag.find(c => (c.id || c.name) === d.clubId);
     const selectedClubName = selectedClub ? selectedClub.name : 'Select…';
+    // Per-club session totals — drives the top status strip. Mixed-
+    // club aggregates (overall avg, overall max) aren't meaningful
+    // when you're switching between driver, 7 iron, wedge etc., so
+    // stats are scoped to the currently selected club.
+    const clubTotals = computeClubSessionTotals(shots, d.clubId);
 
     // Club options for the <select> — value is id (or name as fallback)
     const clubOptions = bag.map(c => {
@@ -36850,33 +37455,100 @@
               onclick="practiceSelectSwingPct(${p})">${p}%</button>
     `).join('');
 
+    // Direction chips — both optional. Shown inline in the entry card
+    // between distance and Add Shot. Active chip styled differently
+    // when set; all neutral when unset. Tapping the active chip clears
+    // it back to null.
+    const directionOptions = [
+      { id: 'left', label: 'Miss L' },
+      { id: 'straight', label: 'Straight' },
+      { id: 'right', label: 'Miss R' },
+    ];
+    const directionHtml = directionOptions.map(o => `
+      <button class="range-tag-chip ${d.direction === o.id ? 'active' : ''}"
+              onclick="practiceSelectDirection('${o.id}')">${o.label}</button>
+    `).join('');
+
+    // Contact chips — same pattern as direction.
+    const contactOptions = [
+      { id: 'clean', label: 'Clean' },
+      { id: 'thin',  label: 'Thin' },
+      { id: 'chunk', label: 'Chunk' },
+    ];
+    const contactHtml = contactOptions.map(o => `
+      <button class="range-tag-chip ${d.contact === o.id ? 'active' : ''}"
+              onclick="practiceSelectContact('${o.id}')">${o.label}</button>
+    `).join('');
+
+    // Consume the "animate latest" flag. When true, the newest shot
+    // row (first in the reversed list, last in shots[]) gets marked
+    // with a class that triggers its fade-in animation. Always cleared
+    // after read so subsequent re-renders (from club/swing/chip taps)
+    // don't replay the animation on existing rows.
+    const animateLatestIdx = practiceSessionState._animateLatestShot ? shots.length - 1 : -1;
+    practiceSessionState._animateLatestShot = false;
+
     // Shot list — newest on top for quick glance at what you just logged
     const shotListHtml = shots.length === 0
       ? `<div class="range-shotlist-empty">No shots yet. Log your first shot above.</div>`
       : shots.slice().reverse().map((s, revIdx) => {
           const realIdx = shots.length - 1 - revIdx;
           const clubName = resolveClubName(s.clubId);
+          // Lazy migration: sessions logged before the field rename
+          // used `distance`; newer ones use `distanceActual`. Read both.
+          const dist = s.distanceActual ?? s.distance;
+          // Optional tag chips — only shown when the user recorded
+          // them. Direction first (comes up more often in practice
+          // analysis), contact second.
+          const directionLabels = { left: 'Miss L', straight: 'Straight', right: 'Miss R' };
+          const contactLabels = { clean: 'Clean', thin: 'Thin', chunk: 'Chunk' };
+          const tags = [];
+          if (s.direction && directionLabels[s.direction]) {
+            tags.push(`<span class="range-shot-tag range-shot-tag-dir">${directionLabels[s.direction]}</span>`);
+          }
+          if (s.contact && contactLabels[s.contact]) {
+            tags.push(`<span class="range-shot-tag range-shot-tag-contact">${contactLabels[s.contact]}</span>`);
+          }
+          const tagsHtml = tags.length > 0
+            ? `<div class="range-shot-tags">${tags.join('')}</div>`
+            : '';
+          const animClass = realIdx === animateLatestIdx ? ' range-shot-row-new' : '';
           return `
-            <div class="range-shot-row">
+            <div class="range-shot-row${animClass}">
               <div class="range-shot-num">#${realIdx + 1}</div>
               <div class="range-shot-club">${escapeHtml(clubName)}</div>
               <div class="range-shot-swing">${s.swingPct}%</div>
-              <div class="range-shot-distance">${s.distance}<span>${distanceUnit()}</span></div>
+              <div class="range-shot-distance">${dist}<span>${distanceUnit()}</span></div>
+              ${tagsHtml}
               <button class="range-shot-delete" onclick="practiceRemoveShotAt(${realIdx})" aria-label="Remove shot ${realIdx + 1}">×</button>
             </div>
           `;
         }).join('');
 
+    // Status strip content — club-contextual. When no club is picked
+    // yet (shouldn't happen since startRangeSession preselects first
+    // bag item, but be defensive), fall back to neutral labels.
+    const stripEyebrow = selectedClub ? selectedClubName : 'Range Session';
+    const stripMeta = !selectedClub
+      ? 'No club selected'
+      : clubTotals.count === 0
+        ? 'No shots yet for this club'
+        : `${clubTotals.count} shot${clubTotals.count === 1 ? '' : 's'} · Avg ${clubTotals.avg}${distanceUnit()}`;
+
     mount.innerHTML = `
-      <!-- Status strip — session stats on the right, label on the left -->
+      <!-- Status strip — stats contextual to the currently selected
+           club (set in the entry card below). Mixed-club aggregates
+           would be meaningless during a session that spans multiple
+           clubs; scoping to the active club gives each stat a clear
+           reference point. -->
       <div class="round-status">
         <div class="round-status-side">
-          <div class="round-status-eyebrow">Range Session</div>
-          <div class="round-status-meta">${totals.count} shot${totals.count === 1 ? '' : 's'} · Avg ${totals.avg}${distanceUnit()} · Max ${totals.max}${distanceUnit()}</div>
+          <div class="round-status-eyebrow">${escapeHtml(stripEyebrow)}</div>
+          <div class="round-status-meta">${stripMeta}</div>
         </div>
         <div class="round-status-side round-status-right">
           <div class="round-status-eyebrow">Last</div>
-          <div class="round-status-score">${totals.lastDistance != null ? totals.lastDistance : '—'} <span>${distanceUnit()}</span></div>
+          <div class="round-status-score">${clubTotals.lastDistance != null ? clubTotals.lastDistance : '—'} <span>${distanceUnit()}</span></div>
         </div>
       </div>
 
@@ -36910,6 +37582,24 @@
                  onkeydown="if(event.key==='Enter'){event.preventDefault();practiceAddShot();}">
         </div>
 
+        <!-- Optional shot detail — direction + contact. Both can be
+             left blank; neither is recorded unless the user taps a
+             chip. Labeled "Optional" to make clear these aren't
+             required to complete a shot. -->
+        <div class="range-field range-field-optional">
+          <label class="label-text">Direction <span class="range-field-optional-tag">Optional</span></label>
+          <div class="range-tag-row">
+            ${directionHtml}
+          </div>
+        </div>
+
+        <div class="range-field range-field-optional">
+          <label class="label-text">Contact <span class="range-field-optional-tag">Optional</span></label>
+          <div class="range-tag-row">
+            ${contactHtml}
+          </div>
+        </div>
+
         <div class="round-actions">
           <button id="practice-add-shot-btn" class="round-btn round-btn-primary"
                   onclick="practiceAddShot()" ${canAddShot() ? '' : 'disabled'}>
@@ -36917,7 +37607,6 @@
           </button>
           <div class="round-actions-secondary">
             ${shots.length > 0 ? `<button class="round-btn-link" onclick="practiceRemoveLastShot()">↶ Undo Last</button>` : ''}
-            <button class="round-btn-link round-btn-end" onclick="endRangeSession()">End Session</button>
           </div>
         </div>
       </div>
@@ -45299,13 +45988,15 @@
     toolsEditorState.open = true;
     toolsEditorState.draft = buildToolsEditorDraft();
     toolsEditorState.draggingId = null;
-    renderToolsEditorSheet();
+    acquireScrollLock();
+    mountToolsEditorSheet();
   }
 
   function closeToolsEditorSheet() {
     toolsEditorState.open = false;
     toolsEditorState.draft = null;
     toolsEditorState.draggingId = null;
+    releaseScrollLock();
     const mount = document.getElementById('tools-editor-mount');
     if (mount) mount.innerHTML = '';
   }
@@ -45324,7 +46015,7 @@
     }
     entry.visible = entry.visible === false;
     haptic('light');
-    renderToolsEditorSheet();
+    rerenderToolsEditorRows();
   }
 
   // Move a tool up or down in the draft order. Simple button-based
@@ -45339,7 +46030,7 @@
     const [item] = toolsEditorState.draft.splice(idx, 1);
     toolsEditorState.draft.splice(newIdx, 0, item);
     haptic('light');
-    renderToolsEditorSheet();
+    rerenderToolsEditorRows();
   }
 
   // Reset to catalog defaults — clears the config so the sheet
@@ -45347,7 +46038,7 @@
   function toolsEditorReset() {
     toolsEditorState.draft = DOCK_TOOLS.map(t => ({ id: t.id, visible: true }));
     haptic('light');
-    renderToolsEditorSheet();
+    rerenderToolsEditorRows();
   }
 
   // Commit draft to prefs. If the draft matches the default exactly
@@ -45366,17 +46057,15 @@
     showToast('Tools updated');
   }
 
-  function renderToolsEditorSheet() {
-    const mount = document.getElementById('tools-editor-mount');
-    if (!mount) return;
-    if (!toolsEditorState.open || !toolsEditorState.draft) {
-      mount.innerHTML = '';
-      return;
-    }
+  // Build the HTML for just the rows area. Called from both the
+  // initial mount AND from row-updates (toggle/move/reset) so those
+  // don't blow away the whole sheet and retrigger the slide-in
+  // animation on every tap.
+  function buildToolsEditorRowsHtml() {
+    if (!toolsEditorState.draft) return '';
     const draft = toolsEditorState.draft;
     const byId = Object.fromEntries(DOCK_TOOLS.map(t => [t.id, t]));
-
-    const rowsHtml = draft.map((entry, idx) => {
+    return draft.map((entry, idx) => {
       const tool = byId[entry.id];
       if (!tool) return '';
       const isVisible = entry.visible !== false;
@@ -45401,6 +46090,32 @@
           </button>
         </div>`;
     }).join('');
+  }
+
+  // Targeted rows-only update. Keeps the sheet frame in the DOM so
+  // its slide-up entry animation doesn't replay on every row mutation.
+  function rerenderToolsEditorRows() {
+    const body = document.querySelector('.tools-editor-body');
+    if (!body) {
+      // Sheet isn't mounted yet — full mount. Shouldn't normally happen
+      // since state mutations only fire while open, but defensive.
+      mountToolsEditorSheet();
+      return;
+    }
+    body.innerHTML = buildToolsEditorRowsHtml();
+  }
+
+  // Full-mount — builds the entire sheet, including the frame. Called
+  // once when opening the sheet. Subsequent row edits go through
+  // rerenderToolsEditorRows instead to avoid re-triggering the entry
+  // slide-up animation.
+  function mountToolsEditorSheet() {
+    const mount = document.getElementById('tools-editor-mount');
+    if (!mount) return;
+    if (!toolsEditorState.open || !toolsEditorState.draft) {
+      mount.innerHTML = '';
+      return;
+    }
 
     mount.innerHTML = `
       <div class="tools-editor-backdrop" onclick="closeToolsEditorSheet()"></div>
@@ -45414,7 +46129,7 @@
           <div class="tools-editor-hint">Use arrows to reorder. Tap Shown/Hidden to toggle visibility.</div>
         </div>
         <div class="tools-editor-body">
-          ${rowsHtml}
+          ${buildToolsEditorRowsHtml()}
         </div>
         <div class="tools-editor-footer">
           <button class="btn btn-ghost" onclick="toolsEditorReset()">Reset to defaults</button>
@@ -45422,6 +46137,201 @@
         </div>
       </div>
     `;
+
+    // Drag-to-close on the header — same pattern as the hole picker.
+    const sheetEl = mount.querySelector('.tools-editor-sheet');
+    const headerEl = sheetEl?.querySelector('.tools-editor-header');
+    attachBottomSheetDrag({
+      sheetEl,
+      headerEl,
+      backdropSelector: '.tools-editor-backdrop',
+      ignoreSelector: '.tools-editor-close',
+      closeFn: closeToolsEditorSheet,
+    });
+  }
+
+  // ─── Session menu — ellipsis on practice session panels ─────────
+  // Opens a bottom sheet with Finish / Delete actions. Appears only
+  // on the three practice session panels (range, shortgame, course
+  // practice) via the action bar at the bottom of the viewport.
+  // Delete is a hard-destructive action (wipes the doc entirely);
+  // finish is the existing end-session flow (save + navigate away).
+
+  const sessionMenuState = {
+    open: false,
+  };
+
+  function openSessionMenuSheet() {
+    if (sessionMenuState.open) return;
+    if (!isAnyPracticeSessionActive()) return;
+    sessionMenuState.open = true;
+    acquireScrollLock();
+    mountSessionMenuSheet();
+  }
+
+  function closeSessionMenuSheet() {
+    if (!sessionMenuState.open) return;
+    const sheet = document.querySelector('.session-menu-sheet');
+    const backdrop = document.querySelector('.session-menu-backdrop');
+    const finish = () => {
+      sessionMenuState.open = false;
+      releaseScrollLock();
+      const mount = document.getElementById('session-menu-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!sheet || !backdrop) { finish(); return; }
+    sheet.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      // Listen for the sheet's transform transition (not backdrop opacity)
+      // so we don't fire finish() twice
+      if (e.propertyName !== 'transform') return;
+      sheet.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    // Safety net — if transitionend never fires (Safari quirks, etc.),
+    // still clean up after the expected duration.
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+
+  // Finish — delegates to the existing end handler for whichever
+  // session type is active. Each of those handlers asks for its own
+  // confirmation, so we don't duplicate that here — just close the
+  // menu first so the confirm dialog isn't behind it.
+  async function sessionMenuFinish() {
+    closeSessionMenuSheet();
+    if (isRangeSessionActive()) {
+      await endRangeSession();
+    } else if (isShortGameSessionActive()) {
+      await endShortGameSession();
+    } else if (isCoursePracticeSessionActive()) {
+      await endCoursePracticeSession();
+    }
+  }
+
+  // Delete — hard-removes the doc from Firestore without saving any
+  // shots. Always confirms, extra-destructive warning when shots
+  // already exist (user is about to lose real data). Empty sessions
+  // get a lighter confirm since there's nothing to lose.
+  async function sessionMenuDelete() {
+    if (!currentUser || !window.fb) return;
+    if (!isAnyPracticeSessionActive()) return;
+    const docId = practiceSessionState.docId;
+    const doc = practiceSessionState.doc;
+    if (!docId || !doc) return;
+
+    const shots = doc.shots || [];
+    const holesShots = doc.holes
+      ? doc.holes.reduce((n, h) => n + ((h.shots || []).length), 0)
+      : 0;
+    const totalShots = shots.length + holesShots;
+
+    closeSessionMenuSheet();
+
+    const ok = await confirmDialog({
+      eyebrow: 'Delete Session',
+      eyebrowStyle: 'warning',
+      title: totalShots > 0
+        ? `Delete ${totalShots}-shot session?`
+        : 'Delete empty session?',
+      message: totalShots > 0
+        ? "Every shot you've logged in this session will be permanently removed. This can't be undone and the session won't appear in your history."
+        : "Nothing will be saved. This session will be removed.",
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    // Flush any pending save so the delete doesn't race with a
+    // late write recreating the doc.
+    if (typeof __practiceSessionSaveTimer !== 'undefined' && __practiceSessionSaveTimer) {
+      clearTimeout(__practiceSessionSaveTimer);
+      __practiceSessionSaveTimer = null;
+    }
+
+    try {
+      await window.fb.deletePracticeSession(currentUser.uid, docId);
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      showToast('Delete failed — please try again', true);
+      return;
+    }
+
+    // Wipe local state so updateRoundBanner / active checks go quiet
+    practiceSessionState.docId = null;
+    practiceSessionState.doc = null;
+    updateRoundBanner();
+    // Invalidate history cache so the delete shows through if the
+    // user jumps into History. Different types invalidate different
+    // lists, but nuking all three is cheap and reliable.
+    rangeSessionsHistoryLoaded = false;
+    if (typeof shortGameSessionsHistoryLoaded !== 'undefined') shortGameSessionsHistoryLoaded = false;
+    if (typeof coursePracticeSessionsHistoryLoaded !== 'undefined') coursePracticeSessionsHistoryLoaded = false;
+    showPanel('practice', null);
+    showToast('Session deleted');
+  }
+
+  function mountSessionMenuSheet() {
+    const mount = document.getElementById('session-menu-mount');
+    if (!mount) return;
+    if (!sessionMenuState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="session-menu-backdrop opening" onclick="closeSessionMenuSheet()" aria-hidden="true"></div>
+      <div class="session-menu-sheet opening" role="dialog" aria-modal="true" aria-label="Session menu">
+        <div class="session-menu-header">
+          <div class="session-menu-handle" aria-hidden="true"></div>
+        </div>
+        <div class="session-menu-body">
+          <button class="session-menu-row" onclick="sessionMenuFinish()">
+            <span class="session-menu-row-icon" aria-hidden="true">✓</span>
+            <span class="session-menu-row-text">
+              <span class="session-menu-row-title">Finish Session</span>
+              <span class="session-menu-row-sub">Save and add to your history.</span>
+            </span>
+          </button>
+          <button class="session-menu-row session-menu-row-destructive" onclick="sessionMenuDelete()">
+            <span class="session-menu-row-icon" aria-hidden="true">✕</span>
+            <span class="session-menu-row-text">
+              <span class="session-menu-row-title">Delete Session</span>
+              <span class="session-menu-row-sub">Permanently remove — can't be undone.</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Kick off slide-up animation on next frame. Force layout with
+    // offsetHeight so the browser registers the initial translateY(100%)
+    // state BEFORE we remove the opening class — otherwise it'll
+    // collapse both states into a single paint and skip the transition.
+    const sheet = mount.querySelector('.session-menu-sheet.opening');
+    const backdrop = mount.querySelector('.session-menu-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    // Drag-to-close on the header — consistent with other sheets.
+    const sheetEl = mount.querySelector('.session-menu-sheet');
+    const headerEl = sheetEl?.querySelector('.session-menu-header');
+    attachBottomSheetDrag({
+      sheetEl,
+      headerEl,
+      backdropSelector: '.session-menu-backdrop',
+      ignoreSelector: null,
+      closeFn: closeSessionMenuSheet,
+    });
   }
 
   function renderUnitsSection() {
