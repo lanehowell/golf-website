@@ -33,6 +33,13 @@
      ID token, which we then exchange with Firebase via signInWithCredential.
      Loaded async + defer so it doesn't block first paint. -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- Mapbox GL JS — powers satellite map views for the GPS feature.
+     Free tier covers 50k map loads/month (no card required). JS and
+     CSS both loaded async/defer so they don't block first paint.
+     Access token is stored in the JS bundle as MAPBOX_TOKEN. -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js" defer></script>
 <style>
   /* ══════════════════════════════════════════════════════════════
      SPLASH SCREEN — mobile-only initial loader
@@ -22101,6 +22108,12 @@
      transform escape, same as the other sheet mounts. -->
 <div id="finish-sheet-mount"></div>
 
+<!-- GPS test panel mount — Phase 0 throwaway for validating the
+     Mapbox integration before building the real GPS feature. Opened
+     by navigating to the #gps-test URL hash; dismissed by a close
+     button or hash removal. Not linked from anywhere in the UI. -->
+<div id="gps-test-mount"></div>
+
 <!-- RECOVERY sheet mount — populated by renderRecoverySheet() when
      the user taps the pending-rounds banner on the Play screen.
      Shows the captured scorecard + Save / Continue solo / Discard
@@ -22921,6 +22934,15 @@
 </script>
 
 <script>
+  // ─────────────────────────────────────────────────────────────
+  // Third-party service tokens
+  // ─────────────────────────────────────────────────────────────
+  // Mapbox public token. Public tokens are designed to ship in
+  // client code — they're URL-restricted server-side so they can't
+  // be abused from other domains. Used for the GPS feature's
+  // satellite map views.
+  const MAPBOX_TOKEN = 'pk.eyJ1IjoibGFuZWhvd2VsbCIsImEiOiJjbW9kZDBpaHUwMXB1MnFxMmR6NW1vcHR2In0.Bhqax-Yt6d4tMk1A71qnOQ';
+
   // ─────────────────────────────────────────────────────────────
   // Splash screen — mobile-only initial loader
   // ─────────────────────────────────────────────────────────────
@@ -50834,6 +50856,253 @@
   function escapeAttr(str) {
     return escapeHtml(str);
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // GPS Test Panel (Phase 0 — throwaway)
+  // ─────────────────────────────────────────────────────────────
+  // Purpose: validate that Mapbox GL JS loads, satellite imagery
+  // renders at acceptable quality on the user's actual courses, and
+  // live GPS position tracking works reliably before investing in
+  // the real GPS feature. Removed once Phase 0 signs off.
+  //
+  // Not wired into any menu. Open by navigating to #gps-test in the
+  // URL (e.g., append it to whatever URL the app is loaded at).
+  // Closes by tapping the close button or by manually removing the
+  // hash.
+
+  // Great-circle distance in yards between two lat/lng points.
+  // Standard Haversine implementation. Returns a plain number.
+  function gpsTestHaversineYards(lat1, lng1, lat2, lng2) {
+    const R = 6371000; // earth radius in meters
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c * 1.0936;
+  }
+
+  // Local state for the test panel. Kept scoped so the teardown on
+  // close is predictable (clear the interval, remove the map, blank
+  // the mount).
+  const gpsTestState = {
+    open: false,
+    map: null,
+    courseMarker: null,
+    userMarker: null,
+    watchInterval: null,
+    userLat: null,
+    userLng: null,
+  };
+
+  function openGpsTestPanel() {
+    if (gpsTestState.open) return;
+    const mount = document.getElementById('gps-test-mount');
+    if (!mount) return;
+
+    // Bail gracefully if Mapbox didn't load (bad network, ad-blocker,
+    // whatever). A throwaway panel doesn't deserve elaborate error
+    // handling — just tell the user and stop.
+    if (typeof mapboxgl === 'undefined') {
+      mount.innerHTML = `
+        <div style="position:fixed;inset:0;background:#000;color:#fff;
+                    display:flex;align-items:center;justify-content:center;
+                    padding:24px;text-align:center;z-index:9999;
+                    font-family:sans-serif;">
+          <div>
+            <div style="font-size:18px;margin-bottom:12px;">Mapbox didn't load</div>
+            <div style="font-size:14px;opacity:0.7;">Check your network and reload.</div>
+            <button onclick="closeGpsTestPanel()"
+                    style="margin-top:24px;padding:10px 20px;border-radius:8px;
+                           border:1px solid #fff;background:transparent;color:#fff;">
+              Close
+            </button>
+          </div>
+        </div>`;
+      gpsTestState.open = true;
+      return;
+    }
+
+    // Hardcoded test course — Mesquite GC. Phase 0 is intentionally
+    // single-course; Phase 1+ reads from the courses collection.
+    const courseLat = 32.836248;
+    const courseLng = -96.610901;
+    const courseName = 'Mesquite Golf Club';
+
+    mount.innerHTML = `
+      <div id="gps-test-sheet" style="
+        position: fixed; inset: 0; background: #000; z-index: 9999;
+        display: flex; flex-direction: column;">
+
+        <!-- Header strip with close button + title -->
+        <div style="
+          position: absolute; top: 0; left: 0; right: 0;
+          padding: env(safe-area-inset-top, 12px) 16px 12px;
+          padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+          display: flex; align-items: center; justify-content: space-between;
+          z-index: 2; pointer-events: none;">
+          <div style="
+            background: rgba(0,0,0,0.7); color: #fff; padding: 8px 12px;
+            border-radius: 8px; font-family: sans-serif; font-size: 14px;
+            pointer-events: auto;">
+            GPS Test · ${courseName}
+          </div>
+          <button onclick="closeGpsTestPanel()" style="
+            background: rgba(0,0,0,0.7); color: #fff; border: none;
+            width: 36px; height: 36px; border-radius: 50%;
+            font-size: 20px; cursor: pointer; pointer-events: auto;
+            display: flex; align-items: center; justify-content: center;">
+            ×
+          </button>
+        </div>
+
+        <!-- Map container — mapbox-gl paints into this -->
+        <div id="gps-test-map" style="flex: 1; width: 100%;"></div>
+
+        <!-- Distance readout pinned to bottom -->
+        <div id="gps-test-distance" style="
+          position: absolute; bottom: 0; left: 0; right: 0;
+          padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+          background: linear-gradient(transparent, rgba(0,0,0,0.85));
+          color: #fff; font-family: sans-serif; text-align: center;
+          z-index: 2; pointer-events: none;">
+          <div style="font-size: 11px; text-transform: uppercase;
+                      letter-spacing: 2px; opacity: 0.7; margin-bottom: 4px;">
+            Distance to course
+          </div>
+          <div id="gps-test-distance-value" style="
+            font-size: 48px; font-weight: 700; line-height: 1;
+            font-variant-numeric: tabular-nums;">—</div>
+          <div id="gps-test-status" style="font-size: 12px; opacity: 0.7;
+                                            margin-top: 8px;">
+            Getting your location…
+          </div>
+        </div>
+      </div>`;
+
+    // Initialize the Mapbox map. `satellite-streets-v12` = satellite
+    // imagery with road/label overlays; for v1 we want pure satellite
+    // so we use `satellite-v9` instead. Zoom 16 = roughly course-scale.
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'gps-test-map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [courseLng, courseLat],
+      zoom: 16,
+      attributionControl: true,
+    });
+    gpsTestState.map = map;
+
+    // Course marker — orange pin at the registered course coords.
+    const courseEl = document.createElement('div');
+    courseEl.style.cssText = `
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #E85D04; border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);`;
+    gpsTestState.courseMarker = new mapboxgl.Marker(courseEl)
+      .setLngLat([courseLng, courseLat])
+      .setPopup(new mapboxgl.Popup({ offset: 20 }).setText(courseName))
+      .addTo(map);
+
+    gpsTestState.open = true;
+
+    // Kick off live location tracking. Uses the existing app tool
+    // so we get the same permission UX as elsewhere. Poll loop —
+    // simple but robust; Phase 2 can upgrade to watchPosition if
+    // needed.
+    updateGpsTestUserPosition();
+    gpsTestState.watchInterval = setInterval(updateGpsTestUserPosition, 3000);
+  }
+
+  async function updateGpsTestUserPosition() {
+    // Use the browser's Geolocation API directly for this throwaway
+    // panel — the app's user_location_v0 tool is a host-side tool
+    // not available to client JS. In Phase 2 we'll route through the
+    // same permission flow used by other location features.
+    if (!navigator.geolocation) {
+      const s = document.getElementById('gps-test-status');
+      if (s) s.textContent = 'Geolocation not supported on this device';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        gpsTestState.userLat = latitude;
+        gpsTestState.userLng = longitude;
+
+        // Draw / move the user marker (blue dot, distinct from the
+        // orange course pin).
+        if (!gpsTestState.userMarker && gpsTestState.map) {
+          const el = document.createElement('div');
+          el.style.cssText = `
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #2E86DE; border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+          gpsTestState.userMarker = new mapboxgl.Marker(el)
+            .setLngLat([longitude, latitude])
+            .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('You'))
+            .addTo(gpsTestState.map);
+        } else if (gpsTestState.userMarker) {
+          gpsTestState.userMarker.setLngLat([longitude, latitude]);
+        }
+
+        // Update distance readout. Target = the hardcoded Mesquite
+        // coords (matching what openGpsTestPanel stored on the
+        // course marker).
+        const courseLat = 32.836248;
+        const courseLng = -96.610901;
+        const yards = gpsTestHaversineYards(latitude, longitude, courseLat, courseLng);
+        const valueEl = document.getElementById('gps-test-distance-value');
+        const statusEl = document.getElementById('gps-test-status');
+        if (valueEl) valueEl.textContent = Math.round(yards) + ' yd';
+        if (statusEl) statusEl.textContent =
+          `GPS accuracy: ±${Math.round(accuracy)}m`;
+      },
+      (err) => {
+        const s = document.getElementById('gps-test-status');
+        if (s) s.textContent = `Location error: ${err.message}`;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
+    );
+  }
+
+  function closeGpsTestPanel() {
+    if (!gpsTestState.open) return;
+    if (gpsTestState.watchInterval) {
+      clearInterval(gpsTestState.watchInterval);
+      gpsTestState.watchInterval = null;
+    }
+    if (gpsTestState.map) {
+      try { gpsTestState.map.remove(); } catch (_) {}
+      gpsTestState.map = null;
+    }
+    gpsTestState.courseMarker = null;
+    gpsTestState.userMarker = null;
+    gpsTestState.open = false;
+    const mount = document.getElementById('gps-test-mount');
+    if (mount) mount.innerHTML = '';
+    // Clear the triggering hash so navigation state matches panel state.
+    if (window.location.hash === '#gps-test') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+
+  // Hash-based trigger. Opens on initial load if the hash matches,
+  // and also listens for hash changes (e.g. user pastes #gps-test
+  // into the URL while the app is already loaded).
+  function checkGpsTestHash() {
+    if (window.location.hash === '#gps-test' && !gpsTestState.open) {
+      openGpsTestPanel();
+    }
+  }
+  window.addEventListener('hashchange', checkGpsTestHash);
+  // Run once on init. Defer via setTimeout so it runs after the
+  // main init below (and after Mapbox's deferred script has loaded).
+  setTimeout(checkGpsTestHash, 500);
+  // Expose close fn globally for the inline onclick in the panel markup.
+  window.closeGpsTestPanel = closeGpsTestPanel;
 
   // ─────────────────────────────────────────────────────────────
   // Init
