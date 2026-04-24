@@ -3579,6 +3579,22 @@
   .gsc-empty { color: var(--text-muted); opacity: 0.55; }
   .gsc-tappable.gsc-empty { opacity: 0.75; }
 
+  /* Live-update flash — when the group scorecard sheet is open and
+     a player logs/edits a hole, that cell pulses orange briefly so
+     the viewer's eye catches what just changed. Same animation as
+     the per-player scorecard sheet for consistency. */
+  @keyframes gsc-flash {
+    0%   { background-color: var(--color-orange); color: var(--color-white); }
+    40%  { background-color: var(--color-orange-pale); color: inherit; }
+    100% { background-color: transparent; color: inherit; }
+  }
+  .gsc-strokes.is-flash {
+    animation: gsc-flash 1.6s ease-out;
+  }
+  .gsc-strokes.is-flash .gsc-strokes-inner {
+    color: inherit;
+  }
+
 
 
   /* Horizontal scroll strip so a 4-player card doesn't force wrapping
@@ -5161,6 +5177,26 @@
     background: rgba(232, 93, 4, 0.18);
   }
   .player-sc-empty { color: var(--text-muted); opacity: 0.5; }
+
+  /* Live-update flash — when the scorecard sheet is open and the
+     player whose card is showing logs/edits a hole, that cell pulses
+     orange briefly so the viewer's eye catches "what just changed".
+     Animation runs once on class addition; the next render snapshots
+     the new value as the baseline so subsequent updates only flash
+     newly-changed cells. */
+  @keyframes player-sc-flash {
+    0%   { background-color: var(--color-orange); color: var(--color-white); }
+    40%  { background-color: var(--color-orange-pale); color: inherit; }
+    100% { background-color: transparent; color: inherit; }
+  }
+  .player-sc-strokes.is-flash {
+    animation: player-sc-flash 1.6s ease-out;
+  }
+  /* Make sure the inner badge is readable during the early frames
+     where the cell is solid orange. */
+  .player-sc-strokes.is-flash .player-sc-strokes-inner {
+    color: inherit;
+  }
 
 
   .manage-sheet-backdrop {
@@ -8966,11 +9002,31 @@
     margin-bottom: var(--space-1);
   }
   .round-card-course {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     font-family: var(--font-display);
     font-size: var(--text-lg);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1.2;
+    min-width: 0; /* allow children to truncate */
+  }
+  /* Reset the inline emoji styling now that the parent is flex —
+     vertical-align/margin-right were inline-alignment hacks and
+     they fight the flex layout. */
+  .round-card-course .round-card-group-badge {
+    margin-right: 0;
+    vertical-align: baseline;
+    line-height: 1;
+  }
+  /* Title text inside the flex row — truncates if course name is
+     too long, keeps from pushing the live pill off-card. */
+  .round-card-course-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .round-card-arrow {
     color: var(--text-muted);
@@ -9001,6 +9057,50 @@
     font-size: 0.85em;
     vertical-align: middle;
     filter: grayscale(0.2);
+  }
+  /* Live indicator on a history card — shown when the linked group
+     round is still active on the server (someone hasn't finished
+     yet). Patched in async after a one-shot status fetch resolves;
+     stays empty for completed groups. */
+  .round-card-live-slot {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+  .round-card-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  html.dark .round-card-live-badge {
+    background: rgba(232, 93, 4, 0.22);
+    color: var(--color-orange);
+  }
+  .round-card-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    flex-shrink: 0;
+    animation: rs-lb-status-pulse 1.4s ease-in-out infinite;
+  }
+  .round-card-live-text {
+    /* Mono fonts have cap-height that sits high in the line-box, so
+       even with align-items: center on the badge the text reads as
+       "too high". Nudge the visual glyphs down without moving the
+       layout box so it visually centers against the dot. */
+    display: inline-block;
+    transform: translateY(0.5px);
   }
   .round-card-played-with {
     font-family: var(--font-body);
@@ -10723,6 +10823,26 @@
   }
   @media (max-width: 480px) {
     .round-summary-totals { grid-template-columns: repeat(2, 1fr); }
+    .round-summary-totals-compact { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* Compact totals — tighter padding + smaller values. Used on the
+     round summary where a 4-up grid needs to fit on a narrow phone
+     without wrapping. The primary/secondary visual hierarchy is
+     preserved. */
+  .round-summary-totals-compact {
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .round-summary-totals-compact .round-summary-stat {
+    padding: var(--space-3) var(--space-2);
+  }
+  .round-summary-totals-compact .round-summary-stat-value {
+    font-size: var(--text-xl);
+    margin-bottom: 2px;
+  }
+  .round-summary-totals-compact .round-summary-stat-label {
+    font-size: 0.56rem;
   }
 
   .round-summary-section-label {
@@ -10749,6 +10869,561 @@
     margin-left: var(--space-2);
     vertical-align: middle;
   }
+  /* ─── Shot Tracking overview (round summary) ────────────────
+     Compact card summarizing the tracked shots, replacing the old
+     inline hole-by-hole dump. Detailed log is one tap away via
+     the modal. */
+  .shot-tracking-overview {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .shot-tracking-overview-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+  }
+  .shot-tracking-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .shot-tracking-stat-value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .shot-tracking-stat-value > span {
+    font-size: 0.6em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .shot-tracking-stat-label {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .shot-tracking-overview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .shot-tracking-overview-section-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    color: var(--text-muted);
+  }
+  .shot-tracking-view-all-btn {
+    width: 100%;
+    padding: var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .shot-tracking-view-all-btn:hover {
+      background: var(--color-orange-pale);
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+  .shot-tracking-view-all-btn:active { transform: scale(0.99); }
+
+  /* ─── Shot category cards (round summary) ───────────────────────
+     Three tappable cards (driving / approach / short game) replacing
+     the old flat shot-tracking overview. Each card shows a single
+     headline metric and routes to a shared detail panel where the
+     per-club + per-hole breakdown lives. */
+  .shot-cat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .shot-cat-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast),
+                transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .shot-cat-card:hover {
+      border-color: var(--color-orange);
+    }
+  }
+  .shot-cat-card:active { transform: scale(0.99); }
+  .shot-cat-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .shot-cat-card-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shot-cat-card-chevron {
+    font-size: var(--text-md);
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .shot-cat-card-headline {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .cat-card-headline-num {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .cat-card-headline-of {
+    font-size: 0.55em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .cat-card-headline-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    color: var(--text-secondary);
+  }
+  /* Initial hidden state for group-round chrome. Applied by default
+     on a group-linked round; removed by applyGroupVisibility() when
+     the leaderboard fetch confirms someone else has saved a score.
+     Covers both the eyebrow badge and the leaderboard mount. */
+  .rs-group-hidden {
+    display: none !important;
+  }
+
+  .shot-cat-card-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Empty-state variant — shown when a category has no usable data
+     in this round (e.g. no fairways tracked AND no tee shots logged).
+     Lighter visual weight, no hover, no chevron, single-line prompt
+     text guiding the user toward what to track. */
+  .shot-cat-card-empty {
+    cursor: default;
+    background: var(--bg-surface);
+    border-style: dashed;
+  }
+  @media (hover: hover) {
+    .shot-cat-card-empty:hover {
+      border-color: var(--border-light);
+    }
+  }
+  .shot-cat-card-empty:active { transform: none; }
+  .shot-cat-card-empty .shot-cat-card-title {
+    color: var(--text-secondary);
+    font-weight: var(--weight-semibold);
+  }
+  .shot-cat-card-empty-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  /* Tendency text — appears on cards (and per-club rows) to summarize
+     dispersion bias in plain language ("Misses left", "Mostly straight"). */
+  .shot-cat-card-tendency {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: var(--weight-semibold);
+  }
+  /* Percentage badge that hangs off the headline ratio (e.g. "10/16 63%"). */
+  .cat-card-headline-pct {
+    font-family: var(--font-mono);
+    font-size: 0.55em;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    margin-left: var(--space-2);
+    align-self: center;
+  }
+
+  /* ─── Dispersion 3-cell mini chart (detail page) ─────────────
+     Replaces the L/R/S color bar. Three centered columns, each with
+     a label, big count, %, and a thin neutral fill bar sized to the
+     proportion. No green/red — direction isn't intrinsically good or
+     bad, so width does the talking. */
+  .disp-cells {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-5);
+  }
+  .disp-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+  }
+  .disp-cell-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+    color: var(--text-muted);
+  }
+  .disp-cell-num {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .disp-cell-pct {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .disp-cell-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-page);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .disp-cell-bar-fill {
+    height: 100%;
+    background: var(--text-secondary);
+    border-radius: var(--radius-pill);
+    transition: width var(--transition-base);
+  }
+
+  /* ─── Contact percentage chips (detail page) ─────────────────
+     Replaces the 4-segment contact bar. Big "clean %" stat anchors
+     the section; tiny chips for thin/chunk/other off to the side. */
+  .contact-chips {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+  }
+  .contact-chip-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .contact-chip-clean-pct {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .contact-chip-clean-pct > span {
+    font-size: 0.5em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .contact-chip-clean-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .contact-chip-misses {
+    display: flex;
+    gap: var(--space-3);
+    margin-left: auto;
+  }
+  .contact-chip-miss {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-page);
+    border-radius: var(--radius-md);
+    min-width: 48px;
+  }
+  .contact-chip-miss-num {
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .contact-chip-miss-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+  }
+
+  /* Per-club row tendency line — same vibe as card tendency line */
+  .shot-cat-club-tendency {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+  }
+
+  /* ─── Shot category detail page ─────────────────────────────── */
+  .shot-cat-detail-hero {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-4);
+    margin-bottom: var(--space-5);
+    text-align: center;
+  }
+  .shot-cat-detail-hero-num {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: var(--space-2);
+  }
+  .shot-cat-detail-hero-num .hero-of {
+    font-size: 0.45em;
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .shot-cat-detail-hero-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+    margin-bottom: var(--space-1);
+  }
+  .shot-cat-detail-hero-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .shot-cat-club-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .shot-cat-club-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .shot-cat-club-row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .shot-cat-club-name {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .shot-cat-club-count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .shot-cat-shot-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .shot-cat-shot-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 60px auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+  .shot-cat-shot-hole {
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .shot-cat-shot-club {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+  .shot-cat-shot-distance {
+    color: var(--text-secondary);
+    text-align: right;
+  }
+  .shot-cat-shot-tags {
+    display: flex;
+    gap: 4px;
+  }
+  .shot-cat-shot-tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    line-height: 1.2;
+  }
+
+  /* ─── Shot Log bottom sheet ─────────────────────────────────
+     Opens from the "View all logged shots" button. Shows the full
+     hole-by-hole shots dump scrollable. Same chrome as the other
+     bottom sheets for consistency. */
+  .shot-log-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 13, 13, 0.55);
+    z-index: var(--z-modal);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-log-backdrop.opening,
+  .shot-log-backdrop.closing { opacity: 0; }
+  .shot-log-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-modal) + 1);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.18);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .shot-log-sheet.opening,
+  .shot-log-sheet.closing { transform: translateY(100%); }
+  .shot-log-sheet.is-dragging { transition: none; }
+  .shot-log-header {
+    position: relative;
+    padding: var(--space-3) var(--space-5) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .shot-log-sheet.is-dragging .shot-log-header { cursor: grabbing; }
+  .shot-log-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--border-medium);
+    margin: 0 auto 8px;
+  }
+  .shot-log-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    text-align: center;
+  }
+  .shot-log-close {
+    position: absolute;
+    right: var(--space-3);
+    top: 50%;
+    transform: translateY(-40%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    font-size: var(--text-xl);
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-log-close:hover { color: var(--text-primary); }
+  .shot-log-body {
+    padding: var(--space-4) var(--space-4) var(--space-6);
+    overflow-y: auto;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .shot-log-empty {
+    padding: var(--space-6);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
   .shots-dump-wrap {
     display: flex;
     flex-direction: column;
@@ -10812,34 +11487,44 @@
   }
 
   /* ──────────────────────────────────────────────────────────
-     Round insights card — per-round baseline comparison + suggestion.
-     Appears on round summary (single round) and rounds list (aggregate).
+     Round insights card — per-round baseline comparison.
+     Renders inside the Round Insights section. No outer card chrome
+     since the section label provides context; just a subtle baseline-
+     window subhead and a stack of stat lines.
      ────────────────────────────────────────────────────────── */
   .round-insights-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    padding: var(--space-5) var(--space-6);
-    margin-bottom: var(--space-8);
-    box-shadow: var(--shadow-sm);
-  }
-  .round-insights-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     margin-bottom: var(--space-4);
-    border-bottom: 1px solid var(--border-light);
   }
-  .round-insights-title {
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    letter-spacing: var(--tracking-tight);
+  .round-insights-subhead {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-3);
   }
-  .round-insights-baseline-note {
+  .round-insights-lines {
+    display: flex;
+    flex-direction: column;
+  }
+  .round-insight-line {
+    display: grid;
+    grid-template-columns: minmax(70px, auto) auto 1fr auto;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--border-light);
+  }
+  .round-insight-line:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  .round-insight-line-label {
     font-family: var(--font-mono);
     font-size: 0.62rem;
     font-weight: var(--weight-semibold);
@@ -10847,130 +11532,48 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  .round-insights-rows {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    margin-bottom: var(--space-5);
-  }
-  .round-insight-row {
-    display: grid;
-    grid-template-columns: minmax(0, 120px) 1fr auto;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-surface);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    transition: border-color var(--transition-fast);
-  }
-  .round-insight-row.is-better {
-    border-color: rgba(45, 110, 52, 0.3);
-    background: #EFF8F0;
-  }
-  .round-insight-row.is-worse {
-    border-color: rgba(232, 93, 4, 0.3);
-    background: var(--color-orange-pale);
-  }
-  .round-insight-row.is-neutral {
-    opacity: 0.85;
-  }
-  .round-insight-label {
+  .round-insight-line-current {
     font-family: var(--font-display);
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
   }
-  .round-insight-values {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
+  .round-insight-line-baseline {
     font-family: var(--font-mono);
-    font-size: var(--text-sm);
-  }
-  .round-insight-current {
-    font-family: var(--font-display);
-    font-size: var(--text-base);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-  }
-  .round-insight-vs {
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-wide);
+    font-variant-numeric: tabular-nums;
   }
-  .round-insight-baseline {
-    color: var(--text-muted);
-    font-weight: var(--weight-regular);
-  }
-  .round-insight-delta {
+  .round-insight-line-delta {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
-    white-space: nowrap;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    text-align: center;
+    min-width: 48px;
   }
-  .round-insight-delta.is-better {
+  .round-insight-line-delta.is-better {
+    background: rgba(45, 110, 52, 0.12);
     color: #2D6E34;
   }
-  .round-insight-delta.is-worse {
+  .round-insight-line-delta.is-worse {
+    background: var(--color-orange-pale);
     color: var(--color-orange-dark);
   }
-  .round-insight-delta.is-neutral {
+  .round-insight-line-delta.is-neutral {
+    background: var(--bg-page);
     color: var(--text-muted);
   }
-  /* Dark mode tints */
-  html.dark .round-insight-row.is-better {
-    background: rgba(45, 110, 52, 0.18);
-    border-color: rgba(45, 110, 52, 0.4);
-  }
-  html.dark .round-insight-row.is-worse {
-    background: rgba(232, 93, 4, 0.18);
-    border-color: rgba(232, 93, 4, 0.4);
-  }
-  html.dark .round-insight-delta.is-better {
+  html.dark .round-insight-line-delta.is-better {
+    background: rgba(45, 110, 52, 0.22);
     color: #7FC088;
   }
-  html.dark .round-insight-delta.is-worse {
+  html.dark .round-insight-line-delta.is-worse {
+    background: rgba(232, 93, 4, 0.22);
     color: var(--color-orange);
-  }
-
-  /* Suggestion callout — positive (green) or practice (orange accent). */
-  .round-insights-suggestion {
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-md);
-    border-left: 3px solid;
-  }
-  .round-insights-suggestion.is-positive {
-    background: #EFF8F0;
-    border-left-color: #2D6E34;
-    color: #2D6E34;
-  }
-  .round-insights-suggestion.is-practice {
-    background: var(--color-orange-pale);
-    border-left-color: var(--color-orange);
-    color: var(--color-orange-dark);
-  }
-  html.dark .round-insights-suggestion.is-positive {
-    background: rgba(45, 110, 52, 0.18);
-    color: #7FC088;
-  }
-  html.dark .round-insights-suggestion.is-practice {
-    background: rgba(232, 93, 4, 0.18);
-    color: var(--color-orange);
-  }
-  .round-insights-suggestion-title {
-    font-family: var(--font-display);
-    font-size: var(--text-base);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-2);
-  }
-  .round-insights-suggestion-body {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
-    opacity: 0.92;
   }
 
   /* Empty state — not enough rounds to compute a baseline */
@@ -10978,7 +11581,7 @@
     text-align: center;
     background: var(--bg-surface);
     border-style: dashed;
-    padding: var(--space-6);
+    padding: var(--space-5);
   }
   .round-insights-empty-title {
     font-family: var(--font-display);
@@ -11031,23 +11634,137 @@
 
   @media (max-width: 560px) {
     .round-insights-card {
-      padding: var(--space-4) var(--space-5);
-    }
-    .round-insight-row {
-      grid-template-columns: minmax(0, 85px) 1fr auto;
-      gap: var(--space-2);
       padding: var(--space-3);
-    }
-    .round-insight-delta {
-      font-size: 0.62rem;
-    }
-    .round-insight-values {
-      font-size: 0.75rem;
     }
   }
 
-  /* Hole-by-hole table on summary — visually similar to the course-detail
-     scorecard but with a score column and row coloring for vs-par. */
+  /* ─── Round-summary scorecard (rs-sc-*) ──────────────────────
+     Horizontal "holes across, rows down" layout that mirrors the
+     player-scorecard sheet (same look + feel, scoped to the round-
+     summary panel so future tweaks don't ripple). Front 9 + Back 9
+     share ONE card with a thin divider between them, rather than two
+     separate cards. Hole numbers in the header, par + score rows
+     below, Out / In totals as the last column. Score markers use the
+     traditional circle (under-par) / square (over-par) convention. */
+  .rs-sc-scorecard {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  .rs-sc-nine + .rs-sc-nine {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+  .rs-sc-nine-label {
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .rs-sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    table-layout: fixed;
+  }
+  .rs-sc-table th, .rs-sc-table td {
+    padding: var(--space-2) 0;
+    text-align: center;
+    border: none;
+  }
+  .rs-sc-row-label {
+    text-align: left;
+    padding-left: 0;
+    padding-right: var(--space-2);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 44px;
+  }
+  .rs-sc-hole-num {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .rs-sc-par {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .rs-sc-total-label {
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    width: 36px;
+  }
+  .rs-sc-total, .rs-sc-par-total {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    background: var(--color-cream-100);
+  }
+  html.dark .rs-sc-total, html.dark .rs-sc-par-total { background: var(--bg-surface); }
+  .rs-sc-par-total { color: var(--text-muted); font-weight: var(--weight-semibold); }
+  .rs-sc-strokes {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .rs-sc-strokes-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 4px;
+    border-radius: 50%;
+  }
+  /* Score markers — eagle (filled orange circle), birdie (orange ring),
+     bogey (small rounded square), double+ (square + outline). Mirrors
+     player-sc-* exactly. */
+  .rs-sc-eagle .rs-sc-strokes-inner {
+    background: var(--color-orange);
+    color: var(--color-white);
+    box-shadow: 0 0 0 2px var(--color-orange-pale);
+  }
+  .rs-sc-birdie .rs-sc-strokes-inner {
+    border: 2px solid var(--color-orange);
+    color: var(--color-orange);
+    background: var(--color-orange-pale);
+  }
+  .rs-sc-bogey .rs-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+  }
+  .rs-sc-double .rs-sc-strokes-inner {
+    border: 1.5px solid var(--text-muted);
+    outline: 1.5px solid var(--text-muted);
+    outline-offset: 1.5px;
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+  }
+  html.dark .rs-sc-birdie .rs-sc-strokes-inner {
+    background: rgba(232, 93, 4, 0.18);
+  }
+  .rs-sc-empty { color: var(--text-muted); opacity: 0.5; }
+
+  /* Keep the legacy .round-summary-table styles intact for any other
+     callers (e.g. stats page) — this is a new class family. */
   .round-summary-table-wrap {
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
@@ -11228,6 +11945,63 @@
     border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--bg-elevated);
+  }
+
+  /* Wraps the section label + status pill on the same baseline so the
+     pill aligns to the right of the heading. */
+  .round-summary-section-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+  .round-summary-section-label-row .round-summary-section-label {
+    margin-bottom: 0;
+  }
+
+  /* Status pill — "N still playing" while the round is live, flips
+     to "Round Complete" when everyone is done. Lets a finished
+     player tell at a glance whether the group is still out there. */
+  .rs-lb-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .rs-lb-status-live {
+    background: var(--color-orange-pale);
+    color: var(--color-orange-dark);
+  }
+  html.dark .rs-lb-status-live {
+    background: rgba(232, 93, 4, 0.22);
+    color: var(--color-orange);
+  }
+  .rs-lb-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    animation: rs-lb-status-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes rs-lb-status-pulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+  }
+  .rs-lb-status-done {
+    background: rgba(45, 110, 52, 0.12);
+    color: #2D6E34;
+  }
+  html.dark .rs-lb-status-done {
+    background: rgba(45, 110, 52, 0.22);
+    color: #7FC088;
   }
   .rs-lb-row {
     display: grid;
@@ -20281,6 +21055,7 @@
     body[data-current-panel="bag"] .mobile-topbar-back,
     body[data-current-panel="club-data"] .mobile-topbar-back,
     body[data-current-panel="club-data-detail"] .mobile-topbar-back,
+    body[data-current-panel="round-shot-category"] .mobile-topbar-back,
     body[data-current-panel="range-session"] .mobile-topbar-back,
     body[data-current-panel="shortgame-session"] .mobile-topbar-back,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back,
@@ -20826,6 +21601,14 @@
       <div id="round-summary-mount"></div>
     </section>
 
+    <!-- ═══════════════ ROUND SHOT CATEGORY (driving / approach / short) ═══ -->
+    <!-- Drill-down from a category card on the round summary. Shared
+         panel — content is determined by roundShotCategoryState. -->
+    <section class="panel" id="panel-round-shot-category">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div id="round-shot-category-mount"></div>
+    </section>
+
     <!-- ═══════════════ QUICK SCORE ═══════════════ -->
     <!-- Backfill previously-played rounds fast. Captures date, course, tee,
          and total score (plus optional putts / FIR / GIR counts). Saved to
@@ -21298,6 +22081,12 @@
      edit distance, club, swing %, direction, contact. Body-level
      following the same pattern as other sheets. -->
 <div id="range-shot-edit-mount"></div>
+
+<!-- SHOT LOG modal mount — populated by mountShotTrackingModal() when
+     user taps "View all logged shots" on the round summary. Shows
+     hole-by-hole breakdown of every tracked shot. Body-level so it
+     escapes ancestor transforms and stacks over everything. -->
+<div id="shot-log-modal-mount"></div>
 
 <!-- TOOLS EDITOR sheet mount — populated by renderToolsEditorSheet()
      when user taps "In-round tools" in Profile > Your Game. Lets
@@ -24178,6 +24967,7 @@
     if (id === 'course-detail')  return 'Course';
     if (id === 'round')          return 'Round';
     if (id === 'round-summary')  return 'Round Summary';
+    if (id === 'round-shot-category') return categoryLabel(roundShotCategoryState.category);
     if (id === 'group-lobby')    return 'Play Together';
     if (id === 'group-round')    return 'Group Round';
     if (id === 'workout')        return workoutPanelState.routineId
@@ -24200,7 +24990,7 @@
   // Courses + course-detail + round + round-summary are sub-pages of Play.
   function mobileActiveTab(id) {
     if (id === 'play' || id === 'courses' || id === 'course-detail' ||
-        id === 'round' || id === 'round-summary' || id === 'rounds' ||
+        id === 'round' || id === 'round-summary' || id === 'round-shot-category' || id === 'rounds' ||
         id === 'my-stats' ||
         id === 'quick-score' || id === 'group-lobby' || id === 'group-round') return 'play';
     if (id === 'practice' || id === 'range-session' ||
@@ -24219,7 +25009,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'rounds', 'my-stats', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'social', 'user-profile', 'public-round', 'profile', 'bag', 'club-data', 'club-data-detail'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'round-shot-category', 'rounds', 'my-stats', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'social', 'user-profile', 'public-round', 'profile', 'bag', 'club-data', 'club-data-detail'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -24313,6 +25103,12 @@
       closeRangeShotEditSheet();
     }
 
+    // Shot tracking modal is scoped to the round summary. Close on
+    // any nav so it doesn't linger on the next screen.
+    if (roundSummaryShotsState.open) {
+      closeShotTrackingModal();
+    }
+
     // Session timer — start ticking when entering any session panel
     // (range, short game, course practice), stop when leaving. The
     // display element lives in the topbar and is CSS-gated to show
@@ -24375,6 +25171,7 @@
     if (id === 'course-detail') renderCourseDetail();
     if (id === 'round') renderRound();
     if (id === 'round-summary') renderRoundSummary();
+    if (id === 'round-shot-category') renderRoundShotCategoryPage();
     if (id === 'play') renderPlayLanding();
     if (id === 'bag') renderBagPage();
     if (id === 'club-data') renderClubDataPage();
@@ -24514,6 +25311,7 @@
     // Summary is a terminal screen — back goes to Play landing, not the
     // (now-completed) round screen which has no state to show anymore.
     'round-summary': 'play',
+    'round-shot-category': 'round-summary',
     // All-rounds history list — sibling to Courses under Play.
     rounds:          'play',
     // My Stats — aggregate stats page, sub of Rounds.
@@ -27882,6 +28680,18 @@
   // by re-saving the whole doc, or mirroring rounds to the public collection)
   // must check this first.
   let roundsLoaded = false;
+
+  // Status cache for group rounds linked from history cards. Keyed by
+  // groupRoundId. Each entry: { status, fetchedAt, inFlight }. Used so
+  // a history list of cards can show a "Live" badge for group rounds
+  // that are still in progress, without re-fetching on every render.
+  // After the appropriate TTL, a stale entry triggers a background
+  // refresh while the cached value continues to render (no flicker).
+  // Live entries get a shorter TTL since their status is volatile;
+  // completed entries can be cached for longer (they don't go back).
+  const groupRoundStatusCache = new Map();
+  const GROUP_STATUS_TTL_LIVE_MS = 15 * 1000; // 15s while live
+  const GROUP_STATUS_TTL_DONE_MS = 5 * 60 * 1000; // 5min when done
 
   // Pending rounds — partial scorecards saved when a player is removed
   // from a group round (kicked, organizer abandoned, etc). Surfaced as
@@ -34914,7 +35724,13 @@
     uid: null,
     mode: 'live',           // 'live' | 'summary'
     snapshotRow: null,      // populated in 'summary' mode
-    snapshotCourseId: null  // populated in 'summary' mode
+    snapshotCourseId: null, // populated in 'summary' mode
+    // Tracks the previous-render scores for the currently-open uid.
+    // Used to detect which holes changed on a re-render so we can
+    // flash them orange. Reset every time the sheet opens for a new
+    // uid (so the first paint of a different player doesn't
+    // accidentally flash everything).
+    prevScoresByHole: null,
   };
 
   function openPlayerScorecardSheet(uid) {
@@ -34928,6 +35744,7 @@
     playerScorecardState.mode = 'live';
     playerScorecardState.snapshotRow = null;
     playerScorecardState.snapshotCourseId = null;
+    playerScorecardState.prevScoresByHole = null;
     acquireScrollLock();
     renderPlayerScorecardSheet();
   }
@@ -34948,6 +35765,7 @@
     playerScorecardState.mode = 'summary';
     playerScorecardState.snapshotRow = row;
     playerScorecardState.snapshotCourseId = round.courseId;
+    playerScorecardState.prevScoresByHole = null;
     acquireScrollLock();
     renderPlayerScorecardSheet();
   }
@@ -34962,6 +35780,7 @@
       playerScorecardState.mode = 'live';
       playerScorecardState.snapshotRow = null;
       playerScorecardState.snapshotCourseId = null;
+      playerScorecardState.prevScoresByHole = null;
       releaseScrollLock();
       const mount = document.getElementById('player-scorecard-mount');
       if (mount) mount.innerHTML = '';
@@ -34978,6 +35797,7 @@
       playerScorecardState.mode = 'live';
       playerScorecardState.snapshotRow = null;
       playerScorecardState.snapshotCourseId = null;
+      playerScorecardState.prevScoresByHole = null;
       releaseScrollLock();
       const mount = document.getElementById('player-scorecard-mount');
       if (mount) mount.innerHTML = '';
@@ -35055,6 +35875,23 @@
     const vsParStr = holesPlayed === 0 ? '—' :
       vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
 
+    // Diff this render's scores against the previously-seen ones for
+    // this player (only relevant in summary mode where the leaderboard
+    // subscription drives live updates). Cells whose strokes value
+    // changed get an is-flash class that triggers a brief orange
+    // pulse, signaling "this is what just changed." First paint
+    // (prev = null) doesn't flash anything since prev gets seeded
+    // on open.
+    const prev = playerScorecardState.prevScoresByHole;
+    const flashHoles = new Set();
+    if (prev) {
+      for (const h of holes) {
+        const cur = scores[h.number]?.strokes;
+        const old = prev[h.number]?.strokes;
+        if (cur !== old) flashHoles.add(h.number);
+      }
+    }
+
     // Build a nine's table rows — number + par header, then the player's
     // strokes for each hole (dash if not played).
     const buildNineHtml = (nineHoles, label, nineStrokes, ninePar) => {
@@ -35062,14 +35899,15 @@
       const pars = nineHoles.map(h => `<td class="player-sc-par">${h.par}</td>`).join('');
       const strokeCells = nineHoles.map(h => {
         const s = scores[h.number]?.strokes;
-        if (s == null) return `<td class="player-sc-strokes player-sc-empty">—</td>`;
+        const flashCls = flashHoles.has(h.number) ? ' is-flash' : '';
+        if (s == null) return `<td class="player-sc-strokes player-sc-empty${flashCls}">—</td>`;
         const diff = s - h.par;
         let cls = '';
         if (diff <= -2)     cls = ' player-sc-eagle';
         else if (diff === -1) cls = ' player-sc-birdie';
         else if (diff === 1)  cls = ' player-sc-bogey';
         else if (diff >= 2)   cls = ' player-sc-double';
-        return `<td class="player-sc-strokes${cls}"><span class="player-sc-strokes-inner">${s}</span></td>`;
+        return `<td class="player-sc-strokes${cls}${flashCls}"><span class="player-sc-strokes-inner">${s}</span></td>`;
       }).join('');
       const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
       return `
@@ -35101,19 +35939,56 @@
       ? `<div class="player-sc-summary-item"><span class="player-sc-summary-value">${totalPutts}</span><span class="player-sc-summary-label">Putts</span></div>`
       : '';
 
-    mount.innerHTML = `
-      <div class="player-sc-backdrop opening" onclick="closePlayerScorecardSheet()" aria-hidden="true"></div>
-      <div class="player-sc-sheet opening" role="dialog" aria-modal="true" aria-label="${escapeAttr(name)}'s scorecard">
-        <div class="player-sc-header">
-          <div class="player-sc-header-main">
-            <div class="player-sc-eyebrow">Scorecard</div>
-            <div class="player-sc-name">${escapeHtml(name)}</div>
-            <div class="player-sc-tee">${escapeHtml(teeLabel)} tees · ${holesPlayed}/${holes.length} holes</div>
-          </div>
-          <button class="player-sc-close" onclick="closePlayerScorecardSheet()" aria-label="Close">×</button>
-        </div>
+    // Detect whether this is a fresh open vs a live re-render. On
+    // fresh open, write the full sheet markup (which triggers the
+    // slide-up animation). On a live re-render (sheet already in
+    // DOM), surgically update only the data-bearing parts so we
+    // don't re-trigger the slide animation and so flash animations
+    // on changed cells aren't clobbered. Body content is rebuilt
+    // either way; the chrome (header, summary line) is updated in
+    // place for re-renders to keep totals fresh too.
+    const existingSheet = mount.querySelector('.player-sc-sheet');
+    const isReRender = !!existingSheet;
 
-        <div class="player-sc-summary">
+    if (!isReRender) {
+      mount.innerHTML = `
+        <div class="player-sc-backdrop opening" onclick="closePlayerScorecardSheet()" aria-hidden="true"></div>
+        <div class="player-sc-sheet opening" role="dialog" aria-modal="true" aria-label="${escapeAttr(name)}'s scorecard">
+          <div class="player-sc-header">
+            <div class="player-sc-header-main">
+              <div class="player-sc-eyebrow">Scorecard</div>
+              <div class="player-sc-name">${escapeHtml(name)}</div>
+              <div class="player-sc-tee">${escapeHtml(teeLabel)} tees · ${holesPlayed}/${holes.length} holes</div>
+            </div>
+            <button class="player-sc-close" onclick="closePlayerScorecardSheet()" aria-label="Close">×</button>
+          </div>
+
+          <div class="player-sc-summary">
+            <div class="player-sc-summary-item player-sc-summary-strokes">
+              <span class="player-sc-summary-value">${holesPlayed === 0 ? '—' : totalStrokes}</span>
+              <span class="player-sc-summary-label">Strokes</span>
+            </div>
+            <div class="player-sc-summary-item">
+              <span class="player-sc-summary-value">${vsParStr}</span>
+              <span class="player-sc-summary-label">vs Par</span>
+            </div>
+            ${puttsLine}
+          </div>
+
+          <div class="player-sc-body">
+            ${frontHtml}
+            ${backHtml}
+          </div>
+        </div>`;
+    } else {
+      // Update header line (holes count) + summary stats + body in
+      // place. Querying inside the existing sheet element keeps the
+      // sheet's transform / animation state intact.
+      const teeLine = existingSheet.querySelector('.player-sc-tee');
+      if (teeLine) teeLine.textContent = `${teeLabel} tees · ${holesPlayed}/${holes.length} holes`;
+      const summary = existingSheet.querySelector('.player-sc-summary');
+      if (summary) {
+        summary.innerHTML = `
           <div class="player-sc-summary-item player-sc-summary-strokes">
             <span class="player-sc-summary-value">${holesPlayed === 0 ? '—' : totalStrokes}</span>
             <span class="player-sc-summary-label">Strokes</span>
@@ -35123,37 +35998,51 @@
             <span class="player-sc-summary-label">vs Par</span>
           </div>
           ${puttsLine}
-        </div>
+        `;
+      }
+      const body = existingSheet.querySelector('.player-sc-body');
+      if (body) {
+        body.innerHTML = `${frontHtml}${backHtml}`;
+      }
+    }
 
-        <div class="player-sc-body">
-          ${frontHtml}
-          ${backHtml}
-        </div>
-      </div>`;
+    // Trigger slide-up only on first render. Re-renders update
+    // content in place without re-firing animations.
+    if (!isReRender) {
+      const sheet = mount.querySelector('.player-sc-sheet.opening');
+      const backdrop = mount.querySelector('.player-sc-backdrop.opening');
+      if (sheet) {
+        void sheet.offsetHeight;
+        requestAnimationFrame(() => {
+          sheet.classList.remove('opening');
+          if (backdrop) backdrop.classList.remove('opening');
+        });
+      }
 
-    // Trigger slide-up
-    const sheet = mount.querySelector('.player-sc-sheet.opening');
-    const backdrop = mount.querySelector('.player-sc-backdrop.opening');
-    if (sheet) {
-      void sheet.offsetHeight;
-      requestAnimationFrame(() => {
-        sheet.classList.remove('opening');
-        if (backdrop) backdrop.classList.remove('opening');
+      // Wire drag-to-dismiss on the header — same gesture as the
+      // tools sheet. Attached after the DOM is in place; the helper
+      // guards against double-attach on re-renders.
+      const fullSheet = mount.querySelector('.player-sc-sheet');
+      const header = fullSheet?.querySelector('.player-sc-header');
+      attachBottomSheetDrag({
+        sheetEl: fullSheet,
+        headerEl: header,
+        backdropSelector: '.player-sc-backdrop',
+        ignoreSelector: '.player-sc-close',
+        closeFn: closePlayerScorecardSheet,
       });
     }
 
-    // Wire drag-to-dismiss on the header — same gesture as the
-    // tools sheet. Attached after the DOM is in place; the helper
-    // guards against double-attach on re-renders.
-    const fullSheet = mount.querySelector('.player-sc-sheet');
-    const header = fullSheet?.querySelector('.player-sc-header');
-    attachBottomSheetDrag({
-      sheetEl: fullSheet,
-      headerEl: header,
-      backdropSelector: '.player-sc-backdrop',
-      ignoreSelector: '.player-sc-close',
-      closeFn: closePlayerScorecardSheet,
-    });
+    // Snapshot the rendered scores so the next render can diff
+    // against them and decide which holes to flash. Shallow-copy
+    // each per-hole entry — we only need the strokes value, but
+    // copying the whole entry is cheap and resilient if we add
+    // more fields later.
+    playerScorecardState.prevScoresByHole = {};
+    for (const h of holes) {
+      const e = scores[h.number];
+      if (e) playerScorecardState.prevScoresByHole[h.number] = { strokes: e.strokes };
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -41471,7 +42360,7 @@
   // already collect.
 
   const INSIGHT_BASELINE_WINDOW = 10;  // last N rounds to average
-  const INSIGHT_MIN_ROUNDS = 5;        // fewer than this → no insights yet
+  const INSIGHT_MIN_ROUNDS = 3;        // fewer than this → no insights yet
 
   // "Noise" bands — deltas within these are treated as "about the same
   // as baseline" and render neutral (no green/orange tint). Below these
@@ -41489,10 +42378,30 @@
   function computeRoundInsightStats(round) {
     const t = round?.totals;
     if (!t || typeof t.holesPlayed !== 'number' || t.holesPlayed === 0) return null;
+
+    // Compute TRACKED counts where possible — only holes where the
+    // user explicitly set fir/gir (true OR false). Distinguishes
+    // "tracked and missed every one" from "didn't track at all".
+    // Falls back to eligible totals if per-hole data is missing
+    // (legacy rounds, quick-score rounds without per-hole detail).
+    let firTracked = null, girTracked = null;
+    const course = getCourse(round.courseId);
+    if (round.scores && course?.holes) {
+      firTracked = 0; girTracked = 0;
+      for (const h of course.holes) {
+        const e = round.scores[h.number];
+        if (!e) continue;
+        if (h.par > 3 && (e.fir === true || e.fir === false)) firTracked += 1;
+        if (e.gir === true || e.gir === false) girTracked += 1;
+      }
+    }
+    const firDenom = (firTracked != null ? firTracked : t.firEligible) || 0;
+    const girDenom = (girTracked != null ? girTracked : t.girEligible) || 0;
+
     return {
       vsPar: t.vsPar ?? (t.strokes - (t.parTotal || 0)),
-      fairwayPct: t.firEligible > 0 ? (t.firHit / t.firEligible) * 100 : null,
-      girPct: t.girEligible > 0 ? (t.girHit / t.girEligible) * 100 : null,
+      fairwayPct: firDenom > 0 ? (t.firHit / firDenom) * 100 : null,
+      girPct:     girDenom > 0 ? (t.girHit / girDenom) * 100 : null,
       puttsPerHole: t.holesPlayed > 0 ? t.putts / t.holesPlayed : null,
       holesPlayed: t.holesPlayed,
     };
@@ -41513,7 +42422,10 @@
       .sort((a, b) => (b.startTime || 0) - (a.startTime || 0))
       .slice(0, INSIGHT_BASELINE_WINDOW);
 
-    if (candidates.length < INSIGHT_MIN_ROUNDS) return null;
+    // INSIGHT_MIN_ROUNDS is the user-facing total (current round included).
+    // Internally we need that many OTHER rounds besides the current to
+    // compute meaningful baselines, so subtract one when comparing.
+    if (candidates.length < INSIGHT_MIN_ROUNDS - 1) return null;
 
     // Average each stat across the sample. Not every round has every
     // stat (fairway % requires par-4/5s that were actually tracked), so
@@ -41836,9 +42748,15 @@
 
     // Insufficient baseline → friendly prompt
     if (!baselines) {
-      const needed = INSIGHT_MIN_ROUNDS - ((recentRounds || [])
-        .filter(r => r.status === 'completed' && r.courseId === round.courseId && r.id !== round.id)
-        .length);
+      // Count INCLUDES the current round in the user-facing total —
+      // matches the natural mental model "I have N rounds at this
+      // course, threshold is M, so I need M − N more." The internal
+      // baseline calc still excludes the current round, but we don't
+      // surface that distinction to the user.
+      const totalAtCourse = (recentRounds || [])
+        .filter(r => r.status === 'completed' && r.courseId === round.courseId)
+        .length;
+      const needed = Math.max(0, INSIGHT_MIN_ROUNDS - totalAtCourse);
       return `
         <div class="round-insights-card round-insights-empty">
           <div class="round-insights-empty-title">Insights unlock at ${INSIGHT_MIN_ROUNDS} rounds</div>
@@ -41852,41 +42770,52 @@
     }
 
     const rows = computeInsightRows(stats, baselines);
-    const suggestion = pickInsightSuggestion(rows, stats, round);
 
     const rowsHtml = rows.map(r => `
-      <div class="round-insight-row is-${r.direction}">
-        <div class="round-insight-label">${escapeHtml(r.label)}</div>
-        <div class="round-insight-values">
-          <span class="round-insight-current">${escapeHtml(String(r.current))}</span>
-          <span class="round-insight-vs">vs</span>
-          <span class="round-insight-baseline">${escapeHtml(String(r.baseline))}</span>
-        </div>
-        <div class="round-insight-delta is-${r.direction}">${escapeHtml(r.deltaText)}</div>
+      <div class="round-insight-line">
+        <div class="round-insight-line-label">${escapeHtml(r.label)}</div>
+        <div class="round-insight-line-current">${escapeHtml(String(r.current))}</div>
+        <div class="round-insight-line-baseline">vs ${escapeHtml(String(r.baseline))}</div>
+        <div class="round-insight-line-delta is-${r.direction}">${escapeHtml(formatDeltaShort(r))}</div>
       </div>
     `).join('');
 
-    const heading = options.heading || 'How you played';
-
     return `
       <div class="round-insights-card">
-        <div class="round-insights-head">
-          <div class="round-insights-title">${escapeHtml(heading)}</div>
-          <div class="round-insights-baseline-note">vs last ${baselines.sampleSize} round${baselines.sampleSize === 1 ? '' : 's'}</div>
-        </div>
-        <div class="round-insights-rows">${rowsHtml}</div>
-        <div class="round-insights-suggestion is-${suggestion.tone}">
-          <div class="round-insights-suggestion-title">${escapeHtml(suggestion.title)}</div>
-          <div class="round-insights-suggestion-body">${escapeHtml(suggestion.body)}</div>
-        </div>
+        <div class="round-insights-subhead">vs your last ${baselines.sampleSize} round${baselines.sampleSize === 1 ? '' : 's'}</div>
+        <div class="round-insights-lines">${rowsHtml}</div>
       </div>
     `;
+  }
+
+  // Compact delta text used by the redesigned insights card. The
+  // original deltaText is a sentence ("about usual" / "+3 pts vs
+  // baseline") which doesn't fit a chip. This trims it to a chip-
+  // friendly "+3", "−5pt", "even", etc.
+  function formatDeltaShort(r) {
+    if (r.direction === 'neutral') return 'EVEN';
+    const d = r.delta;
+    if (r.key === 'score') {
+      const n = Math.round(d);
+      return `${n > 0 ? '+' : ''}${n}`;
+    }
+    if (r.key === 'fairway' || r.key === 'gir') {
+      const n = Math.round(d);
+      return `${n > 0 ? '+' : ''}${n} pt`;
+    }
+    if (r.key === 'putts') {
+      // Lower-is-better stat — show signed raw value
+      const n = d.toFixed(2);
+      return `${d > 0 ? '+' : ''}${n}`;
+    }
+    return r.deltaText;
   }
 
   // Aggregated view — shown on the Rounds list page. Analyzes the most
   // recent completed round (if baseline exists) and surfaces a
   // frequency-of-suggestions signal if the same theme has been hitting
-  // across several recent rounds. Skipped entirely when <5 rounds exist.
+  // across several recent rounds. Skipped entirely when fewer than
+  // INSIGHT_MIN_ROUNDS rounds exist.
   function renderAggregateInsightsBlock() {
     const completed = (recentRounds || [])
       .filter(r => r.status === 'completed')
@@ -46504,6 +47433,138 @@
 
   // Single round card. Extracted so Recent Rounds on Play landing and the
   // full rounds list can share identical card markup. Tapping opens the
+  // Read the cached "is this group round still active" flag for a
+  // history card. Returns true ONLY when:
+  //   - the group is not in a terminal state (completed/abandoned),
+  //   - AND someone else (not me) is currently in the players array,
+  //   - AND that other player hasn't finished yet.
+  // Returns false for unknown (no cache entry yet) so we don't briefly
+  // flash a Live badge before the fetch resolves.
+  function isGroupRoundStillLive(groupRoundId) {
+    if (!groupRoundId) return false;
+    const entry = groupRoundStatusCache.get(groupRoundId);
+    if (!entry || !entry.status) return false;
+    if (entry.status === 'completed' || entry.status === 'abandoned') return false;
+    return entry.othersStillPlaying === true;
+  }
+
+  // Read the cached "are there really other players in this round
+  // RIGHT NOW" flag. Used by history cards to decide whether to show
+  // the 👥 group badge and "Played with X" text. The denormalized
+  // groupOthers on the round snapshot is set at completion time and
+  // can include players who later left, so it's not a reliable
+  // present-tense signal. This consults the live doc instead.
+  // Returns null when unknown — caller should fall back to the
+  // snapshot's groupOthers (so cards still render reasonably before
+  // the fetch resolves).
+  function groupRoundHasOtherPresentPlayers(groupRoundId) {
+    if (!groupRoundId) return null;
+    const entry = groupRoundStatusCache.get(groupRoundId);
+    if (!entry || typeof entry.othersPresent !== 'boolean') return null;
+    return entry.othersPresent;
+  }
+
+  // Kick off a one-shot fetch of a group round's current state.
+  // Updates the cache with: status, othersPresent (anyone else in
+  // players[]), othersStillPlaying (anyone else not yet finished).
+  // No-op if there's already a fresh cache entry or an in-flight
+  // request. Once the fetch resolves, patches any visible cards for
+  // this round in place (no full re-render).
+  async function ensureGroupRoundStatus(groupRoundId) {
+    if (!groupRoundId) return;
+    const now = Date.now();
+    const entry = groupRoundStatusCache.get(groupRoundId);
+    if (entry?.inFlight) return;
+    if (entry && entry.fetchedAt) {
+      // Pick TTL based on whether the cached entry is currently live
+      // (volatile, refresh aggressively) or done (stable, cache long).
+      const isLive = entry.status &&
+                     entry.status !== 'completed' &&
+                     entry.status !== 'abandoned';
+      const ttl = isLive ? GROUP_STATUS_TTL_LIVE_MS : GROUP_STATUS_TTL_DONE_MS;
+      if ((now - entry.fetchedAt) < ttl) return;
+    }
+    const next = { ...(entry || {}), inFlight: true };
+    groupRoundStatusCache.set(groupRoundId, next);
+    try {
+      const gr = await window.fb.getGroupRound(groupRoundId);
+      const status = gr?.status || 'unknown';
+      const myUid = currentUser?.uid;
+      const players = Array.isArray(gr?.players) ? gr.players : [];
+      const others = players.filter(p => p?.uid && p.uid !== myUid);
+      const othersPresent = others.length > 0;
+      const othersStillPlaying = others.some(p => p.status !== 'finished');
+      groupRoundStatusCache.set(groupRoundId, {
+        status,
+        othersPresent,
+        othersStillPlaying,
+        fetchedAt: Date.now(),
+        inFlight: false,
+      });
+      patchVisibleRoundCardsForGroup(groupRoundId);
+    } catch (err) {
+      groupRoundStatusCache.set(groupRoundId, {
+        ...(entry || {}),
+        inFlight: false,
+      });
+    }
+  }
+
+  // Patch any history cards for this group round in place once the
+  // status fetch resolves. Updates: the live badge slot AND the
+  // group icon / "played with" line if the live doc reveals nobody
+  // else is in the round anymore (denormalized snapshot was stale).
+  function patchVisibleRoundCardsForGroup(groupRoundId) {
+    const live = isGroupRoundStillLive(groupRoundId);
+    const othersPresent = groupRoundHasOtherPresentPlayers(groupRoundId);
+    const cards = document.querySelectorAll(`.round-card[data-group-round-id="${groupRoundId}"]`);
+    cards.forEach(card => {
+      // Live badge slot
+      const slot = card.querySelector('.round-card-live-slot');
+      if (slot) {
+        slot.innerHTML = live
+          ? '<span class="round-card-live-badge"><span class="round-card-live-dot"></span><span class="round-card-live-text">Live</span></span>'
+          : '';
+      }
+      // Group icon + "played/playing with" line — hide if the live
+      // doc says we're alone now. Otherwise, when live, swap the
+      // verb from past-tense to present-tense ("Playing with"). Toggle
+      // via inline updates so we don't have to re-render the card.
+      const icon = card.querySelector('.round-card-group-badge');
+      const playedWith = card.querySelector('.round-card-played-with');
+      if (othersPresent === false) {
+        if (icon) icon.style.display = 'none';
+        if (playedWith) playedWith.style.display = 'none';
+      } else if (playedWith) {
+        // Rewrite just the leading verb. Names follow the verb +
+        // single space, so we can swap the prefix by checking which
+        // one is currently there.
+        const cur = playedWith.textContent || '';
+        if (live && cur.startsWith('Played with ')) {
+          playedWith.textContent = 'Playing with ' + cur.slice('Played with '.length);
+        } else if (!live && cur.startsWith('Playing with ')) {
+          playedWith.textContent = 'Played with ' + cur.slice('Playing with '.length);
+        }
+      }
+    });
+
+    // Self-perpetuating refresh while live: if any cards are still in
+    // the live state after this patch, schedule another status fetch
+    // in 15s. The fetch ignores entries inside their TTL window, so
+    // this is bounded — once the entry flips to done, the next patch
+    // call won't reschedule (live === false).
+    if (live && cards.length > 0) {
+      setTimeout(() => {
+        // Bail out if no card for this group is still in the DOM
+        // (user navigated away). Also bail if cache shows the entry
+        // has already gone done since we scheduled.
+        const stillVisible = document.querySelector(`.round-card[data-group-round-id="${groupRoundId}"]`);
+        if (!stillVisible) return;
+        ensureGroupRoundStatus(groupRoundId);
+      }, GROUP_STATUS_TTL_LIVE_MS);
+    }
+  }
+
   // existing round summary panel.
   function renderRoundCard(r) {
     const dateStr = formatRoundDate(r.startTime);
@@ -46512,10 +47573,40 @@
     const vsParStr = vsPar === undefined || vsPar === null ? '' :
       (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
     const partial = (r.totals?.holesPlayed || 0) < 18 ? ` · ${r.totals.holesPlayed} holes` : '';
-    const groupLine = renderGroupPlayersLine(r);
-    const groupBadge = r.groupRoundId
+
+    // Group treatment: prefer the live-doc-derived cache when we have
+    // it (it knows who's CURRENTLY in the round). Fall back to the
+    // denormalized groupOthers on the round snapshot, which can be
+    // stale (includes players who later left). The async fetch
+    // catches and patches stale renders in place.
+    const liveOthersPresent = r.groupRoundId
+      ? groupRoundHasOtherPresentPlayers(r.groupRoundId)
+      : null;
+    const treatAsSolo = (liveOthersPresent === false) || isEffectivelySoloRound(r);
+    const isGroup = !!r.groupRoundId && !treatAsSolo;
+    const groupIsLive = isGroup && isGroupRoundStillLive(r.groupRoundId);
+
+    const groupLine = isGroup ? renderGroupPlayersLine(r, { live: groupIsLive }) : '';
+    const groupBadge = isGroup
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
+
+    // Live badge for group rounds that are still active. Renders as
+    // an empty slot initially, then patched in by
+    // patchVisibleRoundCardsForGroup once the async status fetch
+    // resolves. Keeps render synchronous; user sees the badge appear
+    // a beat later if the group is in fact still playing.
+    let liveSlotHtml = '';
+    if (r.groupRoundId) {
+      const live = isGroupRoundStillLive(r.groupRoundId);
+      const inner = live
+        ? '<span class="round-card-live-badge"><span class="round-card-live-dot"></span><span class="round-card-live-text">Live</span></span>'
+        : '';
+      liveSlotHtml = `<span class="round-card-live-slot">${inner}</span>`;
+      // Kick off a status fetch (no-op if cache is fresh / in-flight).
+      // Runs in microtask after the current render so it doesn't block.
+      Promise.resolve().then(() => ensureGroupRoundStatus(r.groupRoundId));
+    }
     // Best-round badge. Global best outranks course best — if this
     // round is the global best, show that; else if it's a course best,
     // show that. bestRoundInfo is memoized across a render pass by
@@ -46530,9 +47621,9 @@
       bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
     }
     return `
-      <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}" onclick="openRoundSummary('${r.id}')">
+      <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}"${r.groupRoundId ? ` data-group-round-id="${escapeAttr(r.groupRoundId)}"` : ''} onclick="openRoundSummary('${r.id}')">
         <div class="round-card-head">
-          <div class="round-card-course">${groupBadge}${escapeHtml(r.courseName || 'Round')}</div>
+          <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span>${liveSlotHtml}</div>
           <div class="round-card-arrow">→</div>
         </div>
         <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
@@ -46548,7 +47639,7 @@
   // Shared helper: render the "Played with Alex, Sam" line from a round's
   // denormalized groupOthers array. Returns empty string for non-group
   // rounds, so it's safe to splice unconditionally.
-  function renderGroupPlayersLine(r) {
+  function renderGroupPlayersLine(r, opts) {
     if (!r.groupRoundId) return '';
     const others = r.groupOthers || [];
     if (others.length === 0) return '';
@@ -46560,7 +47651,22 @@
     if (names.length === 1) text = names[0];
     else if (names.length === 2) text = `${names[0]} and ${names[1]}`;
     else text = `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
-    return `<div class="round-card-played-with">Played with ${text}</div>`;
+    // Verb conveys whether the group round is still active. "Playing
+    // with" reads as ongoing; "Played with" as finished.
+    const verb = (opts && opts.live) ? 'Playing with' : 'Played with';
+    return `<div class="round-card-played-with">${verb} ${text}</div>`;
+  }
+
+  // True when a round is technically a group round (has groupRoundId)
+  // but the user is the only participant with a saved score. Common
+  // case: started a round as a group, friends bailed before saving,
+  // user finished alone. Without this gate the round shows a
+  // "leaderboard" with one row (you) which is silly. With the gate,
+  // it falls through to render as a normal solo round.
+  function isEffectivelySoloRound(round) {
+    if (!round?.groupRoundId) return false;
+    const others = round.groupOthers || [];
+    return others.length === 0;
   }
 
   // Same shape as renderRoundCard but navigates to the PUBLIC round view
@@ -46575,7 +47681,7 @@
       (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
     const partial = (r.totals?.holesPlayed || 0) < 18 ? ` · ${r.totals.holesPlayed} holes` : '';
     const groupLine = renderGroupPlayersLine(r);
-    const groupBadge = r.groupRoundId
+    const groupBadge = (r.groupRoundId && !isEffectivelySoloRound(r))
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
     // Best-round badge from the stored bestType field on the mirrored
@@ -46591,7 +47697,7 @@
     return `
       <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}" onclick="openPublicRound('${escapeHtml(authorUid)}', '${escapeHtml(r.id)}')">
         <div class="round-card-head">
-          <div class="round-card-course">${groupBadge}${escapeHtml(r.courseName || 'Round')}</div>
+          <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span></div>
           <div class="round-card-arrow">→</div>
         </div>
         <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
@@ -46604,31 +47710,628 @@
       </button>`;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Round summary panel
-  // ─────────────────────────────────────────────────────────────
-  // TEMP — logged shots dump. Displays raw shot data below the hole-
-  // by-hole table on the round summary so the user can verify shots
-  // were captured correctly. Will be replaced by a proper stats view
-  // (per-club distances, dispersion patterns, etc.) once the shot
-  // corpus is big enough to do real analysis.
-  function renderLoggedShotsDump(round, course) {
+  // ─── Round-summary shot stats (categorized) ─────────────────────
+  // Replaces the flat "Shot Tracking" overview with three actionable
+  // categories: Driving (off the tee on par 4/5), Approach (going
+  // for the green), and Short Game (around/on the green). Each is a
+  // tappable card on the summary; tapping routes to a shared detail
+  // panel (round-shot-category) that reuses one renderer with the
+  // category as a parameter.
+
+  // Classify a single shot into one of: 'driving' | 'approach' |
+  // 'short' | 'putt'. Uses the user-set `intent` field when present;
+  // otherwise infers from startLie + hole par + distance. Par-3 tee
+  // shots are deliberately classified as 'approach' since the tee
+  // shot IS the approach to the green on a par 3 (standard golf
+  // stats convention).
+  function classifyRoundShot(shot, holePar) {
+    if (!shot) return null;
+    const intent = shot.intent;
+    if (intent === 'tee')      return holePar === 3 ? 'approach' : 'driving';
+    if (intent === 'approach') return 'approach';
+    if (intent === 'putt')     return 'putt';
+    if (intent === 'chip')     return 'short';
+    if (intent === 'layup')    return 'approach'; // layups are still approach-game
+    if (intent === 'recovery') return 'approach'; // recovery shots tend to be advancement attempts
+    // No explicit intent — infer from startLie + distance + par
+    const lie = shot.startLie;
+    const dist = (typeof shot.distance === 'number' && shot.distance > 0) ? shot.distance : null;
+    if (lie === 'tee') return holePar === 3 ? 'approach' : 'driving';
+    if (lie === 'green') return 'putt';
+    // From fairway/rough/sand/recovery — distance threshold separates
+    // approach from short-game (chip/pitch).
+    if (dist != null && dist <= 30) return 'short';
+    return 'approach';
+  }
+
+  // For section grouping. driving/approach use single category; short
+  // game combines short + putt for the section card stats.
+  function shotsInCategory(round, course, sectionKey) {
+    const out = [];
+    const shotsMap = round?.shots || {};
+    for (const hnStr of Object.keys(shotsMap)) {
+      const hn = Number(hnStr);
+      const arr = shotsMap[hnStr] || [];
+      const hd = course?.holes?.find(h => h.number === hn);
+      const par = hd?.par;
+      arr.forEach((shot, idx) => {
+        const cat = classifyRoundShot(shot, par);
+        let inSection = false;
+        if (sectionKey === 'driving')  inSection = cat === 'driving';
+        else if (sectionKey === 'approach') inSection = cat === 'approach';
+        else if (sectionKey === 'short') inSection = cat === 'short' || cat === 'putt';
+        if (inSection) {
+          out.push({ shot, holeNumber: hn, holePar: par, shotIndex: idx, category: cat });
+        }
+      });
+    }
+    return out;
+  }
+
+  // Aggregate stats for a category, including per-club breakdown.
+  function computeCategoryStats(round, course, sectionKey) {
+    const items = shotsInCategory(round, course, sectionKey);
+    const disp    = { left: 0, straight: 0, right: 0, total: 0 };
+    const contact = { clean: 0, thin: 0, chunk: 0, other: 0, total: 0 };
+    const byClub = new Map(); // clubName → { count, disp, contact }
+    for (const it of items) {
+      const s = it.shot;
+      const dir = resolveShotDirection(s, 'round');
+      const con = resolveShotContact(s, 'round');
+      if (dir) { disp[dir] += 1; disp.total += 1; }
+      if (con) { contact[con] += 1; contact.total += 1; }
+      const club = s.club || 'Unknown';
+      let bc = byClub.get(club);
+      if (!bc) {
+        bc = { name: club, count: 0,
+               disp:    { left: 0, straight: 0, right: 0, total: 0 },
+               contact: { clean: 0, thin: 0, chunk: 0, other: 0, total: 0 } };
+        byClub.set(club, bc);
+      }
+      bc.count += 1;
+      if (dir) { bc.disp[dir] += 1; bc.disp.total += 1; }
+      if (con) { bc.contact[con] += 1; bc.contact.total += 1; }
+    }
+    const clubs = Array.from(byClub.values()).sort((a, b) => b.count - a.count);
+    return { items, disp, contact, clubs, total: items.length };
+  }
+
+  // Up & Down: of holes where the green was missed in regulation,
+  // how many resulted in par or better? Standard scrambling stat.
+  // Returns { upDownCount, scrambleEligible, pct } or nulls if
+  // there's no data (e.g. quick-score round, or round didn't track
+  // greens).
+  function computeUpAndDown(round, course) {
+    if (!round || !course || !round.scores) return { upDown: null, eligible: 0, pct: null };
+    const scores = round.scores;
+    let eligible = 0, made = 0;
+    for (const h of course.holes) {
+      const e = scores[h.number];
+      if (!e || e.strokes == null) continue;
+      // Regulation = par - 2. Hit GIR if reached green in regulation
+      // strokes. eligible: missed GIR. made: scored par or better.
+      const girHit = (e.gir === true || e.girHit === true);
+      // If gir not explicitly tracked, skip — we can't distinguish
+      // GIR-and-2-putt from missed-GIR-and-up-and-down. Both can
+      // make par. Skip those holes from up&down.
+      if (typeof e.gir === 'undefined' && typeof e.girHit === 'undefined') continue;
+      if (girHit) continue; // green was hit; up&down doesn't apply
+      eligible += 1;
+      const diff = e.strokes - h.par;
+      if (diff <= 0) made += 1;
+    }
+    if (eligible === 0) return { upDown: null, eligible: 0, pct: null };
+    return { upDown: made, eligible, pct: Math.round((made / eligible) * 100) };
+  }
+
+  // 3-cell mini chart for dispersion. Each cell shows the count BIG
+  // and the % small underneath; a thin neutral bar inside each cell
+  // is sized proportional to count. No green/red color coding —
+  // direction isn't intrinsically good or bad. Width carries the
+  // bias visually.
+  function renderDispersionCells(disp) {
+    if (!disp || disp.total === 0) return '';
+    const { left, straight, right, total } = disp;
+    const pct = (n) => Math.round((n / total) * 100);
+    const cell = (label, count, percent) => `
+      <div class="disp-cell">
+        <div class="disp-cell-label">${label}</div>
+        <div class="disp-cell-num">${count}</div>
+        <div class="disp-cell-pct">${percent}%</div>
+        <div class="disp-cell-bar"><div class="disp-cell-bar-fill" style="width:${percent}%"></div></div>
+      </div>`;
+    return `
+      <div class="disp-cells">
+        ${cell('Left', left, pct(left))}
+        ${cell('Straight', straight, pct(straight))}
+        ${cell('Right', right, pct(right))}
+      </div>`;
+  }
+
+  // Contact as percentage chips. Headline = clean %, smaller pills
+  // for the rest. Skips zero-count buckets so chips don't show "0".
+  function renderContactChips(contact) {
+    if (!contact || contact.total === 0) return '';
+    const { clean, thin, chunk, other, total } = contact;
+    const pct = (n) => total > 0 ? Math.round((n / total) * 100) : 0;
+    const cleanPct = pct(clean);
+    const others = [
+      { label: 'Thin', n: thin },
+      { label: 'Chunk', n: chunk },
+      { label: 'Other', n: other },
+    ].filter(o => o.n > 0);
+    return `
+      <div class="contact-chips">
+        <div class="contact-chip-clean">
+          <div class="contact-chip-clean-pct">${cleanPct}<span>%</span></div>
+          <div class="contact-chip-clean-label">Clean strikes · ${clean}/${total}</div>
+        </div>
+        ${others.length > 0 ? `
+          <div class="contact-chip-misses">
+            ${others.map(o => `
+              <div class="contact-chip-miss">
+                <span class="contact-chip-miss-num">${o.n}</span>
+                <span class="contact-chip-miss-label">${o.label}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>`;
+  }
+
+  // Quick text summary of dispersion. Returns null when no data, or a
+  // string like "Tends right (5)" / "Even mix" / "Mostly straight (8)".
+  // Used on the category cards to communicate bias without color-coded
+  // bar charts.
+  function buildTendencyLine(disp) {
+    if (!disp || disp.total === 0) return null;
+    const { left, straight, right, total } = disp;
+    const pct = (n) => Math.round((n / total) * 100);
+    const lp = pct(left), sp = pct(straight), rp = pct(right);
+    if (sp >= 60) return `Mostly straight (${straight}/${total})`;
+    if (lp >= 50 && lp - rp >= 20) return `Misses left (${left}/${total})`;
+    if (rp >= 50 && rp - lp >= 20) return `Misses right (${right}/${total})`;
+    if (Math.abs(lp - rp) <= 10) return `Even L/R split (${left} L · ${right} R)`;
+    if (lp > rp) return `Tends left (${left} L · ${right} R)`;
+    return `Tends right (${right} R · ${left} L)`;
+  }
+
+  // Renders the three category cards on the round summary. Replaces
+  // the old flat overview block. Each card is tappable and routes to
+  // the shared detail panel.
+  function renderShotTrackingOverview(round, course) {
+    const shotsMap = round?.shots || {};
+    const totalShots = Object.values(shotsMap).reduce((s, arr) => s + (Array.isArray(arr) ? arr.length : 0), 0);
+
+    // Cache the round id for the modal/detail panels
+    roundSummaryShotsState.roundId = round.id;
+
+    // Compute TRACKED FIR/GIR counts here too (parent already does this
+    // for its own gates but we need it for the card denominators —
+    // showing "0/14 fairways" when the user only marked 14 holes is
+    // honest; showing "0/18" when they only marked 14 is misleading).
+    let firTracked = 0, girTracked = 0;
+    if (round.scores && course?.holes) {
+      for (const h of course.holes) {
+        const e = round.scores[h.number];
+        if (!e) continue;
+        if (h.par > 3 && (e.fir === true || e.fir === false)) firTracked += 1;
+        if (e.gir === true || e.gir === false) girTracked += 1;
+      }
+    }
+    const firHitVal = round.totals?.firHit;
+    const girHitVal = round.totals?.girHit;
+    const totalPutts = round.totals?.putts ?? 0;
+
+    // Determine whether to show ANY of this section at all. If the
+    // round has zero shot data of any kind (no logged shots, no FIR
+    // tracked, no GIR tracked, no putts), skip the whole section to
+    // keep the summary clean. Otherwise we render all three cards
+    // and let each handle its own empty state.
+    const hasAnyData = totalShots > 0 || firTracked > 0 || girTracked > 0 || totalPutts > 0;
+    if (!hasAnyData) return '';
+
+    // Driving card
+    const drivingStats = computeCategoryStats(round, course, 'driving');
+    const drivingHasData = (firTracked > 0) || (drivingStats.total > 0);
+    const drivingFirPct = (firTracked > 0 && typeof firHitVal === 'number')
+      ? Math.round(firHitVal / firTracked * 100) : null;
+    let drivingCard = '';
+    if (drivingHasData) {
+      const headline = (firTracked > 0 && typeof firHitVal === 'number')
+        ? `${firHitVal}<span class="cat-card-headline-of">/${firTracked}</span>${drivingFirPct != null ? `<span class="cat-card-headline-pct">${drivingFirPct}%</span>` : ''}`
+        : `${drivingStats.total}`;
+      const headlineLabel = (firTracked > 0 && typeof firHitVal === 'number')
+        ? 'Fairways'
+        : `Drive${drivingStats.total === 1 ? '' : 's'}`;
+      const sub = drivingStats.total > 0
+        ? `${drivingStats.total} drive${drivingStats.total === 1 ? '' : 's'} logged · ${drivingStats.clubs.length} club${drivingStats.clubs.length === 1 ? '' : 's'}`
+        : 'No shots logged';
+      const tendency = buildTendencyLine(drivingStats.disp);
+      drivingCard = `
+        <button class="shot-cat-card" onclick="openRoundShotCategory('${round.id}', 'driving')">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Driving</div>
+            <div class="shot-cat-card-chevron" aria-hidden="true">→</div>
+          </div>
+          <div class="shot-cat-card-headline">
+            <span class="cat-card-headline-num">${headline}</span>
+            <span class="cat-card-headline-label">${headlineLabel}</span>
+          </div>
+          <div class="shot-cat-card-sub">${sub}</div>
+          ${tendency ? `<div class="shot-cat-card-tendency">${tendency}</div>` : ''}
+        </button>`;
+    } else {
+      drivingCard = `
+        <div class="shot-cat-card shot-cat-card-empty">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Driving</div>
+          </div>
+          <div class="shot-cat-card-empty-text">Track fairways or log tee shots to see driving stats.</div>
+        </div>`;
+    }
+
+    // Approach card
+    const approachStats = computeCategoryStats(round, course, 'approach');
+    const approachHasData = (girTracked > 0) || (approachStats.total > 0);
+    const approachGirPct = (girTracked > 0 && typeof girHitVal === 'number')
+      ? Math.round(girHitVal / girTracked * 100) : null;
+    let approachCard = '';
+    if (approachHasData) {
+      const headline = (girTracked > 0 && typeof girHitVal === 'number')
+        ? `${girHitVal}<span class="cat-card-headline-of">/${girTracked}</span>${approachGirPct != null ? `<span class="cat-card-headline-pct">${approachGirPct}%</span>` : ''}`
+        : `${approachStats.total}`;
+      const headlineLabel = (girTracked > 0 && typeof girHitVal === 'number')
+        ? 'Greens'
+        : `Approach${approachStats.total === 1 ? '' : 'es'}`;
+      const sub = approachStats.total > 0
+        ? `${approachStats.total} approach${approachStats.total === 1 ? '' : 'es'} logged · ${approachStats.clubs.length} club${approachStats.clubs.length === 1 ? '' : 's'}`
+        : 'No shots logged';
+      const tendency = buildTendencyLine(approachStats.disp);
+      approachCard = `
+        <button class="shot-cat-card" onclick="openRoundShotCategory('${round.id}', 'approach')">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Approach</div>
+            <div class="shot-cat-card-chevron" aria-hidden="true">→</div>
+          </div>
+          <div class="shot-cat-card-headline">
+            <span class="cat-card-headline-num">${headline}</span>
+            <span class="cat-card-headline-label">${headlineLabel}</span>
+          </div>
+          <div class="shot-cat-card-sub">${sub}</div>
+          ${tendency ? `<div class="shot-cat-card-tendency">${tendency}</div>` : ''}
+        </button>`;
+    } else {
+      approachCard = `
+        <div class="shot-cat-card shot-cat-card-empty">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Approach</div>
+          </div>
+          <div class="shot-cat-card-empty-text">Track greens or log approach shots to see approach stats.</div>
+        </div>`;
+    }
+
+    // Short game card
+    const shortStats = computeCategoryStats(round, course, 'short');
+    const ud = computeUpAndDown(round, course);
+    const holesPlayed = round.totals?.holesPlayed ?? 0;
+    const puttsPerHole = (totalPutts > 0 && holesPlayed > 0) ? (totalPutts / holesPlayed).toFixed(1) : null;
+    const shortHasData = (totalPutts > 0) || (shortStats.total > 0);
+    let shortCard = '';
+    if (shortHasData) {
+      const headline = (ud.pct != null)
+        ? `${ud.upDown}<span class="cat-card-headline-of">/${ud.eligible}</span><span class="cat-card-headline-pct">${ud.pct}%</span>`
+        : (totalPutts > 0 ? `${totalPutts}` : `${shortStats.total}`);
+      const headlineLabel = (ud.pct != null)
+        ? 'Up & downs'
+        : (totalPutts > 0 ? `Putt${totalPutts === 1 ? '' : 's'}` : 'Short game');
+      const subParts = [];
+      if (totalPutts > 0)        subParts.push(`${totalPutts} putts`);
+      if (puttsPerHole != null)  subParts.push(`${puttsPerHole}/hole`);
+      if (shortStats.total > 0)  subParts.push(`${shortStats.total} chip${shortStats.total === 1 ? '' : 's'}/putt${shortStats.total === 1 ? '' : 's'}`);
+      shortCard = `
+        <button class="shot-cat-card" onclick="openRoundShotCategory('${round.id}', 'short')">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Short Game</div>
+            <div class="shot-cat-card-chevron" aria-hidden="true">→</div>
+          </div>
+          <div class="shot-cat-card-headline">
+            <span class="cat-card-headline-num">${headline}</span>
+            <span class="cat-card-headline-label">${headlineLabel}</span>
+          </div>
+          <div class="shot-cat-card-sub">${subParts.join(' · ') || 'No detail'}</div>
+        </button>`;
+    } else {
+      shortCard = `
+        <div class="shot-cat-card shot-cat-card-empty">
+          <div class="shot-cat-card-head">
+            <div class="shot-cat-card-title">Short Game</div>
+          </div>
+          <div class="shot-cat-card-empty-text">Log putts or chips to see short-game stats.</div>
+        </div>`;
+    }
+
+    return `
+      <div class="shot-cat-grid">
+        ${drivingCard}
+        ${approachCard}
+        ${shortCard}
+      </div>
+    `;
+  }
+
+  // Called when a category card is tapped on the summary screen.
+  // Routes to the shared detail panel.
+  function openRoundShotCategory(roundId, category) {
+    roundShotCategoryState.roundId = roundId;
+    roundShotCategoryState.category = category;
+    showPanel('round-shot-category', null);
+  }
+
+  // ─── Shared category detail panel ───────────────────────────────
+  const roundShotCategoryState = {
+    roundId: null,
+    category: null, // 'driving' | 'approach' | 'short'
+  };
+
+  function categoryLabel(cat) {
+    if (cat === 'driving')  return 'Driving';
+    if (cat === 'approach') return 'Approach';
+    if (cat === 'short')    return 'Short Game';
+    return 'Shots';
+  }
+
+  function renderRoundShotCategoryPage() {
+    const mount = document.getElementById('round-shot-category-mount');
+    if (!mount) return;
+    const { roundId, category } = roundShotCategoryState;
+    const round = roundId ? recentRounds.find(r => r.id === roundId) : null;
+    if (!round || !category) {
+      mount.innerHTML = `
+        <div class="panel-head">
+          <span class="accent-line"></span>
+          <h2>Not found</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showPanel('round-summary', null)">← Back to Round</button>`;
+      return;
+    }
+    const course = getCourse(round.courseId);
+    const stats = computeCategoryStats(round, course, category);
+
+    // Headline stat depends on category
+    let headlineHtml = '';
+    if (category === 'driving') {
+      const firHit = round.totals?.firHit;
+      const firEligible = round.totals?.firEligible;
+      const headlinePct = (typeof firHit === 'number' && firEligible > 0)
+        ? Math.round(firHit / firEligible * 100)
+        : null;
+      headlineHtml = `
+        <div class="shot-cat-detail-hero">
+          <div class="shot-cat-detail-hero-num">${typeof firHit === 'number' ? firHit : '—'}<span class="hero-of">${firEligible > 0 ? `/${firEligible}` : ''}</span></div>
+          <div class="shot-cat-detail-hero-label">Fairways hit${headlinePct != null ? ` · ${headlinePct}%` : ''}</div>
+          <div class="shot-cat-detail-hero-sub">${stats.total} drive${stats.total === 1 ? '' : 's'} logged</div>
+        </div>`;
+    } else if (category === 'approach') {
+      const girHit = round.totals?.girHit;
+      const girEligible = round.totals?.girEligible;
+      const headlinePct = (typeof girHit === 'number' && girEligible > 0)
+        ? Math.round(girHit / girEligible * 100)
+        : null;
+      headlineHtml = `
+        <div class="shot-cat-detail-hero">
+          <div class="shot-cat-detail-hero-num">${typeof girHit === 'number' ? girHit : '—'}<span class="hero-of">${girEligible > 0 ? `/${girEligible}` : ''}</span></div>
+          <div class="shot-cat-detail-hero-label">Greens hit${headlinePct != null ? ` · ${headlinePct}%` : ''}</div>
+          <div class="shot-cat-detail-hero-sub">${stats.total} approach${stats.total === 1 ? '' : 'es'} logged</div>
+        </div>`;
+    } else {
+      const ud = computeUpAndDown(round, course);
+      const totalPutts = round.totals?.putts ?? 0;
+      const holesPlayed = round.totals?.holesPlayed ?? 0;
+      const puttsPerHole = (totalPutts > 0 && holesPlayed > 0) ? (totalPutts / holesPlayed).toFixed(1) : null;
+      headlineHtml = `
+        <div class="shot-cat-detail-hero">
+          ${ud.pct != null ? `
+            <div class="shot-cat-detail-hero-num">${ud.upDown}<span class="hero-of">/${ud.eligible}</span></div>
+            <div class="shot-cat-detail-hero-label">Up &amp; downs · ${ud.pct}%</div>
+          ` : `
+            <div class="shot-cat-detail-hero-num">${totalPutts || '—'}</div>
+            <div class="shot-cat-detail-hero-label">Putts</div>
+          `}
+          <div class="shot-cat-detail-hero-sub">
+            ${[
+              totalPutts > 0 ? `${totalPutts} putt${totalPutts === 1 ? '' : 's'}` : '',
+              puttsPerHole != null ? `${puttsPerHole} per hole` : '',
+              stats.total > 0 ? `${stats.total} chip${stats.total === 1 ? '' : 's'}/putt${stats.total === 1 ? '' : 's'} logged` : '',
+            ].filter(Boolean).join(' · ')}
+          </div>
+        </div>`;
+    }
+
+    // Dispersion + contact — replaced bars with clearer formats:
+    // dispersion shows L/S/R as three labeled cells with counts +
+    // proportional mini-bars (no green/red colors so width carries the
+    // bias). Contact shows percentage chips since "clean %" is the
+    // headline value most people care about.
+    const dispBlock = stats.disp.total > 0 ? `
+      <div class="round-summary-section-label">Dispersion <span class="section-sublabel">${stats.disp.total} shot${stats.disp.total === 1 ? '' : 's'}</span></div>
+      ${renderDispersionCells(stats.disp)}
+    ` : '';
+    const contactBlock = stats.contact.total > 0 ? `
+      <div class="round-summary-section-label">Contact <span class="section-sublabel">${stats.contact.total} shot${stats.contact.total === 1 ? '' : 's'}</span></div>
+      ${renderContactChips(stats.contact)}
+    ` : '';
+
+    // Per-club breakdown
+    let clubsBlock = '';
+    if (stats.clubs.length > 0) {
+      const clubRows = stats.clubs.map(c => {
+        const cleanCount = c.contact.clean;
+        const cleanPct = c.contact.total > 0 ? Math.round((cleanCount / c.contact.total) * 100) : null;
+        const tendency = buildTendencyLine(c.disp);
+        return `
+          <div class="shot-cat-club-row">
+            <div class="shot-cat-club-row-head">
+              <div class="shot-cat-club-name">${escapeHtml(c.name)}</div>
+              <div class="shot-cat-club-count">${c.count} shot${c.count === 1 ? '' : 's'}${cleanPct != null ? ` · ${cleanPct}% clean` : ''}</div>
+            </div>
+            ${tendency ? `<div class="shot-cat-club-tendency">${tendency}</div>` : ''}
+          </div>`;
+      }).join('');
+      clubsBlock = `
+        <div class="round-summary-section-label">By Club</div>
+        <div class="shot-cat-club-list">${clubRows}</div>`;
+    }
+
+    // Shot list — per-hole entries
+    const shotRows = stats.items.map(it => {
+      const s = it.shot;
+      const dir = resolveShotDirection(s, 'round');
+      const con = resolveShotContact(s, 'round');
+      const dirTag = dir ? `<span class="shot-cat-shot-tag tag-dir-${dir}">${dir === 'left' ? 'L' : dir === 'right' ? 'R' : 'S'}</span>` : '';
+      const conTag = con ? `<span class="shot-cat-shot-tag tag-contact-${con}">${con.charAt(0).toUpperCase()}</span>` : '';
+      const distLabel = (typeof s.distance === 'number' && s.distance > 0) ? `${s.distance}${distanceUnit()}` : '';
+      return `
+        <div class="shot-cat-shot-row">
+          <div class="shot-cat-shot-hole">H${it.holeNumber}</div>
+          <div class="shot-cat-shot-club">${escapeHtml(s.club || '—')}</div>
+          <div class="shot-cat-shot-distance">${distLabel}</div>
+          <div class="shot-cat-shot-tags">${dirTag}${conTag}</div>
+        </div>`;
+    }).join('');
+    const shotsBlock = stats.items.length > 0 ? `
+      <div class="round-summary-section-label">All ${categoryLabel(category)} Shots</div>
+      <div class="shot-cat-shot-list">${shotRows}</div>
+    ` : `
+      <div class="club-detail-emptybox">No ${categoryLabel(category).toLowerCase()} shots logged in this round.</div>
+    `;
+
+    mount.innerHTML = `
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Round · ${escapeHtml(round.courseName || '')}</span>
+        <h2>${categoryLabel(category)}</h2>
+      </div>
+      ${headlineHtml}
+      ${dispBlock}
+      ${contactBlock}
+      ${clubsBlock}
+      ${shotsBlock}
+    `;
+  }
+
+  // ─── Shot Tracking modal ─────────────────────────────────────
+
+  const roundSummaryShotsState = {
+    open: false,
+    roundId: null,
+  };
+
+  function openShotTrackingModal() {
+    if (roundSummaryShotsState.open) return;
+    const roundId = roundSummaryState.roundId;
+    if (!roundId) return;
+    roundSummaryShotsState.open = true;
+    roundSummaryShotsState.roundId = roundId;
+    acquireScrollLock();
+    mountShotTrackingModal();
+  }
+
+  function closeShotTrackingModal() {
+    if (!roundSummaryShotsState.open) return;
+    const sheet = document.querySelector('.shot-log-sheet');
+    const backdrop = document.querySelector('.shot-log-backdrop');
+    const finish = () => {
+      roundSummaryShotsState.open = false;
+      releaseScrollLock();
+      const mount = document.getElementById('shot-log-modal-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!sheet || !backdrop) { finish(); return; }
+    sheet.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      sheet.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+
+  function mountShotTrackingModal() {
+    const mount = document.getElementById('shot-log-modal-mount');
+    if (!mount) return;
+    if (!roundSummaryShotsState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const round = recentRounds.find(r => r.id === roundSummaryShotsState.roundId);
+    if (!round) {
+      mount.innerHTML = '';
+      roundSummaryShotsState.open = false;
+      return;
+    }
+    const course = getCourse(round.courseId);
+    const bodyHtml = buildShotLogHoleCards(round, course);
+
+    mount.innerHTML = `
+      <div class="shot-log-backdrop opening" onclick="closeShotTrackingModal()" aria-hidden="true"></div>
+      <div class="shot-log-sheet opening" role="dialog" aria-modal="true" aria-label="All logged shots">
+        <div class="shot-log-header">
+          <div class="shot-log-handle" aria-hidden="true"></div>
+          <div class="shot-log-title">All Logged Shots</div>
+          <button class="shot-log-close" onclick="closeShotTrackingModal()" aria-label="Close">×</button>
+        </div>
+        <div class="shot-log-body">
+          ${bodyHtml}
+        </div>
+      </div>
+    `;
+
+    const sheet = mount.querySelector('.shot-log-sheet.opening');
+    const backdrop = mount.querySelector('.shot-log-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    const sheetEl = mount.querySelector('.shot-log-sheet');
+    const headerEl = sheetEl?.querySelector('.shot-log-header');
+    attachBottomSheetDrag({
+      sheetEl,
+      headerEl,
+      backdropSelector: '.shot-log-backdrop',
+      ignoreSelector: '.shot-log-close',
+      closeFn: closeShotTrackingModal,
+    });
+  }
+
+  // Extracted: builds the hole-by-hole shot cards. Previously lived in
+  // renderLoggedShotsDump which was rendered inline; now it's called
+  // from the modal so the same data presentation is kept, minus the
+  // TEMP tag + inline section label chrome.
+  function buildShotLogHoleCards(round, course) {
     const shots = round?.shots || {};
     const holeNums = Object.keys(shots)
       .map(Number)
       .filter(n => Array.isArray(shots[n]) && shots[n].length > 0)
       .sort((a, b) => a - b);
-    if (holeNums.length === 0) return '';
+    if (holeNums.length === 0) {
+      return `<div class="shot-log-empty">No shots logged for this round.</div>`;
+    }
 
-    // Small lookup builders for label text. Fall back to raw id if
-    // the constant lookup misses (defensive — e.g. old data with an
-    // intent value we've since renamed).
     const lieLabel = (id) => (SHOT_START_LIES.find(l => l.id === id)?.label) || id || '—';
     const intentLabel = (id) => (SHOT_INTENTS.find(i => i.id === id)?.label) || id || '—';
     const mishitLabel = (id) => (SHOT_MISHITS.find(m => m.id === id)?.label) || id || '—';
     const resultLabel = (id) => (SHOT_RESULTS.find(r => r.id === id)?.label) || id || '—';
 
-    const holeCards = holeNums.map(holeNum => {
+    return holeNums.map(holeNum => {
       const hole = course?.holes?.find(h => h.number === holeNum);
       const parStr = hole ? ` · Par ${hole.par}` : '';
       const shotLines = shots[holeNum].map((s, i) => {
@@ -46660,12 +48363,6 @@
           ${shotLines}
         </div>`;
     }).join('');
-
-    return `
-      <div class="round-summary-section-label">Logged Shots <span class="shots-dump-temp-tag">TEMP</span></div>
-      <div class="shots-dump-wrap">
-        ${holeCards}
-      </div>`;
   }
 
   function renderRoundSummary() {
@@ -46719,9 +48416,23 @@
       hasStatsTracking = (typeof firHit === 'number') || (typeof girHit === 'number');
     } else {
       firHit = round.totals?.firHit ?? 0;
-      firMax = round.totals?.firEligible ?? 0;
       girHit = round.totals?.girHit ?? 0;
-      girMax = round.totals?.girEligible ?? 0;
+      // Compute TRACKED counts — holes where the user explicitly set
+      // fir / gir (true OR false). Distinct from totals.firEligible /
+      // girEligible which count every PLAYED hole. Without this
+      // distinction, a round where the user didn't tick GIR on any
+      // hole reads as "0% greens" instead of "not tracked."
+      let firTracked = 0, girTracked = 0;
+      if (round.scores && course?.holes) {
+        for (const h of course.holes) {
+          const e = round.scores[h.number];
+          if (!e) continue;
+          if (h.par > 3 && (e.fir === true || e.fir === false)) firTracked += 1;
+          if (e.gir === true || e.gir === false) girTracked += 1;
+        }
+      }
+      firMax = firTracked;
+      girMax = girTracked;
       hasStatsTracking = firMax > 0 || girMax > 0;
     }
     const firPct = firMax > 0 && typeof firHit === 'number' ? Math.round((firHit / firMax) * 100) : null;
@@ -46740,79 +48451,103 @@
     // Hole-by-hole breakdown if we have course data. Quick Score rounds
     // have empty scores maps and won't produce any rows — we show a
     // helpful note below instead.
-    let holeRows = '';
-    if (course && round.scores && !isQuickScore) {
-      const playedHoleNums = Object.keys(round.scores).map(Number).sort((a, b) => a - b);
-      holeRows = playedHoleNums.map(hn => {
-        const hd = course.holes.find(h => h.number === hn);
-        const e = round.scores[hn];
-        if (!hd || !e) return '';
+    //
+    // Layout: horizontal "holes across, rows down" — same compact
+    // format as the player-scorecard sheet. Front 9 / Back 9 stack
+    // vertically, each table has hole numbers as columns, par row +
+    // score row, plus an Out / In total cell on the right. No putts
+    // column (putts are in the top stats); no penalty icons (penalty
+    // strokes are already baked into the score number itself).
+    let frontTableHtml = '', backTableHtml = '';
+    let frontParSum = 0, frontStrokeSum = 0, frontPlayed = 0;
+    let backParSum  = 0, backStrokeSum  = 0, backPlayed  = 0;
+
+    const buildNine = (start, end, label) => {
+      let nineParSum = 0, nineStrokeSum = 0, ninePlayed = 0;
+      const numCells = [];
+      const parCells = [];
+      const scoreCells = [];
+      for (let hn = start; hn <= end; hn++) {
+        const hd = course?.holes.find(h => h.number === hn);
+        const e  = round.scores?.[hn];
+        const par = hd?.par ?? '—';
+        numCells.push(`<th class="rs-sc-hole-num">${hn}</th>`);
+        parCells.push(`<td class="rs-sc-par">${par}</td>`);
+        if (!hd || !e || e.strokes == null) {
+          scoreCells.push(`<td class="rs-sc-strokes rs-sc-empty">—</td>`);
+          continue;
+        }
+        nineParSum += hd.par;
+        nineStrokeSum += e.strokes;
+        ninePlayed += 1;
         const diff = e.strokes - hd.par;
-        // Score marker following traditional scorecard convention:
-        //   eagle (or better) = double circle, birdie = single circle,
-        //   par = no mark, bogey = single square, double+ = double square.
-        let scoreMarker = 'none';
-        if (diff <= -2)      scoreMarker = 'eagle';
-        else if (diff === -1) scoreMarker = 'birdie';
-        else if (diff === 0)  scoreMarker = 'none';
-        else if (diff === 1)  scoreMarker = 'bogey';
-        else                  scoreMarker = 'double';
-        // FIR cell: par 3 → em-dash (N/A), else ✓ or ✗ based on recorded value.
-        // If the hole was played before FIR tracking existed, e.fir is undefined —
-        // show a muted dash. When the user logged a miss direction
-        // (Phase 1 diagnostic field), append a small arrow so reviewing
-        // the round shows what they recorded — otherwise the data is
-        // invisible after entry.
-        const dirGlyph = { left: '←', right: '→', short: '↓', long: '↑' };
-        const firDirSuffix = (e.fir === false && e.firMiss && dirGlyph[e.firMiss])
-          ? ` <span class="rs-cell-dir">${dirGlyph[e.firMiss]}</span>`
-          : '';
-        const girDirSuffix = (e.gir === false && e.girMiss && dirGlyph[e.girMiss])
-          ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
-          : '';
-        const firCell = hd.par === 3 ? '<span class="rs-cell-dim">—</span>' :
-          (e.fir == null ? '<span class="rs-cell-dim">—</span>' :
-           e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
-        const girCell = e.gir == null ? '<span class="rs-cell-dim">—</span>' :
-          e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
-        // Penalty marker on the score cell. Compact warning glyph
-        // shows count when > 1; just the icon when 1. Title attribute
-        // explains on hover (mostly desktop).
-        const penaltyMark = (e.penalties > 0)
-          ? `<span class="rs-cell-pen" title="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}">⚠${e.penalties > 1 ? e.penalties : ''}</span>`
-          : '';
-        // Shots logged on this hole — when none, show a muted dash so
-        // the column reads cleanly even if the user tracked shots on
-        // only some holes.
-        const holeShotCount = (shotsMap[hn] || []).length;
-        const shotsCell = hasTrackedShots
-          ? (holeShotCount > 0 ? `<td>${holeShotCount}</td>` : '<td><span class="rs-cell-dim">—</span></td>')
-          : '';
-        return `
-          <tr>
-            <td>${hn}</td>
-            <td>${hd.par}</td>
-            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span>${penaltyMark}</td>
-            <td>${e.putts ?? '—'}</td>
-            <td>${firCell}</td>
-            <td>${girCell}</td>
-            ${shotsCell}
-          </tr>`;
-      }).join('');
+        let cls = '';
+        if (diff <= -2)       cls = ' rs-sc-eagle';
+        else if (diff === -1) cls = ' rs-sc-birdie';
+        else if (diff === 1)  cls = ' rs-sc-bogey';
+        else if (diff >= 2)   cls = ' rs-sc-double';
+        scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}</span></td>`);
+      }
+      const totalLabel = label === 'Front 9' ? 'Out' : 'In';
+      const parTotalCell = `<td class="rs-sc-total rs-sc-par-total">${ninePlayed > 0 ? nineParSum : '—'}</td>`;
+      const scoreTotalCell = `<td class="rs-sc-total">${ninePlayed > 0 ? nineStrokeSum : '—'}</td>`;
+      const tableHtml = `
+        <div class="rs-sc-nine">
+          <div class="rs-sc-nine-label">${label}</div>
+          <table class="rs-sc-table">
+            <thead>
+              <tr><th class="rs-sc-row-label">Hole</th>${numCells.join('')}<th class="rs-sc-total-label">${totalLabel}</th></tr>
+              <tr><td class="rs-sc-row-label">Par</td>${parCells.join('')}${parTotalCell}</tr>
+            </thead>
+            <tbody>
+              <tr><td class="rs-sc-row-label">Score</td>${scoreCells.join('')}${scoreTotalCell}</tr>
+            </tbody>
+          </table>
+        </div>`;
+      return { tableHtml, nineParSum, nineStrokeSum, ninePlayed };
+    };
+
+    let hasScorecard = false;
+    if (course && round.scores && !isQuickScore) {
+      const front = buildNine(1, 9, 'Front 9');
+      const back  = buildNine(10, 18, 'Back 9');
+      frontTableHtml = front.tableHtml;
+      backTableHtml  = back.tableHtml;
+      frontParSum = front.nineParSum;   frontStrokeSum = front.nineStrokeSum;   frontPlayed = front.ninePlayed;
+      backParSum  = back.nineParSum;    backStrokeSum  = back.nineStrokeSum;    backPlayed  = back.ninePlayed;
+      hasScorecard = (frontPlayed + backPlayed) > 0;
     }
 
+    // Group-round rendering strategy:
+    // The round carries `groupRoundId` when it was started in a group,
+    // and `groupOthers` (denormalized at completion) lists every
+    // player who was in the group lobby. But a player being in the
+    // lobby doesn't mean they scored — they might have bailed, been
+    // invited but never joined, or left before saving anything.
+    // Treating that as "group round" misrepresents the user's
+    // experience (showing a leaderboard with just them on it).
+    //
+    // To handle this robustly: always RENDER the group chrome (badge
+    // + leaderboard mount) when groupRoundId exists, but start hidden
+    // behind a `.rs-group-hidden` class. The leaderboard hydration
+    // callback checks the authoritative `results` subcollection (which
+    // only contains players who actually saved scores), and reveals
+    // the chrome only if at least one OTHER player is in results. A
+    // truly solo round — even one technically tagged as a group —
+    // falls through to solo display.
+    const isGroupLinked = !!round.groupRoundId;
     mount.innerHTML = `
       <div class="round-summary-head">
         ${bestHeroBadge}
         <div class="round-summary-eyebrow">
-          ${round.groupRoundId ? '<span class="round-summary-group-badge">👥 Group Round</span> · ' : ''}${isQuickScore ? 'Quick Score' : (holesPlayed >= 18 ? 'Round Complete' : `${holesPlayed}-Hole Round`)}
+          ${isGroupLinked ? '<span class="round-summary-group-badge rs-group-hidden">👥 Group Round</span> · ' : ''}${isQuickScore ? 'Quick Score' : (holesPlayed >= 18 ? 'Round Complete' : `${holesPlayed}-Hole Round`)}
         </div>
         <h2 class="round-summary-title">${escapeHtml(round.courseName || 'Round')}</h2>
         <div class="round-summary-meta">${escapeHtml(dateStr)} · ${escapeHtml(round.teeName || '')}</div>
         ${renderGroupPlayersLine(round)}
       </div>
 
-      <div class="round-summary-totals">
+      <div class="round-summary-totals round-summary-totals-compact">
         <div class="round-summary-stat round-summary-stat-primary">
           <div class="round-summary-stat-value">${totalStrokes}</div>
           <div class="round-summary-stat-label">Strokes</div>
@@ -46829,32 +48564,10 @@
           <div class="round-summary-stat-value">${holesPlayed}</div>
           <div class="round-summary-stat-label">Holes</div>
         </div>
-        ${hasTrackedShots ? `
-          <div class="round-summary-stat">
-            <div class="round-summary-stat-value">${totalTrackedShots}</div>
-            <div class="round-summary-stat-label">Shots Logged</div>
-          </div>
-        ` : ''}
       </div>
 
-      ${round.groupRoundId ? `
-        <div id="round-summary-leaderboard-mount" class="round-summary-leaderboard-mount"></div>
-      ` : ''}
-
-      ${hasStatsTracking ? `
-        <div class="round-summary-section-label">Ball Striking</div>
-        <div class="round-summary-striking">
-          <div class="striking-stat">
-            <div class="striking-stat-pct">${firPct != null ? firPct : '—'}${firPct != null ? '<span>%</span>' : ''}</div>
-            <div class="striking-stat-label">Fairways</div>
-            <div class="striking-stat-detail">${typeof firHit === 'number' ? `${firHit} of ${firMax}` : 'Not tracked'}</div>
-          </div>
-          <div class="striking-stat">
-            <div class="striking-stat-pct">${girPct != null ? girPct : '—'}${girPct != null ? '<span>%</span>' : ''}</div>
-            <div class="striking-stat-label">Greens</div>
-            <div class="striking-stat-detail">${typeof girHit === 'number' ? `${girHit} of ${girMax}` : 'Not tracked'}</div>
-          </div>
-        </div>
+      ${isGroupLinked ? `
+        <div id="round-summary-leaderboard-mount" class="round-summary-leaderboard-mount rs-group-hidden"></div>
       ` : ''}
 
       ${isQuickScore ? `
@@ -46863,21 +48576,28 @@
         </div>
       ` : ''}
 
-      ${renderRoundInsightsCard(round)}
-
-      ${holeRows ? `
-        <div class="round-summary-section-label">Hole by Hole</div>
-        <div class="round-summary-table-wrap">
-          <table class="round-summary-table">
-            <thead>
-              <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th>${hasTrackedShots ? '<th>Shots</th>' : ''}</tr>
-            </thead>
-            <tbody>${holeRows}</tbody>
-          </table>
+      ${hasScorecard ? `
+        <div class="round-summary-section-label">Scorecard</div>
+        <div class="rs-sc-scorecard">
+          ${frontTableHtml}
+          ${backTableHtml}
         </div>
       ` : ''}
 
-      ${renderLoggedShotsDump(round, course)}
+      ${(() => {
+        // Wrap "How you played" + shot stat cards under one Round
+        // Insights section. Skip the wrapper entirely if both inner
+        // renderers come back empty (e.g. quick-score round, no data
+        // anywhere).
+        const insightsHtml = renderRoundInsightsCard(round);
+        const shotStatsHtml = renderShotTrackingOverview(round, course);
+        if (!insightsHtml && !shotStatsHtml) return '';
+        return `
+          <div class="round-summary-section-label">Round Insights</div>
+          ${insightsHtml}
+          ${shotStatsHtml}
+        `;
+      })()}
 
       ${prefs.profileVisibility === 'public' ? `
         <div class="round-summary-section-label">Visibility</div>
@@ -46901,11 +48621,10 @@
       </div>
     `;
 
-    // Hydrate the leaderboard after the DOM is mounted. Gated on
-    // groupRoundId — solo rounds don't need any of this. Runs async
-    // so the summary itself paints immediately; the leaderboard slot
-    // shows a loading shimmer until the fetch returns.
-    if (round.groupRoundId) {
+    // Hydrate the leaderboard after the DOM is mounted. Runs whenever
+    // the round is group-linked. Inside the callback we check whether
+    // anyone else actually scored; if not, the chrome stays hidden.
+    if (isGroupLinked) {
       hydrateRoundSummaryLeaderboard(round);
     }
   }
@@ -46927,13 +48646,102 @@
     const grId = round.groupRoundId;
     if (!grId) return;
 
+    // Reveal / hide the group chrome based on whether any OTHER
+    // player is participating in the round. Used by both the cached
+    // path and the fresh-subscription rerender.
+    //
+    // "Participating" = either (a) they're present in liveDoc.players
+    // — players who actually leave are filtered out of that array, so
+    // anyone remaining is a real participant whether they've scored
+    // or not, OR (b) they're in the results subcollection (saved
+    // final scores) — the fallback path for when the live doc isn't
+    // available. This handles the case where the user finishes
+    // before another player has scored: the other player is still in
+    // the round and the leaderboard should reflect that.
+    const applyGroupVisibility = (rows) => {
+      const myUid = currentUser?.uid;
+      const results = roundSummaryState.lbLiveResults || [];
+      const liveDoc = roundSummaryState.lbLiveDoc;
+
+      // Anyone OTHER than me with a final result?
+      const othersInResults = results.some(r => r.uid && r.uid !== myUid);
+
+      // Anyone OTHER than me present in the live group doc?
+      let othersPresent = false;
+      if (liveDoc && Array.isArray(liveDoc.players)) {
+        othersPresent = liveDoc.players.some(p => p?.uid && p.uid !== myUid);
+      }
+
+      // Update the history-card cache off the same live data — keeps
+      // the home-screen Live pill in sync with what the leaderboard
+      // sees, so it disappears the moment the group completes (no
+      // need to wait for the 60s TTL or a manual refresh). Only
+      // bother when we have a live doc to read from.
+      if (liveDoc) {
+        const players = Array.isArray(liveDoc.players) ? liveDoc.players : [];
+        const others = players.filter(p => p?.uid && p.uid !== myUid);
+        groupRoundStatusCache.set(grId, {
+          status: liveDoc.status || 'unknown',
+          othersPresent: others.length > 0,
+          othersStillPlaying: others.some(p => p.status !== 'finished'),
+          fetchedAt: Date.now(),
+          inFlight: false,
+        });
+        patchVisibleRoundCardsForGroup(grId);
+      }
+
+      const showGroup = othersInResults || othersPresent;
+      const m = document.getElementById('round-summary-leaderboard-mount');
+      const badge = document.querySelector('.round-summary-group-badge');
+      if (showGroup) {
+        if (m) {
+          m.classList.remove('rs-group-hidden');
+          m.innerHTML = renderRoundSummaryLeaderboard(rows, myUid);
+        }
+        if (badge) badge.classList.remove('rs-group-hidden');
+      } else {
+        if (m) {
+          m.classList.add('rs-group-hidden');
+          m.innerHTML = '';
+        }
+        if (badge) badge.classList.add('rs-group-hidden');
+      }
+
+      // If the player-scorecard sheet is open in summary mode for one
+      // of these rows, push the fresh row into its state and re-render.
+      // The render diffs scores against the previously-seen ones and
+      // flashes any holes that changed (orange pulse). This is what
+      // makes the open scorecard come alive — the user is watching
+      // another player's round update in real time.
+      if (
+        playerScorecardState.open &&
+        playerScorecardState.mode === 'summary' &&
+        playerScorecardState.uid
+      ) {
+        const updatedRow = rows.find(r => r.uid === playerScorecardState.uid);
+        if (updatedRow) {
+          playerScorecardState.snapshotRow = updatedRow;
+          renderPlayerScorecardSheet();
+        }
+      }
+
+      // Same live-update treatment for the group scorecard sheet.
+      // The sheet reads from roundSummaryState.leaderboardRows
+      // (already updated above), so we just need to re-render. The
+      // render diffs scores per (uid, hole) and flashes the cells
+      // that changed.
+      if (summaryGroupScorecardState.open) {
+        renderSummaryGroupScorecard();
+      }
+    };
+
     // If we already have live subscriptions running for THIS round,
     // just re-render from the cached snapshots. The summary function
     // can be called multiple times (e.g. after a privacy toggle) and
     // we don't want to tear down and re-subscribe on every render.
     if (roundSummaryState.leaderboardFor === grId && roundSummaryState.lbUnsubscribeDoc) {
       if (roundSummaryState.leaderboardRows) {
-        mount.innerHTML = renderRoundSummaryLeaderboard(roundSummaryState.leaderboardRows, currentUser?.uid);
+        applyGroupVisibility(roundSummaryState.leaderboardRows);
       }
       return;
     }
@@ -46960,6 +48768,13 @@
     // snapshot arrives, so the UI reflects the union of both feeds.
     // Guarded against stale fires: if the user has navigated away
     // to a different round before a snapshot lands, skip rendering.
+    //
+    // Also decides whether to reveal the group chrome (badge +
+    // leaderboard): the authoritative signal is the results
+    // subcollection. If at least one OTHER player has saved results,
+    // this is a real group round from the user's perspective; reveal
+    // everything. If only self (or no results at all), keep the
+    // chrome hidden — renders as solo.
     const rerender = () => {
       if (roundSummaryState.leaderboardFor !== grId) return;
       const rows = shapeLeaderboardRows(
@@ -46969,10 +48784,7 @@
       );
       roundSummaryState.leaderboardRows = rows;
       roundSummaryState.leaderboardLoading = false;
-      // Mount might be gone if the panel unmounted between snapshot
-      // firing and this callback running — re-fetch each time.
-      const m = document.getElementById('round-summary-leaderboard-mount');
-      if (m) m.innerHTML = renderRoundSummaryLeaderboard(rows, currentUser?.uid);
+      applyGroupVisibility(rows);
     };
 
     // Subscribe to the parent group round doc — fires on every score
@@ -47150,13 +48962,22 @@
         scoreCell = `<div class="rs-lb-strokes">${strokes}${vsParStr ? ` <span class="rs-lb-vspar">${vsParStr}</span>` : ''}</div>`;
         throughCell = `<div class="rs-lb-through">${throughStr}</div>`;
       } else {
-        // In-progress: if we have live partial totals, surface them
-        // quietly (muted) alongside the "In Progress" pill so the
-        // user has SOME sense of where the player stands. If no
-        // totals (live doc unreadable), just show the pill.
+        // In-progress: show the running score so the user can see how
+        // the player is doing in real time. Through-cell carries the
+        // "Thru N" indicator that signals this isn't a final number.
+        // Falls back to a pill only when we genuinely have no totals
+        // (live doc was unreadable / player just joined and hasn't
+        // scored anything yet).
+        const strokes = r.totals?.strokes;
+        const vsPar = r.totals?.vsPar;
         const holesPlayed = r.totals?.holesPlayed ?? 0;
         const throughStr = holesPlayed > 0 ? `Thru ${holesPlayed}` : 'Playing';
-        scoreCell = `<div class="rs-lb-strokes rs-lb-strokes-inprogress"><span class="rs-lb-inprogress-pill">In Progress</span></div>`;
+        if (typeof strokes === 'number' && strokes > 0) {
+          const vsParStr = vsPar == null ? '' : (vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+          scoreCell = `<div class="rs-lb-strokes rs-lb-strokes-inprogress">${strokes}${vsParStr ? ` <span class="rs-lb-vspar">${vsParStr}</span>` : ''}</div>`;
+        } else {
+          scoreCell = `<div class="rs-lb-strokes rs-lb-strokes-inprogress"><span class="rs-lb-inprogress-pill">In Progress</span></div>`;
+        }
         throughCell = `<div class="rs-lb-through rs-lb-through-inprogress">${throughStr}</div>`;
       }
 
@@ -47191,8 +49012,22 @@
       </button>
     ` : '';
 
+    // Status pill — shows whether other players in the group are
+    // still active. Once everyone is done, flips to a "Round Complete"
+    // pill. Counts only OTHER players since the user has obviously
+    // finished if they're viewing the summary.
+    const stillPlaying = rows.filter(r => r.uid !== myUid && r.status !== 'completed').length;
+    const statusPill = stillPlaying > 0
+      ? `<div class="rs-lb-status rs-lb-status-live">
+           <span class="rs-lb-status-dot"></span>${stillPlaying} still playing
+         </div>`
+      : `<div class="rs-lb-status rs-lb-status-done">Round Complete</div>`;
+
     return `
-      <div class="round-summary-section-label">Leaderboard</div>
+      <div class="round-summary-section-label-row">
+        <div class="round-summary-section-label">Leaderboard</div>
+        ${statusPill}
+      </div>
       <div class="rs-lb-table">${rowsHtml}</div>
       ${groupBtnHtml}
     `;
@@ -47205,7 +49040,13 @@
   // the cached leaderboard rows (so it's free — no extra fetch) and
   // uses the same visual language as the live gsc-* group scorecard.
   // ─────────────────────────────────────────────────────────────
-  const summaryGroupScorecardState = { open: false };
+  const summaryGroupScorecardState = {
+    open: false,
+    // Tracks last-rendered scores per (uid, hole) so the next render
+    // can diff and decide which cells to flash. Reset on open/close
+    // so the first paint of a fresh open doesn't flash everything.
+    prevScoresByUidByHole: null,
+  };
 
   function openSummaryGroupScorecard() {
     if (summaryGroupScorecardState.open) return;
@@ -47215,6 +49056,7 @@
       return;
     }
     summaryGroupScorecardState.open = true;
+    summaryGroupScorecardState.prevScoresByUidByHole = null;
     acquireScrollLock();
     renderSummaryGroupScorecard();
   }
@@ -47225,6 +49067,7 @@
     const backdrop = document.querySelector('.sgs-backdrop');
     const finish = () => {
       summaryGroupScorecardState.open = false;
+      summaryGroupScorecardState.prevScoresByUidByHole = null;
       releaseScrollLock();
       const mount = document.getElementById('summary-group-scorecard-mount');
       if (mount) mount.innerHTML = '';
@@ -47271,14 +49114,33 @@
 
     const nameFor = (r) => (r.uid === myUid) ? 'You' : r.displayName;
 
+    // Diff: build a set of "uid:holeNumber" keys for cells whose
+    // strokes value changed since the last render. Used to flash
+    // those cells orange so the viewer's eye catches what just
+    // updated. First paint (prev = null) flashes nothing because
+    // prev gets seeded on open.
+    const prev = summaryGroupScorecardState.prevScoresByUidByHole;
+    const flashKeys = new Set();
+    if (prev) {
+      for (const r of ordered) {
+        const prevForUid = prev[r.uid] || {};
+        for (const h of holes) {
+          const cur = r.scores?.[h.number]?.strokes;
+          const old = prevForUid[h.number]?.strokes;
+          if (cur !== old) flashKeys.add(`${r.uid}:${h.number}`);
+        }
+      }
+    }
+
     // Per-player row cells for a nine, reusing the gsc-* classes from
     // the live view so styling is consistent.
     const scoreRowCells = (row, nineHoles) => {
       const scores = row.scores || {};
       return nineHoles.map((h) => {
         const s = scores[h.number]?.strokes;
+        const flashCls = flashKeys.has(`${row.uid}:${h.number}`) ? ' is-flash' : '';
         if (s == null) {
-          return `<td class="gsc-strokes gsc-empty">—</td>`;
+          return `<td class="gsc-strokes gsc-empty${flashCls}">—</td>`;
         }
         const diff = s - h.par;
         let marker = '';
@@ -47286,7 +49148,7 @@
         else if (diff === -1) marker = ' gsc-birdie';
         else if (diff === 1)  marker = ' gsc-bogey';
         else if (diff >= 2)   marker = ' gsc-double';
-        return `<td class="gsc-strokes${marker}"><span class="gsc-strokes-inner">${s}</span></td>`;
+        return `<td class="gsc-strokes${marker}${flashCls}"><span class="gsc-strokes-inner">${s}</span></td>`;
       }).join('');
     };
 
@@ -47320,48 +49182,70 @@
         </div>`;
     };
 
-    mount.innerHTML = `
-      <div class="sgs-backdrop opening" onclick="closeSummaryGroupScorecard()" aria-hidden="true"></div>
-      <div class="sgs-sheet opening" role="dialog" aria-modal="true" aria-label="Group scorecard">
-        <div class="sgs-header">
-          <div class="sgs-handle" aria-hidden="true"></div>
-          <div class="sgs-title-block">
-            <div class="sgs-eyebrow">Group Scorecard</div>
-            <div class="sgs-title">${escapeHtml(course.name)}</div>
-          </div>
-          <button class="sgs-close" onclick="closeSummaryGroupScorecard()" aria-label="Close">×</button>
-        </div>
-        <div class="sgs-body">
-          <div class="gsc-body">
-            ${buildNineHtml(frontHoles, 'Front 9')}
-            ${buildNineHtml(backHoles, 'Back 9')}
-          </div>
-        </div>
-      </div>
-    `;
+    // First open vs live re-render. On first open, write the full
+    // sheet markup which triggers slide-up. On re-render, surgically
+    // update only the body so the slide animation isn't re-fired
+    // (which would also clobber any in-progress flash animations).
+    const existingSheet = mount.querySelector('.sgs-sheet');
+    const isReRender = !!existingSheet;
+    const bodyHtml = `
+      <div class="gsc-body">
+        ${buildNineHtml(frontHoles, 'Front 9')}
+        ${buildNineHtml(backHoles, 'Back 9')}
+      </div>`;
 
-    // Kick off slide-up animation on next frame
-    const sheet = mount.querySelector('.sgs-sheet.opening');
-    const backdrop = mount.querySelector('.sgs-backdrop.opening');
-    if (sheet) {
-      void sheet.offsetHeight;
-      requestAnimationFrame(() => {
-        sheet.classList.remove('opening');
-        if (backdrop) backdrop.classList.remove('opening');
+    if (!isReRender) {
+      mount.innerHTML = `
+        <div class="sgs-backdrop opening" onclick="closeSummaryGroupScorecard()" aria-hidden="true"></div>
+        <div class="sgs-sheet opening" role="dialog" aria-modal="true" aria-label="Group scorecard">
+          <div class="sgs-header">
+            <div class="sgs-handle" aria-hidden="true"></div>
+            <div class="sgs-title-block">
+              <div class="sgs-eyebrow">Group Scorecard</div>
+              <div class="sgs-title">${escapeHtml(course.name)}</div>
+            </div>
+            <button class="sgs-close" onclick="closeSummaryGroupScorecard()" aria-label="Close">×</button>
+          </div>
+          <div class="sgs-body">
+            ${bodyHtml}
+          </div>
+        </div>`;
+
+      const sheet = mount.querySelector('.sgs-sheet.opening');
+      const backdrop = mount.querySelector('.sgs-backdrop.opening');
+      if (sheet) {
+        void sheet.offsetHeight;
+        requestAnimationFrame(() => {
+          sheet.classList.remove('opening');
+          if (backdrop) backdrop.classList.remove('opening');
+        });
+      }
+
+      const sheetEl = mount.querySelector('.sgs-sheet');
+      const headerEl = sheetEl?.querySelector('.sgs-header');
+      attachBottomSheetDrag({
+        sheetEl,
+        headerEl,
+        backdropSelector: '.sgs-backdrop',
+        ignoreSelector: '.sgs-close',
+        closeFn: closeSummaryGroupScorecard,
       });
+    } else {
+      // Update only the scrolling body — title/header/chrome stays.
+      const body = existingSheet.querySelector('.sgs-body');
+      if (body) body.innerHTML = bodyHtml;
     }
 
-    // Wire drag-to-close on the header — same gesture as all the
-    // other bottom sheets. Helper guards against double-attach.
-    const fullSheet = mount.querySelector('.sgs-sheet');
-    const header = fullSheet?.querySelector('.sgs-header');
-    attachBottomSheetDrag({
-      sheetEl: fullSheet,
-      headerEl: header,
-      backdropSelector: '.sgs-backdrop',
-      ignoreSelector: '.sgs-close',
-      closeFn: closeSummaryGroupScorecard,
-    });
+    // Snapshot for next-render diff.
+    const snap = {};
+    for (const r of ordered) {
+      snap[r.uid] = {};
+      for (const h of holes) {
+        const e = r.scores?.[h.number];
+        if (e) snap[r.uid][h.number] = { strokes: e.strokes };
+      }
+    }
+    summaryGroupScorecardState.prevScoresByUidByHole = snap;
   }
 
   // Flip a round's individual visibility override. Rounds default to
