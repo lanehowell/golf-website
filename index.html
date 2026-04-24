@@ -2527,78 +2527,7 @@
   }
   /* Tee selector inside the Start card — tighter spacing than before */
   .start-round-card .tee-selector {
-    margin-bottom: var(--space-4);
-  }
-  /* Starting-hole picker row — appears between tee selector and CTA.
-     Most rounds start on hole 1, but busy courses use shotgun starts.
-     Label on left (hole number + par/yardage summary), stepper on right
-     (compact circular − / value / + buttons). */
-  .start-round-holepicker {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-page);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
     margin-bottom: var(--space-5);
-  }
-  .start-round-holepicker-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .start-round-holepicker-label {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    color: var(--text-primary);
-    line-height: 1.25;
-  }
-  .start-round-holepicker-sub {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-top: 2px;
-    line-height: 1.4;
-  }
-  .start-round-holepicker-stepper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
-  .start-round-holepicker-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-medium);
-    border-radius: var(--radius-full, 999px);
-    color: var(--text-primary);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    line-height: 1;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-  }
-  .start-round-holepicker-btn:active {
-    background: var(--color-orange-pale);
-    border-color: var(--color-orange);
-    transform: scale(0.95);
-  }
-  .start-round-holepicker-value {
-    min-width: 32px;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: var(--text-xl);
-    font-weight: var(--weight-bold);
-    color: var(--color-orange);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
   }
   /* The Start button — full width inside the card, large thumb target.
      Dynamic label shows the currently-selected tee so the user sees
@@ -2857,21 +2786,6 @@
     font-family: var(--font-body);
     color: var(--text-secondary);
     font-weight: var(--weight-medium);
-  }
-  /* Starting hole callout — differentiated with orange accents since
-     it's noteworthy (shotgun / non-default start). Only rendered when
-     organizer picked a hole other than 1. */
-  .lobby-course-starting-hole {
-    padding-top: var(--space-2);
-    margin-top: var(--space-1);
-    border-top: 1px dashed var(--border-light);
-  }
-  .lobby-course-starting-hole .lobby-course-split-lbl {
-    color: var(--color-orange);
-  }
-  .lobby-course-starting-hole .lobby-course-split-val {
-    color: var(--color-orange);
-    font-weight: var(--weight-semibold);
   }
 
   /* ── Tee picker uses the shared .tee-selector / .tee-btn pattern
@@ -6901,11 +6815,7 @@
   body[data-current-panel="group-lobby"] .training-nav,
   body[data-current-panel="group-lobby"] .mobile-bottomnav,
   body[data-current-panel="range-session"] .training-nav,
-  body[data-current-panel="shortgame-session"] .training-nav,
-  body[data-current-panel="course-practice-session"] .training-nav,
   body[data-current-panel="range-session"] .mobile-bottomnav,
-  body[data-current-panel="shortgame-session"] .mobile-bottomnav,
-  body[data-current-panel="course-practice-session"] .mobile-bottomnav,
   body[data-current-panel="shortgame-session"] .training-nav,
   body[data-current-panel="shortgame-session"] .mobile-bottomnav,
   body[data-current-panel="course-practice-session"] .training-nav,
@@ -6998,211 +6908,6 @@
     letter-spacing: var(--tracking-wide);
   }
 
-  /* ─── Practice-session action bar ───────────────────────────────
-     Fixed at the bottom of the viewport on the three session panels
-     (range, shortgame, course practice). Hosts the ellipsis menu
-     button. Same gradient-to-transparent fade + safe-area awareness
-     as .round-action-bar so the session feels like a first-class
-     context just like an in-progress round. */
-  .session-action-bar {
-    display: none;  /* toggled on via CSS for matching panels below */
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: var(--z-raised);
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(
-      to top,
-      var(--bg-base) 0%,
-      var(--bg-base) 60%,
-      rgba(255, 253, 249, 0) 100%
-    );
-    pointer-events: none;  /* let page behind scroll; children opt back in */
-  }
-  html.dark .session-action-bar {
-    background: linear-gradient(
-      to top,
-      var(--bg-base) 0%,
-      var(--bg-base) 60%,
-      rgba(0, 0, 0, 0) 100%
-    );
-  }
-  .session-action-bar > * { pointer-events: auto; }
-  body[data-current-panel="range-session"] .session-action-bar,
-  body[data-current-panel="shortgame-session"] .session-action-bar,
-  body[data-current-panel="course-practice-session"] .session-action-bar {
-    display: flex;
-  }
-
-  /* Ellipsis menu button — mirrors .round-tools-btn treatment: same
-     52px min-height, rounded-xl, elevated card with shadow, orange
-     hover. Icon-only since we only have the ellipsis — saves width
-     at the bottom edge and keeps content focus on the card above. */
-  .session-menu-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-elevated);
-    border: 1.5px solid var(--border-light);
-    border-radius: var(--radius-xl);
-    color: var(--text-primary);
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(13, 13, 13, 0.10), 0 1px 3px rgba(13, 13, 13, 0.06);
-    transition: all var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-    min-height: 52px;
-    min-width: 52px;
-  }
-  @media (hover: hover) {
-    .session-menu-btn:hover {
-      border-color: var(--color-orange);
-      color: var(--color-orange);
-    }
-  }
-  .session-menu-btn-icon {
-    font-size: 1.25rem;
-    line-height: 1;
-    font-weight: var(--weight-bold);
-    letter-spacing: 1px;
-  }
-
-  /* ─── Session menu bottom sheet ─────────────────────────────────
-     Pops from the bottom when the user taps the ellipsis. Holds
-     finish + delete actions. Standard sheet pattern: backdrop that
-     taps-to-close, sliding rounded-top panel with drag handle,
-     stacked action rows. Destructive (delete) row is visually
-     distinct so the user can't miss what they're tapping. */
-  .session-menu-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 13, 13, 0.55);
-    z-index: var(--z-modal);
-    opacity: 1;
-    transition: opacity 220ms ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .session-menu-backdrop.opening,
-  .session-menu-backdrop.closing { opacity: 0; }
-
-  .session-menu-sheet {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: calc(var(--z-modal) + 1);
-    background: var(--bg-elevated);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.18);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    transform: translateY(0);
-    transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    max-height: 60vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .session-menu-sheet.opening,
-  .session-menu-sheet.closing { transform: translateY(100%); }
-  .session-menu-sheet.is-dragging { transition: none; }
-  .session-menu-header {
-    padding: var(--space-3) var(--space-5) var(--space-2);
-    cursor: grab;
-    touch-action: none;
-  }
-  .session-menu-sheet.is-dragging .session-menu-header { cursor: grabbing; }
-  .session-menu-handle {
-    width: 36px;
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--border-medium);
-    margin: 0 auto;
-  }
-  .session-menu-title {
-    font-family: var(--font-display);
-    font-size: var(--text-md);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    text-align: center;
-    margin-top: var(--space-2);
-  }
-  .session-menu-body {
-    padding: var(--space-2) var(--space-4) var(--space-5);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  .session-menu-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    background: transparent;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    text-align: left;
-    font-family: var(--font-body);
-    color: var(--text-primary);
-    transition: background var(--transition-fast),
-                border-color var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-  }
-  @media (hover: hover) {
-    .session-menu-row:hover {
-      border-color: var(--color-orange);
-      background: var(--color-orange-pale);
-    }
-  }
-  .session-menu-row-icon {
-    font-size: 1.2rem;
-    width: 28px;
-    flex-shrink: 0;
-    text-align: center;
-    line-height: 1;
-  }
-  .session-menu-row-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-  }
-  .session-menu-row-title {
-    font-weight: var(--weight-semibold);
-    font-size: var(--text-md);
-  }
-  .session-menu-row-sub {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-  }
-  /* Destructive row — delete session. Red-ish accent + clearer
-     warning styling so it's unmissable. */
-  .session-menu-row-destructive {
-    color: #C23600;
-    border-color: rgba(194, 54, 0, 0.25);
-  }
-  .session-menu-row-destructive .session-menu-row-sub {
-    color: rgba(194, 54, 0, 0.75);
-  }
-  @media (hover: hover) {
-    .session-menu-row-destructive:hover {
-      background: rgba(194, 54, 0, 0.08);
-      border-color: #C23600;
-    }
-  }
-  html.dark .session-menu-row-destructive {
-    color: #FF8A4A;
-    border-color: rgba(255, 138, 74, 0.35);
-  }
-  html.dark .session-menu-row-destructive .session-menu-row-sub {
-    color: rgba(255, 138, 74, 0.7);
-  }
-
   /* Save & Next — orange primary pill filling remaining row. Same
      rounded corners as the Tools button for visual harmony. */
   .round-save-btn {
@@ -7259,15 +6964,10 @@
   /* Reserve space at the bottom of round/lobby panel content so the
      fixed action bar never obscures the last card / secondary actions.
      Same 92px reservation works for all three since they all use the
-     same 52px pill button + 20px combined padding above + below.
-     Practice session panels (range, shortgame, course practice) also
-     reserve space since they now have a matching session-action-bar. */
+     same 52px pill button + 20px combined padding above + below. */
   #panel-round,
   #panel-group-round,
-  #panel-group-lobby,
-  #panel-range-session,
-  #panel-shortgame-session,
-  #panel-course-practice-session {
+  #panel-group-lobby {
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
   /* Horizontal-overflow containment is round-specific (the hole card
@@ -10572,82 +10272,6 @@
     margin-bottom: var(--space-3);
   }
 
-  /* TEMP — raw logged shots dump on round summary. Plain + utilitarian
-     on purpose; a proper per-club/dispersion view replaces this later. */
-  .shots-dump-temp-tag {
-    display: inline-block;
-    background: var(--color-orange-pale);
-    color: var(--color-orange);
-    font-size: 9px;
-    font-weight: var(--weight-bold);
-    padding: 1px 6px;
-    border-radius: var(--radius-pill);
-    letter-spacing: var(--tracking-wide);
-    margin-left: var(--space-2);
-    vertical-align: middle;
-  }
-  .shots-dump-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    margin-bottom: var(--space-8);
-  }
-  .shots-dump-hole {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: var(--space-4);
-  }
-  .shots-dump-hole-head {
-    font-family: var(--font-display);
-    font-size: var(--text-md);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    margin-bottom: var(--space-3);
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--border-light);
-  }
-  .shots-dump-row {
-    padding: var(--space-2) 0;
-    border-bottom: 1px dashed var(--border-light);
-  }
-  .shots-dump-row:last-child { border-bottom: none; }
-  .shots-dump-row-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    margin-bottom: 4px;
-  }
-  .shots-dump-num {
-    font-family: var(--font-display);
-    font-weight: var(--weight-bold);
-    color: var(--color-orange);
-    min-width: 28px;
-  }
-  .shots-dump-club {
-    font-weight: var(--weight-semibold);
-    color: var(--text-primary);
-    flex: 1;
-    min-width: 0;
-  }
-  .shots-dump-dist {
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-    font-size: var(--text-sm);
-  }
-  .shots-dump-row-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-4);
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    padding-left: 32px;
-  }
-  .shots-dump-row-meta b {
-    font-weight: var(--weight-semibold);
-    color: var(--text-muted);
-  }
-
   /* ──────────────────────────────────────────────────────────
      Round insights card — per-round baseline comparison + suggestion.
      Appears on round summary (single round) and rounds list (aggregate).
@@ -11781,15 +11405,9 @@
   }
 }
   .range-swing-btn.active {
-    background: var(--color-orange);
-    color: var(--color-white);
+    background: var(--bg-elevated);
+    color: var(--color-orange);
     box-shadow: var(--shadow-xs);
-  }
-  html.dark .range-swing-btn.active {
-    /* Keep it orange in dark mode, but soften so it doesn't glare.
-       Still clearly the "selected" state. */
-    background: var(--color-orange);
-    color: var(--color-white);
   }
 
   /* Distance input — big, numeric, center-weighted */
@@ -11807,82 +11425,6 @@
     font-size: var(--text-md);
     color: var(--text-muted);
   }
-
-  /* Optional-field decoration — direction + contact chips.
-     Visually distinct from required fields: smaller label, "Optional"
-     badge inline, chips with neutral stroke until selected. */
-  .range-field-optional .label-text {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-  .range-field-optional-tag {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    padding: 1px 6px;
-    border-radius: var(--radius-pill);
-    background: var(--bg-page);
-    color: var(--text-muted);
-    border: 1px solid var(--border-light);
-  }
-  .range-tag-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-2);
-  }
-  .range-tag-chip {
-    padding: var(--space-2) var(--space-3);
-    background: transparent;
-    border: 1px solid var(--border-medium);
-    border-radius: var(--radius-pill);
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: background var(--transition-fast),
-                color var(--transition-fast),
-                border-color var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-  }
-  @media (hover: hover) {
-    .range-tag-chip:hover:not(.active) {
-      color: var(--text-primary);
-      border-color: var(--text-muted);
-    }
-  }
-  .range-tag-chip.active {
-    background: var(--color-orange-pale);
-    border-color: var(--color-orange);
-    color: var(--color-orange);
-  }
-
-  /* Shot-list row tags — show direction + contact when recorded.
-     Sized smaller than form chips, neutral styling so they read as
-     metadata rather than interactive controls. */
-  .range-shot-tags {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-  .range-shot-tag {
-    padding: 2px 8px;
-    border-radius: var(--radius-pill);
-    font-size: 10px;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    background: var(--bg-page);
-    border: 1px solid var(--border-light);
-    color: var(--text-secondary);
-    white-space: nowrap;
-  }
-  .range-shot-tag-dir { /* direction tag variant — reserved for future styling */ }
-  .range-shot-tag-contact { /* contact tag variant — reserved for future styling */ }
 
   /* Shot list below the entry card */
   .range-shotlist-section {
@@ -11919,16 +11461,10 @@
     font-style: italic;
   }
 
-  /* Individual shot row — mono font, quick-scan layout.
-     Two-row grid: the top row is the primary data (num/club/swing/
-     distance/delete); the second row is reserved for optional tags
-     (direction + contact) and only visible when tags exist. The
-     two-row layout keeps tagless rows compact and lets tags wrap
-     freely on narrow screens without squeezing the distance column. */
+  /* Individual shot row — mono font, quick-scan layout */
   .range-shot-row {
     display: grid;
     grid-template-columns: 48px 1fr 56px 96px 32px;
-    grid-template-rows: auto auto;
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
@@ -11936,20 +11472,7 @@
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     transition: border-color var(--transition-fast);
-  }
-  /* Only the row that was JUST added gets the fade-in animation.
-     Other renders (club/swing/chip/delete) don't re-animate existing
-     rows. See `_animateLatestShot` in practiceSessionState. */
-  .range-shot-row-new {
     animation: fadeUp 0.3s ease both;
-  }
-  .range-shot-row > .range-shot-tags {
-    /* Span the club + swing + distance columns, positioned on the
-       second grid row. Num column stays narrow on the left; delete
-       button stays on the right. Tags flow horizontally here. */
-    grid-column: 2 / span 3;
-    grid-row: 2;
-    margin-top: 4px;
   }
   @media (hover: hover) {
   .range-shot-row:hover {
@@ -19178,10 +18701,10 @@
     /* Sub-panels: the back arrow floats fixed at the top, so panel
        content needs top padding to start BELOW where the arrow floats.
        44px arrow + breathing room = ~60px reserved at the top. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .page-main {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .page-main {
       padding-top: 0;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .panel {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .panel {
       padding-top: calc(44px + var(--space-4));
     }
 
@@ -19208,10 +18731,7 @@
        we don't duplicate them here. */
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
-    body[data-current-panel="group-lobby"] #round-banner,
-    body[data-current-panel="range-session"] #round-banner,
-    body[data-current-panel="shortgame-session"] #round-banner,
-    body[data-current-panel="course-practice-session"] #round-banner {
+    body[data-current-panel="group-lobby"] #round-banner {
       display: none !important;
     }
     /* Swap the back arrow for a circled-X glyph on all round-context
@@ -19222,19 +18742,13 @@
        geometrically perfect. */
     body[data-current-panel="round"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="group-round"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="range-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back .mobile-topbar-back-arrow {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back .mobile-topbar-back-arrow {
       font-size: 0;
       line-height: 0;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back,
-    body[data-current-panel="range-session"] .mobile-topbar-back,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back {
       /* Frosted-glass fill behind the X — matches the LIVE pill's
          treatment on the right side of the topbar so the close button
          stays legible over scrolling content. Button is 44×44 for the
@@ -19250,10 +18764,7 @@
        icon circle (28px) rather than the 44px tap target. */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
-    body[data-current-panel="range-session"] .mobile-topbar-back::before,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
       content: '';
       position: absolute;
       top: 50%;
@@ -19268,10 +18779,7 @@
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before {
       background-color: rgba(13, 13, 13, 0.6);
     }
     /* SVG icon — drawn on the ::after pseudo so it paints ABOVE the
@@ -19279,10 +18787,7 @@
        content, ::after). No z-index needed. */
     body[data-current-panel="round"] .mobile-topbar-back::after,
     body[data-current-panel="group-round"] .mobile-topbar-back::after,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
-    body[data-current-panel="range-session"] .mobile-topbar-back::after,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
       content: '';
       position: absolute;
       top: 50%;
@@ -19297,18 +18802,12 @@
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::after,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back:active,
-    body[data-current-panel="range-session"] .mobile-topbar-back:active,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back:active,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back:active {
+    body[data-current-panel="group-lobby"] .mobile-topbar-back:active {
       opacity: 0.6;
     }
     /* Live indicator — right-aligned in the topbar, visible on all
@@ -19348,54 +18847,6 @@
     html.dark body[data-current-panel="group-round"] .mobile-topbar-live,
     html.dark body[data-current-panel="group-lobby"] .mobile-topbar-live {
       background-color: rgba(13, 13, 13, 0.6);
-    }
-
-    /* Timer indicator — analogous to the LIVE pill, shown only on
-       the range session panel. Displays the elapsed session time
-       (MM:SS or H:MM:SS) with a pulsing orange dot to signal live
-       state. Orange monospaced numerals so it reads clearly against
-       the frosted pill in bright outdoor conditions. */
-    .mobile-topbar-timer {
-      display: none;
-      align-items: center;
-      gap: var(--space-2);
-      position: absolute;
-      right: var(--space-4);
-      top: 50%;
-      transform: translateY(-50%);
-      font-family: var(--font-mono);
-      font-size: var(--text-xs);
-      font-weight: var(--weight-semibold);
-      letter-spacing: var(--tracking-wide);
-      color: var(--color-orange);
-      pointer-events: none;
-      font-variant-numeric: tabular-nums;
-    }
-    body[data-current-panel="range-session"] .mobile-topbar-timer,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
-      display: inline-flex;
-      padding: 4px var(--space-3) 4px var(--space-2);
-      background-color: rgba(255, 253, 247, 0.72);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
-      border-radius: var(--radius-pill);
-    }
-    html.dark body[data-current-panel="range-session"] .mobile-topbar-timer,
-    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
-    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
-      background-color: rgba(13, 13, 13, 0.6);
-    }
-    /* Pulsing dot inside the timer — reuses the same keyframes as
-       the round-panel LIVE indicator so the two read as a pair. */
-    .mobile-topbar-timer-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--color-orange);
-      box-shadow: 0 0 0 0 rgba(232, 93, 4, 0.5);
-      animation: topbar-live-pulse 1.6s ease-in-out infinite;
-      flex-shrink: 0;
     }
     .mobile-topbar-live-dot {
       width: 8px;
@@ -19512,14 +18963,14 @@
        the actual sticky behavior lives on the button itself so content
        can flow up to and around the arrow without an opaque strip
        cutting across the page. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar {
       position: static;
       height: auto;
       padding: 0;
       background: transparent;
       z-index: auto;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-inner {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-inner {
       height: auto;
     }
     /* Floating fixed back arrow — no surrounding bar. Pins to the
@@ -19529,7 +18980,7 @@
        because the button needs to pin to the viewport, not scroll
        within a parent — and the parent .mobile-topbar collapses to
        just the button height, so sticky has nothing to scroll within. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
       position: fixed;
       top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
       left: var(--space-2);
@@ -19541,15 +18992,15 @@
       z-index: calc(var(--z-dropdown) - 1);
     }
     /* When a banner is active, pin below it. */
-    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back,
-    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
+    body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back,
+    body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) + var(--space-2));
     }
-    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
+    body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back {
       top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2 + var(--space-2));
     }
     /* Chunky arrow glyph — match the Strava look. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]) .mobile-topbar-back-arrow {
       font-size: 28px;
       font-weight: 300;
       line-height: 1;
@@ -19574,37 +19025,29 @@
     /* Sub-panels: topbar is now static (flows with content), so the
        body doesn't need to reserve vertical space for it. Only reserve
        the safe-area inset (and the banner heights when active). */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]):not(.session-active):not(.round-active) {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not(.session-active):not(.round-active) {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).round-active,
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).round-active,
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active {
       padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
     }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active.round-active {
+    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]).session-active.round-active {
       padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
     }
 
     /* Round-context panels keep the floating X close + LIVE indicator
        treatment — topbar transparent, no border, no reserved height
        (the X overlays content like before). Round-banner is also
-       hidden in this mode so the screen stays minimal. Range session
-       opts into the same treatment since its session-in-progress UX
-       mirrors the round panel's. */
+       hidden in this mode so the screen stays minimal. */
     body[data-current-panel="round"],
     body[data-current-panel="group-round"],
-    body[data-current-panel="group-lobby"],
-    body[data-current-panel="range-session"],
-    body[data-current-panel="shortgame-session"],
-    body[data-current-panel="course-practice-session"] {
+    body[data-current-panel="group-lobby"] {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body[data-current-panel="round"] .mobile-topbar,
     body[data-current-panel="group-round"] .mobile-topbar,
-    body[data-current-panel="group-lobby"] .mobile-topbar,
-    body[data-current-panel="range-session"] .mobile-topbar,
-    body[data-current-panel="shortgame-session"] .mobile-topbar,
-    body[data-current-panel="course-practice-session"] .mobile-topbar {
+    body[data-current-panel="group-lobby"] .mobile-topbar {
       background: transparent;
       border-bottom: none;
       pointer-events: none;
@@ -19612,23 +19055,14 @@
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
     body[data-current-panel="group-lobby"] .mobile-topbar-back,
-    body[data-current-panel="range-session"] .mobile-topbar-back,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back,
     body[data-current-panel="round"] .mobile-topbar-live,
     body[data-current-panel="group-round"] .mobile-topbar-live,
-    body[data-current-panel="group-lobby"] .mobile-topbar-live,
-    body[data-current-panel="range-session"] .mobile-topbar-timer,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-timer,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-timer {
+    body[data-current-panel="group-lobby"] .mobile-topbar-live {
       pointer-events: auto;
     }
     body[data-current-panel="round"] #round-banner,
     body[data-current-panel="group-round"] #round-banner,
-    body[data-current-panel="group-lobby"] #round-banner,
-    body[data-current-panel="range-session"] #round-banner,
-    body[data-current-panel="shortgame-session"] #round-banner,
-    body[data-current-panel="course-practice-session"] #round-banner {
+    body[data-current-panel="group-lobby"] #round-banner {
       display: none !important;
     }
 
@@ -19682,8 +19116,6 @@
     body[data-current-panel="public-round"] .mobile-topbar-back,
     body[data-current-panel="bag"] .mobile-topbar-back,
     body[data-current-panel="range-session"] .mobile-topbar-back,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back,
     body[data-current-panel="range-history"] .mobile-topbar-back,
     body[data-current-panel="range-session-detail"] .mobile-topbar-back,
     body[data-current-panel="range-session-club-detail"] .mobile-topbar-back,
@@ -19702,10 +19134,7 @@
     body[data-current-panel="round"] .panel.active,
     body[data-current-panel="round-summary"] .panel.active,
     body[data-current-panel="group-lobby"] .panel.active,
-    body[data-current-panel="group-round"] .panel.active,
-    body[data-current-panel="range-session"] .panel.active,
-    body[data-current-panel="shortgame-session"] .panel.active,
-    body[data-current-panel="course-practice-session"] .panel.active {
+    body[data-current-panel="group-round"] .panel.active {
       padding-top: calc(var(--mobile-topbar-h) + var(--space-2));
     }
     .mobile-topbar-back-arrow {
@@ -19924,15 +19353,6 @@
     <div class="mobile-topbar-live" aria-hidden="true">
       <span class="mobile-topbar-live-dot"></span>
       <span class="mobile-topbar-live-label">Live</span>
-    </div>
-    <!-- Timer — shown only on the range-session panel (via CSS). Ticks
-         every second while the session is active. Populated by
-         tickRangeSessionTimer, started when the range panel is opened
-         and stopped when it's left. Pulsing orange dot mirrors the LIVE
-         indicator so the two treatments read as a pair. -->
-    <div class="mobile-topbar-timer" aria-hidden="true">
-      <span class="mobile-topbar-timer-dot"></span>
-      <span id="mobile-topbar-timer">00:00</span>
     </div>
     <span class="mobile-topbar-spacer" aria-hidden="true"></span>
   </div>
@@ -20641,22 +20061,6 @@
      Body-level so it escapes any ancestor transforms. Works for
      both solo and group rounds. -->
 <div id="hole-picker-mount"></div>
-
-<!-- SESSION ACTION BAR — fixed at bottom of viewport, shown only on
-     practice session panels (range, shortgame, course practice).
-     Holds the ellipsis menu trigger for finish/delete actions.
-     Mirrors the .round-action-bar pattern used on the round panel. -->
-<div class="session-action-bar" id="session-action-bar" aria-hidden="true">
-  <button class="session-menu-btn" id="session-menu-btn" onclick="openSessionMenuSheet()" aria-label="Session menu">
-    <span class="session-menu-btn-icon" aria-hidden="true">•••</span>
-  </button>
-</div>
-
-<!-- SESSION MENU sheet mount — populated by renderSessionMenuSheet()
-     when user taps the ellipsis on a practice session. Holds
-     Finish / Delete actions. Body-level for ancestor-transform
-     escape, same as the other sheet mounts. -->
-<div id="session-menu-mount"></div>
 
 <!-- TOOLS EDITOR sheet mount — populated by renderToolsEditorSheet()
      when user taps "In-round tools" in Profile > Your Game. Lets
@@ -23648,32 +23052,6 @@
     const roundPanels = ['round', 'group-round'];
     if (roundPanels.includes(prevId) && !roundPanels.includes(id)) {
       if (holePickerState.open) closeHolePicker();
-    }
-
-    // Tools editor is profile-scoped. Close it on navigation away so
-    // it doesn't hang around on the next panel with an active scroll
-    // lock.
-    if (prevId === 'profile' && id !== 'profile' && toolsEditorState.open) {
-      closeToolsEditorSheet();
-    }
-
-    // Session menu is tied to practice session panels. Close on any
-    // nav-away so the sheet doesn't linger with an active scroll lock
-    // on the next screen.
-    if (sessionMenuState.open) {
-      closeSessionMenuSheet();
-    }
-
-    // Session timer — start ticking when entering any session panel
-    // (range, short game, course practice), stop when leaving. The
-    // display element lives in the topbar and is CSS-gated to show
-    // only on these panels, so the interval just keeps its text
-    // current.
-    const timerPanels = new Set(['range-session', 'shortgame-session', 'course-practice-session']);
-    if (timerPanels.has(id)) {
-      startSessionTimer();
-    } else if (timerPanels.has(prevId)) {
-      stopSessionTimer();
     }
 
     document.querySelectorAll('.panel').forEach(p => {
@@ -27558,7 +26936,7 @@
       // Clear practice session state — no resume across users
       practiceSessionState.docId = null;
       practiceSessionState.doc = null;
-      practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '', direction: null, contact: null };
+      practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '' };
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       // Not signed in — vacuously "loaded" (no doc to read). Setting these
@@ -27675,34 +27053,7 @@
   // a regular round, 'group' creates a group round lobby. Set by the
   // navigation path (Play → "Start Round" → solo; Play → "Play Together"
   // → group).
-  //
-  // `startingHoleIndexByCourse` lets the user start at a non-hole-1 hole
-  // (common at busy courses with shotgun starts or split tees). 0-based
-  // index. Defaults to 0 (hole 1). Persisted per-course via key so
-  // toggling between courses remembers each course's last choice.
-  const courseDetailState = {
-    selectedTeeByCourse: {},
-    activeCourseId: null,
-    pickMode: 'solo',
-    startingHoleIndexByCourse: {},
-  };
-
-  function getStartingHoleIndex(courseId) {
-    const v = courseDetailState.startingHoleIndexByCourse[courseId];
-    return typeof v === 'number' && v >= 0 ? v : 0;
-  }
-  function setStartingHoleIndex(courseId, idx) {
-    const course = getCourse(courseId);
-    if (!course) return;
-    const total = course.holes.length;
-    // Wrap for nicer stepper UX — tap past 18 → back to 1, past 1 → to 18.
-    // Keeps both buttons always-enabled (no dead taps near the edges).
-    let wrapped = idx;
-    while (wrapped < 0) wrapped += total;
-    wrapped = wrapped % total;
-    courseDetailState.startingHoleIndexByCourse[courseId] = wrapped;
-    renderCourseDetail();
-  }
+  const courseDetailState = { selectedTeeByCourse: {}, activeCourseId: null, pickMode: 'solo' };
 
   // Update the count shown on the Play landing's "Browse Courses" link.
   function updatePlayCoursesCount() {
@@ -27950,24 +27301,6 @@
         </div>
         <div class="start-round-eyebrow">${courseDetailState.pickMode === 'group' ? 'Playing With Friends' : 'Playing From'}</div>
         <div class="tee-selector">${teeButtons}</div>
-        <!-- Starting hole picker. Most rounds start on hole 1, but busy
-             courses often use shotgun starts (everyone tees off on a
-             different hole simultaneously) or just send later groups out
-             on the back nine. Defaulting to 1 keeps the common case one
-             tap; a stepper surfaces the option without burying it. In
-             group rounds, this value propagates to ALL players so
-             everyone starts on the same hole. -->
-        <div class="start-round-holepicker">
-          <div class="start-round-holepicker-info">
-            <div class="start-round-holepicker-label">Starting hole</div>
-            <div class="start-round-holepicker-sub">Par ${course.holes[getStartingHoleIndex(course.id)].par} · ${tee.yardages[getStartingHoleIndex(course.id)].toLocaleString()} yd</div>
-          </div>
-          <div class="start-round-holepicker-stepper">
-            <button class="start-round-holepicker-btn" onclick="setStartingHoleIndex('${course.id}', ${getStartingHoleIndex(course.id) - 1})" aria-label="Previous hole">−</button>
-            <div class="start-round-holepicker-value">${course.holes[getStartingHoleIndex(course.id)].number}</div>
-            <button class="start-round-holepicker-btn" onclick="setStartingHoleIndex('${course.id}', ${getStartingHoleIndex(course.id) + 1})" aria-label="Next hole">+</button>
-          </div>
-        </div>
         <button class="start-round-cta" onclick="${courseDetailState.pickMode === 'group' ? `createGroupRoundFromCourse('${course.id}', '${tee.name}')` : `startRoundFromCourse('${course.id}', '${tee.name}')`}">
           <span>${courseDetailState.pickMode === 'group' ? 'Create Round' : 'Start Round'} — ${escapeHtml(tee.name)}</span>
           <span class="start-round-cta-arrow" aria-hidden="true">→</span>
@@ -28192,9 +27525,6 @@
     groupRoundState.doc = null;
     myGroupRounds = myGroupRounds.filter(r => r.id !== id);
     __groupRoundInvitesSent.clear();
-    // Clean up per-round local state
-    try { localStorage.removeItem(`golfapp.grCursor.${id}`); } catch (_) {}
-    clearScoreScratchpad(id);
     renderPlayLanding();
     updateRoundBanner();
   }
@@ -28229,17 +27559,10 @@
     roundState.docId = newRoundId(courseId, startMs);
     roundState.courseId = courseId;
     roundState.teeName = teeName;
-    // Starting hole — user's pick from the course detail page stepper.
-    // Defaults to 0 (hole 1) when they haven't touched it. This is the
-    // hole they land on first; saveAndNext handles wrap-around to play
-    // any unplayed holes until the round is complete.
-    roundState.holeIndex = getStartingHoleIndex(courseId);
+    roundState.holeIndex = 0;
     roundState.scores = {};
     roundState.shots = {};
     roundState.started = startMs;
-    // Persist the cursor to localStorage right away — establishes the
-    // initial value so close-and-reopen before any nav lands correctly.
-    saveSoloRoundCursor();
     // Initial save so an in-progress doc exists for resume detection
     await autoSaveRound();
     showPanel('round', null);
@@ -28251,22 +27574,11 @@
     roundState.docId = roundDoc.id;
     roundState.courseId = roundDoc.courseId;
     roundState.teeName = roundDoc.teeName;
-    // Cursor precedence: localStorage (updated on every nav) over
-    // Firestore's currentHoleIndex (only updated on flush-nav). This
-    // means if the user scrubbed through holes without editing, then
-    // closed the app, we still land them on their actual last hole.
-    const localCursor = loadSoloRoundCursor(roundDoc.id);
-    roundState.holeIndex = localCursor != null
-      ? localCursor
-      : (roundDoc.currentHoleIndex || 0);
+    roundState.holeIndex = roundDoc.currentHoleIndex || 0;
     roundState.scores = roundDoc.scores || {};
     roundState.shots = roundDoc.shots || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
-    // Merge any in-progress mid-hole edits from the scratchpad back
-    // into local state. If the user was mid-stroke-entry when they
-    // closed the app, this restores those taps as if they never left.
-    restoreScoreScratchpadToActiveRound();
     showPanel('round', null);
   }
 
@@ -28287,10 +27599,6 @@
     if (!isRoundActive()) return;
     const docId = roundState.docId;
     clearRoundState();
-    // Purge per-round local state — no reason to keep scratchpad or
-    // cursor for a round that no longer exists.
-    clearScoreScratchpad(docId);
-    clearSoloRoundCursor(docId);
     if (currentUser && window.fb) {
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${docId}`);
@@ -28336,15 +27644,10 @@
       if (stored != null) {
         cursor = stored;
       } else {
-        // No stored cursor — derive from play history, falling back to
-        // the round's starting hole (so a player rejoining on a fresh
-        // device before logging any holes lands on the right hole).
+        // No stored cursor — derive from play history
         const me = getMyGroupRoundPlayer();
         const course = getCourse(groupRoundState.doc.courseId);
-        const startIdx = typeof groupRoundState.doc.startingHoleIndex === 'number'
-          ? groupRoundState.doc.startingHoleIndex
-          : 0;
-        cursor = startIdx;
+        cursor = 0;
         if (me && course) {
           const playedHoleNums = Object.keys(me.scores || {}).map(Number).filter(n => !isNaN(n));
           if (playedHoleNums.length) {
@@ -28354,10 +27657,6 @@
         }
       }
       groupRoundState.yourHoleIndex = cursor;
-      // Merge any in-progress mid-hole edits from the scratchpad back
-      // into local state. Fires AFTER cursor is set so the restore
-      // logic can match holeNum against the correct current hole.
-      restoreScoreScratchpadToActiveRound();
       showPanel('group-round', null);
     }
   }
@@ -28418,10 +27717,6 @@
       startTime: startMs,
       endTime: null,
       status: 'lobby',
-      // Starting hole — organizer's pick. All players will land on this
-      // hole when the round begins. Read by the in-progress render and
-      // by openActiveGroupRound's fallback path. Stored as 0-based index.
-      startingHoleIndex: getStartingHoleIndex(courseId),
       players: [organizer],
       playerUids: [currentUser.uid]
     };
@@ -28580,18 +27875,6 @@
       const frontYards = myTee.yardages.slice(0, 9).reduce((s, y) => s + y, 0);
       const backYards = myTee.yardages.slice(9).reduce((s, y) => s + y, 0);
       const totalYards = myTee.totalYards || (frontYards + backYards);
-      // Starting hole callout — only shown when organizer picked a
-      // non-default hole. Most rounds start on 1; calling that out
-      // would be noise. Non-1 picks are noteworthy (shotgun starts,
-      // back-9 starts) and worth prominently displaying.
-      const startIdx = typeof gr.startingHoleIndex === 'number' ? gr.startingHoleIndex : 0;
-      const startingHoleHtml = startIdx > 0
-        ? `
-            <div class="lobby-course-split lobby-course-starting-hole">
-              <span class="lobby-course-split-lbl">Starting on</span>
-              <span class="lobby-course-split-val">Hole ${course.holes[startIdx].number} · Par ${course.holes[startIdx].par}</span>
-            </div>`
-        : '';
       coursePreviewHtml = `
         <div class="lobby-section">
           <div class="lobby-section-label">Course</div>
@@ -28622,7 +27905,6 @@
                 <span class="lobby-course-split-lbl">Back 9</span>
                 <span class="lobby-course-split-val">Par ${backPar} · ${backYards.toLocaleString()} yd</span>
               </div>
-              ${startingHoleHtml}
             </div>
           </div>
         </div>`;
@@ -28781,14 +28063,10 @@
       showToast('Only the organizer can start the round', true);
       return;
     }
-    // Starting hole to land on — from the doc (set at creation time
-    // by the organizer via the starting-hole stepper). Older lobbies
-    // predate this field; fall back to 0 (hole 1).
-    const startIdx = typeof gr.startingHoleIndex === 'number' ? gr.startingHoleIndex : 0;
     if (gr.status !== 'lobby') {
       // Already started (possibly by another tab / a racing click).
       // Just navigate to the in-progress view.
-      groupRoundState.yourHoleIndex = startIdx;
+      groupRoundState.yourHoleIndex = 0;
       showPanel('group-round', null);
       return;
     }
@@ -28797,7 +28075,7 @@
       // Optimistically mutate the local copy so the next render
       // picks up the new status without waiting for the snapshot.
       groupRoundState.doc = { ...gr, status: 'in-progress' };
-      groupRoundState.yourHoleIndex = startIdx;
+      groupRoundState.yourHoleIndex = 0;
 
       // Cancel any outstanding invites we sent for this round — the
       // round has started, so friends who hadn't accepted yet can't
@@ -29115,205 +28393,6 @@
     } catch (_) { return null; }
   }
 
-  // Solo round cursor — mirrors the group round pattern. Necessary
-  // because save-on-nav means Firestore's currentHoleIndex is only
-  // updated when the user triggers a write (Save & Next, or a nav
-  // that flushes dirty data). Pure-scrub nav (Previous / picker with
-  // no edits) leaves Firestore's cursor stale — so on app close +
-  // reopen, resumeRound would land the user on the wrong hole and
-  // discard any scratchpad for their actual hole.
-  //
-  // localStorage takes precedence over Firestore's currentHoleIndex
-  // in resumeRound. Same null-vs-zero distinction: null means "no
-  // cursor stored yet" (first open of this round), 0 means "hole 1".
-  function saveSoloRoundCursor() {
-    if (!roundState.docId) return;
-    try {
-      localStorage.setItem(
-        `golfapp.soloCursor.${roundState.docId}`,
-        String(roundState.holeIndex)
-      );
-    } catch (_) { /* quota/private-mode; ignore */ }
-  }
-  function loadSoloRoundCursor(roundId) {
-    if (!roundId) return null;
-    try {
-      const v = localStorage.getItem(`golfapp.soloCursor.${roundId}`);
-      if (v == null) return null;
-      const n = parseInt(v, 10);
-      return Number.isFinite(n) && n >= 0 ? n : null;
-    } catch (_) { return null; }
-  }
-  function clearSoloRoundCursor(roundId) {
-    if (!roundId) return;
-    try {
-      localStorage.removeItem(`golfapp.soloCursor.${roundId}`);
-    } catch (_) { /* ignore */ }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Score scratchpad — local-first persistence for mid-hole edits.
-  //
-  // Background: round saves used to fire on every stepper tap,
-  // tristate toggle, and miss pick (~5–10 Firestore writes per hole
-  // × 18 holes × N players). Cost scales with activity and doesn't
-  // provide much value — the live leaderboard refresh on nav is
-  // enough for group rounds. So we moved to save-on-nav: Firestore
-  // writes only happen on Save & Next, Previous Hole, hole picker
-  // jump, and round completion.
-  //
-  // Downside of pure save-on-nav: if the user closes the app mid-
-  // hole (tapped strokes up a few times, reached for their phone to
-  // check a text, app got killed in the background), those edits
-  // are lost. The scratchpad catches that — every local mutation
-  // writes the current hole's entry + shots to localStorage, so on
-  // reopen we can restore in-progress work.
-  //
-  // Scope: only ONE hole at a time can have uncommitted data,
-  // because nav events are the flush points. The scratchpad stores
-  // {holeNum, entry, shots}. Keyed by round doc id.
-  //
-  // Applies to both solo and group rounds — unified API that reads
-  // from the active round state.
-  // ─────────────────────────────────────────────────────────────
-
-  function scratchpadKey(roundId) {
-    return `golfapp.scratchpad.${roundId}`;
-  }
-
-  // Write the current hole's in-progress state to localStorage.
-  // Called from every local-mutation path (stepper, tristate, miss,
-  // penalty, shot save/delete). Silent on quota/private-mode errors.
-  //
-  // Also marks the hole as DIRTY on the active round state. Dirty
-  // means "user has edited this hole since its last Firestore save."
-  // Nav handlers (Previous, Hole Picker) read this flag to decide
-  // whether moving away requires a flush. Saves on scrubbing-without-
-  // editing; still saves on real edits.
-  function writeScoreScratchpad() {
-    try {
-      if (isGroupRoundActive()) {
-        const gr = groupRoundState.doc;
-        const course = getCourse(gr.courseId);
-        const me = getMyGroupRoundPlayer();
-        if (!course || !me) return;
-        const idx = groupRoundState.yourHoleIndex;
-        if (idx < 0 || idx >= course.holes.length) return;
-        const holeNum = course.holes[idx].number;
-        const entry = me.scores?.[holeNum];
-        const shots = (me.shots || {})[holeNum];
-        // Only write if there's something meaningful to capture
-        if (!entry && !shots) return;
-        localStorage.setItem(scratchpadKey(groupRoundState.docId), JSON.stringify({
-          holeNum,
-          entry: entry || null,
-          shots: shots || null,
-        }));
-        groupRoundState._dirtyHole = holeNum;
-      } else if (isRoundActive()) {
-        const course = getCourse(roundState.courseId);
-        if (!course) return;
-        const idx = roundState.holeIndex;
-        if (idx < 0 || idx >= course.holes.length) return;
-        const holeNum = course.holes[idx].number;
-        const entry = roundState.scores?.[holeNum];
-        const shots = (roundState.shots || {})[holeNum];
-        if (!entry && !shots) return;
-        localStorage.setItem(scratchpadKey(roundState.docId), JSON.stringify({
-          holeNum,
-          entry: entry || null,
-          shots: shots || null,
-        }));
-        roundState._dirtyHole = holeNum;
-      }
-    } catch (_) { /* quota/private-mode; ignore */ }
-  }
-
-  // Read the scratchpad for the given round id. Returns the parsed
-  // object or null if absent/corrupted. Caller decides whether to
-  // apply it based on current hole context.
-  function readScoreScratchpad(roundId) {
-    if (!roundId) return null;
-    try {
-      const raw = localStorage.getItem(scratchpadKey(roundId));
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (typeof parsed !== 'object' || parsed === null) return null;
-      if (typeof parsed.holeNum !== 'number') return null;
-      return parsed;
-    } catch (_) { return null; }
-  }
-
-  // Remove the scratchpad after a real save flushes. Called from
-  // every commit path (Save & Next, Previous, picker jump, finish).
-  // Also clears the dirty flag on the active round state since the
-  // hole's edits have been persisted to Firestore.
-  function clearScoreScratchpad(roundId) {
-    if (!roundId) return;
-    try {
-      localStorage.removeItem(scratchpadKey(roundId));
-    } catch (_) { /* ignore */ }
-    // Clear dirty flag on whichever round state matches. Hand-walk
-    // both since we don't always know which mode is active when called.
-    if (typeof roundState !== 'undefined' && roundState.docId === roundId) {
-      roundState._dirtyHole = null;
-    }
-    if (typeof groupRoundState !== 'undefined' && groupRoundState.docId === roundId) {
-      groupRoundState._dirtyHole = null;
-    }
-  }
-
-  // Apply a scratchpad to the active round state. Called on round
-  // open / resume. If the scratchpad's holeNum matches the current
-  // hole, merge entry + shots into local state. Otherwise discard
-  // (staleness suggests the user navigated on another device).
-  //
-  // After restore, marks the hole DIRTY — the restored edits haven't
-  // been flushed to Firestore yet (that's the whole point — they
-  // were mid-hole when the app was closed). Next nav action will
-  // commit them.
-  function restoreScoreScratchpadToActiveRound() {
-    if (isGroupRoundActive()) {
-      const gr = groupRoundState.doc;
-      const scratch = readScoreScratchpad(groupRoundState.docId);
-      if (!scratch) return;
-      const course = getCourse(gr.courseId);
-      if (!course) return;
-      const idx = groupRoundState.yourHoleIndex;
-      if (idx < 0 || idx >= course.holes.length) return;
-      const currentHoleNum = course.holes[idx].number;
-      if (scratch.holeNum !== currentHoleNum) {
-        // Stale — discard rather than mis-apply to wrong hole
-        clearScoreScratchpad(groupRoundState.docId);
-        return;
-      }
-      const me = getMyGroupRoundPlayer();
-      if (!me) return;
-      if (!me.scores) me.scores = {};
-      if (!me.shots) me.shots = {};
-      if (scratch.entry) me.scores[scratch.holeNum] = scratch.entry;
-      if (scratch.shots) me.shots[scratch.holeNum] = scratch.shots;
-      groupRoundState._dirtyHole = scratch.holeNum;
-    } else if (isRoundActive()) {
-      const scratch = readScoreScratchpad(roundState.docId);
-      if (!scratch) return;
-      const course = getCourse(roundState.courseId);
-      if (!course) return;
-      const idx = roundState.holeIndex;
-      if (idx < 0 || idx >= course.holes.length) return;
-      const currentHoleNum = course.holes[idx].number;
-      if (scratch.holeNum !== currentHoleNum) {
-        clearScoreScratchpad(roundState.docId);
-        return;
-      }
-      if (!roundState.scores) roundState.scores = {};
-      if (!roundState.shots) roundState.shots = {};
-      if (scratch.entry) roundState.scores[scratch.holeNum] = scratch.entry;
-      if (scratch.shots) roundState.shots[scratch.holeNum] = scratch.shots;
-      roundState._dirtyHole = scratch.holeNum;
-    }
-  }
-
   // Read YOUR current entry for the YOUR-hole, applying defaults so the
   // UI always has values to show. Mirrors solo round's getOrInitHoleEntry
   // but against the group round player array.
@@ -29355,51 +28434,6 @@
   // { entry, hole, isPar3, holeNum } or null. Mutates the in-memory
   // doc so subsequent renders reflect the edit immediately; persistence
   // happens via saveGroupRoundHole().
-  // READ-ONLY entry resolver for rendering. Returns the stored entry if
-  // present, OR a default-filled entry if not — but NEVER mutates
-  // me.scores. This is critical: merely RENDERING a hole must not cause
-  // the app to treat it as "played". Previously this function would add
-  // an entry to me.scores as a side effect, which meant tapping through
-  // the hole picker populated the scorecard with fake par scores for
-  // every hole the user happened to look at.
-  //
-  // Returns { entry, hole, isPar3, holeNum, me, isStored } — isStored
-  // flag lets callers distinguish "user has saved this hole" from
-  // "we're filling in defaults for display only".
-  function readGroupHoleEntry() {
-    if (!isGroupRoundActive()) return null;
-    const gr = groupRoundState.doc;
-    const course = getCourse(gr.courseId);
-    if (!course) return null;
-    const me = getMyGroupRoundPlayer();
-    if (!me) return null;
-    const idx = groupRoundState.yourHoleIndex;
-    if (idx < 0 || idx >= course.holes.length) return null;
-    const hole = course.holes[idx];
-    const holeNum = hole.number;
-    const isPar3 = hole.par === 3;
-    const stored = me.scores?.[holeNum];
-    const entry = {
-      strokes: stored?.strokes ?? hole.par,
-      putts: stored?.putts ?? 2,
-      // null = "not recorded" — never auto-fill to true (see solo round)
-      fir: isPar3 ? null : (stored?.fir ?? null),
-      gir: stored?.gir ?? null,
-      firMiss: stored?.firMiss ?? null,
-      girMiss: stored?.girMiss ?? null,
-      penalties: stored?.penalties ?? 0,
-    };
-    return { entry, hole, isPar3, holeNum, me, isStored: !!stored };
-  }
-
-  // MUTATING entry resolver for user actions (stepper taps, toggles,
-  // Save & Next). Ensures an entry for the current hole exists in
-  // me.scores, creating one with par defaults if needed. Returns the
-  // live entry reference so the caller can mutate it.
-  //
-  // Only callers that represent an explicit user action should use this
-  // function — otherwise we get the "scorecard shows fake pars for every
-  // hole the user peeked at" bug.
   function getOrInitGroupHoleEntry() {
     if (!isGroupRoundActive()) return null;
     const gr = groupRoundState.doc;
@@ -29417,19 +28451,20 @@
       me.scores[holeNum] = {
         strokes: hole.par,
         putts: 2,
+        // Null = "not recorded". See solo round init for rationale —
+        // never silently count untouched holes as hits.
         fir: null,
-        gir: null,
-        firMiss: null,
-        girMiss: null,
-        penalties: 0,
+        gir: null
       };
     } else {
       // Backfill missing fields with defaults
       const s = me.scores[holeNum];
       if (s.strokes == null) s.strokes = hole.par;
       if (s.putts == null) s.putts = 2;
+      // Don't auto-fill fir/gir here either — keep them null until
+      // explicitly recorded by the user. Par 3s have fir forced to
+      // null below regardless.
       if (s.fir !== undefined && isPar3) s.fir = null;
-      if (s.penalties == null) s.penalties = 0;
     }
     return { entry: me.scores[holeNum], hole, isPar3, holeNum, me };
   }
@@ -29499,7 +28534,7 @@
     groupRoundState._bumpTotal = true;
     haptic('light');
     renderGroupRoundPanel();
-    writeScoreScratchpad();
+    queueSaveMyGroupScores();
   }
   function grAdjustPutts(delta) {
     const ctx = getOrInitGroupHoleEntry();
@@ -29514,26 +28549,7 @@
     groupRoundState._bumpPutts = true;
     haptic('light');
     renderGroupRoundPanel();
-    writeScoreScratchpad();
-  }
-
-  // Penalty strokes on this hole. Same clamp + sanity ceiling as solo
-  // (0–6). These are informational — adjusting penalties doesn't
-  // automatically bump strokes; the player already stepped total
-  // strokes up to reflect the full score. Stored alongside so stats
-  // can separate "played badly" from "lost a ball."
-  function grAdjustPenalties(delta) {
-    const ctx = getOrInitGroupHoleEntry();
-    if (!ctx) return;
-    const { entry } = ctx;
-    let next = (entry.penalties || 0) + delta;
-    if (next < 0) next = 0;
-    if (next > 6) next = 6;
-    if (next === entry.penalties) return;
-    entry.penalties = next;
-    haptic('light');
-    renderGroupRoundPanel();
-    writeScoreScratchpad();
+    queueSaveMyGroupScores();
   }
 
   // Save + advance to next hole. On the final hole, prompts to finish
@@ -29554,29 +28570,9 @@
       __groupRoundSaveTimer = null;
     }
     await saveMyGroupScoresNow();
-    // Flush succeeded — clear the scratchpad. The current hole's
-    // data is now in Firestore, so a subsequent app-close-and-reopen
-    // will restore from Firestore rather than scratchpad.
-    clearScoreScratchpad(groupRoundState.docId);
 
-    // Check if saving this hole completes MY 18-hole round. Mirrors
-    // solo saveAndNext — not "am I on the final hole by course order?"
-    // but "are all 18 holes scored after this save?". Matters for mid-
-    // course starts: started on 10 + played to 18 still has 1–9 unplayed.
-    const me = getMyGroupRoundPlayer();
-    const myScores = me ? (me.scores || {}) : {};
-    const scoredCount = Object.keys(myScores).length;
-    const willBeComplete = scoredCount >= course.holes.length;
-
-    if (!willBeComplete) {
-      const nextUnplayedIdx = findNextUnplayedHoleIndex(course, myScores, groupRoundState.yourHoleIndex);
-      if (nextUnplayedIdx === null) {
-        // Defensive fallback — shouldn't hit since willBeComplete would
-        // be true, but treat as complete if no unplayed hole exists.
-        await confirmCompleteMyGroupRound();
-        return;
-      }
-      groupRoundState.yourHoleIndex = nextUnplayedIdx;
+    if (groupRoundState.yourHoleIndex < course.holes.length - 1) {
+      groupRoundState.yourHoleIndex += 1;
       saveGroupRoundCursor();
       // Slide-animation hint for the next render. 'forward' = new hole
       // slides in from the right, same as solo round.
@@ -29586,28 +28582,20 @@
       // card jump-cuts away before the new one arrives.
       animateHoleTransitionOut('forward');
       renderGroupRoundPanel();
-      return;
+    } else {
+      // Last hole — prompt to finish YOUR round. Others continue playing.
+      await confirmCompleteMyGroupRound();
     }
-
-    // All 18 holes scored — prompt to finish MY round. Others continue playing.
-    await confirmCompleteMyGroupRound();
   }
 
   function grGoPreviousHole() {
     if (!isGroupRoundActive()) return;
     if (groupRoundState.yourHoleIndex > 0) {
-      // Nav flush — write only if the current hole has unsaved edits.
-      // A player scrubbing through holes (Previous → Previous → …) to
-      // review a prior hole doesn't generate writes. A player who
-      // edited the current hole does. The _dirtyHole flag is set by
-      // writeScoreScratchpad on any edit and cleared on any flush.
-      const course = getCourse(groupRoundState.doc.courseId);
-      const currentHoleNum = course?.holes[groupRoundState.yourHoleIndex]?.number;
-      const needsFlush = groupRoundState._dirtyHole != null
-        && groupRoundState._dirtyHole === currentHoleNum;
-      if (needsFlush) {
+      // Flush pending write so we don't lose edits when switching holes
+      if (__groupRoundSaveTimer) {
+        clearTimeout(__groupRoundSaveTimer);
+        __groupRoundSaveTimer = null;
         saveMyGroupScoresNow();
-        clearScoreScratchpad(groupRoundState.docId);
       }
       groupRoundState.yourHoleIndex -= 1;
       saveGroupRoundCursor();
@@ -29855,8 +28843,6 @@
       __groupRoundSaveTimer = null;
     }
     await saveMyGroupScoresNow();
-    // Scratchpad is now redundant — all data is in Firestore.
-    clearScoreScratchpad(groupRoundState.docId);
 
     const endMs = Date.now();
     const totals = computeGroupPlayerTotals(me.scores || {}, course);
@@ -30025,11 +29011,8 @@
       groupRoundState.unsubscribe = null;
     }
     myGroupRounds = myGroupRounds.filter(r => r.id !== completedId);
-    // Clear the per-round cursor + scratchpad. Scratchpad holds any
-    // lingering mid-hole edits which are now fully persisted (and the
-    // round is done anyway).
+    // Clear the per-round cursor
     try { localStorage.removeItem(`golfapp.grCursor.${completedId}`); } catch (_) {}
-    clearScoreScratchpad(completedId);
 
     // Navigate to the round summary — same surface solo rounds use.
     updateRoundBanner();
@@ -30112,17 +29095,6 @@
       const course = getCourse(groupRoundState.doc.courseId);
       if (!course) return;
       if (holeIdx < 0 || holeIdx >= course.holes.length) return;
-      // Nav flush — only if the current hole is dirty. Players often
-      // jump around to inspect other holes (check a past score, peek
-      // at the par of an upcoming hole) without editing. Those jumps
-      // shouldn't write to Firestore.
-      const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
-      const needsFlush = groupRoundState._dirtyHole != null
-        && groupRoundState._dirtyHole === currentHoleNum;
-      if (needsFlush) {
-        saveMyGroupScoresNow();
-        clearScoreScratchpad(groupRoundState.docId);
-      }
       // Use the same slide direction the user would see if they tapped
       // Previous/Next the right number of times — keeps motion direction
       // consistent with semantic direction (earlier hole = slides from
@@ -30142,21 +29114,9 @@
       const course = getCourse(roundState.courseId);
       if (!course) return;
       if (holeIdx < 0 || holeIdx >= course.holes.length) return;
-      // Nav flush — only if the current hole is dirty. Matches the
-      // group-round path above.
-      const currentHoleNum = course.holes[roundState.holeIndex]?.number;
-      const needsFlush = roundState._dirtyHole != null
-        && roundState._dirtyHole === currentHoleNum;
-      if (needsFlush) {
-        autoSaveRound().catch(err => console.error('Failed to save on jump:', err));
-        clearScoreScratchpad(roundState.docId);
-      }
       const currentIdx = roundState.holeIndex;
       const direction = holeIdx > currentIdx ? 'forward' : (holeIdx < currentIdx ? 'back' : null);
       roundState.holeIndex = holeIdx;
-      // Cursor persists to localStorage on every jump — see the
-      // corresponding note in goPreviousHole for the rationale.
-      saveSoloRoundCursor();
       // Hole-specific dock state that should reset on jump (same as
       // linear next/prev does)
       dockState.caddie.targetDistance = null;
@@ -30523,21 +29483,15 @@
     const yards = tee.yardages[groupRoundState.yourHoleIndex];
     const isPar3 = hole.par === 3;
 
-    // My current entry — read-only resolver returns stored data or
-    // default-filled values for display. Critically, this does NOT
-    // write to me.scores, so merely viewing a hole doesn't mark it as
-    // played. Only explicit user actions (stepper taps, toggles, Save
-    // & Next) route through getOrInitGroupHoleEntry and actually
-    // populate scores[].
-    const ctx = readGroupHoleEntry();
-    const entry = ctx.entry;
+    // My current entry (ensure defaults)
+    getOrInitGroupHoleEntry();
+    const entry = me.scores[holeNum];
     const strokes = entry.strokes;
     const putts   = entry.putts;
     const fir     = entry.fir;
     const gir     = entry.gir;
     const firMiss = entry.firMiss ?? null;
     const girMiss = entry.girMiss ?? null;
-    const penalties = entry.penalties ?? 0;
 
     const diff = strokes - hole.par;
     let scoreClass = 'par';
@@ -30709,27 +29663,6 @@
             <button class="round-card-putts-btn" onclick="grAdjustPutts(1)" aria-label="Increase putts">+</button>
           </div>
         </div>
-
-        <!-- Penalties — same pattern as solo round. Collapsed when 0
-             (single "Add penalty stroke" button), expands to a stepper
-             once any are added. Penalty strokes are part of total
-             strokes for the hole via adjustStrokes already; this field
-             just tags how many of those strokes were penalties so stats
-             can separate "played badly" from "lost a ball." -->
-        <div class="round-card-penalties${penalties > 0 ? ' is-active' : ''}">
-          ${penalties > 0 ? `
-            <div class="round-card-penalties-label">Penalties</div>
-            <div class="round-card-penalties-step">
-              <button class="round-card-putts-btn" onclick="grAdjustPenalties(-1)" aria-label="Decrease penalties">−</button>
-              <div class="round-card-penalties-value">${penalties}</div>
-              <button class="round-card-putts-btn" onclick="grAdjustPenalties(1)" aria-label="Increase penalties">+</button>
-            </div>
-          ` : `
-            <button class="round-card-penalties-add" onclick="grAdjustPenalties(1)">
-              + Add penalty stroke
-            </button>
-          `}
-        </div>
       </div>
 
       <!-- Action footer — secondary actions only. Primary "Save & Next"
@@ -30815,11 +29748,6 @@
         syncPublicProfile();
         // Invalidate social feed cache so next visit shows the new round
         if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
-        // Clean up per-round local state now that the round is final.
-        // Prevents stale scratchpad + cursor entries from accumulating
-        // in localStorage across many completed rounds.
-        clearScoreScratchpad(roundState.docId);
-        clearSoloRoundCursor(roundState.docId);
       } catch (err) {
         console.error('Failed to complete round:', err);
         showToast('Save failed — see console', true);
@@ -31745,11 +30673,7 @@
     }
 
     // Save button label + function based on context (solo vs group)
-    // and whether saving THIS hole would complete the full round. The
-    // "final hole" concept is misleading — it's not about being on hole
-    // 18, it's about whether all holes will have scores after this save.
-    // That distinction matters for mid-course starts (shotgun or similar)
-    // where the user can reach hole 18 with holes 1–9 still unplayed.
+    // and whether this is the final hole of the round.
     const isGroup = currentPanelId === 'group-round';
     const saveFn = isGroup ? 'grSaveAndNext()' : 'saveAndNext()';
     let isFinalHole = false;
@@ -31757,23 +30681,14 @@
     try {
       if (isGroup && groupRoundState.doc) {
         const course = getCourse(groupRoundState.doc.courseId);
-        const me = getMyGroupRoundPlayer();
-        if (course && me) {
-          // Count MY scores + whether the current hole is already scored
-          const myScores = me.scores || {};
-          const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
-          const currentAlreadyScored = currentHoleNum != null && !!myScores[currentHoleNum];
-          const scoredCount = Object.keys(myScores).length + (currentAlreadyScored ? 0 : 1);
-          isFinalHole = scoredCount >= course.holes.length;
+        if (course) {
+          isFinalHole = groupRoundState.yourHoleIndex >= course.holes.length - 1;
           saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
         }
       } else if (!isGroup) {
         const course = getCourse(roundState.courseId);
         if (course) {
-          const currentHoleNum = course.holes[roundState.holeIndex]?.number;
-          const currentAlreadyScored = currentHoleNum != null && !!roundState.scores[currentHoleNum];
-          const scoredCount = Object.keys(roundState.scores).length + (currentAlreadyScored ? 0 : 1);
-          isFinalHole = scoredCount >= course.holes.length;
+          isFinalHole = roundState.holeIndex >= course.holes.length - 1;
           saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
         }
       }
@@ -32195,9 +31110,14 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    // Scratchpad for crash-recovery; real Firestore write fires on
-    // next nav event (Save & Next, Previous, picker jump).
-    writeScoreScratchpad();
+    // Persist through the active round's save path. Group rounds write
+    // shots alongside scores in a single updateGroupRoundPlayer call,
+    // debounced by queueSaveMyGroupScores; solo rounds use autoSaveRound.
+    if (isGroupRoundActive()) {
+      queueSaveMyGroupScores();
+    } else {
+      autoSaveRound().catch(err => console.error('Failed to save shot:', err));
+    }
   }
 
   // Delete flow — confirm then drop from the shots array. Accessible
@@ -32224,8 +31144,12 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
-    // Scratchpad — same save-on-nav model as shot save above.
-    writeScoreScratchpad();
+    // Persist — same branching as saveShotDraft above.
+    if (isGroupRoundActive()) {
+      queueSaveMyGroupScores();
+    } else {
+      autoSaveRound().catch(err => console.error('Failed to delete shot:', err));
+    }
   }
 
   function renderShotEditSheet() {
@@ -33189,7 +32113,6 @@
     roundState._bumpTotal = true;
     haptic('light');
     renderRound();
-    writeScoreScratchpad();
   }
   function adjustPutts(delta) {
     const ctx = getOrInitHoleEntry();
@@ -33204,7 +32127,6 @@
     roundState._bumpPutts = true;
     haptic('light');
     renderRound();
-    writeScoreScratchpad();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -33314,13 +32236,18 @@
     // Get the right entry reference for solo vs group
     let entry;
     if (isGroup) {
-      // User explicitly tapped fir/gir — init the entry if not present.
-      // This is an actual interaction worth persisting (unlike merely
-      // rendering the hole, which reads without mutating).
-      const ctx = getOrInitGroupHoleEntry();
-      if (!ctx) return;
-      if (statKey === 'fir' && ctx.isPar3) return;
-      entry = ctx.entry;
+      const gr = groupRoundState.doc;
+      if (!gr || !currentUser) return;
+      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
+      if (!me) return;
+      const holeIdx = groupRoundState.yourHoleIndex;
+      const course = getCourse(gr.courseId);
+      if (!course) return;
+      const holeNum = course.holes[holeIdx].number;
+      entry = me.scores[holeNum];
+      if (!entry) return;
+      // Guard: par 3 fir no-op
+      if (statKey === 'fir' && course.holes[holeIdx].par === 3) return;
     } else {
       const ctx = getOrInitHoleEntry();
       if (!ctx) return;
@@ -33352,11 +32279,6 @@
     // Re-render the appropriate round surface
     if (isGroup) renderGroupRoundPanel();
     else renderRound();
-
-    // Scratchpad — persist mid-hole edits locally so a mid-hole app
-    // close doesn't lose them. The real Firestore save fires later
-    // on nav (Save & Next, Previous, picker jump).
-    writeScoreScratchpad();
 
     // If the user just selected "miss", pop the direction modal so
     // they can specify where they missed. Current recorded direction
@@ -33471,9 +32393,14 @@
 
     let entry;
     if (isGroup) {
-      const ctx = getOrInitGroupHoleEntry();
-      if (!ctx) { closeMissModal(); return; }
-      entry = ctx.entry;
+      const gr = groupRoundState.doc;
+      if (!gr || !currentUser) { closeMissModal(); return; }
+      const me = (gr.players || []).find(p => p.uid === currentUser.uid);
+      if (!me) { closeMissModal(); return; }
+      const course = getCourse(gr.courseId);
+      if (!course) { closeMissModal(); return; }
+      const holeNum = course.holes[groupRoundState.yourHoleIndex].number;
+      entry = me.scores[holeNum];
     } else {
       const ctx = getOrInitHoleEntry();
       if (!ctx) { closeMissModal(); return; }
@@ -33482,10 +32409,6 @@
     if (!entry) { closeMissModal(); return; }
     entry[statKey] = false;
     entry[missKey] = direction;
-
-    // Scratchpad — preserve mid-hole edit locally. Firestore save
-    // waits for the next nav event.
-    writeScoreScratchpad();
 
     // Close the modal and defer the round re-render until AFTER the
     // close animation is fully complete + DOM wiped. Running
@@ -34259,7 +33182,6 @@
     if (next > 6) next = 6;  // sanity ceiling — even disaster holes rarely exceed
     ctx.entry.penalties = next;
     renderRound();
-    writeScoreScratchpad();
   }
 
   // Save the current hole + advance, OR finish the round on hole 18.
@@ -34273,108 +33195,37 @@
     // Tactile commit — mirrors group round's grSaveAndNext.
     haptic('medium');
 
-    // Determine whether saving this hole completes the full round. This
-    // is the right question to ask — NOT "is this the final hole in
-    // course order?". Players often start on a non-hole-1 tee (common
-    // for shotgun starts or when busy courses split groups) and play
-    // around, so hole 18 by course-order might still have 1–9 unplayed.
-    // After getOrInitHoleEntry, scores has an entry for the current
-    // hole, so we can count directly.
-    const playedCount = Object.keys(roundState.scores).length;
-    const totalHoles = course.holes.length;
-    const willBeComplete = playedCount >= totalHoles;
-
-    if (!willBeComplete) {
-      // Advance to the next UNPLAYED hole, wrapping around the course.
-      // Before today's fix this used holeIndex + 1 which broke when the
-      // user started mid-course (e.g. started on 10, needed to wrap from
-      // 18 → 1 to play their front nine).
-      const nextUnplayedIdx = findNextUnplayedHoleIndex(course, roundState.scores, roundState.holeIndex);
-      if (nextUnplayedIdx === null) {
-        // Defensive — shouldn't hit since willBeComplete would have been
-        // true, but if no unplayed hole is found, treat as complete.
-        await finishRoundWithConfirm();
-        return;
-      }
+    if (roundState.holeIndex < course.holes.length - 1) {
+      // Advance to next hole, persist the in-progress state silently
+      roundState.holeIndex += 1;
       // Caddie target is hole-specific — reset for the new hole. Dock
       // stays open/closed based on user's expansion state.
       dockState.caddie.targetDistance = null;
-      roundState.holeIndex = nextUnplayedIdx;
-      saveSoloRoundCursor();
       // Hint for the renderer to add a slide-in animation on the hole
-      // card. 'forward' fits both normal advance AND wrap-around
-      // (semantically, you're moving to your "next hole" either way).
+      // card so the user sees the transition. 'forward' = card slides in
+      // from the right; 'back' = slides in from the left. Consumed and
+      // cleared inside renderRound.
       roundState._holeSlideDirection = 'forward';
+      // Cross-fade: clone the outgoing card before re-render so both
+      // cards animate simultaneously (old out, new in). See
+      // animateHoleTransitionOut for the clone mechanics.
       animateHoleTransitionOut('forward');
       renderRound();
       autoSaveRound(); // fire-and-forget; render doesn't wait on network
-      // Scratchpad for prior hole's in-progress edits is now persisted
-      // (autoSaveRound writes the full scores map). Clear it so a later
-      // crash-recovery doesn't re-apply the now-stale scratchpad to the
-      // new hole.
-      clearScoreScratchpad(roundState.docId);
-      return;
+    } else {
+      // Final hole — flip to completed, navigate to summary
+      const ok = await completeCurrentRound();
+      if (!ok) return;
+      const finishedRoundId = roundState.docId;
+      clearRoundState();
+      renderPlayLanding();
+      // Navigate to the summary, passing the just-completed round id
+      openRoundSummary(finishedRoundId);
     }
-
-    // All 18 holes will have scores after this save — confirm then finish.
-    await finishRoundWithConfirm();
-  }
-
-  // Find the next unplayed hole starting from afterIdx + 1, wrapping back
-  // to the start if needed. Returns null if ALL holes are already played.
-  // Used by saveAndNext to advance to the right hole after a mid-course
-  // start (shotgun/wrap-around play order).
-  function findNextUnplayedHoleIndex(course, scores, afterIdx) {
-    const total = course.holes.length;
-    for (let step = 1; step <= total; step++) {
-      const idx = (afterIdx + step) % total;
-      const holeNum = course.holes[idx].number;
-      if (!scores[holeNum]) return idx;
-    }
-    return null;
-  }
-
-  // Confirm-and-finish for solo rounds. Lightweight confirm — the user
-  // already tapped "Save & Finish", this is just the accidental-tap
-  // guard. Mirrors the group round's 18-hole completion pattern.
-  async function finishRoundWithConfirm() {
-    const ok = await confirmDialog({
-      eyebrow: 'Finish Round',
-      eyebrowStyle: 'warning',
-      title: 'Save your round?',
-      message: 'Your 18-hole round will be saved to your history.',
-      confirmText: 'Save Round',
-      cancelText: 'Keep Playing',
-      destructive: false,
-    });
-    if (!ok) return;
-    const ok2 = await completeCurrentRound();
-    if (!ok2) return;
-    const finishedRoundId = roundState.docId;
-    clearRoundState();
-    renderPlayLanding();
-    openRoundSummary(finishedRoundId);
   }
   function goPreviousHole() {
     if (roundState.holeIndex > 0) {
-      // Nav flush — only if the current hole has unsaved edits.
-      // Scrubbing through holes to review earlier work doesn't write.
-      // See grGoPreviousHole for the matching group-round logic.
-      const course = getCourse(roundState.courseId);
-      const currentHoleNum = course?.holes[roundState.holeIndex]?.number;
-      const needsFlush = roundState._dirtyHole != null
-        && roundState._dirtyHole === currentHoleNum;
-      if (needsFlush) {
-        autoSaveRound().catch(err => console.error('Failed to save on previous:', err));
-        clearScoreScratchpad(roundState.docId);
-      }
       roundState.holeIndex -= 1;
-      // Persist cursor to localStorage unconditionally. Previously we
-      // relied on Firestore's currentHoleIndex, but save-on-nav means
-      // scrubbing without edits doesn't update Firestore — leaving
-      // resume to land the user on whatever hole was last committed,
-      // not where they actually are.
-      saveSoloRoundCursor();
       dockState.caddie.targetDistance = null;
       roundState._holeSlideDirection = 'back';
       animateHoleTransitionOut('back');
@@ -34625,12 +33476,6 @@
       // Last computed proximity for the "just logged" ephemeral flash
       lastDelta: null,
     },
-    // Render-time flag: true means the next renderRangeSession pass
-    // should mark the most recently added shot row with an animation
-    // class, so the row fades in. Cleared after it's consumed. Set
-    // by practiceAddShot; NOT set by club/swing/chip taps, so those
-    // re-renders leave the shot list visually static.
-    _animateLatestShot: false,
   };
 
   let __practiceSessionSaveTimer = null;
@@ -34769,23 +33614,11 @@
       return;
     }
 
-    // Default draft club to the first club in the bag (usually driver).
-    // Direction + contact default to null — they're optional per-shot
-    // attributes. Most users log club + distance only; users who want
-    // to track misses/contact quality tap the chips to record. Defaults
-    // are NOT pre-set to "good" values (clean/straight) because that
-    // would silently record data for users who aren't tracking these,
-    // poisoning later stats.
-    //
-    // If the user DOES set these on a shot, the values stay sticky for
-    // the next shot (common case: a series of thin pulls gets logged
-    // without re-tapping).
+    // Default draft club to the first club in the bag (usually driver)
     practiceSessionState.draft = {
       clubId: bag[0].id || bag[0].name || null,
       swingPct: 100,
       distance: '',
-      direction: null,
-      contact: null,
     };
 
     const startMs = Date.now();
@@ -34860,44 +33693,6 @@
     practiceSessionState.draft.swingPct = pct;
     renderRangeSession();
   }
-  // Direction + contact chips — both optional. Tap to select; tap the
-  // same chip again to clear back to null. Values stay sticky between
-  // shots (see comment on practiceAddShot for rationale).
-  //
-  // Uses targeted DOM updates (toggle .active class) instead of a
-  // full renderRangeSession(). Rerendering would rebuild the shot
-  // list below and replay the per-row fadeUp animation on every tap,
-  // which looks chaotic. Also would steal focus from the distance
-  // input if the user was about to type.
-  function practiceSelectDirection(dir) {
-    const d = practiceSessionState.draft;
-    d.direction = d.direction === dir ? null : dir;
-    updateOptionalChipStates('direction', d.direction);
-  }
-  function practiceSelectContact(c) {
-    const d = practiceSessionState.draft;
-    d.contact = d.contact === c ? null : c;
-    updateOptionalChipStates('contact', d.contact);
-  }
-  // Update just the active states on the chip group for the given
-  // kind — no re-render. Chips share a common onclick format; we find
-  // them by the function they call + the value they pass.
-  function updateOptionalChipStates(kind, selectedValue) {
-    const fnName = kind === 'direction' ? 'practiceSelectDirection' : 'practiceSelectContact';
-    const chips = document.querySelectorAll('.range-tag-chip');
-    chips.forEach(chip => {
-      const onclick = chip.getAttribute('onclick') || '';
-      if (!onclick.includes(fnName)) return;
-      // Extract the value from onclick="practiceSelectDirection('left')"
-      const match = onclick.match(/'([^']+)'/);
-      const value = match ? match[1] : null;
-      if (value === selectedValue) {
-        chip.classList.add('active');
-      } else {
-        chip.classList.remove('active');
-      }
-    });
-  }
   function practiceSetDistance(val) {
     // Keep the raw string so "1" → "12" typing feels natural; validate on add
     practiceSessionState.draft.distance = val;
@@ -34926,25 +33721,13 @@
     const shot = {
       clubId: d.clubId,
       swingPct: d.swingPct,
-      distanceActual: parseInt(d.distance, 10),
-      // direction and contact are optional. Store null (not a default)
-      // when the user didn't tap a chip — downstream stats know the
-      // difference between "user didn't track this" and "user recorded
-      // a clean straight shot."
-      direction: d.direction || null,
-      contact: d.contact || null,
+      distance: parseInt(d.distance, 10),
       capturedAt: Date.now(),
     };
     const doc = practiceSessionState.doc;
     doc.shots = [...(doc.shots || []), shot];
-    // Flag the next render to animate the just-added shot row. Other
-    // re-render paths (club/swing/chip taps) don't set this, so the
-    // shot list stays visually static in those cases.
-    practiceSessionState._animateLatestShot = true;
-    // Reset distance but keep everything else sticky. If the user set
-    // contact=thin on this shot and is about to log another thin one,
-    // they don't want to re-tap. If they didn't set either, the next
-    // shot also has them unset.
+    // Reset distance but keep club + swingPct so next shot flows quickly
+    // (most range reps are "same club, same swing, repeat").
     practiceSessionState.draft.distance = '';
     queueSavePracticeSession();
     renderRangeSession();
@@ -35048,36 +33831,13 @@
   function computeSessionTotals(shots) {
     const count = (shots || []).length;
     if (count === 0) return { count: 0, avg: 0, max: 0, lastDistance: null };
-    // Lazy-read: sessions logged before the field rename used `distance`;
-    // newer ones use `distanceActual`. Nullish coalesce so both work.
-    const distances = shots.map(s => (s.distanceActual ?? s.distance) || 0);
+    const distances = shots.map(s => s.distance || 0);
     const sum = distances.reduce((a, b) => a + b, 0);
     const max = Math.max(...distances);
     return {
       count,
       avg: Math.round(sum / count),
       max,
-      lastDistance: distances[distances.length - 1],
-    };
-  }
-
-  // Per-club session totals — used in the status strip at the top of
-  // an active range session. Mixed-club aggregates ("avg across 3
-  // clubs") are meaningless, so the strip now shows stats contextual
-  // to the CURRENTLY SELECTED club in the entry card. Empty state is
-  // clean (zero shots for this club in this session → null avg/last).
-  function computeClubSessionTotals(shots, clubId) {
-    if (!clubId || !Array.isArray(shots)) {
-      return { count: 0, avg: null, lastDistance: null };
-    }
-    const clubShots = shots.filter(s => s.clubId === clubId);
-    const count = clubShots.length;
-    if (count === 0) return { count: 0, avg: null, lastDistance: null };
-    const distances = clubShots.map(s => (s.distanceActual ?? s.distance) || 0);
-    const sum = distances.reduce((a, b) => a + b, 0);
-    return {
-      count,
-      avg: Math.round(sum / count),
       lastDistance: distances[distances.length - 1],
     };
   }
@@ -35166,15 +33926,7 @@
       for (const shot of (session.shots || [])) {
         const clubId = shot.clubId;
         if (!clubId) continue;
-        // Authoritative distance — actual ball-flight yards from range
-        // logging. Lazy-read: newer shots use `distanceActual`, older
-        // ones used `distance`. In-round shots never fill either of
-        // these fields (they use `distance` for to-target yards), so
-        // they're naturally excluded from club averages — which is
-        // exactly what we want. To-target yards aren't authoritative
-        // for "how far does my 7 iron go" since they're relative to
-        // what the user was aiming at, not what the ball actually did.
-        const dist = shot.distanceActual ?? shot.distance;
+        const dist = shot.distance;
         if (typeof dist !== 'number' || dist <= 0) continue;
         // Treat missing swingPct as 100% (pre-field data)
         const pct = shot.swingPct || 100;
@@ -35396,7 +34148,7 @@
     if (count === 0) {
       return { count: 0, avg: 0, max: 0, clubCount: 0, durationMin: 0 };
     }
-    const distances = shots.map(s => (s.distanceActual ?? s.distance) || 0);
+    const distances = shots.map(s => s.distance || 0);
     const avg = Math.round(distances.reduce((a, b) => a + b, 0) / count);
     const max = Math.max(...distances);
     // Unique clubs hit
@@ -35422,7 +34174,7 @@
       map.set(key, bucket);
     }
     const groups = Array.from(map.values()).map(g => {
-      const distances = g.shots.map(s => (s.distanceActual ?? s.distance) || 0);
+      const distances = g.shots.map(s => s.distance || 0);
       const avg = distances.length > 0
         ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
         : 0;
@@ -35435,7 +34187,7 @@
       // 100% (older data predates the field) — this matches how the
       // range entry UI treats the default.
       const fullSwingShots = g.shots.filter(s => (s.swingPct || 100) === 100);
-      const fullSwingDistances = fullSwingShots.map(s => (s.distanceActual ?? s.distance) || 0);
+      const fullSwingDistances = fullSwingShots.map(s => s.distance || 0);
       const avg100 = fullSwingDistances.length > 0
         ? Math.round(fullSwingDistances.reduce((a, b) => a + b, 0) / fullSwingDistances.length)
         : null;  // null = no 100% shots → dash in UI
@@ -35687,16 +34439,13 @@
 
     // Shot rows — chronological order (as they were hit during the
     // session). Show #N, swing %, distance.
-    const shotRowsHtml = group.shots.map((shot, idx) => {
-      const dist = shot.distanceActual ?? shot.distance;
-      return `
+    const shotRowsHtml = group.shots.map((shot, idx) => `
       <div class="range-shot-row">
         <div class="range-shot-num">#${idx + 1}</div>
         <div class="range-shot-swing">${shot.swingPct || 100}%</div>
-        <div class="range-shot-distance">${dist}<span>${distanceUnit()}</span></div>
+        <div class="range-shot-distance">${shot.distance}<span>${distanceUnit()}</span></div>
       </div>
-    `;
-    }).join('');
+    `).join('');
 
     mount.innerHTML = `
       <div class="panel-head">
@@ -36286,6 +35035,7 @@
            focused on the single active task. -->
       <div class="shortgame-secondary-actions">
         ${shots.length > 0 ? `<button class="round-btn-link" onclick="undoLastShortGameShot()">↶ Undo Last</button>` : '<span></span>'}
+        <button class="round-btn-link round-btn-end" onclick="endShortGameSession()">End Session</button>
       </div>
 
       <!-- Shot list — visible below when you scroll, not blocking play -->
@@ -37331,6 +36081,7 @@
               ? `<button class="round-btn-link" onclick="undoLastCoursePracticeShot()">↶ Undo</button>`
               : ''}
             <button class="round-btn-link" onclick="skipCoursePracticeHole()">Skip Hole</button>
+            <button class="round-btn-link round-btn-end" onclick="endCoursePracticeSession()">End Session</button>
           </div>
         </div>
       </div>
@@ -37354,47 +36105,6 @@
   }
 
   // Main render — branches on "active session?" and routes accordingly.
-  // Ticks the active session's elapsed-time display in the topbar
-  // once a second. Works for range, short game, and course practice
-  // sessions — all three store startTime on practiceSessionState.doc,
-  // and at most one of these can be active at a time.
-  let __sessionTimerHandle = null;
-
-  function formatElapsed(ms) {
-    if (!Number.isFinite(ms) || ms < 0) ms = 0;
-    const totalSec = Math.floor(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    const pad = (n) => String(n).padStart(2, '0');
-    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-  }
-
-  function tickSessionTimer() {
-    const el = document.getElementById('mobile-topbar-timer');
-    if (!el) return;
-    if (!isAnyPracticeSessionActive()) {
-      el.textContent = '00:00';
-      return;
-    }
-    const started = practiceSessionState.doc?.startTime || Date.now();
-    el.textContent = formatElapsed(Date.now() - started);
-  }
-
-  function startSessionTimer() {
-    // Tick once immediately so the display isn't stuck on 00:00 until
-    // the first interval fires
-    tickSessionTimer();
-    if (__sessionTimerHandle) return;
-    __sessionTimerHandle = setInterval(tickSessionTimer, 1000);
-  }
-
-  function stopSessionTimer() {
-    if (!__sessionTimerHandle) return;
-    clearInterval(__sessionTimerHandle);
-    __sessionTimerHandle = null;
-  }
-
   function renderRangeSession() {
     const mount = document.getElementById('range-session-mount');
     if (!mount) return;
@@ -37431,15 +36141,11 @@
 
     const doc = practiceSessionState.doc;
     const shots = doc.shots || [];
+    const totals = computeSessionTotals(shots);
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const d = practiceSessionState.draft;
     const selectedClub = bag.find(c => (c.id || c.name) === d.clubId);
     const selectedClubName = selectedClub ? selectedClub.name : 'Select…';
-    // Per-club session totals — drives the top status strip. Mixed-
-    // club aggregates (overall avg, overall max) aren't meaningful
-    // when you're switching between driver, 7 iron, wedge etc., so
-    // stats are scoped to the currently selected club.
-    const clubTotals = computeClubSessionTotals(shots, d.clubId);
 
     // Club options for the <select> — value is id (or name as fallback)
     const clubOptions = bag.map(c => {
@@ -37455,100 +36161,33 @@
               onclick="practiceSelectSwingPct(${p})">${p}%</button>
     `).join('');
 
-    // Direction chips — both optional. Shown inline in the entry card
-    // between distance and Add Shot. Active chip styled differently
-    // when set; all neutral when unset. Tapping the active chip clears
-    // it back to null.
-    const directionOptions = [
-      { id: 'left', label: 'Miss L' },
-      { id: 'straight', label: 'Straight' },
-      { id: 'right', label: 'Miss R' },
-    ];
-    const directionHtml = directionOptions.map(o => `
-      <button class="range-tag-chip ${d.direction === o.id ? 'active' : ''}"
-              onclick="practiceSelectDirection('${o.id}')">${o.label}</button>
-    `).join('');
-
-    // Contact chips — same pattern as direction.
-    const contactOptions = [
-      { id: 'clean', label: 'Clean' },
-      { id: 'thin',  label: 'Thin' },
-      { id: 'chunk', label: 'Chunk' },
-    ];
-    const contactHtml = contactOptions.map(o => `
-      <button class="range-tag-chip ${d.contact === o.id ? 'active' : ''}"
-              onclick="practiceSelectContact('${o.id}')">${o.label}</button>
-    `).join('');
-
-    // Consume the "animate latest" flag. When true, the newest shot
-    // row (first in the reversed list, last in shots[]) gets marked
-    // with a class that triggers its fade-in animation. Always cleared
-    // after read so subsequent re-renders (from club/swing/chip taps)
-    // don't replay the animation on existing rows.
-    const animateLatestIdx = practiceSessionState._animateLatestShot ? shots.length - 1 : -1;
-    practiceSessionState._animateLatestShot = false;
-
     // Shot list — newest on top for quick glance at what you just logged
     const shotListHtml = shots.length === 0
       ? `<div class="range-shotlist-empty">No shots yet. Log your first shot above.</div>`
       : shots.slice().reverse().map((s, revIdx) => {
           const realIdx = shots.length - 1 - revIdx;
           const clubName = resolveClubName(s.clubId);
-          // Lazy migration: sessions logged before the field rename
-          // used `distance`; newer ones use `distanceActual`. Read both.
-          const dist = s.distanceActual ?? s.distance;
-          // Optional tag chips — only shown when the user recorded
-          // them. Direction first (comes up more often in practice
-          // analysis), contact second.
-          const directionLabels = { left: 'Miss L', straight: 'Straight', right: 'Miss R' };
-          const contactLabels = { clean: 'Clean', thin: 'Thin', chunk: 'Chunk' };
-          const tags = [];
-          if (s.direction && directionLabels[s.direction]) {
-            tags.push(`<span class="range-shot-tag range-shot-tag-dir">${directionLabels[s.direction]}</span>`);
-          }
-          if (s.contact && contactLabels[s.contact]) {
-            tags.push(`<span class="range-shot-tag range-shot-tag-contact">${contactLabels[s.contact]}</span>`);
-          }
-          const tagsHtml = tags.length > 0
-            ? `<div class="range-shot-tags">${tags.join('')}</div>`
-            : '';
-          const animClass = realIdx === animateLatestIdx ? ' range-shot-row-new' : '';
           return `
-            <div class="range-shot-row${animClass}">
+            <div class="range-shot-row">
               <div class="range-shot-num">#${realIdx + 1}</div>
               <div class="range-shot-club">${escapeHtml(clubName)}</div>
               <div class="range-shot-swing">${s.swingPct}%</div>
-              <div class="range-shot-distance">${dist}<span>${distanceUnit()}</span></div>
-              ${tagsHtml}
+              <div class="range-shot-distance">${s.distance}<span>${distanceUnit()}</span></div>
               <button class="range-shot-delete" onclick="practiceRemoveShotAt(${realIdx})" aria-label="Remove shot ${realIdx + 1}">×</button>
             </div>
           `;
         }).join('');
 
-    // Status strip content — club-contextual. When no club is picked
-    // yet (shouldn't happen since startRangeSession preselects first
-    // bag item, but be defensive), fall back to neutral labels.
-    const stripEyebrow = selectedClub ? selectedClubName : 'Range Session';
-    const stripMeta = !selectedClub
-      ? 'No club selected'
-      : clubTotals.count === 0
-        ? 'No shots yet for this club'
-        : `${clubTotals.count} shot${clubTotals.count === 1 ? '' : 's'} · Avg ${clubTotals.avg}${distanceUnit()}`;
-
     mount.innerHTML = `
-      <!-- Status strip — stats contextual to the currently selected
-           club (set in the entry card below). Mixed-club aggregates
-           would be meaningless during a session that spans multiple
-           clubs; scoping to the active club gives each stat a clear
-           reference point. -->
+      <!-- Status strip — session stats on the right, label on the left -->
       <div class="round-status">
         <div class="round-status-side">
-          <div class="round-status-eyebrow">${escapeHtml(stripEyebrow)}</div>
-          <div class="round-status-meta">${stripMeta}</div>
+          <div class="round-status-eyebrow">Range Session</div>
+          <div class="round-status-meta">${totals.count} shot${totals.count === 1 ? '' : 's'} · Avg ${totals.avg}${distanceUnit()} · Max ${totals.max}${distanceUnit()}</div>
         </div>
         <div class="round-status-side round-status-right">
           <div class="round-status-eyebrow">Last</div>
-          <div class="round-status-score">${clubTotals.lastDistance != null ? clubTotals.lastDistance : '—'} <span>${distanceUnit()}</span></div>
+          <div class="round-status-score">${totals.lastDistance != null ? totals.lastDistance : '—'} <span>${distanceUnit()}</span></div>
         </div>
       </div>
 
@@ -37582,24 +36221,6 @@
                  onkeydown="if(event.key==='Enter'){event.preventDefault();practiceAddShot();}">
         </div>
 
-        <!-- Optional shot detail — direction + contact. Both can be
-             left blank; neither is recorded unless the user taps a
-             chip. Labeled "Optional" to make clear these aren't
-             required to complete a shot. -->
-        <div class="range-field range-field-optional">
-          <label class="label-text">Direction <span class="range-field-optional-tag">Optional</span></label>
-          <div class="range-tag-row">
-            ${directionHtml}
-          </div>
-        </div>
-
-        <div class="range-field range-field-optional">
-          <label class="label-text">Contact <span class="range-field-optional-tag">Optional</span></label>
-          <div class="range-tag-row">
-            ${contactHtml}
-          </div>
-        </div>
-
         <div class="round-actions">
           <button id="practice-add-shot-btn" class="round-btn round-btn-primary"
                   onclick="practiceAddShot()" ${canAddShot() ? '' : 'disabled'}>
@@ -37607,6 +36228,7 @@
           </button>
           <div class="round-actions-secondary">
             ${shots.length > 0 ? `<button class="round-btn-link" onclick="practiceRemoveLastShot()">↶ Undo Last</button>` : ''}
+            <button class="round-btn-link round-btn-end" onclick="endRangeSession()">End Session</button>
           </div>
         </div>
       </div>
@@ -37848,22 +36470,16 @@
     // Race guard: if WE have a pending OR in-flight score write, preserve
     // our local `me.scores` (and `me.shots`, since they write together)
     // in the merged doc. A snapshot arriving during the debounce window
-    // Merge guard: ALWAYS preserve my local scores + shots through a
-    // snapshot refresh. Source of truth for my own data is the local
-    // state, not Firestore, until I explicitly commit via nav. Without
-    // this, another player's snapshot update would overwrite any mid-
-    // hole edits I've made with stale server data.
-    //
-    // Previously this guard was gated on save-in-flight / debounce-
-    // pending windows, which made sense when every edit auto-saved.
-    // Under the save-on-nav model there's no debounce timer during
-    // mid-hole tapping, so the guard needs to be unconditional.
+    // OR mid-write could otherwise overwrite uncommitted edits with
+    // stale server data. Two flags cover both windows:
+    // __groupRoundSaveTimer (debounce pending) and
+    // __groupRoundSaveInFlight (write in flight).
     //
     // The race guard only kicks in when we're STILL in the round per
     // the fresh doc — the kicked-detection branch above runs first
     // and returns early if not.
     let mergedDoc = freshDoc;
-    if (currentUser) {
+    if ((__groupRoundSaveTimer || __groupRoundSaveInFlight) && currentUser) {
       const localMe = getMyGroupRoundPlayer();
       const stillInFresh = (freshDoc.players || []).some(p => p.uid === currentUser.uid);
       if (localMe && stillInFresh) {
@@ -37927,13 +36543,9 @@
         // Organizer (or someone with equivalent power) started the round.
         // Navigate all clients into the scorecard panel automatically.
         // First start of a round typically has no stored cursor; default
-        // to the round's startingHoleIndex (hole 1 if unset). If a cursor
-        // does exist — e.g. the user rejoined an in-progress round via
-        // the lobby path — trust it.
-        const startIdx = typeof mergedDoc.startingHoleIndex === 'number'
-          ? mergedDoc.startingHoleIndex
-          : 0;
-        groupRoundState.yourHoleIndex = loadGroupRoundCursor() ?? startIdx;
+        // to hole 1 (index 0). If a cursor does exist — e.g. the user
+        // rejoined an in-progress round via the lobby path — trust it.
+        groupRoundState.yourHoleIndex = loadGroupRoundCursor() ?? 0;
         showPanel('group-round', null);
         return; // showPanel triggers a render already
       }
@@ -38687,10 +37299,7 @@
       roundState.docId = inProgress.id;
       roundState.courseId = inProgress.courseId;
       roundState.teeName = inProgress.teeName;
-      const localCursor = loadSoloRoundCursor(inProgress.id);
-      roundState.holeIndex = localCursor != null
-        ? localCursor
-        : (inProgress.currentHoleIndex || 0);
+      roundState.holeIndex = inProgress.currentHoleIndex || 0;
       roundState.scores = inProgress.scores || {};
       roundState.started = inProgress.startTime;
       roundState.dateKey = inProgress.dateKey;
@@ -44944,67 +43553,6 @@
   // ─────────────────────────────────────────────────────────────
   // Round summary panel
   // ─────────────────────────────────────────────────────────────
-  // TEMP — logged shots dump. Displays raw shot data below the hole-
-  // by-hole table on the round summary so the user can verify shots
-  // were captured correctly. Will be replaced by a proper stats view
-  // (per-club distances, dispersion patterns, etc.) once the shot
-  // corpus is big enough to do real analysis.
-  function renderLoggedShotsDump(round, course) {
-    const shots = round?.shots || {};
-    const holeNums = Object.keys(shots)
-      .map(Number)
-      .filter(n => Array.isArray(shots[n]) && shots[n].length > 0)
-      .sort((a, b) => a - b);
-    if (holeNums.length === 0) return '';
-
-    // Small lookup builders for label text. Fall back to raw id if
-    // the constant lookup misses (defensive — e.g. old data with an
-    // intent value we've since renamed).
-    const lieLabel = (id) => (SHOT_START_LIES.find(l => l.id === id)?.label) || id || '—';
-    const intentLabel = (id) => (SHOT_INTENTS.find(i => i.id === id)?.label) || id || '—';
-    const mishitLabel = (id) => (SHOT_MISHITS.find(m => m.id === id)?.label) || id || '—';
-    const resultLabel = (id) => (SHOT_RESULTS.find(r => r.id === id)?.label) || id || '—';
-
-    const holeCards = holeNums.map(holeNum => {
-      const hole = course?.holes?.find(h => h.number === holeNum);
-      const parStr = hole ? ` · Par ${hole.par}` : '';
-      const shotLines = shots[holeNum].map((s, i) => {
-        const num = i + 1;
-        const club = s.club || '—';
-        const dist = s.distance != null ? `${s.distance}y` : '—';
-        const lie = lieLabel(s.startLie);
-        const intent = intentLabel(s.intent);
-        const result = s.result ? resultLabel(s.result) : '—';
-        const mishit = s.mishit ? mishitLabel(s.mishit) : '—';
-        return `
-          <div class="shots-dump-row">
-            <div class="shots-dump-row-head">
-              <span class="shots-dump-num">#${num}</span>
-              <span class="shots-dump-club">${escapeHtml(club)}</span>
-              <span class="shots-dump-dist">${escapeHtml(dist)}</span>
-            </div>
-            <div class="shots-dump-row-meta">
-              <span><b>Intent:</b> ${escapeHtml(intent)}</span>
-              <span><b>Lie:</b> ${escapeHtml(lie)}</span>
-              <span><b>Result:</b> ${escapeHtml(result)}</span>
-              <span><b>Mishit:</b> ${escapeHtml(mishit)}</span>
-            </div>
-          </div>`;
-      }).join('');
-      return `
-        <div class="shots-dump-hole">
-          <div class="shots-dump-hole-head">Hole ${holeNum}${parStr} · ${shots[holeNum].length} shot${shots[holeNum].length === 1 ? '' : 's'}</div>
-          ${shotLines}
-        </div>`;
-    }).join('');
-
-    return `
-      <div class="round-summary-section-label">Logged Shots <span class="shots-dump-temp-tag">TEMP</span></div>
-      <div class="shots-dump-wrap">
-        ${holeCards}
-      </div>`;
-  }
-
   function renderRoundSummary() {
     const mount = document.getElementById('round-summary-mount');
     if (!mount) return;
@@ -45213,8 +43761,6 @@
           </table>
         </div>
       ` : ''}
-
-      ${renderLoggedShotsDump(round, course)}
 
       ${prefs.profileVisibility === 'public' ? `
         <div class="round-summary-section-label">Visibility</div>
@@ -45988,15 +44534,13 @@
     toolsEditorState.open = true;
     toolsEditorState.draft = buildToolsEditorDraft();
     toolsEditorState.draggingId = null;
-    acquireScrollLock();
-    mountToolsEditorSheet();
+    renderToolsEditorSheet();
   }
 
   function closeToolsEditorSheet() {
     toolsEditorState.open = false;
     toolsEditorState.draft = null;
     toolsEditorState.draggingId = null;
-    releaseScrollLock();
     const mount = document.getElementById('tools-editor-mount');
     if (mount) mount.innerHTML = '';
   }
@@ -46015,7 +44559,7 @@
     }
     entry.visible = entry.visible === false;
     haptic('light');
-    rerenderToolsEditorRows();
+    renderToolsEditorSheet();
   }
 
   // Move a tool up or down in the draft order. Simple button-based
@@ -46030,7 +44574,7 @@
     const [item] = toolsEditorState.draft.splice(idx, 1);
     toolsEditorState.draft.splice(newIdx, 0, item);
     haptic('light');
-    rerenderToolsEditorRows();
+    renderToolsEditorSheet();
   }
 
   // Reset to catalog defaults — clears the config so the sheet
@@ -46038,7 +44582,7 @@
   function toolsEditorReset() {
     toolsEditorState.draft = DOCK_TOOLS.map(t => ({ id: t.id, visible: true }));
     haptic('light');
-    rerenderToolsEditorRows();
+    renderToolsEditorSheet();
   }
 
   // Commit draft to prefs. If the draft matches the default exactly
@@ -46057,15 +44601,17 @@
     showToast('Tools updated');
   }
 
-  // Build the HTML for just the rows area. Called from both the
-  // initial mount AND from row-updates (toggle/move/reset) so those
-  // don't blow away the whole sheet and retrigger the slide-in
-  // animation on every tap.
-  function buildToolsEditorRowsHtml() {
-    if (!toolsEditorState.draft) return '';
+  function renderToolsEditorSheet() {
+    const mount = document.getElementById('tools-editor-mount');
+    if (!mount) return;
+    if (!toolsEditorState.open || !toolsEditorState.draft) {
+      mount.innerHTML = '';
+      return;
+    }
     const draft = toolsEditorState.draft;
     const byId = Object.fromEntries(DOCK_TOOLS.map(t => [t.id, t]));
-    return draft.map((entry, idx) => {
+
+    const rowsHtml = draft.map((entry, idx) => {
       const tool = byId[entry.id];
       if (!tool) return '';
       const isVisible = entry.visible !== false;
@@ -46090,32 +44636,6 @@
           </button>
         </div>`;
     }).join('');
-  }
-
-  // Targeted rows-only update. Keeps the sheet frame in the DOM so
-  // its slide-up entry animation doesn't replay on every row mutation.
-  function rerenderToolsEditorRows() {
-    const body = document.querySelector('.tools-editor-body');
-    if (!body) {
-      // Sheet isn't mounted yet — full mount. Shouldn't normally happen
-      // since state mutations only fire while open, but defensive.
-      mountToolsEditorSheet();
-      return;
-    }
-    body.innerHTML = buildToolsEditorRowsHtml();
-  }
-
-  // Full-mount — builds the entire sheet, including the frame. Called
-  // once when opening the sheet. Subsequent row edits go through
-  // rerenderToolsEditorRows instead to avoid re-triggering the entry
-  // slide-up animation.
-  function mountToolsEditorSheet() {
-    const mount = document.getElementById('tools-editor-mount');
-    if (!mount) return;
-    if (!toolsEditorState.open || !toolsEditorState.draft) {
-      mount.innerHTML = '';
-      return;
-    }
 
     mount.innerHTML = `
       <div class="tools-editor-backdrop" onclick="closeToolsEditorSheet()"></div>
@@ -46129,7 +44649,7 @@
           <div class="tools-editor-hint">Use arrows to reorder. Tap Shown/Hidden to toggle visibility.</div>
         </div>
         <div class="tools-editor-body">
-          ${buildToolsEditorRowsHtml()}
+          ${rowsHtml}
         </div>
         <div class="tools-editor-footer">
           <button class="btn btn-ghost" onclick="toolsEditorReset()">Reset to defaults</button>
@@ -46137,201 +44657,6 @@
         </div>
       </div>
     `;
-
-    // Drag-to-close on the header — same pattern as the hole picker.
-    const sheetEl = mount.querySelector('.tools-editor-sheet');
-    const headerEl = sheetEl?.querySelector('.tools-editor-header');
-    attachBottomSheetDrag({
-      sheetEl,
-      headerEl,
-      backdropSelector: '.tools-editor-backdrop',
-      ignoreSelector: '.tools-editor-close',
-      closeFn: closeToolsEditorSheet,
-    });
-  }
-
-  // ─── Session menu — ellipsis on practice session panels ─────────
-  // Opens a bottom sheet with Finish / Delete actions. Appears only
-  // on the three practice session panels (range, shortgame, course
-  // practice) via the action bar at the bottom of the viewport.
-  // Delete is a hard-destructive action (wipes the doc entirely);
-  // finish is the existing end-session flow (save + navigate away).
-
-  const sessionMenuState = {
-    open: false,
-  };
-
-  function openSessionMenuSheet() {
-    if (sessionMenuState.open) return;
-    if (!isAnyPracticeSessionActive()) return;
-    sessionMenuState.open = true;
-    acquireScrollLock();
-    mountSessionMenuSheet();
-  }
-
-  function closeSessionMenuSheet() {
-    if (!sessionMenuState.open) return;
-    const sheet = document.querySelector('.session-menu-sheet');
-    const backdrop = document.querySelector('.session-menu-backdrop');
-    const finish = () => {
-      sessionMenuState.open = false;
-      releaseScrollLock();
-      const mount = document.getElementById('session-menu-mount');
-      if (mount) mount.innerHTML = '';
-    };
-    if (!sheet || !backdrop) { finish(); return; }
-    sheet.classList.add('closing');
-    backdrop.classList.add('closing');
-    let done = false;
-    const onEnd = (e) => {
-      // Listen for the sheet's transform transition (not backdrop opacity)
-      // so we don't fire finish() twice
-      if (e.propertyName !== 'transform') return;
-      sheet.removeEventListener('transitionend', onEnd);
-      if (done) return; done = true;
-      finish();
-    };
-    sheet.addEventListener('transitionend', onEnd);
-    // Safety net — if transitionend never fires (Safari quirks, etc.),
-    // still clean up after the expected duration.
-    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
-  }
-
-  // Finish — delegates to the existing end handler for whichever
-  // session type is active. Each of those handlers asks for its own
-  // confirmation, so we don't duplicate that here — just close the
-  // menu first so the confirm dialog isn't behind it.
-  async function sessionMenuFinish() {
-    closeSessionMenuSheet();
-    if (isRangeSessionActive()) {
-      await endRangeSession();
-    } else if (isShortGameSessionActive()) {
-      await endShortGameSession();
-    } else if (isCoursePracticeSessionActive()) {
-      await endCoursePracticeSession();
-    }
-  }
-
-  // Delete — hard-removes the doc from Firestore without saving any
-  // shots. Always confirms, extra-destructive warning when shots
-  // already exist (user is about to lose real data). Empty sessions
-  // get a lighter confirm since there's nothing to lose.
-  async function sessionMenuDelete() {
-    if (!currentUser || !window.fb) return;
-    if (!isAnyPracticeSessionActive()) return;
-    const docId = practiceSessionState.docId;
-    const doc = practiceSessionState.doc;
-    if (!docId || !doc) return;
-
-    const shots = doc.shots || [];
-    const holesShots = doc.holes
-      ? doc.holes.reduce((n, h) => n + ((h.shots || []).length), 0)
-      : 0;
-    const totalShots = shots.length + holesShots;
-
-    closeSessionMenuSheet();
-
-    const ok = await confirmDialog({
-      eyebrow: 'Delete Session',
-      eyebrowStyle: 'warning',
-      title: totalShots > 0
-        ? `Delete ${totalShots}-shot session?`
-        : 'Delete empty session?',
-      message: totalShots > 0
-        ? "Every shot you've logged in this session will be permanently removed. This can't be undone and the session won't appear in your history."
-        : "Nothing will be saved. This session will be removed.",
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      destructive: true,
-    });
-    if (!ok) return;
-
-    // Flush any pending save so the delete doesn't race with a
-    // late write recreating the doc.
-    if (typeof __practiceSessionSaveTimer !== 'undefined' && __practiceSessionSaveTimer) {
-      clearTimeout(__practiceSessionSaveTimer);
-      __practiceSessionSaveTimer = null;
-    }
-
-    try {
-      await window.fb.deletePracticeSession(currentUser.uid, docId);
-    } catch (err) {
-      console.error('Failed to delete session:', err);
-      showToast('Delete failed — please try again', true);
-      return;
-    }
-
-    // Wipe local state so updateRoundBanner / active checks go quiet
-    practiceSessionState.docId = null;
-    practiceSessionState.doc = null;
-    updateRoundBanner();
-    // Invalidate history cache so the delete shows through if the
-    // user jumps into History. Different types invalidate different
-    // lists, but nuking all three is cheap and reliable.
-    rangeSessionsHistoryLoaded = false;
-    if (typeof shortGameSessionsHistoryLoaded !== 'undefined') shortGameSessionsHistoryLoaded = false;
-    if (typeof coursePracticeSessionsHistoryLoaded !== 'undefined') coursePracticeSessionsHistoryLoaded = false;
-    showPanel('practice', null);
-    showToast('Session deleted');
-  }
-
-  function mountSessionMenuSheet() {
-    const mount = document.getElementById('session-menu-mount');
-    if (!mount) return;
-    if (!sessionMenuState.open) {
-      mount.innerHTML = '';
-      return;
-    }
-
-    mount.innerHTML = `
-      <div class="session-menu-backdrop opening" onclick="closeSessionMenuSheet()" aria-hidden="true"></div>
-      <div class="session-menu-sheet opening" role="dialog" aria-modal="true" aria-label="Session menu">
-        <div class="session-menu-header">
-          <div class="session-menu-handle" aria-hidden="true"></div>
-        </div>
-        <div class="session-menu-body">
-          <button class="session-menu-row" onclick="sessionMenuFinish()">
-            <span class="session-menu-row-icon" aria-hidden="true">✓</span>
-            <span class="session-menu-row-text">
-              <span class="session-menu-row-title">Finish Session</span>
-              <span class="session-menu-row-sub">Save and add to your history.</span>
-            </span>
-          </button>
-          <button class="session-menu-row session-menu-row-destructive" onclick="sessionMenuDelete()">
-            <span class="session-menu-row-icon" aria-hidden="true">✕</span>
-            <span class="session-menu-row-text">
-              <span class="session-menu-row-title">Delete Session</span>
-              <span class="session-menu-row-sub">Permanently remove — can't be undone.</span>
-            </span>
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Kick off slide-up animation on next frame. Force layout with
-    // offsetHeight so the browser registers the initial translateY(100%)
-    // state BEFORE we remove the opening class — otherwise it'll
-    // collapse both states into a single paint and skip the transition.
-    const sheet = mount.querySelector('.session-menu-sheet.opening');
-    const backdrop = mount.querySelector('.session-menu-backdrop.opening');
-    if (sheet) {
-      void sheet.offsetHeight;
-      requestAnimationFrame(() => {
-        sheet.classList.remove('opening');
-        if (backdrop) backdrop.classList.remove('opening');
-      });
-    }
-
-    // Drag-to-close on the header — consistent with other sheets.
-    const sheetEl = mount.querySelector('.session-menu-sheet');
-    const headerEl = sheetEl?.querySelector('.session-menu-header');
-    attachBottomSheetDrag({
-      sheetEl,
-      headerEl,
-      backdropSelector: '.session-menu-backdrop',
-      ignoreSelector: null,
-      closeFn: closeSessionMenuSheet,
-    });
   }
 
   function renderUnitsSection() {
