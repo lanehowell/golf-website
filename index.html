@@ -4413,6 +4413,179 @@
     max-width: 30ch;
   }
 
+  /* ──────────────────────────────────────────────────────────
+     In-round GPS panel — Phase 2. Full-screen satellite view
+     launched from the GPS tool in the round tools sheet. Map
+     covers the whole viewport; header + distance readout float
+     over it with translucent backgrounds so as much of the map
+     stays visible as possible.
+     ────────────────────────────────────────────────────────── */
+  .round-gps-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 9400;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+  }
+  #round-gps-map {
+    position: absolute;
+    inset: 0;
+  }
+  .round-gps-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .round-gps-hole-chip {
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+  }
+  .round-gps-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .round-gps-close-float {
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+  }
+  /* Distance readout at bottom. Strong gradient from transparent
+     up to near-opaque so the number has a solid backing but the
+     map stays visible above. */
+  .round-gps-distance {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 32px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
+    color: #fff;
+    text-align: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .round-gps-distance-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+  .round-gps-distance-value {
+    font-family: var(--font-display);
+    font-size: 64px;
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .round-gps-distance-sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 8px;
+  }
+
+  /* Unpinned state — empty card in the middle with a prompt to
+     pin greens. Same full-screen panel but without a map. */
+  .round-gps-unpinned {
+    background: var(--bg-page);
+    position: fixed;
+    inset: 0;
+    z-index: 9400;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .round-gps-unpinned .round-gps-close {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 16px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+  .round-gps-unpinned-body {
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 0 var(--space-5);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    text-align: center;
+  }
+  .round-gps-unpinned-icon {
+    font-size: 56px;
+    margin-bottom: var(--space-2);
+  }
+  .round-gps-unpinned-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .round-gps-unpinned-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
+    max-width: 30ch;
+    margin-bottom: var(--space-3);
+  }
+
+  /* Reuse fallback style for the Mapbox-not-loaded case */
+  .round-gps-fallback {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-8);
+    gap: var(--space-4);
+    background: var(--bg-page);
+    flex-direction: column;
+    display: flex;
+  }
+  .round-gps-fallback-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .round-gps-fallback-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    max-width: 30ch;
+  }
+
   .tools-editor-sheet {
     position: fixed;
     left: 0;
@@ -22353,6 +22526,12 @@
      transform issues. -->
 <div id="pin-greens-mount"></div>
 
+<!-- ROUND GPS panel mount — populated by renderRoundGpsPanel() when
+     the user taps the GPS tool during a round. Full-screen satellite
+     view with live distance-to-green. Body-level for the same reason
+     as other map-based sheets. -->
+<div id="round-gps-mount"></div>
+
 <!-- RECOVERY sheet mount — populated by renderRecoverySheet() when
      the user taps the pending-rounds banner on the Play screen.
      Shows the captured scorecard + Save / Continue solo / Discard
@@ -33538,6 +33717,7 @@
   const DOCK_TOOLS = [
     { id: 'scorecard', label: 'Scorecard',   icon: '📋' },
     { id: 'shots',     label: 'Track Shots', icon: '📍' },
+    { id: 'gps',       label: 'GPS',         icon: '🗺️' },
     { id: 'weather',   label: 'Weather',     icon: '🌤️' },
     { id: 'preshot',   label: 'Pre-Shot',    icon: '🎯' },
     { id: 'caddie',    label: 'Club Caddie', icon: '🏌️' },
@@ -33799,6 +33979,17 @@
 
   // Tap a tool in the list — switch sheet body to that tool's content.
   function selectTool(toolId) {
+    // GPS is a full-screen takeover, not an inline tool surface —
+    // a map needs real estate. Close the tools sheet, then open the
+    // dedicated GPS panel.
+    if (toolId === 'gps') {
+      closeToolsSheet();
+      // Small delay so the sheet close animation completes before
+      // the GPS panel slides in. Feels less jarring than both
+      // transitioning simultaneously.
+      setTimeout(() => openRoundGpsPanel(), 220);
+      return;
+    }
     animateSheetHeightChange(() => {
       dockState.activeTool = toolId;
       renderRoundDock();
@@ -34357,6 +34548,7 @@
     const DESCRIPTIONS = {
       scorecard: 'See your running scorecard',
       shots:     'Log each shot and club used',
+      gps:       'Distance to green, satellite view',
       weather:   'Conditions at the course',
       preshot:   'Situation-based shot reminders',
       caddie:    'Get a club suggestion',
@@ -51717,6 +51909,253 @@
     pinGreensRenderFooter();
   }
   window.pinGreensGoToHole = pinGreensGoToHole;
+
+  // ─────────────────────────────────────────────────────────────
+  // In-round GPS panel (Phase 2)
+  // ─────────────────────────────────────────────────────────────
+  // Full-screen satellite view that opens when the user taps GPS in
+  // the in-round tools sheet. Reads the current hole from the round
+  // context, centers the map between the user and the green, drops
+  // pins for both, shows live distance-to-green.
+  //
+  // Edge cases handled:
+  //   - Current hole has no pinned green → show a prompt that
+  //     launches the Pin Greens flow for this course.
+  //   - Geolocation denied/unavailable → show distance from tee
+  //     (course.lat/lng) as a rough fallback, message the user.
+  //   - No active round → panel won't open (selectTool already
+  //     gates on being in the tools dock which requires a round).
+
+  const roundGpsState = {
+    open: false,
+    map: null,
+    userMarker: null,
+    greenMarker: null,
+    watchTimer: null,
+    userLat: null,
+    userLng: null,
+    courseId: null,
+    holeNumber: null,
+    greenLat: null,
+    greenLng: null,
+  };
+
+  function openRoundGpsPanel() {
+    if (roundGpsState.open) return;
+    const ctx = getCurrentRoundContext();
+    if (!ctx) {
+      showToast('Start a round to use GPS', true);
+      return;
+    }
+    const course = getCourse(ctx.courseId);
+    if (!course) return;
+    const currentHole = course.holes[ctx.holeIndex];
+    if (!currentHole) return;
+
+    roundGpsState.open = true;
+    roundGpsState.courseId = ctx.courseId;
+    roundGpsState.holeNumber = currentHole.number;
+    roundGpsState.greenLat = currentHole.greenLat ?? null;
+    roundGpsState.greenLng = currentHole.greenLng ?? null;
+    acquireScrollLock();
+    renderRoundGpsPanel();
+  }
+  window.openRoundGpsPanel = openRoundGpsPanel;
+
+  function closeRoundGpsPanel() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.watchTimer) {
+      clearInterval(roundGpsState.watchTimer);
+      roundGpsState.watchTimer = null;
+    }
+    if (roundGpsState.map) {
+      try { roundGpsState.map.remove(); } catch (_) {}
+      roundGpsState.map = null;
+    }
+    roundGpsState.open = false;
+    roundGpsState.userMarker = null;
+    roundGpsState.greenMarker = null;
+    roundGpsState.userLat = null;
+    roundGpsState.userLng = null;
+    roundGpsState.courseId = null;
+    roundGpsState.holeNumber = null;
+    roundGpsState.greenLat = null;
+    roundGpsState.greenLng = null;
+    releaseScrollLock();
+    const mount = document.getElementById('round-gps-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closeRoundGpsPanel = closeRoundGpsPanel;
+
+  // Launch the pinning flow for the current course. Exposed so the
+  // "green not pinned" message can link to it.
+  function roundGpsOpenPinFlow() {
+    const courseId = roundGpsState.courseId;
+    closeRoundGpsPanel();
+    setTimeout(() => {
+      if (courseId) openPinGreensSheet(courseId);
+    }, 220);
+  }
+  window.roundGpsOpenPinFlow = roundGpsOpenPinFlow;
+
+  function renderRoundGpsPanel() {
+    const mount = document.getElementById('round-gps-mount');
+    if (!mount) return;
+    if (!roundGpsState.open) { mount.innerHTML = ''; return; }
+
+    // Mapbox fallback — same graceful degradation as other panels.
+    if (typeof mapboxgl === 'undefined') {
+      mount.innerHTML = `
+        <div class="round-gps-panel round-gps-fallback">
+          <div class="round-gps-fallback-title">Map didn't load</div>
+          <div class="round-gps-fallback-body">Check your network and try again.</div>
+          <button class="pin-greens-btn pin-greens-btn-secondary" onclick="closeRoundGpsPanel()">Close</button>
+        </div>`;
+      return;
+    }
+
+    const holeNum = roundGpsState.holeNumber;
+    const hasGreen = roundGpsState.greenLat != null && roundGpsState.greenLng != null;
+
+    // "Green not pinned" state — prompt the user to pin it now.
+    // This is a dead end UX-wise without pins, so offering the
+    // direct path matters.
+    if (!hasGreen) {
+      mount.innerHTML = `
+        <div class="round-gps-panel round-gps-unpinned">
+          <button class="round-gps-close" onclick="closeRoundGpsPanel()" aria-label="Close">×</button>
+          <div class="round-gps-unpinned-body">
+            <div class="round-gps-unpinned-icon">🗺️</div>
+            <div class="round-gps-unpinned-title">Green not pinned</div>
+            <div class="round-gps-unpinned-text">
+              Hole ${holeNum} doesn't have a pinned green yet. Pin it
+              now to see live distance from your GPS location.
+            </div>
+            <button class="pin-greens-btn pin-greens-btn-primary" onclick="roundGpsOpenPinFlow()">
+              Pin greens
+            </button>
+            <button class="pin-greens-btn pin-greens-btn-secondary" onclick="closeRoundGpsPanel()">
+              Not now
+            </button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Happy path — build the map. Header strip overlaid on the map
+    // carries the hole number, close button, and distance readout.
+    mount.innerHTML = `
+      <div class="round-gps-panel">
+        <!-- Header strip floating over the map -->
+        <div class="round-gps-header">
+          <div class="round-gps-hole-chip">Hole ${holeNum}</div>
+          <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanel()" aria-label="Close">×</button>
+        </div>
+
+        <!-- Map fills the whole panel -->
+        <div id="round-gps-map"></div>
+
+        <!-- Distance readout at the bottom -->
+        <div class="round-gps-distance">
+          <div class="round-gps-distance-eyebrow">To green</div>
+          <div class="round-gps-distance-value" id="round-gps-distance-value">—</div>
+          <div class="round-gps-distance-sub" id="round-gps-distance-sub">
+            Getting your location…
+          </div>
+        </div>
+      </div>`;
+
+    // Initialize map. Center on the green initially; we re-center
+    // to frame both user + green once we have the user's position.
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'round-gps-map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [roundGpsState.greenLng, roundGpsState.greenLat],
+      zoom: 17,
+      attributionControl: true,
+    });
+    roundGpsState.map = map;
+
+    // Green marker — same style as the saved pin in the pinning flow.
+    const greenEl = document.createElement('div');
+    greenEl.style.cssText = `
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #2D6E34; border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+    roundGpsState.greenMarker = new mapboxgl.Marker(greenEl)
+      .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
+      .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${holeNum} green`))
+      .addTo(map);
+
+    // Kick off live position tracking. 2s is a good balance between
+    // feeling "live" and not thrashing the device's GPS.
+    updateRoundGpsPosition();
+    roundGpsState.watchTimer = setInterval(updateRoundGpsPosition, 2000);
+  }
+
+  // Fetch position and update marker + distance readout. Runs on
+  // open and every 2s after.
+  async function updateRoundGpsPosition() {
+    if (!navigator.geolocation) {
+      const s = document.getElementById('round-gps-distance-sub');
+      if (s) s.textContent = 'Geolocation not supported';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const isFirst = roundGpsState.userLat == null;
+        roundGpsState.userLat = latitude;
+        roundGpsState.userLng = longitude;
+
+        // Blue "you" pin. Distinct from the orange course pins and
+        // the green green-marker so all three roles are unambiguous.
+        if (!roundGpsState.userMarker && roundGpsState.map) {
+          const el = document.createElement('div');
+          el.style.cssText = `
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #2E86DE; border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+          roundGpsState.userMarker = new mapboxgl.Marker(el)
+            .setLngLat([longitude, latitude])
+            .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('You'))
+            .addTo(roundGpsState.map);
+        } else if (roundGpsState.userMarker) {
+          roundGpsState.userMarker.setLngLat([longitude, latitude]);
+        }
+
+        // On first fix, frame the map to include both user and
+        // green. Subsequent updates just move the user marker — no
+        // auto-recentering since we don't want the map sliding
+        // around under the user while they're looking at it.
+        if (isFirst && roundGpsState.map) {
+          const bounds = new mapboxgl.LngLatBounds()
+            .extend([longitude, latitude])
+            .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+          roundGpsState.map.fitBounds(bounds, {
+            padding: { top: 120, bottom: 160, left: 60, right: 60 },
+            duration: 600,
+            maxZoom: 18,
+          });
+        }
+
+        // Update distance.
+        const yards = haversineYards(latitude, longitude,
+                                      roundGpsState.greenLat,
+                                      roundGpsState.greenLng);
+        const valueEl = document.getElementById('round-gps-distance-value');
+        const subEl = document.getElementById('round-gps-distance-sub');
+        if (valueEl) valueEl.textContent = Math.round(yards);
+        if (subEl) subEl.textContent = `yards · GPS accuracy ±${Math.round(accuracy)}m`;
+      },
+      (err) => {
+        const s = document.getElementById('round-gps-distance-sub');
+        if (s) s.textContent = `Location error: ${err.message}`;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 1500 }
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Init
