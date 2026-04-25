@@ -23142,6 +23142,23 @@
       return snap.exists() ? { id: snap.id, ...snap.data() } : null;
     },
 
+    // ─── Courses (top-level catalog) ─────────────────────────
+    // Phase A: courses live in a top-level Firestore collection.
+    // Anyone authenticated can read; only admins can write (rules).
+    // Catalog is small (handful of courses) and rarely updated, so
+    // we one-shot fetch the whole thing into an in-memory cache on
+    // app start.
+    listCourses: async () => {
+      const snap = await getDocs(collection(db, 'courses'));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+    // Write/replace a single course doc. Used by the one-time seed
+    // step that pushes the hardcoded COURSES array up to Firestore
+    // on first run, and by any future admin add-course flow.
+    upsertCourse: async (courseId, data) => {
+      await setDoc(doc(db, `courses/${courseId}`), data, { merge: true });
+    },
+
     // Update top-level fields on a group round (status transitions,
     // endTime, etc). Caller must be in the playerUids array.
     updateGroupRoundFields: async (groupRoundId, fields) => {
@@ -24630,13 +24647,124 @@
   ];
 
   // Helper: look up a course by id
+  // ─────────────────────────────────────────────────────────────
+  // Course catalog — Firestore-backed
+  // ─────────────────────────────────────────────────────────────
+  // Phase A migration: courses moved from the hardcoded COURSES array
+  // to a top-level Firestore collection (`courses/{id}`). The array
+  // below stays as a SEED — written up to Firestore on first run if
+  // the collection is empty — and as a synchronous fallback if the
+  // network is dead at app start. Once Firestore loads, that becomes
+  // the source of truth via coursesCache.
+
+  // Admin UIDs — users who are allowed to write to the courses
+  // collection. Used for the auto-seed step and any future course
+  // management UI. Hardcoded for now; can move to a proper role
+  // system later (Firestore custom claims, or an admins/{uid} doc
+  // collection).
+  const ADMIN_UIDS = new Set([
+    // Lane's UID
+    'WiwQbsLLqDSkJ1NgjvLxFGUmXwh1',
+  ]);
+
+  // Helper: is the current signed-in user an admin?
+  function isCurrentUserAdmin() {
+    return !!(currentUser && ADMIN_UIDS.has(currentUser.uid));
+  }
+
+  // In-memory cache of courses, keyed by course id. Populated on auth
+  // by loadCourses(). Seeded from COURSES on first read so callers
+  // before the load completes still see something.
+  const coursesCache = new Map();
+  // Gate flag — true once loadCourses() has resolved (success or
+  // failure). Renderers that depend on the catalog should treat
+  // !coursesLoaded as "still loading."
+  let coursesLoaded = false;
+
+  // Seed the cache from the hardcoded array. Called at parse time
+  // so getCourse() works even before auth/Firestore loads.
+  function seedCoursesCacheFromArray() {
+    coursesCache.clear();
+    for (const c of COURSES) {
+      coursesCache.set(c.id, c);
+    }
+  }
+  // Seed immediately. Once auth fires and loadCourses() resolves,
+  // the cache is replaced with Firestore data — but until then,
+  // synchronous getCourse() calls during initial render still work.
+  seedCoursesCacheFromArray();
+
+  // Read from Firestore and replace the cache. Public-readable, so
+  // even unauthenticated users can populate (Firestore rules permit
+  // reads with auth required, so this only runs once we have a user
+  // — see the auth-changed handler).
+  async function loadCourses() {
+    if (!window.fb) {
+      // Offline / no Firestore — fall back to the seed array.
+      seedCoursesCacheFromArray();
+      coursesLoaded = true;
+      return;
+    }
+    try {
+      const docs = await window.fb.listCourses();
+      if (docs.length === 0) {
+        // Empty collection — first run. If admin, seed it from the
+        // hardcoded array. Otherwise just use the array locally for
+        // this session; an admin will seed it later.
+        if (isCurrentUserAdmin()) {
+          await seedFirestoreCoursesFromArray();
+          // Re-read after seeding so the cache reflects what's in
+          // Firestore (which now has any field-shape adjustments
+          // applied during the seed).
+          const refreshed = await window.fb.listCourses();
+          coursesCache.clear();
+          for (const c of refreshed) coursesCache.set(c.id, c);
+        } else {
+          // Non-admin user, empty Firestore: use seed array locally.
+          seedCoursesCacheFromArray();
+        }
+      } else {
+        coursesCache.clear();
+        for (const c of docs) coursesCache.set(c.id, c);
+      }
+      coursesLoaded = true;
+    } catch (err) {
+      console.error('Failed to load courses from Firestore:', err);
+      // On any error, fall back to the seed so the app stays usable.
+      seedCoursesCacheFromArray();
+      coursesLoaded = true;
+    }
+  }
+
+  // One-time seed: write each hardcoded course to Firestore. Idempotent
+  // (uses upsertCourse with merge), but the caller is expected to gate
+  // on "is admin AND Firestore is empty" to avoid unintended overwrites.
+  async function seedFirestoreCoursesFromArray() {
+    if (!window.fb) return;
+    for (const c of COURSES) {
+      // Strip the id from the data payload — it lives in the doc id.
+      const { id, ...data } = c;
+      try {
+        await window.fb.upsertCourse(id, data);
+      } catch (err) {
+        console.error(`Failed to seed course ${id}:`, err);
+      }
+    }
+  }
+
   function getCourse(courseId) {
-    const base = COURSES.find(c => c.id === courseId);
+    // Read from cache first (Firestore-backed once loaded; seeded
+    // from COURSES otherwise). Fall back to the seed array directly
+    // if even the cache hasn't been populated (defense in depth —
+    // shouldn't happen in practice since seedCoursesCacheFromArray
+    // runs at the bottom of this file before any reads).
+    let base = coursesCache.get(courseId);
+    if (!base) base = COURSES.find(c => c.id === courseId);
     if (!base) return null;
     // Merge any user-pinned green coords into the holes array. We do
-    // this on-read rather than mutating COURSES so the catalog stays
-    // as a pristine reference and pinning is purely per-user state.
-    // Phase 4 will add a fallback to shared publicCourses data.
+    // this on-read rather than mutating the cache so green coord
+    // pinning is purely per-user state — Phase 4 will add a fallback
+    // to shared publicCourses data.
     const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || null;
     if (!pins) return base;
     const mergedHoles = base.holes.map(h => {
@@ -30117,7 +30245,7 @@
       // Signed in — load their data in parallel for snappier startup.
       // loadInProgressSession runs alongside so if a workout was left
       // running (browser closed, refresh mid-session) we restore it.
-      const [, , , , , , , , , inProgressSession] = await Promise.all([
+      const [, , , , , , , , , , inProgressSession] = await Promise.all([
         loadPreferences(),
         loadRecentSessions(),
         loadRecentRounds(),
@@ -30128,7 +30256,8 @@
         loadMyGroupRounds(),
         loadGroupRoundInvites(),
         loadInProgressPracticeSession(),
-        loadInProgressSession()
+        loadInProgressSession(),
+        loadCourses()
       ]);
       if (inProgressSession) {
         restoreInProgressSession(inProgressSession);
