@@ -35343,7 +35343,9 @@
     let sheetHtml = '';
     let backdropHtml = '';
     if (dockState.sheetOpen) {
-      backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
+      // === DEBUG: backdrop disabled to test if it's causing the
+      //     iOS dynamic-island safe-area bug ===
+      // backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
       sheetHtml = renderToolsSheet();
     }
 
