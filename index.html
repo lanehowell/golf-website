@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- iOS PWA status bar — black-translucent lets page content extend
+     under the notch/status bar area instead of being pushed below
+     a gray strip. Required for full-screen experiences like the GPS
+     map view. Layouts that need to clear the status bar use
+     env(safe-area-inset-top) for their top padding. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Golf Performance Training Plan</title>
 <script>
   // Pre-paint theme init — runs before any CSS or content renders.
