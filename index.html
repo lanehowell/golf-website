@@ -5158,24 +5158,90 @@
      line direction). pointer-events none so a drag from the reticle
      through the label doesn't catch on it. */
   .round-gps-yardage-label {
-    width: 46px;
-    height: 46px;
+    /* Pill-shaped, auto-sized to its content — supports expansion
+       from "329y >" (compact) to "329y · plays 338y · +9 elev · +0 wind <"
+       (expanded) when the user taps it. The expanded content is in a
+       sibling span whose max-width transitions, producing a smooth
+       horizontal grow without measuring/setting widths in JS. */
     background: rgba(0, 0, 0, 0.65);
     color: #fff;
     font-family: var(--font-mono);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: var(--weight-semibold);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
-    border-radius: 50%;
-    display: flex;
+    border-radius: 22px;
+    height: 36px;
+    padding: 0 12px;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
     user-select: none;
-    pointer-events: none;
+    /* pointer-events:auto so the label is tappable. The map is below;
+       events on the label don't bubble through to a map drag. */
+    pointer-events: auto;
+    cursor: pointer;
     white-space: nowrap;
     backdrop-filter: blur(2px);
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-gps-yardage-label-base {
+    flex-shrink: 0;
+  }
+  /* Detail section — hidden by default via max-width:0 + opacity:0.
+     Expanded by toggling [data-expanded="true"] on the parent. The
+     transition on max-width is the trick that makes auto-content
+     animate (you can't transition width:auto, but you can transition
+     max-width with a large fixed value as the target). */
+  .round-gps-yardage-label-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 220ms ease-out 60ms;
+  }
+  .round-gps-yardage-label[data-expanded="true"] .round-gps-yardage-label-detail {
+    max-width: 360px;
+    opacity: 1;
+  }
+  .round-gps-yardage-label-divider {
+    opacity: 0.4;
+  }
+  .round-gps-yardage-label-plays {
+    color: var(--color-orange);
+    font-weight: var(--weight-bold);
+  }
+  .round-gps-yardage-label-breakdown {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.7rem;
+    font-weight: var(--weight-medium);
+  }
+  /* Chevron — rotates 180° when expanded. Using inline-block + rotate
+     so rotation pivots around the chevron's own center. Hidden when
+     plays-like data isn't available (label stays simple, no tap). */
+  .round-gps-yardage-label-chevron {
+    display: inline-block;
+    font-size: 0.85rem;
+    line-height: 1;
+    opacity: 0.55;
+    transition: transform 220ms ease-out;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+  .round-gps-yardage-label[data-expanded="true"] .round-gps-yardage-label-chevron {
+    transform: rotate(180deg);
+  }
+  .round-gps-yardage-label.no-plays {
+    /* No plays-like data → hide the chevron, disable tap. Label
+       remains as the simple "329y" pill it always was. */
+    cursor: default;
+  }
+  .round-gps-yardage-label.no-plays .round-gps-yardage-label-chevron {
+    display: none;
   }
 
   /* Hole-change transition fade. JS sets opacity directly on
@@ -54786,6 +54852,22 @@
 
     // While dragging, update the lines + the distance readout in
     // real time. Use 'drag' (every frame) for a responsive feel.
+    marker.on('dragstart', () => {
+      // Collapse any expanded yardage labels — during drag, the
+      // breakdown numbers would jitter as the geometry changes.
+      // The user can re-expand after drag ends to see updated info.
+      const labels = roundGpsState.targetLabels;
+      if (labels) {
+        if (labels.fromLabel) {
+          const el = labels.fromLabel.getElement();
+          if (el) el.dataset.expanded = 'false';
+        }
+        if (labels.greenLabel) {
+          const el = labels.greenLabel.getElement();
+          if (el) el.dataset.expanded = 'false';
+        }
+      }
+    });
     marker.on('drag', () => {
       const ll = marker.getLngLat();
       roundGpsState.targetLat = ll.lat;
@@ -55434,14 +55516,23 @@
         fromPoint.lat, fromPoint.lng,
         roundGpsState.targetLat, roundGpsState.targetLng);
       const text = `${Math.round(yards)}y`;
+      // Compute plays-like for this leg (user → target) so the
+      // expandable detail can show the adjusted carry distance.
+      // Returns null if neither elevation nor wind data is available;
+      // updateRoundGpsLabelContent gracefully hides the chevron.
+      const plays = getRoundGpsPlaysLikeAdjustments(
+        fromPoint.lat, fromPoint.lng,
+        roundGpsState.targetLat, roundGpsState.targetLng,
+        yards);
       if (!labels.fromLabel) {
         const el = buildRoundGpsLabelEl(text);
         labels.fromLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([offsetPos.lng, offsetPos.lat])
           .addTo(map);
+        updateRoundGpsLabelContent(labels.fromLabel, text, plays);
       } else {
         labels.fromLabel.setLngLat([offsetPos.lng, offsetPos.lat]);
-        labels.fromLabel.getElement().textContent = text;
+        updateRoundGpsLabelContent(labels.fromLabel, text, plays);
       }
     } else if (labels.fromLabel) {
       // Mode changed — no longer a from-line, remove the label.
@@ -55465,14 +55556,22 @@
         roundGpsState.targetLat, roundGpsState.targetLng,
         roundGpsState.greenLat, roundGpsState.greenLng);
       const text = `${Math.round(yards)}y`;
+      // Plays-like for the hypothetical "next shot" from target → green.
+      // Useful for layup planning — "if I lay up here, my approach
+      // plays Xy."
+      const plays = getRoundGpsPlaysLikeAdjustments(
+        roundGpsState.targetLat, roundGpsState.targetLng,
+        roundGpsState.greenLat, roundGpsState.greenLng,
+        yards);
       if (!labels.greenLabel) {
         const el = buildRoundGpsLabelEl(text);
         labels.greenLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([offsetPos.lng, offsetPos.lat])
           .addTo(map);
+        updateRoundGpsLabelContent(labels.greenLabel, text, plays);
       } else {
         labels.greenLabel.setLngLat([offsetPos.lng, offsetPos.lat]);
-        labels.greenLabel.getElement().textContent = text;
+        updateRoundGpsLabelContent(labels.greenLabel, text, plays);
       }
     }
   }
@@ -55510,11 +55609,75 @@
   // transparent black background, white tabular-numeric text.
   // pointer-events: none so dragging the reticle through the
   // label doesn't hit the label.
+  // Build a yardage label with expandable plays-like detail. The
+  // structure is:
+  //   .round-gps-yardage-label
+  //     .round-gps-yardage-label-base          → "329y"
+  //     .round-gps-yardage-label-detail        → expanded content (hidden default)
+  //       .round-gps-yardage-label-plays       → "plays 338y"
+  //       .round-gps-yardage-label-breakdown   → "+9 elev · +0 wind"
+  //     .round-gps-yardage-label-chevron       → ›
+  //
+  // Tap toggles data-expanded which the CSS uses to animate the detail
+  // section's max-width + opacity. updateLabelContent (below) refreshes
+  // the displayed numbers without recreating the element, so the
+  // expanded state persists across position updates.
   function buildRoundGpsLabelEl(text) {
     const el = document.createElement('div');
     el.className = 'round-gps-yardage-label round-gps-fadable';
-    el.textContent = text;
+    el.dataset.expanded = 'false';
+    el.innerHTML = `
+      <span class="round-gps-yardage-label-base">${text}</span>
+      <span class="round-gps-yardage-label-detail">
+        <span class="round-gps-yardage-label-divider">·</span>
+        <span class="round-gps-yardage-label-plays"></span>
+        <span class="round-gps-yardage-label-breakdown"></span>
+      </span>
+      <span class="round-gps-yardage-label-chevron" aria-hidden="true">›</span>
+    `;
+    // Toggle on tap. We listen on the element itself; clicks/taps on
+    // the inner spans bubble up. preventDefault stops the gesture
+    // from also being treated as a map interaction (Mapbox markers
+    // have their own gesture forwarding logic).
+    el.addEventListener('click', (e) => {
+      // If there's no plays-like data, the .no-plays class is set and
+      // we just no-op. Saves a "tap and nothing happens" feel.
+      if (el.classList.contains('no-plays')) return;
+      e.stopPropagation();
+      el.dataset.expanded = el.dataset.expanded === 'true' ? 'false' : 'true';
+    });
     return el;
+  }
+
+  // Update the contents of an existing label without recreating it.
+  // Called every time the line geometry changes (target drag, user
+  // movement). Preserves the tapped/expanded state because we mutate
+  // sub-spans rather than replace the whole element.
+  //   marker  — the Mapbox marker instance
+  //   text    — base yardage text (e.g. "329y")
+  //   plays   — plays-like adjustments object from
+  //             getRoundGpsPlaysLikeAdjustments(...) or null
+  function updateRoundGpsLabelContent(marker, text, plays) {
+    if (!marker) return;
+    const el = marker.getElement();
+    if (!el) return;
+    const baseEl = el.querySelector('.round-gps-yardage-label-base');
+    const playsEl = el.querySelector('.round-gps-yardage-label-plays');
+    const breakdownEl = el.querySelector('.round-gps-yardage-label-breakdown');
+    if (baseEl) baseEl.textContent = text;
+    if (plays) {
+      el.classList.remove('no-plays');
+      if (playsEl) playsEl.textContent = `plays ${plays.plays}y`;
+      if (breakdownEl) breakdownEl.textContent = plays.breakdown;
+    } else {
+      // No plays-like data — collapse the label and disable the toggle.
+      // If the user had it expanded before data dropped out, this
+      // gracefully snaps back to compact.
+      el.classList.add('no-plays');
+      el.dataset.expanded = 'false';
+      if (playsEl) playsEl.textContent = '';
+      if (breakdownEl) breakdownEl.textContent = '';
+    }
   }
 
   function removeRoundGpsTargetLabels() {
