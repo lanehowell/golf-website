@@ -8392,22 +8392,9 @@
   }
 
   .tools-sheet-backdrop {
-    /* This class is no longer rendered, but kept here in case something
-       in the codebase references it (or for future re-introduction). */
+    /* Backdrop element is no longer rendered — kept here for safety
+       in case any code references the class. */
     display: none;
-  }
-
-  /* Dim the active panel content when the tools sheet is open.
-     Replaces the old fixed-position backdrop overlay, which caused
-     iOS Safari to collapse its viewport-fit=cover safe-area extension
-     under the dynamic island. Applied via filter so no new element
-     is needed. */
-  body.tools-sheet-active .panel.active {
-    filter: brightness(0.55);
-    transition: filter 220ms ease;
-  }
-  .panel.active {
-    transition: filter 320ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   @keyframes toolsBackdropFadeIn {
     from { opacity: 0; }
@@ -34862,13 +34849,12 @@
     dockState.activeTool = null;
     dockState._animateNext = true;
     acquireScrollLock();
-    document.body.classList.add('tools-sheet-active');
     renderRoundDock();
     // Attach drag-to-close handlers after the DOM exists
     requestAnimationFrame(attachSheetDragHandlers);
-    // Click-outside-to-close handler. Replaces the old backdrop's
-    // onclick — without a backdrop element we attach to document and
-    // close if the click is outside the sheet.
+    // Click-outside-to-close handler. We don't have a backdrop element
+    // anymore so we attach at document level and check if the click
+    // landed outside the sheet.
     requestAnimationFrame(() => {
       document.addEventListener('pointerdown', _toolsSheetOutsideClick, true);
     });
@@ -34972,7 +34958,6 @@
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
       dockState.activeTool = null;
-      document.body.classList.remove('tools-sheet-active');
       releaseScrollLock();
       renderRoundDock();
       return;
@@ -34982,7 +34967,6 @@
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
       dockState.activeTool = null;
-      document.body.classList.remove('tools-sheet-active');
       releaseScrollLock();
       renderRoundDock();
     };
