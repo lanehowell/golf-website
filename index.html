@@ -4833,116 +4833,132 @@
     pointer-events: none;
   }
 
-  /* Info bar — horizontally centered, semi-transparent black with a
-     subtle blur. Three stat cells (HOLE / PAR / DISTANCE) divided by
-     thin vertical lines. Sits at the top of the map view replacing
-     the old corner pill. */
+  /* Info bar — single typographic strip across the top of the GPS view.
+     Three "cells" in a row separated by orange dot dividers. Each cell
+     is a small lowercase prefix (hole / par / —) followed by a
+     prominent sans-serif value. The HOLE cell is tappable and opens
+     the hole picker; visual affordance is a subtle dotted underline
+     under "hole 4" that also doubles as an active-state hover tint. */
   .round-gps-info-bar {
     display: inline-flex;
-    align-items: stretch;
+    align-items: center;
     gap: 0;
     background: rgba(0, 0, 0, 0.55);
-    border-radius: var(--radius-lg);
-    padding: 10px 4px;
+    border-radius: 999px;
+    padding: 6px 4px;
     pointer-events: auto;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+      0 2px 16px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .round-gps-info-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0 16px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 4px 14px;
     color: #fff;
-    min-width: 56px;
+    border-radius: 999px;
+    transition: background-color 120ms ease-out;
+    -webkit-tap-highlight-color: transparent;
   }
-  /* Tappable variant — used on the HOLE cell so users can jump to
-     any hole via the existing hole picker. Strips default button
-     chrome and adds a subtle tap-feedback. The chevron next to the
-     value is a visual hint of interactivity. */
+  /* Tappable variant — used on the HOLE cell. The base style is the
+     same as a static cell so all three look uniform; tap-feedback
+     adds a subtle background tint on press. We mark interactivity
+     with a small chevron after the value, dimmed by default and
+     slightly more visible on press. */
   .round-gps-info-cell-tap {
     background: transparent;
     border: none;
     font: inherit;
     cursor: pointer;
-    border-radius: 8px;
-    transition: background 120ms ease-out;
-    -webkit-tap-highlight-color: transparent;
   }
   .round-gps-info-cell-tap:active {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.10);
   }
-  .round-gps-info-cell-chevron {
+  /* Wrapper around the pill + the plays-like sub-line below it. The
+     pill stays centered horizontally; plays-like centers underneath
+     it. Without this wrapper, the plays-like would either be inside
+     the pill (the old design — broke the pill's symmetry) or float
+     adjacent to it (would shift the pill off-center). */
+  .round-gps-info-bar-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+  .round-gps-info-bar-wrap > * { pointer-events: auto; }
+  /* "y" suffix on the distance value — slightly smaller and dimmer
+     than the number itself so the value reads first, the unit is
+     supporting context. */
+  .round-gps-info-value-unit {
+    font-weight: var(--weight-regular);
+    color: rgba(255, 255, 255, 0.55);
+    margin-left: 1px;
+    font-size: 0.85em;
+  }
+  /* Small lowercase prefix label ("hole", "par"). Gives context
+     without the heavy uppercase tracking treatment of the old
+     all-caps labels. Tabular spacing kept off — these are words,
+     not numbers. */
+  .round-gps-info-prefix {
+    font-family: var(--font-body);
     font-size: 0.7rem;
-    margin-left: 3px;
-    opacity: 0.55;
-    vertical-align: middle;
+    font-weight: var(--weight-regular);
+    letter-spacing: 0;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1;
+  }
+  /* The hero number for each cell. Sans-serif, semibold, tabular so
+     digit-width changes (e.g. 87y → 167y) don't reflow the bar. */
+  .round-gps-info-value {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: var(--weight-semibold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  /* Dot divider between cells — soft typographic separator. Positioned
+     flush so cell padding handles the spacing. */
+  .round-gps-info-dot {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 0.85rem;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+  /* Subtle chevron after the hole number to indicate the cell is
+     tappable. Sans serif geometric ▾ glyph, dimmed. */
+  .round-gps-info-cell-chevron {
+    font-size: 0.6rem;
+    margin-left: 1px;
+    opacity: 0.45;
+    line-height: 1;
     position: relative;
     top: -1px;
   }
-  .round-gps-info-label {
+  /* Plays-like sub-line — sits BELOW the pill (not inside any cell)
+     so the pill stays a clean uniform shape. Centered horizontally
+     under the pill. Visible only when adjustments are available and
+     target is not active. */
+  .round-gps-info-plays {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 6px;
     font-family: var(--font-mono);
-    font-size: 0.55rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
-    opacity: 0.65;
-    margin-bottom: 2px;
-  }
-  .round-gps-info-value {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: var(--weight-bold);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .round-gps-info-divider {
-    width: 1px;
-    background: rgba(255, 255, 255, 0.18);
-    align-self: stretch;
-    margin: 4px 0;
-  }
-
-  /* Front/back of green sub-line — sits below the main TO GREEN
-     number when in playing mode with a green coordinate. Smaller,
-     mono, dimmer than the hero number. The two values (front · back)
-     are separated by a thin dot for compact readability. Front is
-     calculated as ~15 yards short of green-center along the
-     tee→green bearing; back is ~15 yards beyond. These are estimates
-     based on a typical green depth, NOT surveyed front/back coords. */
-  .round-gps-info-fb {
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.04em;
+    font-size: 0.6rem;
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.02em;
     color: rgba(255, 255, 255, 0.7);
     line-height: 1;
-    margin-top: 3px;
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-  .round-gps-info-fb.is-hidden { display: none; }
-  .round-gps-info-fb-sep {
-    margin: 0 5px;
-    opacity: 0.5;
-  }
-
-  /* Plays-like sub-line — appears below the main TO GREEN distance
-     when elevation and/or wind data is available. Shows the adjusted
-     distance ("plays 192y") plus a compact breakdown of what's
-     contributing ("+9 elev · −3 wind"). Subtle orange tint to mark
-     it as actionable info (use this number for club selection)
-     vs the F/B line which is reference info. */
-  .round-gps-info-plays {
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.04em;
-    color: rgba(255, 200, 150, 0.9);
-    line-height: 1.15;
-    margin-top: 3px;
-    font-variant-numeric: tabular-nums;
-    text-align: center;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
     white-space: nowrap;
   }
   .round-gps-info-plays.is-hidden { display: none; }
@@ -4951,11 +4967,8 @@
     font-weight: var(--weight-bold);
   }
   .round-gps-info-plays-breakdown {
-    display: block;
-    margin-top: 1px;
     color: rgba(255, 255, 255, 0.55);
-    font-size: 0.5rem;
-    font-weight: var(--weight-medium);
+    font-weight: var(--weight-regular);
   }
   .round-gps-close {
     width: 40px;
@@ -5225,12 +5238,20 @@
     overflow: hidden;
     max-width: 0;
     opacity: 0;
+    /* CLOSING transition — applies when [data-expanded] flips back to
+       false. Quick ease-out feels snappy and decisive on collapse. */
     transition: max-width 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
                 opacity 220ms ease-out 60ms;
   }
   .round-gps-yardage-label[data-expanded="true"] .round-gps-yardage-label-detail {
     max-width: 360px;
     opacity: 1;
+    /* OPENING transition — applies when [data-expanded] flips to true.
+       Slower (380ms), with a smoother slow-start/slow-end curve and a
+       longer opacity fade so the breakdown text appears progressively
+       as the pill widens, rather than snapping in at the end. */
+    transition: max-width 380ms cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 320ms ease-out 80ms;
   }
   .round-gps-yardage-label-divider {
     opacity: 0.4;
@@ -5246,7 +5267,9 @@
   }
   /* Chevron — rotates 180° when expanded. Using inline-block + rotate
      so rotation pivots around the chevron's own center. Hidden when
-     plays-like data isn't available (label stays simple, no tap). */
+     plays-like data isn't available (label stays simple, no tap).
+     Direction-aware timing matches the pill expansion: snappy on
+     close, smoother on open. */
   .round-gps-yardage-label-chevron {
     display: inline-block;
     font-size: 0.85rem;
@@ -5258,6 +5281,7 @@
   }
   .round-gps-yardage-label[data-expanded="true"] .round-gps-yardage-label-chevron {
     transform: rotate(180deg);
+    transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .round-gps-yardage-label.no-plays {
     /* No plays-like data → hide the chevron, disable tap. Label
@@ -55735,13 +55759,14 @@
   }
 
   // Update the info bar at the top of the GPS view. Refreshes hole,
-  // par, and distance based on current state. Distance is "to green"
+  // par, and distance based on current state. Distance is to-green
   // from user's position when in playing mode (and we have a fix);
-  // hole yardage from the catalog otherwise.
+  // hole yardage from the catalog otherwise. The new design has no
+  // text label for distance — the "y" suffix and contextual placement
+  // make it self-explanatory.
   function updateRoundGpsInfoBar() {
     const holeEl = document.getElementById('round-gps-info-hole');
     const parEl = document.getElementById('round-gps-info-par');
-    const distLabelEl = document.getElementById('round-gps-info-distance-label');
     const distValueEl = document.getElementById('round-gps-info-distance-value');
     if (holeEl && roundGpsState.holeNumber != null) {
       holeEl.textContent = roundGpsState.holeNumber;
@@ -55749,7 +55774,7 @@
     if (parEl) {
       parEl.textContent = roundGpsState.holePar != null ? roundGpsState.holePar : '—';
     }
-    // Distance label + value depend on mode + whether we have a fix.
+    // Distance value depends on mode + whether we have a fix.
     const userPos = getRoundGpsUserPos();
     const playsEl = document.getElementById('round-gps-info-plays');
     const playsValueEl = document.getElementById('round-gps-info-plays-value');
@@ -55760,7 +55785,6 @@
       const yards = haversineYards(
         userPos.lat, userPos.lng,
         roundGpsState.greenLat, roundGpsState.greenLng);
-      if (distLabelEl) distLabelEl.textContent = 'TO GREEN';
       if (distValueEl) distValueEl.textContent = Math.round(yards);
       // Compute and display plays-like distance for TO GREEN. Hidden
       // when a target is active — in that case plays-like belongs to
@@ -55785,7 +55809,6 @@
       }
     } else {
       // Planning mode (or no fix yet) — show hole yardage.
-      if (distLabelEl) distLabelEl.textContent = 'DISTANCE';
       if (distValueEl) {
         distValueEl.textContent = roundGpsState.holeYards != null
           ? roundGpsState.holeYards
@@ -55918,28 +55941,29 @@
       <div class="round-gps-panel opening">
         <!-- Top: centered info bar (hole, par, distance) + close button -->
         <div class="round-gps-header">
-          <div class="round-gps-info-bar" id="round-gps-info-bar">
-            <button type="button" class="round-gps-info-cell round-gps-info-cell-tap"
-                    onclick="openHolePicker()"
-                    aria-label="Jump to a different hole">
-              <div class="round-gps-info-label">HOLE</div>
-              <div class="round-gps-info-value">
-                <span id="round-gps-info-hole">${holeNum}</span><span class="round-gps-info-cell-chevron" aria-hidden="true">▾</span>
+          <div class="round-gps-info-bar-wrap">
+            <div class="round-gps-info-bar" id="round-gps-info-bar">
+              <button type="button" class="round-gps-info-cell round-gps-info-cell-tap"
+                      onclick="openHolePicker()"
+                      aria-label="Jump to a different hole">
+                <span class="round-gps-info-prefix">hole</span>
+                <span class="round-gps-info-value" id="round-gps-info-hole">${holeNum}</span><span class="round-gps-info-cell-chevron" aria-hidden="true">▾</span>
+              </button>
+              <span class="round-gps-info-dot" aria-hidden="true">·</span>
+              <div class="round-gps-info-cell">
+                <span class="round-gps-info-prefix">par</span>
+                <span class="round-gps-info-value" id="round-gps-info-par">${initPar}</span>
               </div>
-            </button>
-            <div class="round-gps-info-divider"></div>
-            <div class="round-gps-info-cell">
-              <div class="round-gps-info-label">PAR</div>
-              <div class="round-gps-info-value" id="round-gps-info-par">${initPar}</div>
+              <span class="round-gps-info-dot" aria-hidden="true">·</span>
+              <div class="round-gps-info-cell">
+                <span class="round-gps-info-value">
+                  <span id="round-gps-info-distance-value">${initDistanceValue}</span><span class="round-gps-info-value-unit">y</span>
+                </span>
+              </div>
             </div>
-            <div class="round-gps-info-divider"></div>
-            <div class="round-gps-info-cell">
-              <div class="round-gps-info-label" id="round-gps-info-distance-label">${initDistanceLabel}</div>
-              <div class="round-gps-info-value" id="round-gps-info-distance-value">${initDistanceValue}</div>
-              <div class="round-gps-info-plays is-hidden" id="round-gps-info-plays">
-                plays <span class="round-gps-info-plays-value" id="round-gps-info-plays-value">—</span>y
-                <span class="round-gps-info-plays-breakdown" id="round-gps-info-plays-breakdown"></span>
-              </div>
+            <div class="round-gps-info-plays is-hidden" id="round-gps-info-plays">
+              <span>plays <span class="round-gps-info-plays-value" id="round-gps-info-plays-value">—</span>y</span>
+              <span class="round-gps-info-plays-breakdown" id="round-gps-info-plays-breakdown"></span>
             </div>
           </div>
           <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanelWithTransition()" aria-label="Close">×</button>
