@@ -4845,7 +4845,7 @@
     gap: 0;
     background: rgba(0, 0, 0, 0.55);
     border-radius: 999px;
-    padding: 6px 4px;
+    padding: 8px 5px;
     pointer-events: auto;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
@@ -4856,8 +4856,8 @@
   .round-gps-info-cell {
     display: inline-flex;
     align-items: baseline;
-    gap: 5px;
-    padding: 4px 14px;
+    gap: 6px;
+    padding: 6px 16px;
     color: #fff;
     border-radius: 999px;
     transition: background-color 120ms ease-out;
@@ -4904,7 +4904,7 @@
      not numbers. */
   .round-gps-info-prefix {
     font-family: var(--font-body);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: var(--weight-regular);
     letter-spacing: 0;
     color: rgba(255, 255, 255, 0.55);
@@ -4914,7 +4914,7 @@
      digit-width changes (e.g. 87y → 167y) don't reflow the bar. */
   .round-gps-info-value {
     font-family: var(--font-body);
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: var(--weight-semibold);
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -36438,7 +36438,7 @@
     if (typeof renderRoundGpsShotMarkers === 'function'
         && roundGpsState.open) {
       renderRoundGpsShotMarkers();
-      updateShotBtnCount();
+      refreshRoundGpsActionButton();
     }
     // If the GPS score sheet is open on top of GPS, its cloned card
     // needs refreshing so the reconciliation banner picks up the new
@@ -36485,7 +36485,7 @@
         && roundGpsState.holeNumber === holeNumber) {
       initShotTrackingForHole();
       renderRoundGpsShotMarkers();
-      updateShotBtnCount();
+      refreshRoundGpsActionButton();
     }
     // Refresh GPS score sheet's cloned card if open.
     if (typeof window.refreshGpsScoreSheetBody === 'function') {
@@ -54351,6 +54351,11 @@
     // for the connecting line between consecutive shots.
     shotMarkers: {},               // { [shotId]: mapboxgl.Marker }
     shotLine: null,                // { sourceId, layerId } | null
+    // Holes where the user has manually set the tee position via the
+    // "Set tee" action button. Once set, the button stays in 'log'
+    // mode for that hole — user committed, next action is to walk
+    // and log shot 1. Per-GPS-session; resets when GPS closes.
+    teeManuallySetHoles: new Set(),
   };
 
   // Threshold for switching between planning and playing modes.
@@ -54629,7 +54634,7 @@
           initShotTrackingForHole();
           renderRoundGpsShotMarkers();
         }
-        updateShotBtnCount();
+        refreshRoundGpsActionButton();
       };
       map.once('moveend', dropAfterFly);
     }, FADE_OUT_MS);
@@ -54860,6 +54865,7 @@
     roundGpsState.lastShotEnd = null;
     roundGpsState.shotMarkers = {};
     roundGpsState.shotLine = null;
+    roundGpsState.teeManuallySetHoles = new Set();
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -55976,7 +55982,7 @@
 
     // Render shot pins and the connecting line on the map.
     renderRoundGpsShotMarkers();
-    updateShotBtnCount();
+    refreshRoundGpsActionButton();
 
     // Persist to scratchpad for crash-recovery; main Firestore write
     // happens on next nav event (Save & Next, hole change, round end).
@@ -55999,6 +56005,131 @@
     openShotEditSheet(holeNum, newShot.id);
   }
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
+
+  // Distance threshold for showing "Set tee" mode on the action button.
+  // Generous enough to cover multi-tee complexes (gold tee can be 50-60y
+  // ahead of black tee) but tight enough that mid-fairway doesn't qualify.
+  // Different from ROUND_GPS_TEE_DETECT_YARDS (which is for auto-advance);
+  // tee-detect is "are you on the next hole's tee" while this is "are you
+  // near YOUR hole's tee complex enough to override the pinned position".
+  const ROUND_GPS_SET_TEE_YARDS = 80;
+
+  // Decide what the action button should be doing based on context.
+  // Returns 'set-tee' when:
+  //   - In playing mode with a GPS fix
+  //   - No shots logged for this hole yet
+  //   - User is within ROUND_GPS_SET_TEE_YARDS of the pinned tee
+  // Otherwise returns 'log'. Re-evaluated on every position fix so
+  // the label updates live as the user walks.
+  function getRoundGpsLogButtonMode() {
+    if (roundGpsState.mode !== 'playing') return 'log';
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) return 'log';
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return 'log';
+    // Already set tee for this hole this session → button stays in
+    // log mode. User committed, next action is logging shot 1.
+    if (roundGpsState.teeManuallySetHoles.has(holeNum)) return 'log';
+    const shots = getShotsForHole(holeNum);
+    if (shots && shots.length > 0) return 'log';
+    if (roundGpsState.teeLat == null || roundGpsState.teeLng == null) return 'log';
+    const distFromPinnedTee = haversineYards(
+      userPos.lat, userPos.lng,
+      roundGpsState.teeLat, roundGpsState.teeLng);
+    if (distFromPinnedTee > ROUND_GPS_SET_TEE_YARDS) return 'log';
+    return 'set-tee';
+  }
+
+  // "Set tee" handler — captures user's current GPS as the tee position
+  // for THIS hole in THIS round. Round-scoped only (doesn't write back
+  // to the course doc; see Solution 5 / persistence discussion).
+  // Updates lastShotEnd so the next tap measures shot 1's distance
+  // from this corrected position. Also updates the visible tee marker
+  // on the map for clarity.
+  function setTeeAtCurrentPosition() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.mode !== 'playing') return;
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) {
+      showToast('No GPS fix — can\'t set tee position', true);
+      return;
+    }
+    // Override the local roundGpsState tee coords. NOT written back to
+    // the course doc — this is a round-scoped override. Future rounds
+    // will still see the original pinned tee until we add persistence.
+    roundGpsState.teeLat = userPos.lat;
+    roundGpsState.teeLng = userPos.lng;
+    // Update lastShotEnd to match — the next "Log shot" tap will
+    // measure THIS shot's distance from here.
+    roundGpsState.lastShotEnd = { lat: userPos.lat, lng: userPos.lng };
+    // Mark this hole as having had its tee manually set this session
+    // so the button switches to 'log' mode now (user committed to a
+    // tee position; next action is logging shot 1).
+    if (roundGpsState.holeNumber != null) {
+      roundGpsState.teeManuallySetHoles.add(roundGpsState.holeNumber);
+    }
+
+    // Move the tee marker visually so the user sees their override.
+    if (roundGpsState.teeMarker) {
+      try {
+        roundGpsState.teeMarker.setLngLat([userPos.lng, userPos.lat]);
+      } catch (_) {}
+    } else if (roundGpsState.map) {
+      // No tee marker rendered yet (course had no pin) — create one
+      // now so the user has visual confirmation of the set.
+      try {
+        const teeEl = buildTeeMarkerEl();
+        roundGpsState.teeMarker = new mapboxgl.Marker({ element: teeEl, anchor: 'center' })
+          .setLngLat([userPos.lng, userPos.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${roundGpsState.holeNumber} tee`))
+          .addTo(roundGpsState.map);
+      } catch (_) {}
+    }
+
+    // Update the connecting tee→green line if it's drawn.
+    if (roundGpsState.map && roundGpsState.greenLat != null) {
+      // The tee→green line is rebuilt by various render paths; simplest
+      // is to call the existing render which redraws everything based
+      // on current state.
+      // (Skip — no clean single function to call without side effects.
+      // The line will refresh on next position fix or hole transition.)
+    }
+
+    // Refresh the button so it morphs back to "Log shot" mode now
+    // that we have a tee set (the proximity check is fine but the
+    // button morph is also gated on shots.length === 0; the user
+    // will now expect to log their actual tee shot's landing).
+    refreshRoundGpsActionButton();
+
+    showToast('Tee set at your position', false);
+    haptic('light');
+  }
+  window.setTeeAtCurrentPosition = setTeeAtCurrentPosition;
+
+  // Update the action button in the GPS bar to reflect the current
+  // mode (log vs set-tee) and shot count. Mutates the button DOM in
+  // place rather than re-rendering the whole panel.
+  function refreshRoundGpsActionButton() {
+    const btn = document.getElementById('round-gps-shot-btn');
+    if (!btn) return;
+    const mode = getRoundGpsLogButtonMode();
+    const labelEl = btn.querySelector('.round-gps-shot-btn-label');
+    const iconEl = btn.querySelector('.round-gps-shot-btn-icon');
+    if (mode === 'set-tee') {
+      btn.dataset.mode = 'set-tee';
+      btn.setAttribute('onclick', 'setTeeAtCurrentPosition()');
+      btn.setAttribute('aria-label', 'Set tee position to current location');
+      if (labelEl) labelEl.textContent = 'Set tee';
+      if (iconEl) iconEl.textContent = '📍';
+    } else {
+      btn.dataset.mode = 'log';
+      btn.setAttribute('onclick', 'logShotAtCurrentPosition()');
+      btn.setAttribute('aria-label', 'Log shot at current position');
+      if (labelEl) labelEl.textContent = 'Log shot';
+      if (iconEl) iconEl.textContent = '⛳';
+    }
+    updateShotBtnCount();
+  }
 
   // Update the count badge on the Log Shot button so the user can
   // see at a glance how many shots they've tracked on this hole.
@@ -57001,6 +57132,11 @@
       // Check if user has walked onto a different hole's tee. If so,
       // surface the auto-advance prompt.
       maybeTriggerRoundGpsAutoAdvance();
+      // Refresh the Log shot / Set tee action button. The mode depends
+      // on user proximity to the pinned tee, so it can change as the
+      // user walks. Cheap call — just updates the button's label/icon
+      // and onclick attribute.
+      refreshRoundGpsActionButton();
     } else {
       // Planning mode — if the target is active, refresh the readout
       // (target may have been dragged).
@@ -57226,7 +57362,7 @@
     } else {
       roundGpsState.map.once('idle', renderRoundGpsShotMarkers);
     }
-    updateShotBtnCount();
+    refreshRoundGpsActionButton();
   }
 
   // ─────────────────────────────────────────────────────────────
