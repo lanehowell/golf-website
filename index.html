@@ -8440,6 +8440,14 @@
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
   body.round-gps-open .confirm-backdrop      { z-index: 9490; }
 
+  /* When GPS is open, force the html background to black. iOS PWA
+     scroll-lock makes body position:fixed, which can expose the html
+     element at the edges of the viewport. Without this, the html's
+     normal cream/dark-gray bg-page color shows as a strip at the top
+     of the screen behind the GPS panel. Black blends with the GPS
+     panel's black background so the seam is invisible. */
+  html.round-gps-open { background-color: #000 !important; }
+
   .tools-sheet {
     position: fixed;
     left: 0;
@@ -53582,6 +53590,7 @@
     roundGpsState.open = true;
     roundGpsState.courseId = ctx.courseId;
     document.body.classList.add('round-gps-open');
+    document.documentElement.classList.add('round-gps-open');
     acquireScrollLock();
     loadRoundGpsHoleAndRender(ctx.holeIndex);
   }
@@ -53978,6 +53987,7 @@
     }
     roundGpsState.open = false;
     document.body.classList.remove('round-gps-open');
+    document.documentElement.classList.remove('round-gps-open');
     roundGpsState.userMarker = null;
     roundGpsState.greenMarker = null;
     roundGpsState.teeMarker = null;
