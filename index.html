@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- Explicit theme-color so iOS Safari doesn't auto-derive the
+     status-bar / dynamic-island tint from page content. Without
+     these, opening a sheet or modal changes what iOS sees behind
+     the dynamic island, which causes the tint to shift (and get
+     stuck on certain screens). Two variants for light/dark mode;
+     colors match --bg-page (--color-cream-50) in each. -->
+<meta name="theme-color" content="#FFFDF7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F1C17" media="(prefers-color-scheme: dark)">
 <title>Golf Performance Training Plan</title>
 <script>
   // Pre-paint theme init — runs before any CSS or content renders.
