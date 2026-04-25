@@ -21464,7 +21464,16 @@
       padding-top: calc(44px + var(--space-4));
     }
 
-    /* Sessions banner sits above the topbar at the very top */
+    /* Banners (session + round) sit at the very top of the viewport.
+       In PWA mode with status-bar-style: black-translucent, the system
+       overlays clock/battery on top of our content — so the banner
+       paints its orange background ALL the way to the top edge, and
+       its internal `padding-top: env(safe-area-inset-top)` pushes the
+       banner CONTENT (text, buttons) down below the status bar so
+       it stays readable. The element's `top: 0` is critical: without
+       it the banner would sit BELOW the safe area, and its own
+       internal padding would stack on top of that, doubling the
+       empty space above the text. */
     .session-banner {
       position: fixed;
       top: 0;
@@ -21473,10 +21482,12 @@
       padding-top: env(safe-area-inset-top, 0px);
     }
     body.round-active #round-banner {
-      top: env(safe-area-inset-top, 0px);
+      top: 0;
+      padding-top: env(safe-area-inset-top, 0px);
     }
     body.session-active.round-active #round-banner {
-      top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
+      top: var(--session-banner-height, 52px);
+      padding-top: env(safe-area-inset-top, 0px);
     }
 
     /* ── Round-panel focus mode ──────────────────────────────
@@ -27024,14 +27035,26 @@
     session.timerInterval = setInterval(update, 1000);
   }
 
-  // Banner height drives the nav's sticky offset — recompute when banner appears
+  // Banner height drives the nav's sticky offset — recompute when banner appears.
+  // Both #session-banner and #round-banner share the .session-banner class and
+  // CSS — they're the same surface visually, so whichever is currently visible
+  // is the one we measure. When in PWA black-translucent mode, banner height
+  // includes safe-area-inset-top (paint-behind-status-bar), so the runtime
+  // measurement is required — the 52px fallback in CSS would under-reserve.
   function recalcBannerHeight() {
-    const banner = document.getElementById('session-banner');
-    if (!banner) return;
-    // Read actual rendered height after display toggle
     requestAnimationFrame(() => {
-      const h = banner.offsetHeight;
-      document.documentElement.style.setProperty('--session-banner-height', `${h}px`);
+      const session = document.getElementById('session-banner');
+      const round = document.getElementById('round-banner');
+      // Take the tallest currently visible banner. offsetHeight is 0 for
+      // display:none, so this naturally picks the visible one. If both are
+      // visible (rare), use the larger so reservations don't under-shoot.
+      const h = Math.max(
+        session ? session.offsetHeight : 0,
+        round ? round.offsetHeight : 0
+      );
+      if (h > 0) {
+        document.documentElement.style.setProperty('--session-banner-height', `${h}px`);
+      }
     });
   }
 
@@ -42475,6 +42498,14 @@
     const btnEnd = document.getElementById('round-banner-btn-end');
     const btnLobby = document.getElementById('round-banner-btn-lobby');
     if (!banner || !titleEl || !progressEl) return;
+
+    // Schedule a banner-height measurement after any DOM updates this
+    // function makes settle. Recalc uses requestAnimationFrame internally
+    // so it runs after the synchronous body-class/content updates below,
+    // capturing the actual rendered height — critical in PWA black-
+    // translucent mode where the banner's height includes the
+    // safe-area-inset-top via internal padding.
+    requestAnimationFrame(() => recalcBannerHeight());
 
     // Helper — set the banner's button set. Three modes:
     //   'active'  → Resume + End (in-progress rounds / sessions)
