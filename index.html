@@ -4878,6 +4878,61 @@
     align-self: stretch;
     margin: 4px 0;
   }
+
+  /* Front/back of green sub-line — sits below the main TO GREEN
+     number when in playing mode with a green coordinate. Smaller,
+     mono, dimmer than the hero number. The two values (front · back)
+     are separated by a thin dot for compact readability. Front is
+     calculated as ~15 yards short of green-center along the
+     tee→green bearing; back is ~15 yards beyond. These are estimates
+     based on a typical green depth, NOT surveyed front/back coords. */
+  .round-gps-info-fb {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .round-gps-info-fb.is-hidden { display: none; }
+  .round-gps-info-fb-sep {
+    margin: 0 5px;
+    opacity: 0.5;
+  }
+
+  /* Plays-like sub-line — appears below the main TO GREEN distance
+     when elevation and/or wind data is available. Shows the adjusted
+     distance ("plays 192y") plus a compact breakdown of what's
+     contributing ("+9 elev · −3 wind"). Subtle orange tint to mark
+     it as actionable info (use this number for club selection)
+     vs the F/B line which is reference info. */
+  .round-gps-info-plays {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    color: rgba(255, 200, 150, 0.9);
+    line-height: 1.15;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .round-gps-info-plays.is-hidden { display: none; }
+  .round-gps-info-plays-value {
+    color: var(--color-orange);
+    font-weight: var(--weight-bold);
+  }
+  .round-gps-info-plays-breakdown {
+    display: block;
+    margin-top: 1px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.5rem;
+    font-weight: var(--weight-medium);
+  }
   .round-gps-close {
     width: 40px;
     height: 40px;
@@ -4981,6 +5036,120 @@
     -webkit-tap-highlight-color: transparent;
   }
   .round-gps-recenter:active { background: rgba(0, 0, 0, 0.75); }
+
+  /* Wind compass — bottom-right floating button. Mirrors the recenter
+     button on the bottom-left for visual symmetry. The compass arrow
+     rotates to show wind direction relative to the map's current
+     bearing — so the arrow always reflects what the wind is doing
+     from the user's POV looking down the hole. Speed shown in mph
+     below the arrow. Hidden if no wind data available. */
+  .round-gps-wind {
+    position: absolute;
+    right: 16px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 5;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    /* Hidden until wind data lands. JS removes the .is-hidden class. */
+  }
+  .round-gps-wind.is-hidden { display: none; }
+  .round-gps-wind-arrow {
+    width: 18px;
+    height: 18px;
+    /* Arrow is set via SVG inside the button. Rotation is applied
+       inline by JS via transform: rotate(...). transform-origin
+       defaults to center which is what we want. */
+    transition: transform 400ms ease-out;
+  }
+  .round-gps-wind-speed {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+  .round-gps-wind-unit {
+    font-size: 7px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: -1px;
+  }
+
+  /* Auto-advance hole prompt — small floating banner that appears
+     when the user is detected on a different hole's tee. Top-center
+     placement, slides down from above the info-bar pill. Tap Yes to
+     switch, Dismiss to suppress for that hole this round. */
+  .round-gps-advance-prompt {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 80px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    opacity: 0;
+    z-index: 6;
+    background: rgba(13, 13, 13, 0.88);
+    color: #fff;
+    border-radius: 999px;
+    padding: 8px 8px 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 280ms ease-out;
+    max-width: calc(100% - 32px);
+    pointer-events: none;
+  }
+  .round-gps-advance-prompt.is-visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .round-gps-advance-text {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .round-gps-advance-text strong {
+    font-weight: 700;
+    color: var(--color-orange);
+  }
+  .round-gps-advance-yes,
+  .round-gps-advance-no {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-gps-advance-yes {
+    background: var(--color-orange);
+  }
+  .round-gps-advance-yes:active { background: var(--color-orange-dark); }
+  .round-gps-advance-no {
+    color: rgba(255, 255, 255, 0.65);
+    padding: 6px 8px;
+  }
 
   /* Yardage labels at the midpoint of each line in the GPS view's
      plan-shot mode. Semi-transparent black perfect circle, white
@@ -53778,6 +53947,13 @@
     targetLng: null,
     targetLines: null,       // { fromSourceId, fromLayerId, greenSourceId, greenLayerId }
     targetLabels: null,      // { fromLabel, greenLabel } — mapbox markers for yardage labels
+    // Auto-advance hole detection state. advanceDismissed tracks which
+    // holes the user has explicitly dismissed during this GPS session
+    // (so we don't pester them after they say "no"). advancePromptVisible
+    // and advancePromptHoleIndex track the current prompt UI state.
+    advanceDismissed: new Set(),
+    advancePromptVisible: false,
+    advancePromptHoleIndex: null,
   };
 
   // Threshold for switching between planning and playing modes.
@@ -53887,6 +54063,11 @@
     const course = getCourse(roundGpsState.courseId);
     if (!course) return;
     if (holeIndex < 0 || holeIndex >= course.holes.length) return;
+    // Hide any visible auto-advance prompt — switching holes makes
+    // the prompt stale (it references the about-to-change hole).
+    if (roundGpsState.advancePromptVisible) {
+      hideRoundGpsAdvancePrompt();
+    }
     const map = roundGpsState.map;
     if (!map) {
       loadRoundGpsHoleAndRender(holeIndex);
@@ -54250,6 +54431,12 @@
     roundGpsState.targetLng = null;
     roundGpsState.targetLines = null;
     roundGpsState.targetLabels = null;
+    // Reset auto-advance state — a new GPS session starts clean.
+    // (Dismissals persist within a single session via the Set, but
+    // closing GPS clears them so reopening doesn't carry stale state.)
+    roundGpsState.advanceDismissed = new Set();
+    roundGpsState.advancePromptVisible = false;
+    roundGpsState.advancePromptHoleIndex = null;
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -54773,6 +54960,178 @@
     }
   }
 
+  // Compute the destination lat/lng given a start point, bearing
+  // (degrees, 0=N, 90=E), and distance in yards. Inverse of
+  // haversine — used to estimate front/back of green positions
+  // by offsetting the green-center coordinate along the tee→green
+  // bearing. Standard great-circle "destination point given
+  // distance and bearing on a sphere" formula. Earth radius in
+  // yards (3958.8 mi × 1760 yd/mi).
+  function destinationPoint(lat, lng, bearingDeg, distYards) {
+    const R = 3958.8 * 1760;  // Earth radius in yards
+    const δ = distYards / R;
+    const θ = bearingDeg * Math.PI / 180;
+    const φ1 = lat * Math.PI / 180;
+    const λ1 = lng * Math.PI / 180;
+    const φ2 = Math.asin(
+      Math.sin(φ1) * Math.cos(δ) +
+      Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+    const λ2 = λ1 + Math.atan2(
+      Math.sin(θ) * Math.sin(δ) * Math.cos(φ1),
+      Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+    return {
+      lat: φ2 * 180 / Math.PI,
+      lng: ((λ2 * 180 / Math.PI) + 540) % 360 - 180,
+    };
+  }
+
+  // Approximate front/back of green coordinates from green-center +
+  // approach bearing. Greens vary widely, but ~30 yards (15 yd from
+  // center in each direction) is a reasonable average green depth
+  // for non-pro courses. The approach bearing (from current user
+  // position OR from tee if no fix yet) defines the axis along
+  // which we offset the front/back points. Returns null if we
+  // can't compute (no green coord, no bearing reference).
+  function getRoundGpsGreenFB() {
+    if (roundGpsState.greenLat == null || roundGpsState.greenLng == null) return null;
+    // Approach bearing: prefer user→green if user position known
+    // (matches the actual line of play right now), fall back to
+    // tee→green for planning mode.
+    let bearing = null;
+    const userPos = getRoundGpsUserPos();
+    if (userPos) {
+      bearing = bearingDegrees(
+        userPos.lat, userPos.lng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+    } else if (roundGpsState.teeLat != null) {
+      bearing = bearingDegrees(
+        roundGpsState.teeLat, roundGpsState.teeLng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+    } else {
+      return null;
+    }
+    // 15 yards short of center along the approach = front;
+    // 15 yards beyond = back. The "back" bearing is just bearing+180
+    // (or equivalently use a negative distance along the same bearing
+    // — destinationPoint handles either, but we keep it explicit).
+    const half = 15;
+    const front = destinationPoint(
+      roundGpsState.greenLat, roundGpsState.greenLng,
+      (bearing + 180) % 360, half);
+    const back = destinationPoint(
+      roundGpsState.greenLat, roundGpsState.greenLng,
+      bearing, half);
+    return { front, back };
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Plays-like distance — the adjusted yardage accounting for
+  // elevation change between user and target, plus headwind/
+  // tailwind component of the wind. Uses standard golf rules:
+  //   • Elevation: ~1 yd per 3 ft of vertical change
+  //   • Wind: ~1% per mph headwind, ~0.5% per mph tailwind,
+  //     weighted by cosine(wind direction − shot direction)
+  //     so pure crosswind contributes near 0.
+  // Returns null if not enough data; otherwise returns a structured
+  // object the info-bar render can format.
+  // ──────────────────────────────────────────────────────────
+
+  // Query Mapbox terrain elevation at a lat/lng. Returns meters
+  // (Mapbox convention) or null if terrain isn't ready / out of
+  // range / the call throws. queryTerrainElevation requires the
+  // 'mapbox-dem' source to be loaded and setTerrain() called.
+  function getRoundGpsElevationMeters(lat, lng) {
+    const map = roundGpsState.map;
+    if (!map) return null;
+    try {
+      const m = map.queryTerrainElevation([lng, lat], { exaggerated: false });
+      // Mapbox returns null while DEM tiles are still loading. That's
+      // expected on a freshly-mounted map — caller should re-poll later.
+      return (typeof m === 'number' && !Number.isNaN(m)) ? m : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Compute plays-like adjustments for a shot from `from` to `to`,
+  // given the actual ground distance in yards. Returns:
+  //   { elevYards, windYards, totalYards, plays, breakdown }
+  // where `plays` is the adjusted distance and `breakdown` is a
+  // human-readable string suitable for the sub-line ("+9 elev · −3 wind").
+  // Returns null if not enough data to compute anything meaningful.
+  function getRoundGpsPlaysLikeAdjustments(fromLat, fromLng, toLat, toLng, actualYards) {
+    if (actualYards == null) return null;
+
+    // ── Elevation component ──────────────────────────────
+    let elevYards = 0;
+    let elevAvailable = false;
+    const fromElevM = getRoundGpsElevationMeters(fromLat, fromLng);
+    const toElevM = getRoundGpsElevationMeters(toLat, toLng);
+    if (fromElevM != null && toElevM != null) {
+      // Mapbox elevation is meters. Convert delta to feet, then to
+      // yards using the 1y-per-3ft rule. Positive delta = target
+      // higher than user = uphill = add yards (plays longer).
+      const deltaFeet = (toElevM - fromElevM) * 3.28084;
+      elevYards = deltaFeet / 3;
+      elevAvailable = true;
+    }
+
+    // ── Wind component ──────────────────────────────────
+    let windYards = 0;
+    let windAvailable = false;
+    const course = getCourse(roundGpsState.courseId);
+    const cached = course && course.lat != null
+      ? weatherCache.get(weatherCacheKey(course.lat, course.lng))
+      : null;
+    const cur = cached?.data?.current;
+    if (cur && cur.wind_speed_10m != null && cur.wind_direction_10m != null) {
+      // Wind direction is "from" (where wind is coming from). Shot
+      // direction is from→to bearing (where the ball is going).
+      // The headwind component is wind_speed × cos(wind_dir − shot_dir):
+      //   - shot direction matches wind direction (you're hitting
+      //     INTO the wind) → cos(0)=1 → full headwind
+      //   - shot direction opposite (tailwind) → cos(180)=−1 → full tailwind
+      //   - perpendicular (crosswind) → cos(90)=0 → no effect on distance
+      const shotBearing = bearingDegrees(fromLat, fromLng, toLat, toLng);
+      const angleDiff = (cur.wind_direction_10m - shotBearing) * Math.PI / 180;
+      const headwindMph = cur.wind_speed_10m * Math.cos(angleDiff);
+      // Asymmetric multiplier: headwind costs more than tailwind helps.
+      // 1% per mph headwind, 0.5% per mph tailwind. Multiply by actual
+      // distance to get yards adjustment.
+      const pct = headwindMph > 0 ? 0.01 : 0.005;
+      windYards = actualYards * pct * headwindMph;
+      windAvailable = true;
+    }
+
+    if (!elevAvailable && !windAvailable) return null;
+
+    const totalYards = elevYards + windYards;
+    const plays = Math.round(actualYards + totalYards);
+
+    // Build a compact breakdown string. Hide components we couldn't
+    // compute. Positive numbers get a "+", negative get "−" (real
+    // minus, not hyphen, for typographic correctness).
+    const fmt = (n) => {
+      const r = Math.round(n);
+      if (r === 0) return '0';
+      return (r > 0 ? '+' : '−') + Math.abs(r);
+    };
+    const parts = [];
+    if (elevAvailable) parts.push(`${fmt(elevYards)} elev`);
+    if (windAvailable) parts.push(`${fmt(windYards)} wind`);
+    const breakdown = parts.join(' · ');
+
+    return {
+      elevYards,
+      windYards,
+      totalYards,
+      plays,
+      breakdown,
+      elevAvailable,
+      windAvailable,
+    };
+  }
+
   // Get the user's current position for downstream calculations
   // (target lines, distance readouts). Prefers the smoothed position
   // when available (matches what the user sees on the map for the
@@ -54788,6 +55147,159 @@
     }
     return null;
   }
+
+  // ──────────────────────────────────────────────────────────
+  // Wind overlay — small compass in the bottom-right corner of
+  // the GPS view showing current wind speed + direction relative
+  // to the user's view of the hole. Reuses the weatherCache that
+  // the existing Weather tool populates (so opening Weather first
+  // primes this; otherwise we kick off our own fetch). The arrow
+  // rotates so "down" = tailwind, "up" = into the wind, sides =
+  // crosswinds — interpretation matches every other golf app.
+  // ──────────────────────────────────────────────────────────
+  function updateRoundGpsWindOverlay() {
+    const el = document.getElementById('round-gps-wind');
+    if (!el) return;
+    const course = getCourse(roundGpsState.courseId);
+    if (!course || course.lat == null || course.lng == null) {
+      el.classList.add('is-hidden');
+      return;
+    }
+    const cached = weatherCache.get(weatherCacheKey(course.lat, course.lng));
+    const cur = cached?.data?.current;
+    if (!cur || cur.wind_speed_10m == null || cur.wind_direction_10m == null) {
+      // No data yet — try to fetch (no-op if already in flight or
+      // fresh), then re-run after it lands.
+      el.classList.add('is-hidden');
+      try {
+        fetchWeather(course.lat, course.lng).then(() => {
+          // Only re-render if GPS is still open by the time fetch
+          // resolves (user could have closed it in the meantime).
+          if (roundGpsState.open) updateRoundGpsWindOverlay();
+        });
+      } catch (_) {}
+      return;
+    }
+    el.classList.remove('is-hidden');
+    const speedEl = document.getElementById('round-gps-wind-speed');
+    const arrowEl = document.getElementById('round-gps-wind-arrow');
+    if (speedEl) speedEl.textContent = Math.round(cur.wind_speed_10m);
+    if (arrowEl) {
+      // Wind direction is "from", and our arrow points in the direction
+      // the wind is GOING (windArrowRotation handles the +180 flip).
+      // We then subtract the map's current bearing so the arrow
+      // shows wind RELATIVE to the user's view of the hole — if the
+      // map is rotated to face the green, an arrow pointing "down"
+      // means tailwind from behind the user. Subtracting bearing
+      // means rotating the arrow opposite to the map's rotation so
+      // the absolute compass direction is preserved.
+      const mapBearing = roundGpsState.map ? roundGpsState.map.getBearing() : 0;
+      const arrowRotation = windArrowRotation(cur.wind_direction_10m) - mapBearing;
+      arrowEl.style.transform = `rotate(${arrowRotation}deg)`;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Auto-advance hole detection — when the user is detected
+  // standing on a different hole's tee than the one currently
+  // displayed, prompt them to switch. Per-hole dismissal so we
+  // don't pester them if they decline (or are doing something
+  // intentional like checking layout for a future hole).
+  // ──────────────────────────────────────────────────────────
+
+  // Distance threshold for "user is on this hole's tee" detection.
+  // 30 yards = 27.4m. Tee boxes are typically 20-40 yards deep, so
+  // this catches the user anywhere on a normal-sized tee. Smaller
+  // would miss; larger would false-positive when walking past tees.
+  const ROUND_GPS_TEE_DETECT_YARDS = 30;
+
+  // Per-round set of dismissed hole indices. Reset on panel close.
+  // If the user dismisses the prompt for hole 6, we don't ask again
+  // unless they navigate away and back to GPS later. Stored on the
+  // gps state so it survives hole transitions within a session.
+  // (init done via Object.assign in openRoundGpsPanel).
+
+  // Detection runs from onRoundGpsPositionFix on every position update.
+  // Cheap — just iterates holes once and computes haversine distance.
+  function maybeTriggerRoundGpsAutoAdvance() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.mode !== 'playing') return;
+    if (roundGpsState.targetActive) return;  // don't interrupt planning
+    if (roundGpsState.advancePromptVisible) return;  // already showing
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) return;
+    const course = getCourse(roundGpsState.courseId);
+    if (!course || !course.holes) return;
+
+    // Find the closest tee that's a different hole than the current
+    // one and within the detection threshold. Bias toward forward
+    // progression — only consider holes >= currentHole + 1 (so going
+    // back to an earlier hole's tee doesn't prompt).
+    const ctx = getCurrentRoundContext();
+    const teeName = ctx?.teeName;
+    const currentIdx = roundGpsState.holeIndex;
+
+    let bestIdx = -1;
+    let bestYards = Infinity;
+    for (let i = 0; i < course.holes.length; i++) {
+      if (i === currentIdx) continue;
+      // Forward-only — skip earlier holes. Special case: if the user
+      // is on hole 18 and walks back to hole 1 tee, don't prompt
+      // (probably parking lot / clubhouse area, not actual hole 1).
+      if (i < currentIdx) continue;
+      if (roundGpsState.advanceDismissed.has(i)) continue;
+      const hole = course.holes[i];
+      const teePos = getTeePosition(course, hole.number, teeName);
+      if (!teePos) continue;
+      const yds = haversineYards(
+        userPos.lat, userPos.lng, teePos.lat, teePos.lng);
+      if (yds < bestYards && yds <= ROUND_GPS_TEE_DETECT_YARDS) {
+        bestYards = yds;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx === -1) return;
+    showRoundGpsAdvancePrompt(bestIdx);
+  }
+
+  function showRoundGpsAdvancePrompt(holeIndex) {
+    const course = getCourse(roundGpsState.courseId);
+    if (!course) return;
+    const hole = course.holes[holeIndex];
+    if (!hole) return;
+    const promptEl = document.getElementById('round-gps-advance-prompt');
+    const textEl = document.getElementById('round-gps-advance-text');
+    if (!promptEl || !textEl) return;
+    textEl.innerHTML = `On <strong>hole ${hole.number}</strong> tee`;
+    promptEl.classList.add('is-visible');
+    roundGpsState.advancePromptVisible = true;
+    roundGpsState.advancePromptHoleIndex = holeIndex;
+  }
+
+  function hideRoundGpsAdvancePrompt() {
+    const promptEl = document.getElementById('round-gps-advance-prompt');
+    if (promptEl) promptEl.classList.remove('is-visible');
+    roundGpsState.advancePromptVisible = false;
+    roundGpsState.advancePromptHoleIndex = null;
+  }
+
+  function acceptRoundGpsAdvance() {
+    const idx = roundGpsState.advancePromptHoleIndex;
+    hideRoundGpsAdvancePrompt();
+    if (typeof idx === 'number') {
+      transitionRoundGpsToHole(idx);
+    }
+  }
+  window.acceptRoundGpsAdvance = acceptRoundGpsAdvance;
+
+  function dismissRoundGpsAdvance() {
+    const idx = roundGpsState.advancePromptHoleIndex;
+    if (typeof idx === 'number') {
+      roundGpsState.advanceDismissed.add(idx);
+    }
+    hideRoundGpsAdvancePrompt();
+  }
+  window.dismissRoundGpsAdvance = dismissRoundGpsAdvance;
 
   // Pick the "from" point for the target's first line — playing
   // mode uses the user's position; planning mode falls back to the
@@ -55034,6 +55546,12 @@
     }
     // Distance label + value depend on mode + whether we have a fix.
     const userPos = getRoundGpsUserPos();
+    const fbEl = document.getElementById('round-gps-info-distance-fb');
+    const frontEl = document.getElementById('round-gps-info-distance-front');
+    const backEl = document.getElementById('round-gps-info-distance-back');
+    const playsEl = document.getElementById('round-gps-info-plays');
+    const playsValueEl = document.getElementById('round-gps-info-plays-value');
+    const playsBreakdownEl = document.getElementById('round-gps-info-plays-breakdown');
     if (roundGpsState.mode === 'playing'
         && userPos
         && roundGpsState.greenLat != null) {
@@ -55042,6 +55560,43 @@
         roundGpsState.greenLat, roundGpsState.greenLng);
       if (distLabelEl) distLabelEl.textContent = 'TO GREEN';
       if (distValueEl) distValueEl.textContent = Math.round(yards);
+      // Compute and display F/B sub-line. Estimates only — we don't
+      // have surveyed front/back coords, just an approximation based
+      // on green-center + the approach bearing (user→green) +
+      // typical green depth. Reasonable for ~80% of greens.
+      const fb = getRoundGpsGreenFB();
+      if (fb && frontEl && backEl && fbEl) {
+        const frontYds = haversineYards(
+          userPos.lat, userPos.lng, fb.front.lat, fb.front.lng);
+        const backYds = haversineYards(
+          userPos.lat, userPos.lng, fb.back.lat, fb.back.lng);
+        frontEl.textContent = `F ${Math.round(frontYds)}`;
+        backEl.textContent = `${Math.round(backYds)} B`;
+        fbEl.classList.remove('is-hidden');
+      } else if (fbEl) {
+        fbEl.classList.add('is-hidden');
+      }
+      // Compute and display plays-like distance for TO GREEN. Hidden
+      // when a target is active — in that case plays-like belongs to
+      // the CARRY readout in the bottom bar (the user's primary
+      // target during planning is the dropped reticle, not the green).
+      if (playsEl) {
+        if (roundGpsState.targetActive) {
+          playsEl.classList.add('is-hidden');
+        } else {
+          const adj = getRoundGpsPlaysLikeAdjustments(
+            userPos.lat, userPos.lng,
+            roundGpsState.greenLat, roundGpsState.greenLng,
+            yards);
+          if (adj) {
+            if (playsValueEl) playsValueEl.textContent = adj.plays;
+            if (playsBreakdownEl) playsBreakdownEl.textContent = adj.breakdown;
+            playsEl.classList.remove('is-hidden');
+          } else {
+            playsEl.classList.add('is-hidden');
+          }
+        }
+      }
     } else {
       // Planning mode (or no fix yet) — show hole yardage.
       if (distLabelEl) distLabelEl.textContent = 'DISTANCE';
@@ -55050,6 +55605,10 @@
           ? roundGpsState.holeYards
           : '—';
       }
+      // Hide F/B and plays-like in planning mode — both depend on a
+      // user position to anchor the calculations.
+      if (fbEl) fbEl.classList.add('is-hidden');
+      if (playsEl) playsEl.classList.add('is-hidden');
     }
   }
 
@@ -55189,6 +55748,13 @@
             <div class="round-gps-info-cell">
               <div class="round-gps-info-label" id="round-gps-info-distance-label">${initDistanceLabel}</div>
               <div class="round-gps-info-value" id="round-gps-info-distance-value">${initDistanceValue}</div>
+              <div class="round-gps-info-fb is-hidden" id="round-gps-info-distance-fb">
+                <span id="round-gps-info-distance-front">—</span><span class="round-gps-info-fb-sep">·</span><span id="round-gps-info-distance-back">—</span>
+              </div>
+              <div class="round-gps-info-plays is-hidden" id="round-gps-info-plays">
+                plays <span class="round-gps-info-plays-value" id="round-gps-info-plays-value">—</span>y
+                <span class="round-gps-info-plays-breakdown" id="round-gps-info-plays-breakdown"></span>
+              </div>
             </div>
           </div>
           <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanelWithTransition()" aria-label="Close">×</button>
@@ -55204,6 +55770,37 @@
         <button class="round-gps-hole-nav round-gps-hole-nav-next"
                 onclick="roundGpsNextHole()"
                 aria-label="Next hole" ${nextDisabled}>›</button>
+
+        <!-- Wind compass — bottom-right floating indicator. Shows wind
+             speed in mph and direction relative to the map's current
+             bearing (so the arrow always reflects what wind is doing
+             from the user's POV looking down the hole). Hidden until
+             weather data lands. updateRoundGpsWindOverlay populates
+             this and re-orients when the map rotates. -->
+        <div class="round-gps-wind is-hidden" id="round-gps-wind"
+             aria-label="Wind direction and speed">
+          <svg class="round-gps-wind-arrow" id="round-gps-wind-arrow"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4 L12 20 M6 10 L12 4 L18 10"/>
+          </svg>
+          <span class="round-gps-wind-speed" id="round-gps-wind-speed">—</span>
+          <span class="round-gps-wind-unit">MPH</span>
+        </div>
+
+        <!-- Auto-advance prompt — appears when the user is detected on
+             a different hole's tee, prompting them to switch the GPS
+             view to that hole. Hidden until triggered. -->
+        <div class="round-gps-advance-prompt" id="round-gps-advance-prompt"
+             role="dialog" aria-label="Switch to detected hole">
+          <span class="round-gps-advance-text" id="round-gps-advance-text">
+            On <strong>hole 2</strong> tee
+          </span>
+          <button class="round-gps-advance-yes"
+                  onclick="acceptRoundGpsAdvance()">Switch</button>
+          <button class="round-gps-advance-no"
+                  onclick="dismissRoundGpsAdvance()" aria-label="Dismiss">×</button>
+        </div>
 
         <!-- Recenter button — sits bottom-left above the tools button.
              Tap to reframe the map on tee+green at the proper bearing,
@@ -55277,6 +55874,30 @@
       });
     }
 
+    // Add terrain DEM source for elevation queries (powers the
+    // "plays-like distance" feature). queryTerrainElevation requires
+    // terrain to be set, but we don't want 3D visual effects — so
+    // exaggeration:0 keeps the map flat while exposing elevation data.
+    // Source resolution: 512px tiles are accurate enough for the ~3ft
+    // resolution we need for golf elevation deltas.
+    map.once('load', () => {
+      try {
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14,
+          });
+        }
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 0 });
+      } catch (err) {
+        // Terrain failed to load — plays-like will fall back to wind-only
+        // adjustments (or skip the elevation term entirely). Non-fatal.
+        console.warn('Terrain setup failed:', err);
+      }
+    });
+
     // If we have the tee pinned, frame the whole hole and rotate
     // the map so the tee→green direction points up (tee at bottom
     // of screen, green at top). All holes feel like you're walking
@@ -55327,6 +55948,17 @@
     };
     if (map.loaded() && !map.isMoving()) dropTarget();
     else map.once('idle', dropTarget);
+
+    // Wind overlay setup. Initial render once map is ready (so we can
+    // read its bearing for the arrow rotation), plus a 'rotate'
+    // listener so the arrow stays oriented correctly when the user
+    // rotates the map or flyTo bearing transitions fire.
+    const setupWind = () => {
+      updateRoundGpsWindOverlay();
+      map.on('rotate', updateRoundGpsWindOverlay);
+    };
+    if (map.loaded() && !map.isMoving()) setupWind();
+    else map.once('idle', setupWind);
 
     // Kick off live position tracking via watchPosition — keeps the
     // GPS subsystem warm between updates (vs cold-starting it on each
@@ -55450,9 +56082,16 @@
             roundGpsState.greenLat, roundGpsState.greenLng);
           subEl.textContent = `Remaining ${Math.round(remaining)}y · ±${Math.round(accuracy)}m`;
         }
+        // Auto-advance check still relevant during target planning
+        // (user could be on next tee while planning). Wind overlay
+        // refresh is cheap.
+        maybeTriggerRoundGpsAutoAdvance();
         return;
       }
       updateRoundGpsInfoBar();
+      // Check if user has walked onto a different hole's tee. If so,
+      // surface the auto-advance prompt.
+      maybeTriggerRoundGpsAutoAdvance();
     } else {
       // Planning mode — if the target is active, refresh the readout
       // (target may have been dragged).
