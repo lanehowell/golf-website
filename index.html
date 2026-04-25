@@ -4857,6 +4857,30 @@
     color: #fff;
     min-width: 56px;
   }
+  /* Tappable variant — used on the HOLE cell so users can jump to
+     any hole via the existing hole picker. Strips default button
+     chrome and adds a subtle tap-feedback. The chevron next to the
+     value is a visual hint of interactivity. */
+  .round-gps-info-cell-tap {
+    background: transparent;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 120ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-gps-info-cell-tap:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .round-gps-info-cell-chevron {
+    font-size: 0.7rem;
+    margin-left: 3px;
+    opacity: 0.55;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
   .round-gps-info-label {
     font-family: var(--font-mono);
     font-size: 0.55rem;
@@ -5172,10 +5196,10 @@
     letter-spacing: 0;
     border-radius: 22px;
     height: 36px;
-    padding: 0 12px;
+    padding: 0 10px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     user-select: none;
     /* pointer-events:auto so the label is tappable. The map is below;
        events on the label don't bubble through to a map drag. */
@@ -5227,10 +5251,10 @@
     display: inline-block;
     font-size: 0.85rem;
     line-height: 1;
-    opacity: 0.55;
+    opacity: 0.5;
     transition: transform 220ms ease-out;
     flex-shrink: 0;
-    margin-left: 2px;
+    margin-left: -1px;
   }
   .round-gps-yardage-label[data-expanded="true"] .round-gps-yardage-label-chevron {
     transform: rotate(180deg);
@@ -8764,6 +8788,12 @@
   body.round-gps-open .tools-sheet           { z-index: 9460; }
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
+  /* The hole picker can be opened by tapping the HOLE cell in the GPS
+     info bar. It needs to render above the GPS panel (z=9400) but
+     below the score sheet (9499/9500) and miss modal (9510/9520),
+     since those can be opened from inside the hole picker context. */
+  body.round-gps-open .hole-picker-backdrop  { z-index: 9430; }
+  body.round-gps-open .hole-picker-sheet     { z-index: 9440; }
   /* The miss-direction modal opens from the FIR/GIR ✗ button inside
      the cloned score card. It must layer ABOVE the GPS score sheet
      (z=9499/9500) so users can pick a miss direction without the
@@ -34085,6 +34115,12 @@
       }
       closeHolePicker();
       renderGroupRoundPanel();
+      // If GPS is open on top, also transition it to the new hole.
+      // Without this, the user is still looking at GPS for the old hole.
+      if (roundGpsState.open
+          && typeof transitionRoundGpsToHole === 'function') {
+        transitionRoundGpsToHole(holeIdx);
+      }
     } else if (isRoundActive()) {
       const course = getCourse(roundState.courseId);
       if (!course) return;
@@ -34113,6 +34149,12 @@
       }
       closeHolePicker();
       renderRound();
+      // If GPS is open on top, also transition it to the new hole.
+      // Without this, the user is still looking at GPS for the old hole.
+      if (roundGpsState.open
+          && typeof transitionRoundGpsToHole === 'function') {
+        transitionRoundGpsToHole(holeIdx);
+      }
     }
   }
 
@@ -55709,9 +55751,6 @@
     }
     // Distance label + value depend on mode + whether we have a fix.
     const userPos = getRoundGpsUserPos();
-    const fbEl = document.getElementById('round-gps-info-distance-fb');
-    const frontEl = document.getElementById('round-gps-info-distance-front');
-    const backEl = document.getElementById('round-gps-info-distance-back');
     const playsEl = document.getElementById('round-gps-info-plays');
     const playsValueEl = document.getElementById('round-gps-info-plays-value');
     const playsBreakdownEl = document.getElementById('round-gps-info-plays-breakdown');
@@ -55723,22 +55762,6 @@
         roundGpsState.greenLat, roundGpsState.greenLng);
       if (distLabelEl) distLabelEl.textContent = 'TO GREEN';
       if (distValueEl) distValueEl.textContent = Math.round(yards);
-      // Compute and display F/B sub-line. Estimates only — we don't
-      // have surveyed front/back coords, just an approximation based
-      // on green-center + the approach bearing (user→green) +
-      // typical green depth. Reasonable for ~80% of greens.
-      const fb = getRoundGpsGreenFB();
-      if (fb && frontEl && backEl && fbEl) {
-        const frontYds = haversineYards(
-          userPos.lat, userPos.lng, fb.front.lat, fb.front.lng);
-        const backYds = haversineYards(
-          userPos.lat, userPos.lng, fb.back.lat, fb.back.lng);
-        frontEl.textContent = `F ${Math.round(frontYds)}`;
-        backEl.textContent = `${Math.round(backYds)} B`;
-        fbEl.classList.remove('is-hidden');
-      } else if (fbEl) {
-        fbEl.classList.add('is-hidden');
-      }
       // Compute and display plays-like distance for TO GREEN. Hidden
       // when a target is active — in that case plays-like belongs to
       // the CARRY readout in the bottom bar (the user's primary
@@ -55768,9 +55791,7 @@
           ? roundGpsState.holeYards
           : '—';
       }
-      // Hide F/B and plays-like in planning mode — both depend on a
-      // user position to anchor the calculations.
-      if (fbEl) fbEl.classList.add('is-hidden');
+      // Hide plays-like in planning mode — depends on a user position.
       if (playsEl) playsEl.classList.add('is-hidden');
     }
   }
@@ -55898,10 +55919,14 @@
         <!-- Top: centered info bar (hole, par, distance) + close button -->
         <div class="round-gps-header">
           <div class="round-gps-info-bar" id="round-gps-info-bar">
-            <div class="round-gps-info-cell">
+            <button type="button" class="round-gps-info-cell round-gps-info-cell-tap"
+                    onclick="openHolePicker()"
+                    aria-label="Jump to a different hole">
               <div class="round-gps-info-label">HOLE</div>
-              <div class="round-gps-info-value" id="round-gps-info-hole">${holeNum}</div>
-            </div>
+              <div class="round-gps-info-value">
+                <span id="round-gps-info-hole">${holeNum}</span><span class="round-gps-info-cell-chevron" aria-hidden="true">▾</span>
+              </div>
+            </button>
             <div class="round-gps-info-divider"></div>
             <div class="round-gps-info-cell">
               <div class="round-gps-info-label">PAR</div>
@@ -55911,9 +55936,6 @@
             <div class="round-gps-info-cell">
               <div class="round-gps-info-label" id="round-gps-info-distance-label">${initDistanceLabel}</div>
               <div class="round-gps-info-value" id="round-gps-info-distance-value">${initDistanceValue}</div>
-              <div class="round-gps-info-fb is-hidden" id="round-gps-info-distance-fb">
-                <span id="round-gps-info-distance-front">—</span><span class="round-gps-info-fb-sep">·</span><span id="round-gps-info-distance-back">—</span>
-              </div>
               <div class="round-gps-info-plays is-hidden" id="round-gps-info-plays">
                 plays <span class="round-gps-info-plays-value" id="round-gps-info-plays-value">—</span>y
                 <span class="round-gps-info-plays-breakdown" id="round-gps-info-plays-breakdown"></span>
