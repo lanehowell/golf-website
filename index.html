@@ -2217,6 +2217,355 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     ADMIN: Add-course button + sheet (Phase B)
+     ══════════════════════════════════════════════════════════════ */
+  .courses-admin-add-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1px dashed var(--color-orange);
+    border-radius: var(--radius-md);
+    color: var(--color-orange-dark);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.dark .courses-admin-add-btn {
+    background: rgba(232, 93, 4, 0.1);
+    color: var(--color-orange);
+  }
+  .courses-admin-add-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: #fff;
+    font-size: 14px;
+    font-weight: var(--weight-bold);
+    line-height: 1;
+  }
+
+  .add-course-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: var(--bg-page);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .add-course-topbar {
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .add-course-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-course-title-block {
+    text-align: center;
+    min-width: 0;
+  }
+  .add-course-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .add-course-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .add-course-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4);
+  }
+
+  /* Search step */
+  .add-course-search-form {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .add-course-search-input {
+    flex: 1;
+    min-width: 0;
+  }
+  .add-course-search-btn {
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--color-orange);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-course-search-btn[disabled] {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  .add-course-status {
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+  }
+  .add-course-error {
+    color: #dc2626;
+  }
+  html.dark .add-course-error {
+    color: #ff6b6b;
+  }
+
+  .add-course-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .add-course-result {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+  }
+  .add-course-result.is-imported {
+    opacity: 0.7;
+  }
+  .add-course-result-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .add-course-result-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .add-course-result-subtitle {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .add-course-result-location {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .add-course-result-arrow {
+    font-size: 18px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .add-course-imported-pill {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(45, 110, 52, 0.12);
+    color: #2D6E34;
+    flex-shrink: 0;
+  }
+  html.dark .add-course-imported-pill {
+    background: rgba(45, 110, 52, 0.22);
+    color: #7FC088;
+  }
+
+  /* Preview step */
+  .add-course-preview-name {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: var(--space-2);
+  }
+  .add-course-preview-location {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .add-course-preview-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .add-course-preview-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .add-course-preview-stat-value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--space-1);
+  }
+  .add-course-preview-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .add-course-section-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+    margin-top: var(--space-4);
+  }
+  .add-course-tee-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .add-course-tee-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .add-course-tee-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--tee-color, #888);
+    border: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .add-course-tee-yards {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .add-course-warnings-card {
+    background: var(--color-orange-pale);
+    border: 1px solid var(--color-orange);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  html.dark .add-course-warnings-card {
+    background: rgba(232, 93, 4, 0.1);
+  }
+  .add-course-warnings-title {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-orange-dark);
+    margin-bottom: var(--space-2);
+  }
+  html.dark .add-course-warnings-title {
+    color: var(--color-orange);
+  }
+  .add-course-warnings-list {
+    margin: 0;
+    padding-left: var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
+  }
+  .add-course-warnings-list li + li {
+    margin-top: 4px;
+  }
+  .add-course-actions {
+    margin-top: var(--space-5);
+  }
+  .add-course-save-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--color-orange);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+  }
+  .add-course-save-btn[disabled] {
+    opacity: 0.7;
+    cursor: wait;
+  }
+  .add-course-save-btn.is-done {
+    background: #2D6E34;
+    opacity: 1;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      COURSE DETAIL PANEL — header, tee selector, scorecard
      ══════════════════════════════════════════════════════════════ */
   .course-detail-head {
@@ -22540,6 +22889,11 @@
      as other map-based sheets. -->
 <div id="round-gps-mount"></div>
 
+<!-- ADD COURSE sheet mount — admin-only flow for searching
+     golfcourseapi.com and importing a course into the Firestore
+     catalog. Body-level for z-index escape. Phase B-step-2. -->
+<div id="add-course-mount"></div>
+
 <!-- RECOVERY sheet mount — populated by renderRecoverySheet() when
      the user taps the pending-rounds banner on the Play screen.
      Shows the captured scorecard + Save / Continue solo / Discard
@@ -24893,7 +25247,7 @@
   // distance-sorted list (they still appear in the alphabetical view).
   function getCoursesWithDistance() {
     if (userLocation.status !== 'granted') return null;
-    const withDistance = COURSES
+    const withDistance = Array.from(coursesCache.values())
       .filter(c => typeof c.lat === 'number' && typeof c.lng === 'number')
       .map(c => ({
         course: c,
@@ -30467,7 +30821,7 @@
   function updatePlayCoursesCount() {
     const el = document.getElementById('play-courses-count');
     if (!el) return;
-    const n = COURSES.length;
+    const n = coursesCache.size;
     el.textContent = n === 1 ? '1 course available' : `${n} courses available`;
   }
 
@@ -30496,8 +30850,26 @@
   function renderCoursesList() {
     const mount = document.getElementById('courses-list-mount');
     if (!mount) return;
-    if (COURSES.length === 0) {
+    // Read from the cache, not the seed array. After Phase A,
+    // courses live in Firestore and the cache is the source of
+    // truth. Falls back gracefully if the cache hasn't loaded yet
+    // (still empty Map → renders the empty state for a frame, then
+    // re-renders once load completes).
+    const allCourses = Array.from(coursesCache.values());
+
+    // Admin entry point — "+ Add course" button at the very top of
+    // the panel. Hidden for non-admin users. Tapping opens the
+    // search-and-import sheet for golfcourseapi.com.
+    const adminAddBtn = isCurrentUserAdmin() ? `
+      <button class="courses-admin-add-btn" onclick="openAddCourseSheet()">
+        <span class="courses-admin-add-icon" aria-hidden="true">+</span>
+        <span>Add course from API</span>
+      </button>
+    ` : '';
+
+    if (allCourses.length === 0) {
       mount.innerHTML = `
+        ${adminAddBtn}
         <div class="play-empty">
           <div class="play-empty-title">No courses yet</div>
           <div class="play-empty-sub">Courses will be added soon.</div>
@@ -30555,7 +30927,7 @@
     // location so "rowlett" finds Waterview even if you don't
     // remember the course name.
     const q = coursesListState.searchQuery.trim().toLowerCase();
-    const sorted = [...COURSES].sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...allCourses].sort((a, b) => a.name.localeCompare(b.name));
     const filtered = q
       ? sorted.filter(c =>
           c.name.toLowerCase().includes(q) ||
@@ -30575,7 +30947,7 @@
 
     // Search input — always shown when there's more than 1 course.
     // With a single course there's nothing to search.
-    const showSearch = COURSES.length > 1;
+    const showSearch = allCourses.length > 1;
     const searchHtml = showSearch ? `
       <div class="courses-search">
         <input type="text"
@@ -30610,7 +30982,7 @@
       </div>
     `;
 
-    mount.innerHTML = `${closestHtml}${allHtml}`;
+    mount.innerHTML = `${adminAddBtn}${closestHtml}${allHtml}`;
   }
 
   function openCourseDetail(courseId) {
@@ -40242,7 +40614,7 @@
       coursePracticeSetupDraft.teeName = course.tees[0].name;
     }
 
-    const courseOptions = COURSES.map(c => `
+    const courseOptions = Array.from(coursesCache.values()).map(c => `
       <option value="${escapeHtml(c.id)}" ${c.id === course.id ? 'selected' : ''}>
         ${escapeHtml(c.name)}
       </option>
@@ -42241,7 +42613,7 @@
 
     // Course dropdown — all catalog courses (just Mesquite for now, but
     // built to handle more)
-    const courseOptions = COURSES.map(c =>
+    const courseOptions = Array.from(coursesCache.values()).map(c =>
       `<option value="${escapeHtml(c.id)}"${c.id === quickScoreState.courseId ? ' selected' : ''}>${escapeHtml(c.name)}</option>`
     ).join('');
 
@@ -52600,6 +52972,563 @@
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 1500 }
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Add Course flow (Phase B-step-2)
+  // ─────────────────────────────────────────────────────────────
+  // Admin-only flow that searches golfcourseapi.com and imports
+  // selected courses into the Firestore courses collection. The
+  // imported course immediately appears in the courses list and
+  // is shared with all other users (Phase A-shared catalog model).
+
+  // Tee color map. golfcourseapi.com gives a tee_name string; we
+  // pick a reasonable color so the UI renders the same swatch
+  // colors users expect. Names not in the map fall back to gray.
+  const TEE_COLOR_MAP = {
+    'Black':    '#0d0d0d',
+    'Tournament': '#0d0d0d',
+    'Pro':      '#0d0d0d',
+    'Tips':     '#0d0d0d',
+    'Champion': '#1e4ed8',
+    'Blue':     '#1e63d1',
+    'Combo':    '#5a4fcf',
+    'White':    '#f5f5f5',
+    'Yellow':   '#facc15',
+    'Gold':     '#d4af37',
+    'Senior':   '#d4af37',
+    'Green':    '#16a34a',
+    'Forward':  '#dc2626',
+    'Red':      '#dc2626',
+    'Ladies':   '#dc2626',
+  };
+  function getTeeColor(teeName) {
+    if (!teeName) return '#888';
+    // Exact match first; fall back to "name contains" match for
+    // names like "Forward (Red)" or "Mens White".
+    if (TEE_COLOR_MAP[teeName]) return TEE_COLOR_MAP[teeName];
+    for (const key of Object.keys(TEE_COLOR_MAP)) {
+      if (teeName.toLowerCase().includes(key.toLowerCase())) {
+        return TEE_COLOR_MAP[key];
+      }
+    }
+    return '#888';
+  }
+
+  // Slugify a club name — used as part of the Firestore doc id.
+  // Keeps the id readable in the console (e.g. "gca-12345-mesquite-gc").
+  function slugifyCourseName(name) {
+    if (!name) return '';
+    return name.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+  }
+
+  // ─── API client wrappers ─────────────────────────────────
+  async function gcaSearchCourses(query) {
+    const url = `https://api.golfcourseapi.com/v1/search?search_query=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Authorization': `Key ${GOLFCOURSEAPI_KEY}` },
+    });
+    if (!res.ok) {
+      const err = new Error(`API search failed (HTTP ${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    // Normalize — the response may be { courses: [...] } or [...]
+    return Array.isArray(json?.courses) ? json.courses
+         : Array.isArray(json) ? json
+         : [];
+  }
+
+  async function gcaGetCourse(apiCourseId) {
+    const url = `https://api.golfcourseapi.com/v1/courses/${apiCourseId}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Authorization': `Key ${GOLFCOURSEAPI_KEY}` },
+    });
+    if (!res.ok) {
+      const err = new Error(`API fetch failed (HTTP ${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    // Normalize — response may be { course: {...} } or {...}
+    return json?.course || json;
+  }
+
+  // ─── Transformation: API shape → app shape ────────────────
+  // The API gives us holes per-tee (par values can differ across
+  // tees because forward tees sometimes turn par-5s into par-4s).
+  // Our model has par at the hole level. We pick par from the
+  // FIRST tee returned (typically men's longest) — flagged to the
+  // user in the preview so they can spot weirdness.
+  //
+  // Returns { course, warnings } where course is in app shape and
+  // warnings is an array of strings describing any data issues
+  // worth flagging in the preview.
+  function transformGcaCourseToApp(apiCourse) {
+    const warnings = [];
+    if (!apiCourse) {
+      return { course: null, warnings: ['Empty API response'] };
+    }
+
+    // Compose name. If course_name exists and isn't redundant with
+    // club_name, use "Club · Course". Otherwise just club_name.
+    const clubName = (apiCourse.club_name || '').trim();
+    const courseName = (apiCourse.course_name || '').trim();
+    let displayName = clubName || courseName || 'Unnamed Course';
+    if (clubName && courseName &&
+        courseName.toLowerCase() !== clubName.toLowerCase() &&
+        !clubName.toLowerCase().includes(courseName.toLowerCase()) &&
+        !courseName.toLowerCase().includes(clubName.toLowerCase())) {
+      displayName = `${clubName} · ${courseName}`;
+    }
+
+    // Location — prefer city/state from the address object if
+    // present. Fall back to the full address string.
+    let locationStr = '';
+    if (apiCourse.location?.city && apiCourse.location?.state) {
+      locationStr = `${apiCourse.location.city}, ${apiCourse.location.state}`;
+    } else if (apiCourse.location?.address) {
+      locationStr = apiCourse.location.address;
+    } else {
+      locationStr = '';
+      warnings.push('No location info on this course');
+    }
+
+    // Lat/lng — required for the Closest sort + GPS features.
+    const lat = typeof apiCourse.location?.latitude === 'number'
+      ? apiCourse.location.latitude
+      : null;
+    const lng = typeof apiCourse.location?.longitude === 'number'
+      ? apiCourse.location.longitude
+      : null;
+    if (lat == null || lng == null) {
+      warnings.push('Missing lat/lng — Closest sort and GPS features won\'t work for this course');
+    }
+
+    // Tees — concatenate male + female arrays. Each tee gets a name,
+    // color, yardages, totalYards, rating, slope.
+    const apiTees = [
+      ...(Array.isArray(apiCourse.tees?.male) ? apiCourse.tees.male : []),
+      ...(Array.isArray(apiCourse.tees?.female) ? apiCourse.tees.female : []),
+    ];
+    if (apiTees.length === 0) {
+      warnings.push('No tees in API response — course will not be playable');
+      return { course: null, warnings };
+    }
+
+    // Build the holes array. Use the FIRST tee's par values — most
+    // consistent with the conventional men's-tees scorecard. Note
+    // this in warnings if any other tee disagrees on par.
+    const firstTee = apiTees[0];
+    const firstTeeHoles = Array.isArray(firstTee.holes) ? firstTee.holes : [];
+    if (firstTeeHoles.length !== 18) {
+      warnings.push(`Course has ${firstTeeHoles.length} holes (expected 18)`);
+    }
+    const holes = firstTeeHoles.map((h, idx) => ({
+      number: idx + 1,
+      par: typeof h.par === 'number' ? h.par : 4,
+      handicap: typeof h.handicap === 'number' ? h.handicap : (idx + 1),
+    }));
+
+    // Check par consistency across tees and flag any mismatches.
+    let parMismatch = false;
+    for (const t of apiTees.slice(1)) {
+      const tHoles = Array.isArray(t.holes) ? t.holes : [];
+      for (let i = 0; i < Math.min(tHoles.length, holes.length); i++) {
+        if (tHoles[i].par !== holes[i].par) {
+          parMismatch = true;
+          break;
+        }
+      }
+      if (parMismatch) break;
+    }
+    if (parMismatch) {
+      warnings.push('Par values differ across tees — using first tee\'s pars');
+    }
+
+    // Map tees to app shape. Yardages array, totalYards, rating, slope.
+    const tees = apiTees.map(t => {
+      const tHoles = Array.isArray(t.holes) ? t.holes : [];
+      const yardages = tHoles.map(h => typeof h.yardage === 'number' ? h.yardage : 0);
+      const totalYards = yardages.reduce((s, y) => s + y, 0);
+      const teeName = (t.tee_name || 'Unnamed').trim();
+      return {
+        name: teeName,
+        color: getTeeColor(teeName),
+        yardages,
+        totalYards,
+        rating: typeof t.course_rating === 'number' ? t.course_rating : null,
+        slope: typeof t.slope_rating === 'number' ? t.slope_rating : null,
+      };
+    });
+
+    // Generate a Firestore doc id. Format: gca-{api_id}-{slug}.
+    // The "gca-" prefix makes the source obvious; the api_id makes
+    // it stable; the slug is for human readability when browsing
+    // Firestore.
+    const slug = slugifyCourseName(displayName);
+    const id = `gca-${apiCourse.id}${slug ? '-' + slug : ''}`;
+
+    return {
+      course: {
+        id,
+        name: displayName,
+        location: locationStr,
+        lat,
+        lng,
+        holes,
+        tees,
+        // Mark the source so we can identify imported courses later
+        // (e.g. for re-syncing against the API).
+        source: 'golfcourseapi',
+        sourceId: apiCourse.id,
+      },
+      warnings,
+    };
+  }
+
+  // ─── Sheet state + render ────────────────────────────────
+  // State machine:
+  //   step: 'search'  → input + (optional) results list
+  //         'preview' → showing the transformed course, save/cancel
+  //         'saving'  → write in flight
+  //         'done'    → save succeeded; sheet about to close
+  const addCourseState = {
+    open: false,
+    step: 'search',
+    query: '',
+    searching: false,
+    searchError: null,
+    results: [],         // raw API search results
+    selectedApiCourse: null,  // raw API course detail
+    transformed: null,   // { course, warnings }
+    saveError: null,
+  };
+
+  function openAddCourseSheet() {
+    if (!isCurrentUserAdmin()) {
+      showToast('Admin only', true);
+      return;
+    }
+    if (addCourseState.open) return;
+    addCourseState.open = true;
+    addCourseState.step = 'search';
+    addCourseState.query = '';
+    addCourseState.searching = false;
+    addCourseState.searchError = null;
+    addCourseState.results = [];
+    addCourseState.selectedApiCourse = null;
+    addCourseState.transformed = null;
+    addCourseState.saveError = null;
+    acquireScrollLock();
+    renderAddCourseSheet();
+  }
+  window.openAddCourseSheet = openAddCourseSheet;
+
+  function closeAddCourseSheet() {
+    if (!addCourseState.open) return;
+    addCourseState.open = false;
+    releaseScrollLock();
+    const mount = document.getElementById('add-course-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closeAddCourseSheet = closeAddCourseSheet;
+
+  // Triggered by the search form submit (or Enter key in input).
+  async function runAddCourseSearch() {
+    const q = addCourseState.query.trim();
+    if (!q) return;
+    addCourseState.searching = true;
+    addCourseState.searchError = null;
+    addCourseState.results = [];
+    renderAddCourseSheet();
+    try {
+      const courses = await gcaSearchCourses(q);
+      addCourseState.results = courses;
+      addCourseState.searching = false;
+      renderAddCourseSheet();
+    } catch (err) {
+      addCourseState.searching = false;
+      addCourseState.searchError = err.status === 429
+        ? 'Daily API quota reached. Try again tomorrow.'
+        : (err.message || 'Search failed');
+      renderAddCourseSheet();
+    }
+  }
+  window.runAddCourseSearch = runAddCourseSearch;
+
+  function setAddCourseQuery(value) {
+    addCourseState.query = value;
+    // No re-render needed; input owns its own state. Could re-render
+    // if we wanted to enable/disable the search button live, but the
+    // button is just submit so that's not necessary.
+  }
+  window.setAddCourseQuery = setAddCourseQuery;
+
+  // User picked a result → fetch full details, transform, show preview.
+  async function selectAddCourseResult(apiCourseId) {
+    addCourseState.step = 'preview';
+    addCourseState.selectedApiCourse = null;
+    addCourseState.transformed = null;
+    addCourseState.searchError = null;
+    addCourseState.searching = true;  // reuse searching=true as "loading" for preview
+    renderAddCourseSheet();
+    try {
+      const detail = await gcaGetCourse(apiCourseId);
+      addCourseState.selectedApiCourse = detail;
+      const transformed = transformGcaCourseToApp(detail);
+      addCourseState.transformed = transformed;
+      addCourseState.searching = false;
+      renderAddCourseSheet();
+    } catch (err) {
+      addCourseState.searching = false;
+      addCourseState.searchError = err.message || 'Failed to load course details';
+      renderAddCourseSheet();
+    }
+  }
+  window.selectAddCourseResult = selectAddCourseResult;
+
+  // Back to search results from the preview.
+  function backToAddCourseSearch() {
+    addCourseState.step = 'search';
+    addCourseState.selectedApiCourse = null;
+    addCourseState.transformed = null;
+    addCourseState.saveError = null;
+    renderAddCourseSheet();
+  }
+  window.backToAddCourseSearch = backToAddCourseSearch;
+
+  // Save the previewed course to Firestore + update cache.
+  async function saveAddCourse() {
+    const t = addCourseState.transformed;
+    if (!t || !t.course) return;
+    const c = t.course;
+    addCourseState.step = 'saving';
+    addCourseState.saveError = null;
+    renderAddCourseSheet();
+    try {
+      // Strip id from data (it lives in the doc id).
+      const { id, ...data } = c;
+      await window.fb.upsertCourse(id, data);
+      // Update the cache so the new course appears immediately in
+      // the courses list without a re-fetch.
+      coursesCache.set(id, c);
+      addCourseState.step = 'done';
+      renderAddCourseSheet();
+      // Brief success state, then close + navigate.
+      setTimeout(() => {
+        const courseId = c.id;
+        closeAddCourseSheet();
+        // Refresh the courses list view if it's currently mounted
+        // so the new course appears immediately.
+        if (typeof renderCoursesList === 'function') renderCoursesList();
+        if (typeof updatePlayCoursesCount === 'function') updatePlayCoursesCount();
+        // Navigate to the new course's detail page so success is
+        // unmistakable.
+        if (typeof openCourseDetail === 'function') {
+          openCourseDetail(courseId);
+        }
+        showToast(`Added ${c.name}`);
+      }, 600);
+    } catch (err) {
+      console.error('Failed to save course:', err);
+      addCourseState.step = 'preview';
+      addCourseState.saveError = err.message || 'Save failed';
+      renderAddCourseSheet();
+    }
+  }
+  window.saveAddCourse = saveAddCourse;
+
+  function renderAddCourseSheet() {
+    const mount = document.getElementById('add-course-mount');
+    if (!mount) return;
+    if (!addCourseState.open) { mount.innerHTML = ''; return; }
+
+    let body;
+    if (addCourseState.step === 'search') {
+      body = renderAddCourseSearchStep();
+    } else if (addCourseState.step === 'preview' || addCourseState.step === 'saving' || addCourseState.step === 'done') {
+      body = renderAddCoursePreviewStep();
+    } else {
+      body = '';
+    }
+
+    mount.innerHTML = `
+      <div class="add-course-sheet">
+        <div class="add-course-topbar">
+          ${addCourseState.step === 'search'
+            ? `<button class="add-course-close" onclick="closeAddCourseSheet()" aria-label="Close">×</button>`
+            : `<button class="add-course-close" onclick="backToAddCourseSearch()" aria-label="Back to search">←</button>`}
+          <div class="add-course-title-block">
+            <div class="add-course-eyebrow">Add Course</div>
+            <div class="add-course-title">
+              ${addCourseState.step === 'search' ? 'Search the API' : 'Preview'}
+            </div>
+          </div>
+          <div style="width: 40px;"></div>
+        </div>
+        <div class="add-course-body">${body}</div>
+      </div>`;
+
+    // Re-focus the search input after re-render so typing isn't
+    // interrupted. Caret position not preserved (input value is
+    // owned by setAddCourseQuery, not the React-style "controlled"
+    // pattern we use elsewhere).
+    if (addCourseState.step === 'search') {
+      const input = document.getElementById('add-course-search-input');
+      if (input && document.activeElement !== input) {
+        // Don't auto-focus on every render — only focus if the input
+        // was just created (no value yet). Otherwise it'd steal focus
+        // mid-typing, which is worse than not focusing at all.
+        if (!addCourseState.query) input.focus();
+      }
+    }
+  }
+
+  function renderAddCourseSearchStep() {
+    const s = addCourseState;
+    let resultsHtml = '';
+    if (s.searching) {
+      resultsHtml = `<div class="add-course-status">Searching…</div>`;
+    } else if (s.searchError) {
+      resultsHtml = `<div class="add-course-status add-course-error">${escapeHtml(s.searchError)}</div>`;
+    } else if (s.query && s.results.length === 0 && !s.searching) {
+      // Only show empty state after a search has actually run
+      // (results array starts empty before any search).
+      resultsHtml = '';
+    } else if (s.results.length > 0) {
+      const rows = s.results.map(r => {
+        const id = r.id;
+        const club = (r.club_name || '').trim();
+        const course = (r.course_name || '').trim();
+        const title = club || course || 'Unnamed';
+        const subtitle = (course && course !== club) ? course : '';
+        const location = r.location?.city && r.location?.state
+          ? `${r.location.city}, ${r.location.state}`
+          : (r.location?.address || '');
+        // Check if this course is already imported (by gca- id prefix).
+        const expectedAppIdPrefix = `gca-${id}`;
+        const alreadyImported = Array.from(coursesCache.keys())
+          .some(k => k.startsWith(expectedAppIdPrefix));
+        return `
+          <button class="add-course-result ${alreadyImported ? 'is-imported' : ''}"
+                  onclick="selectAddCourseResult(${id})">
+            <div class="add-course-result-body">
+              <div class="add-course-result-title">${escapeHtml(title)}</div>
+              ${subtitle ? `<div class="add-course-result-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+              ${location ? `<div class="add-course-result-location">${escapeHtml(location)}</div>` : ''}
+            </div>
+            ${alreadyImported
+              ? `<span class="add-course-imported-pill">Already added</span>`
+              : `<span class="add-course-result-arrow">→</span>`}
+          </button>
+        `;
+      }).join('');
+      resultsHtml = `<div class="add-course-results">${rows}</div>`;
+    }
+
+    return `
+      <form class="add-course-search-form"
+            onsubmit="event.preventDefault(); runAddCourseSearch();">
+        <input type="text"
+               id="add-course-search-input"
+               class="input add-course-search-input"
+               placeholder="Search by course name (e.g. Pebble Beach)"
+               value="${escapeHtml(s.query)}"
+               oninput="setAddCourseQuery(this.value)"
+               autocomplete="off"
+               autocapitalize="words" />
+        <button type="submit" class="add-course-search-btn"
+                ${s.searching ? 'disabled' : ''}>
+          ${s.searching ? 'Searching…' : 'Search'}
+        </button>
+      </form>
+      ${resultsHtml}
+    `;
+  }
+
+  function renderAddCoursePreviewStep() {
+    const s = addCourseState;
+    if (s.searching) {
+      return `<div class="add-course-status">Loading course details…</div>`;
+    }
+    if (s.searchError) {
+      return `<div class="add-course-status add-course-error">${escapeHtml(s.searchError)}</div>`;
+    }
+    if (!s.transformed) return '';
+    const t = s.transformed;
+    if (!t.course) {
+      return `
+        <div class="add-course-status add-course-error">
+          Couldn't import this course.
+          ${t.warnings.length ? `<ul class="add-course-warnings">
+            ${t.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+          </ul>` : ''}
+        </div>`;
+    }
+
+    const c = t.course;
+    const totalPar = c.holes.reduce((sum, h) => sum + h.par, 0);
+    const teePills = c.tees.map(tee => `
+      <span class="add-course-tee-pill" style="--tee-color: ${tee.color}">
+        <span class="add-course-tee-swatch"></span>
+        ${escapeHtml(tee.name)}
+        <span class="add-course-tee-yards">${tee.totalYards.toLocaleString()}y</span>
+      </span>
+    `).join('');
+
+    const warningsHtml = t.warnings.length ? `
+      <div class="add-course-warnings-card">
+        <div class="add-course-warnings-title">Heads up</div>
+        <ul class="add-course-warnings-list">
+          ${t.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    const isSaving = s.step === 'saving';
+    const isDone = s.step === 'done';
+
+    return `
+      <div class="add-course-preview-name">${escapeHtml(c.name)}</div>
+      <div class="add-course-preview-location">${escapeHtml(c.location || '—')}</div>
+
+      <div class="add-course-preview-stats">
+        <div class="add-course-preview-stat">
+          <div class="add-course-preview-stat-value">${c.holes.length}</div>
+          <div class="add-course-preview-stat-label">Holes</div>
+        </div>
+        <div class="add-course-preview-stat">
+          <div class="add-course-preview-stat-value">${totalPar}</div>
+          <div class="add-course-preview-stat-label">Par</div>
+        </div>
+        <div class="add-course-preview-stat">
+          <div class="add-course-preview-stat-value">${c.tees.length}</div>
+          <div class="add-course-preview-stat-label">Tees</div>
+        </div>
+      </div>
+
+      <div class="add-course-section-label">Tee sets</div>
+      <div class="add-course-tee-list">${teePills}</div>
+
+      ${warningsHtml}
+
+      ${s.saveError ? `<div class="add-course-status add-course-error">${escapeHtml(s.saveError)}</div>` : ''}
+
+      <div class="add-course-actions">
+        <button class="add-course-save-btn ${isDone ? 'is-done' : ''}"
+                onclick="saveAddCourse()"
+                ${isSaving || isDone ? 'disabled' : ''}>
+          ${isDone ? '✓ Added' : (isSaving ? 'Saving…' : 'Add to courses')}
+        </button>
+      </div>
+    `;
   }
 
   // ─────────────────────────────────────────────────────────────
