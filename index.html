@@ -21737,7 +21737,16 @@
     body[data-current-panel="practice"]:not(.round-active):not(.session-active),
     body[data-current-panel="today"]:not(.round-active):not(.session-active),
     body[data-current-panel="social"]:not(.round-active):not(.session-active),
-    body[data-current-panel="profile"]:not(.round-active):not(.session-active) {
+    body[data-current-panel="profile"]:not(.round-active):not(.session-active),
+    /* Round-context panels also get the collapsed top padding —
+       the round-banner is display:none on these (see rule above
+       hiding #round-banner for round/group-round/group-lobby), so
+       reserving banner height creates phantom space that becomes
+       visible when scroll-lock pins body's top edge to the viewport
+       (e.g. when the tools sheet opens). */
+    body[data-current-panel="round"],
+    body[data-current-panel="group-round"],
+    body[data-current-panel="group-lobby"] {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body[data-current-panel="play"].round-active,
@@ -34855,13 +34864,10 @@
   function acquireScrollLock() {
     if (_scrollLockCount === 0) {
       _scrollLockY = window.scrollY || window.pageYOffset || 0;
-      // Just lock scrolling via overflow:hidden on html. No need to
-      // transform body — the visual scroll position is preserved
-      // because html overflow:hidden stops any scrolling from
-      // happening at all. Earlier iterations used position:fixed
-      // (broke iOS safe-area) or transform (broke body bg
-      // propagation, leaving a tonal shift at the top after release).
-      // Plain overflow:hidden avoids both pitfalls.
+      // Use transform instead of position:fixed + top:-Npx. iOS PWAs
+      // lose their viewport-fit=cover safe-area treatment after body
+      // has been position:fixed once. Transform preserves layout mode.
+      document.body.style.transform = `translateY(-${_scrollLockY}px)`;
       document.documentElement.classList.add('scroll-locked');
     }
     _scrollLockCount++;
@@ -34870,10 +34876,22 @@
     if (_scrollLockCount === 0) return;
     _scrollLockCount--;
     if (_scrollLockCount === 0) {
+      // Steps:
+      //   1. Temporarily kill scroll-behavior so the restoration is
+      //      instant (the design system sets `scroll-behavior: smooth`
+      //      on html globally; we don't want a smooth animation here).
+      //   2. Remove the lock — overflow:hidden on html clears.
+      //   3. Clear the inline transform.
+      //   4. Immediately scroll back to the saved position.
+      //   5. Restore scroll-behavior on the next frame.
+      const prevBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
       document.documentElement.classList.remove('scroll-locked');
-      // No scrollTo needed — we never actually shifted the page,
-      // we just prevented scrolling. When the lock releases the
-      // page is exactly where the user left it.
+      document.body.style.transform = '';
+      window.scrollTo(0, _scrollLockY);
+      requestAnimationFrame(() => {
+        document.documentElement.style.scrollBehavior = prevBehavior;
+      });
     }
   }
 
