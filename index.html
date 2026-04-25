@@ -3,13 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<!-- iOS PWA status bar — black-translucent lets page content extend
-     under the notch/status bar area instead of being pushed below
-     a gray strip. Required for full-screen experiences like the GPS
-     map view. Layouts that need to clear the status bar use
-     env(safe-area-inset-top) for their top padding. -->
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Golf Performance Training Plan</title>
 <script>
   // Pre-paint theme init — runs before any CSS or content renders.
@@ -8436,14 +8429,6 @@
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
   body.round-gps-open .confirm-backdrop      { z-index: 9490; }
-
-  /* When GPS is open, force the html background to black. iOS PWA
-     scroll-lock makes body position:fixed, which can expose the html
-     element at the edges of the viewport. Without this, the html's
-     normal cream/dark-gray bg-page color shows as a strip at the top
-     of the screen behind the GPS panel. Black blends with the GPS
-     panel's black background so the seam is invisible. */
-  html.round-gps-open { background-color: #000 !important; }
 
   .tools-sheet {
     position: fixed;
@@ -21737,16 +21722,7 @@
     body[data-current-panel="practice"]:not(.round-active):not(.session-active),
     body[data-current-panel="today"]:not(.round-active):not(.session-active),
     body[data-current-panel="social"]:not(.round-active):not(.session-active),
-    body[data-current-panel="profile"]:not(.round-active):not(.session-active),
-    /* Round-context panels also get the collapsed top padding —
-       the round-banner is display:none on these (see rule above
-       hiding #round-banner for round/group-round/group-lobby), so
-       reserving banner height creates phantom space that becomes
-       visible when scroll-lock pins body's top edge to the viewport
-       (e.g. when the tools sheet opens). */
-    body[data-current-panel="round"],
-    body[data-current-panel="group-round"],
-    body[data-current-panel="group-lobby"] {
+    body[data-current-panel="profile"]:not(.round-active):not(.session-active) {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body[data-current-panel="play"].round-active,
@@ -53593,7 +53569,6 @@
     roundGpsState.open = true;
     roundGpsState.courseId = ctx.courseId;
     document.body.classList.add('round-gps-open');
-    document.documentElement.classList.add('round-gps-open');
     acquireScrollLock();
     loadRoundGpsHoleAndRender(ctx.holeIndex);
   }
@@ -53990,7 +53965,6 @@
     }
     roundGpsState.open = false;
     document.body.classList.remove('round-gps-open');
-    document.documentElement.classList.remove('round-gps-open');
     roundGpsState.userMarker = null;
     roundGpsState.greenMarker = null;
     roundGpsState.teeMarker = null;
