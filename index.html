@@ -7991,6 +7991,58 @@
   .shot-edit-hint strong {
     font-weight: var(--weight-semibold);
   }
+
+  /* Inline GPS-derived miss context inside the Result section. Sits
+     between the label and the 9-way compass grid; gives the user a
+     precise data readout ("8y long · 4y right") right where they're
+     thinking about result. Two visual states:
+       - data-classify="miss" → slight amber tint (this was off-target)
+       - data-classify="ok"   → neutral grey tint (on-target or bonus)
+     Both have a small-cap label and a slightly larger value. The
+     amber state is INTENTIONALLY low-key — the user already knows
+     they missed; the value is the useful data. */
+  .shot-edit-miss-context {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    font-family: var(--font-body);
+  }
+  .shot-edit-miss-context[data-classify="miss"] {
+    background: rgba(232, 93, 4, 0.06);
+    border-color: rgba(232, 93, 4, 0.20);
+  }
+  html.dark .shot-edit-miss-context[data-classify="miss"] {
+    background: rgba(232, 93, 4, 0.10);
+    border-color: rgba(232, 93, 4, 0.30);
+  }
+  .shot-edit-miss-context-label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .shot-edit-miss-context-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .shot-edit-miss-context[data-classify="miss"] .shot-edit-miss-context-value {
+    color: var(--color-orange-dark);
+  }
+  html.dark .shot-edit-miss-context[data-classify="miss"] .shot-edit-miss-context-value {
+    color: var(--color-orange);
+  }
+
   .shot-edit-dist-row {
     display: flex;
     align-items: center;
@@ -36645,6 +36697,21 @@
           Result
           <span class="shot-edit-label-hint">optional · tap again to clear</span>
         </label>
+        ${(() => {
+          // Inline GPS-derived miss context, if we have it. Replaces
+          // nothing — just appears between the label and the compass
+          // grid as a small summary the user can read at a glance.
+          // Hidden for shots without geometry (no target, no end yet).
+          const ctx = getShotMissContext(draft);
+          if (!ctx.hasContext) return '';
+          return `
+            <div class="shot-edit-miss-context"
+                 data-classify="${ctx.classifyAsMiss ? 'miss' : 'ok'}">
+              <span class="shot-edit-miss-context-label">From GPS</span>
+              <span class="shot-edit-miss-context-value">${escapeHtml(ctx.joinText)}</span>
+            </div>
+          `;
+        })()}
         <div class="shot-result-grid">${resultGridHtml}</div>
       </div>
 
@@ -55849,6 +55916,171 @@
     return 'approach';
   }
 
+  // Decompose an actual end position into components along and across
+  // the intended start→target line. Returns:
+  //   alongShot: signed yards along the start→target axis. Positive
+  //     means the ball ended past the target along that line; negative
+  //     means short of the target.
+  //   lateralOffset: signed yards perpendicular to the start→target
+  //     axis. Positive means right of the intended line, negative left.
+  //
+  // Math: project the start→end vector onto the start→target axis.
+  // Total distance × cos(angleDiff) = along-axis component.
+  // Total distance × sin(angleDiff) = perpendicular component.
+  // angleDiff is endBearing − targetBearing, signed (right-handed).
+  //
+  // Returns null if any of start/target/end coords are missing — the
+  // caller should defensively check before storing.
+  function computeShotMissVector(startLat, startLng, targetLat, targetLng, endLat, endLng) {
+    if (startLat == null || startLng == null) return null;
+    if (targetLat == null || targetLng == null) return null;
+    if (endLat == null || endLng == null) return null;
+    const totalDist = haversineYards(startLat, startLng, endLat, endLng);
+    const targetDist = haversineYards(startLat, startLng, targetLat, targetLng);
+    if (targetDist < 0.5) {
+      // Pathological: target is essentially AT start. Can't define
+      // an axis. Fall back to "no along data, no lateral data".
+      return { alongShot: null, lateralOffset: null };
+    }
+    const targetBearing = bearingDegrees(startLat, startLng, targetLat, targetLng);
+    const endBearing = bearingDegrees(startLat, startLng, endLat, endLng);
+    // Signed angle diff, clamped to [−180, 180]. Positive means end
+    // bearing is clockwise from target bearing (= right of target line
+    // in a normal map orientation).
+    let angleDiff = endBearing - targetBearing;
+    while (angleDiff > 180) angleDiff -= 360;
+    while (angleDiff < -180) angleDiff += 360;
+    const radDiff = angleDiff * Math.PI / 180;
+    const along = totalDist * Math.cos(radDiff);
+    const lateral = totalDist * Math.sin(radDiff);
+    // alongShot = how far past the target. Subtract targetDist:
+    //   end at target position → 0
+    //   end past target along line → positive
+    //   end short of target along line → negative
+    return {
+      alongShot: Math.round(along - targetDist),
+      lateralOffset: Math.round(lateral),
+    };
+  }
+
+  // Intent-aware framing for a shot's miss. Takes a shot record (must
+  // have alongShot + lateralOffset + intent populated) and returns a
+  // structured object describing the miss in human-friendly terms.
+  // UI views consume the strings without re-deriving the intent rules.
+  //
+  // Returns:
+  //   {
+  //     hasContext: bool      // whether we have miss data to display
+  //     longText: string      // distance framing ("8y long", "+20y past target", "30y short", etc.)
+  //     lateralText: string   // lateral framing ("4y right", "6y left", "" if skipped)
+  //     joinText: string      // both combined for inline display
+  //     classifyAsMiss: bool  // whether this counts as a "missed" shot for stats
+  //                            (driving farther than target on a tee shot ≠ miss)
+  //   }
+  //
+  // Returns { hasContext: false } if the shot doesn't have the data
+  // we need (no target, no end, etc.).
+  function getShotMissContext(shot) {
+    if (!shot) return { hasContext: false };
+    const { alongShot, lateralOffset, intent } = shot;
+    if (alongShot == null || lateralOffset == null) {
+      return { hasContext: false };
+    }
+
+    const ctx = {
+      hasContext: true,
+      longText: '',
+      lateralText: '',
+      joinText: '',
+      classifyAsMiss: false,
+    };
+
+    // Lateral framing — same across most intents (left/right of line).
+    // Skip for putt and recovery where it's not meaningful.
+    const skipLateral = intent === 'putt' || intent === 'recovery';
+    if (!skipLateral) {
+      const absLat = Math.abs(lateralOffset);
+      if (absLat <= 1) {
+        ctx.lateralText = 'on line';
+      } else if (lateralOffset > 0) {
+        ctx.lateralText = `${absLat}y right`;
+      } else {
+        ctx.lateralText = `${absLat}y left`;
+      }
+    }
+
+    // Distance framing — varies by intent. This is the heart of the
+    // intent-aware framing: same alongShot value gets different language
+    // depending on what kind of shot it was.
+    const absAlong = Math.abs(alongShot);
+    if (intent === 'approach' || intent === 'chip') {
+      // Pin-seeking. Any deviation = penalty miss.
+      if (absAlong <= 2) {
+        ctx.longText = 'pin high';
+      } else if (alongShot > 0) {
+        ctx.longText = `${absAlong}y long`;
+        ctx.classifyAsMiss = true;
+      } else {
+        ctx.longText = `${absAlong}y short`;
+        ctx.classifyAsMiss = true;
+      }
+      // Lateral always counts as miss for these
+      if (Math.abs(lateralOffset) > 5) ctx.classifyAsMiss = true;
+    } else if (intent === 'tee') {
+      // Distance-maximizing. Past target = bonus, short = miss.
+      if (absAlong <= 2) {
+        ctx.longText = 'right at target';
+      } else if (alongShot > 0) {
+        ctx.longText = `+${absAlong}y past target`;
+        // Bonus, not miss
+      } else {
+        ctx.longText = `${absAlong}y short`;
+        ctx.classifyAsMiss = true;
+      }
+      // Lateral still a miss (off-line tee shot is a miss)
+      if (Math.abs(lateralOffset) > 8) ctx.classifyAsMiss = true;
+    } else if (intent === 'layup') {
+      // Distance-controlled with strict don't-overcook constraint.
+      // Past = bad miss (might be in trouble), short = neutral.
+      if (absAlong <= 2) {
+        ctx.longText = 'at layup target';
+      } else if (alongShot > 0) {
+        ctx.longText = `⚠ ${absAlong}y past layup`;
+        ctx.classifyAsMiss = true;
+      } else {
+        ctx.longText = `${absAlong}y short of layup`;
+        // Short of layup is fine — still in the layup zone
+      }
+      if (Math.abs(lateralOffset) > 5) ctx.classifyAsMiss = true;
+    } else if (intent === 'putt') {
+      // Putts: report end-distance to target (= remaining putt distance).
+      // Lateral skipped above. This describes how far you came up
+      // short or long of the hole.
+      if (absAlong <= 1) {
+        ctx.longText = 'made it';
+      } else if (alongShot > 0) {
+        ctx.longText = `${absAlong}y past hole`;
+        ctx.classifyAsMiss = true;
+      } else {
+        ctx.longText = `${absAlong}y short`;
+        ctx.classifyAsMiss = true;
+      }
+    } else {
+      // recovery — meaningless to frame as miss/bonus
+      ctx.hasContext = false;
+      return ctx;
+    }
+
+    // Join — natural "long · lateral" sentence. If lateral was skipped,
+    // just the longText.
+    if (ctx.lateralText) {
+      ctx.joinText = `${ctx.longText} · ${ctx.lateralText}`;
+    } else {
+      ctx.joinText = ctx.longText;
+    }
+    return ctx;
+  }
+
   // Main handler — fired when the user taps the orange "Log shot"
   // button in the GPS action bar. Captures current GPS, finalizes
   // the previous shot's end (if one's pending), creates the next
@@ -55898,15 +56130,31 @@
       ? Math.round(haversineYards(startLat, startLng, endLat, endLng))
       : null;
 
+    // Determine the user's aimed-at target. Two layers:
+    //   1. If a reticle is dropped, that's the explicit target — always use it.
+    //   2. Otherwise, fall back per intent (computed below): approach / chip
+    //      / par-3 tee defaults to green; tee on par 4/5 and layup require
+    //      a manual reticle drop (no auto-default), since "the green" isn't
+    //      a meaningful target for those shots.
+    // We resolve this in two passes — capture the reticle-or-null target
+    // first, infer intent, then apply the green-default if appropriate.
+    let targetLat = null;
+    let targetLng = null;
+    if (roundGpsState.targetActive
+        && roundGpsState.targetLat != null && roundGpsState.targetLng != null) {
+      targetLat = roundGpsState.targetLat;
+      targetLng = roundGpsState.targetLng;
+    }
+
     // Yards-to-target (the existing `distance` field semantic): if a
     // target reticle was active, use distance from the shot START to
     // the target. Otherwise, distance from the shot START to the green.
+    // This stays permissive — the on-screen "TO GREEN" reading is what
+    // the user expects to be captured even if no reticle was set.
     let yardsToTarget = null;
-    if (roundGpsState.targetActive
-        && roundGpsState.targetLat != null && roundGpsState.targetLng != null) {
+    if (targetLat != null) {
       yardsToTarget = Math.round(haversineYards(
-        startLat, startLng,
-        roundGpsState.targetLat, roundGpsState.targetLng));
+        startLat, startLng, targetLat, targetLng));
     } else if (roundGpsState.greenLat != null) {
       yardsToTarget = Math.round(haversineYards(
         startLat, startLng,
@@ -55920,6 +56168,22 @@
     const startLie = inferShotStartLie(prevShot, isFirstShotOfHole);
     const intent = inferShotIntent(
       yardsToTarget, isFirstShotOfHole, startLie, roundGpsState.holePar);
+
+    // Apply the intent-aware default for target lat/lng if no reticle
+    // was active. Approach/chip/par-3-tee → green is a sensible default
+    // (you're aiming at the green). Tee on par 4/5 and layup → leave
+    // null; the user must drop a reticle explicitly. Putt and recovery
+    // → leave null; they don't have geometric miss metrics anyway.
+    if (targetLat == null && roundGpsState.greenLat != null) {
+      const isPar3Tee = isFirstShotOfHole && roundGpsState.holePar === 3;
+      const useGreenDefault = (intent === 'approach')
+                           || (intent === 'chip')
+                           || isPar3Tee;
+      if (useGreenDefault) {
+        targetLat = roundGpsState.greenLat;
+        targetLng = roundGpsState.greenLng;
+      }
+    }
 
     // Default club: if start is on green → putter; if on tee with
     // par 4/5 → driver; otherwise leave blank for user to fill in.
@@ -55950,6 +56214,20 @@
           prevShot.startLat, prevShot.startLng,
           prevShot.endLat, prevShot.endLng));
       }
+      // Compute miss vector (alongShot + lateralOffset) if the prev
+      // shot stored a target. No target = no aim point = no miss
+      // metrics. Pre-feature shots without targetLat skip this entirely.
+      if (prevShot.targetLat != null && prevShot.targetLng != null
+          && prevShot.startLat != null && prevShot.startLng != null) {
+        const miss = computeShotMissVector(
+          prevShot.startLat, prevShot.startLng,
+          prevShot.targetLat, prevShot.targetLng,
+          prevShot.endLat, prevShot.endLng);
+        if (miss) {
+          prevShot.alongShot = miss.alongShot;
+          prevShot.lateralOffset = miss.lateralOffset;
+        }
+      }
     }
 
     // Create the new shot. Push it now (with sensible defaults) so
@@ -55971,7 +56249,21 @@
       startLng,
       endLat: null,    // filled in by NEXT logShot tap
       endLng: null,
+      // Where the user was aiming. Either an explicit dropped reticle,
+      // or the intent-aware default (green for approach/chip/par-3 tee;
+      // null for tee on par 4/5 / layup / putt / recovery).
+      // Used to compute alongShot + lateralOffset when end gets captured.
+      targetLat,
+      targetLng,
       actualYards: null,
+      // Geometric miss metrics — signed yards along the start→target
+      // line and perpendicular to it. Computed when end is captured
+      // (next logShot tap finalizes prev shot's end). Both null until
+      // then, AND null forever if targetLat is null (no aim point).
+      // alongShot: + = past target, − = short of target
+      // lateralOffset: + = right of target line, − = left
+      alongShot: null,
+      lateralOffset: null,
       loggedAt: Date.now(),
     };
     shots.push(newShot);
@@ -56005,6 +56297,7 @@
     openShotEditSheet(holeNum, newShot.id);
   }
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
+  window.getShotMissContext = getShotMissContext;
 
   // Distance threshold for showing "Set tee" mode on the action button.
   // Generous enough to cover multi-tee complexes (gold tee can be 50-60y
