@@ -54742,12 +54742,24 @@
 
     // Trigger slide-up by stripping the .opening class on the next
     // frame. The forced reflow ensures the off-screen state paints
-    // before the transition starts.
+    // before the transition starts. After the slide-up finishes,
+    // call map.resize() — Mapbox sizes its canvas at init based on
+    // the container's measured layout, but if the panel was in its
+    // .opening (translateY(100%)) state during init, the canvas may
+    // have been sized incorrectly. resize() recomputes it.
     const panelEl = mount.querySelector('.round-gps-panel');
     if (panelEl) {
       void panelEl.offsetHeight;  // force reflow
       requestAnimationFrame(() => {
         panelEl.classList.remove('opening');
+        // Resize the map after the slide-up transition completes.
+        // The transition is 320ms; we add a small buffer to be sure
+        // the panel has settled into its final dimensions.
+        setTimeout(() => {
+          if (roundGpsState.map) {
+            try { roundGpsState.map.resize(); } catch (_) {}
+          }
+        }, 360);
       });
     }
 
