@@ -16506,8 +16506,23 @@
 
   /* Mobile: bottom-sheet style to match the log modal's mobile treatment */
   @media (max-width: 560px) {
-    .confirm-backdrop { padding: 0; align-items: flex-end; }
+    .confirm-backdrop {
+      padding: 0;
+      /* Switch the dialog from flex-positioned to absolute-positioned at
+         the backdrop's bottom edge. flex-end alignment was being subtly
+         affected by the body's padding-bottom reservation for the
+         bottom nav (~64px + safe-area), causing the dialog to float
+         well above the screen bottom on iOS PWA. position:absolute on
+         the dialog with bottom:0 is immune — it positions relative to
+         the fixed backdrop, ignoring body padding entirely. */
+      align-items: stretch;
+      justify-content: stretch;
+    }
     .confirm-dialog {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
       max-width: 100%;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       animation: confirmSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -21856,14 +21871,24 @@
     body[data-current-panel="today"].session-active,
     body[data-current-panel="social"].session-active,
     body[data-current-panel="profile"].session-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+      /* --session-banner-height is the banner's full rendered offsetHeight,
+         which includes its internal padding-top: env(safe-area-inset-top).
+         So adding env(safe-area-inset-top) here would double-count the
+         safe-area portion and leave a gap between the banner and the
+         page content. Just use the banner height. */
+      padding-top: var(--session-banner-height, 52px) !important;
     }
     body[data-current-panel="play"].round-active.session-active,
     body[data-current-panel="practice"].round-active.session-active,
     body[data-current-panel="today"].round-active.session-active,
     body[data-current-panel="social"].round-active.session-active,
     body[data-current-panel="profile"].round-active.session-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+      /* Both banners stacked. Same reasoning as above: each banner's
+         offsetHeight includes the safe-area inset, but only the
+         topmost banner sits at top:0 — the second sits at
+         var(--session-banner-height) below it (already accounting for
+         safe-area). So total space to reserve is 2× the banner height. */
+      padding-top: calc(var(--session-banner-height, 52px) * 2) !important;
     }
     /* Trim the default panel top padding on top-level tabs for a slight
        extra nudge upward. */
@@ -21934,13 +21959,16 @@
       background: transparent;
       z-index: calc(var(--z-dropdown) - 1);
     }
-    /* When a banner is active, pin below it. */
+    /* When a banner is active, pin below it. --session-banner-height
+       already includes the safe-area portion (via the banner's own
+       internal padding-top: env(safe-area-inset-top)), so we just
+       reserve the banner height — no separate safe-area addition. */
     body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back,
     body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) + var(--space-2));
+      top: calc(var(--session-banner-height, 52px) + var(--space-2));
     }
     body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
-      top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2 + var(--space-2));
+      top: calc(var(--session-banner-height, 52px) * 2 + var(--space-2));
     }
     /* Chunky arrow glyph — match the Strava look. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
@@ -21957,26 +21985,36 @@
     body {
       padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px)) !important;
     }
+    /* Banner-active catch-all. --session-banner-height includes its own
+       safe-area portion, so reserve banner height + topbar content
+       height (no separate safe-area addition — that's already in the
+       banner). The more-specific selectors below override this for
+       root tabs and sub-panels. */
     body.session-active,
     body.round-active {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+      padding-top: calc(var(--mobile-topbar-h) + var(--session-banner-height, 52px)) !important;
     }
     body.session-active.round-active {
-      padding-top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+      padding-top: calc(var(--mobile-topbar-h) + var(--session-banner-height, 52px) * 2) !important;
     }
 
     /* Sub-panels: topbar is now static (flows with content), so the
        body doesn't need to reserve vertical space for it. Only reserve
-       the safe-area inset (and the banner heights when active). */
+       the safe-area inset (and the banner heights when active).
+       --session-banner-height already includes its own internal
+       safe-area inset (banner paints behind dynamic island in PWA
+       black-translucent mode), so we don't add env(safe-area-inset-top)
+       again when the banner is reserving space — that would push
+       content too far below the banner's bottom edge. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]):not(.session-active):not(.round-active) {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).round-active,
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px)) !important;
+      padding-top: var(--session-banner-height, 52px) !important;
     }
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active.round-active {
-      padding-top: calc(env(safe-area-inset-top, 0px) + var(--session-banner-height, 52px) * 2) !important;
+      padding-top: calc(var(--session-banner-height, 52px) * 2) !important;
     }
 
     /* Round-context panels keep the floating X close + LIVE indicator
