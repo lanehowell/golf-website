@@ -22519,6 +22519,14 @@
      button or hash removal. Not linked from anywhere in the UI. -->
 <div id="gps-test-mount"></div>
 
+<!-- API test panel mount — Phase B-step-1 smoke test for the
+     golfcourseapi.com integration. Opened by navigating to the
+     #api-test URL hash; admin-only. Verifies that the API key works
+     and that CORS allows direct browser fetches from this origin.
+     If CORS fails, we know we need a Cloud Function proxy before
+     Phase B can proceed. -->
+<div id="api-test-mount"></div>
+
 <!-- PIN GREENS sheet mount — populated by renderPinGreensSheet() when
      the user taps "Pin greens" on a course detail page. Full-screen
      bottom sheet with a satellite map + tap-to-pin flow for each
@@ -23377,6 +23385,13 @@
   // be abused from other domains. Used for the GPS feature's
   // satellite map views.
   const MAPBOX_TOKEN = 'pk.eyJ1IjoibGFuZWhvd2VsbCIsImEiOiJjbW9kZDBpaHUwMXB1MnFxMmR6NW1vcHR2In0.Bhqax-Yt6d4tMk1A71qnOQ';
+
+  // golfcourseapi.com key. Free tier: 300 requests/day. Used by the
+  // admin-only Add Course flow to search and import course data
+  // (holes, pars, yardages, tee ratings/slopes) instead of typing
+  // it all by hand. Hardcoded for now — long-term this should move
+  // to a Firebase Cloud Function so the key isn't in the bundle.
+  const GOLFCOURSEAPI_KEY = 'BYQAWBUQRSWZW6GL76P7BMLKRM';
 
   // ─────────────────────────────────────────────────────────────
   // Splash screen — mobile-only initial loader
@@ -51717,6 +51732,307 @@
   setTimeout(checkGpsTestHash, 500);
   // Expose close fn globally for the inline onclick in the panel markup.
   window.closeGpsTestPanel = closeGpsTestPanel;
+
+  // ─────────────────────────────────────────────────────────────
+  // golfcourseapi.com smoke test (Phase B-step-1)
+  // ─────────────────────────────────────────────────────────────
+  // Throwaway panel that verifies the API key works AND that CORS
+  // permits direct browser fetches from this origin. Hash-triggered
+  // (#api-test), admin-only. If both tests pass, Phase B (the real
+  // Add Course flow) is straightforward client-side work. If CORS
+  // fails, we'll need to proxy through a Firebase Cloud Function
+  // first.
+  //
+  // Runs two tests in sequence:
+  //   1. Search — GET /v1/search?search_query=mesquite
+  //      Proves: CORS, auth header, response parsing.
+  //   2. Course fetch — GET /v1/courses/{first_result_id}
+  //      Proves: per-course endpoint shape we'll need for import.
+
+  const apiTestState = {
+    open: false,
+    steps: [
+      { id: 'search', label: 'Search "mesquite"', status: 'queued', detail: '', ms: 0 },
+      { id: 'fetch',  label: 'Fetch course details', status: 'queued', detail: '', ms: 0 },
+    ],
+    searchData: null,  // raw response of step 1
+    fetchData: null,   // raw response of step 2
+    error: null,       // overall error (e.g. classifier message)
+  };
+
+  function openApiTestPanel() {
+    if (apiTestState.open) return;
+    if (!isCurrentUserAdmin()) {
+      // Don't reveal the panel exists to non-admins.
+      return;
+    }
+    apiTestState.open = true;
+    apiTestState.steps = [
+      { id: 'search', label: 'Search "mesquite"', status: 'queued', detail: '', ms: 0 },
+      { id: 'fetch',  label: 'Fetch course details', status: 'queued', detail: '', ms: 0 },
+    ];
+    apiTestState.searchData = null;
+    apiTestState.fetchData = null;
+    apiTestState.error = null;
+    renderApiTestPanel();
+    // Kick off the test sequence on next tick so the panel paints
+    // first (otherwise the user just sees "running" with no context).
+    setTimeout(runApiTestSequence, 50);
+  }
+
+  function closeApiTestPanel() {
+    if (!apiTestState.open) return;
+    apiTestState.open = false;
+    const mount = document.getElementById('api-test-mount');
+    if (mount) mount.innerHTML = '';
+    if (window.location.hash === '#api-test') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+  window.closeApiTestPanel = closeApiTestPanel;
+
+  // Best-effort error classifier. fetch() throws a TypeError with
+  // message "Failed to fetch" or similar on CORS rejection — and
+  // the same error on actual network failures. We can't 100%
+  // distinguish them client-side, but we can hint based on what
+  // succeeded before. The verdict gets refined in the panel based
+  // on what the user sees in the browser's DevTools console.
+  function classifyApiError(err, response) {
+    if (response && !response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return `Auth error (HTTP ${response.status}) — API key may be invalid or rejected`;
+      }
+      if (response.status === 429) {
+        return `Rate-limited (HTTP 429) — daily quota likely exhausted`;
+      }
+      return `HTTP ${response.status} ${response.statusText || ''}`.trim();
+    }
+    // No response = thrown error before headers came back
+    if (err && err.name === 'TypeError') {
+      // CORS or network. Check both possibilities in the message.
+      return `Request failed before response — likely CORS blocked or network down. Check browser console for "blocked by CORS policy" message.`;
+    }
+    return err && err.message ? err.message : 'Unknown error';
+  }
+
+  async function runApiTestSequence() {
+    // Step 1: Search
+    apiTestState.steps[0].status = 'running';
+    renderApiTestPanel();
+    const t0 = performance.now();
+    let searchOk = false;
+    let firstCourseId = null;
+    try {
+      const url = `https://api.golfcourseapi.com/v1/search?search_query=mesquite`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Authorization': `Key ${GOLFCOURSEAPI_KEY}` },
+      });
+      const ms = Math.round(performance.now() - t0);
+      apiTestState.steps[0].ms = ms;
+      if (!res.ok) {
+        apiTestState.steps[0].status = 'error';
+        apiTestState.steps[0].detail = classifyApiError(null, res);
+        renderApiTestPanel();
+        return;
+      }
+      const json = await res.json();
+      apiTestState.searchData = json;
+      // Find the first course id in the response. Per your existing
+      // notes, search returns { courses: [...] } with each having
+      // an integer id. Be resilient to shape variation.
+      const courses = Array.isArray(json?.courses) ? json.courses
+                    : Array.isArray(json) ? json
+                    : null;
+      if (!courses || courses.length === 0) {
+        apiTestState.steps[0].status = 'error';
+        apiTestState.steps[0].detail = `Got 200 but no courses in response (shape: ${Object.keys(json || {}).join(', ') || 'empty'})`;
+        renderApiTestPanel();
+        return;
+      }
+      firstCourseId = courses[0].id;
+      apiTestState.steps[0].status = 'ok';
+      apiTestState.steps[0].detail = `${courses.length} course${courses.length === 1 ? '' : 's'} returned, first id: ${firstCourseId}`;
+      searchOk = true;
+      renderApiTestPanel();
+    } catch (err) {
+      const ms = Math.round(performance.now() - t0);
+      apiTestState.steps[0].ms = ms;
+      apiTestState.steps[0].status = 'error';
+      apiTestState.steps[0].detail = classifyApiError(err, null);
+      renderApiTestPanel();
+      return;
+    }
+
+    if (!searchOk || firstCourseId == null) return;
+
+    // Step 2: Fetch course details
+    apiTestState.steps[1].status = 'running';
+    renderApiTestPanel();
+    const t1 = performance.now();
+    try {
+      const url = `https://api.golfcourseapi.com/v1/courses/${firstCourseId}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Authorization': `Key ${GOLFCOURSEAPI_KEY}` },
+      });
+      const ms = Math.round(performance.now() - t1);
+      apiTestState.steps[1].ms = ms;
+      if (!res.ok) {
+        apiTestState.steps[1].status = 'error';
+        apiTestState.steps[1].detail = classifyApiError(null, res);
+        renderApiTestPanel();
+        return;
+      }
+      const json = await res.json();
+      apiTestState.fetchData = json;
+      // Extract a quick summary so the user sees something meaningful.
+      const c = json?.course || json;
+      const teeCount = (c?.tees?.male?.length || 0) + (c?.tees?.female?.length || 0);
+      apiTestState.steps[1].status = 'ok';
+      apiTestState.steps[1].detail = `Got "${c?.club_name || c?.course_name || 'unnamed'}" — ${teeCount} tee set${teeCount === 1 ? '' : 's'}`;
+      renderApiTestPanel();
+    } catch (err) {
+      const ms = Math.round(performance.now() - t1);
+      apiTestState.steps[1].ms = ms;
+      apiTestState.steps[1].status = 'error';
+      apiTestState.steps[1].detail = classifyApiError(err, null);
+      renderApiTestPanel();
+    }
+  }
+
+  function renderApiTestPanel() {
+    const mount = document.getElementById('api-test-mount');
+    if (!mount) return;
+    if (!apiTestState.open) { mount.innerHTML = ''; return; }
+
+    const stepIcon = (status) => {
+      if (status === 'queued') return '○';
+      if (status === 'running') return '◐';
+      if (status === 'ok') return '✓';
+      if (status === 'error') return '✗';
+      return '?';
+    };
+    const stepColor = (status) => {
+      if (status === 'ok') return '#34c759';
+      if (status === 'error') return '#ff3b30';
+      if (status === 'running') return '#ffcc00';
+      return '#666';
+    };
+
+    const stepRows = apiTestState.steps.map(s => `
+      <div style="
+        display: flex; gap: 12px; padding: 12px;
+        border-radius: 8px; margin-bottom: 8px;
+        background: rgba(255,255,255,0.05);
+        align-items: flex-start;">
+        <div style="
+          width: 24px; height: 24px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          color: ${stepColor(s.status)}; font-weight: bold; font-size: 16px;
+          flex-shrink: 0;">${stepIcon(s.status)}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 14px; color: #fff;">${s.label}</div>
+          <div style="font-size: 11px; color: #aaa; margin-top: 4px; word-break: break-word;">
+            ${s.detail || (s.status === 'queued' ? 'Queued' : s.status === 'running' ? 'Running…' : '')}
+            ${s.ms ? ` <span style="opacity:0.6;">(${s.ms}ms)</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Show the verdict at the bottom: pass / fail / running.
+    const allOk = apiTestState.steps.every(s => s.status === 'ok');
+    const anyError = apiTestState.steps.some(s => s.status === 'error');
+    let verdict;
+    if (allOk) {
+      verdict = `
+        <div style="background: rgba(52,199,89,0.18); border: 1px solid #34c759;
+                    padding: 14px; border-radius: 8px; color: #34c759;
+                    font-size: 13px; line-height: 1.5;">
+          <div style="font-weight: 600; margin-bottom: 4px;">CORS works ✓</div>
+          The API allows direct browser fetches from this origin. Phase B
+          can proceed as straightforward client-side code.
+        </div>`;
+    } else if (anyError) {
+      const failed = apiTestState.steps.find(s => s.status === 'error');
+      const isCorsLikely = failed && failed.detail && failed.detail.includes('CORS');
+      verdict = `
+        <div style="background: rgba(255,59,48,0.15); border: 1px solid #ff3b30;
+                    padding: 14px; border-radius: 8px; color: #ff8a80;
+                    font-size: 13px; line-height: 1.5;">
+          <div style="font-weight: 600; margin-bottom: 4px;">Test failed ✗</div>
+          ${isCorsLikely
+            ? `Looks like a CORS rejection. Open browser DevTools → Console
+               to confirm. If so, Phase B needs a Firebase Cloud Function
+               proxy before continuing.`
+            : `See the error detail above. Open browser DevTools → Console
+               for additional context.`}
+        </div>`;
+    } else {
+      verdict = `
+        <div style="color: #aaa; font-size: 12px; text-align: center; padding: 16px;">
+          Running tests…
+        </div>`;
+    }
+
+    // Optional raw data peek — collapsed by default to avoid scrolling fatigue
+    const dataPeek = (apiTestState.searchData || apiTestState.fetchData) ? `
+      <details style="margin-top: 16px; color: #888;">
+        <summary style="cursor: pointer; font-size: 12px;">Raw responses</summary>
+        <div style="font-size: 10px; max-height: 200px; overflow: auto;
+                    background: rgba(0,0,0,0.4); padding: 8px;
+                    border-radius: 4px; margin-top: 8px;
+                    font-family: monospace; white-space: pre-wrap; word-break: break-all;">
+          ${apiTestState.searchData ? `<div style="color:#aaa;margin-bottom:8px;">Search:</div>${escapeHtml(JSON.stringify(apiTestState.searchData, null, 2).slice(0, 800))}${JSON.stringify(apiTestState.searchData).length > 800 ? '\n…' : ''}` : ''}
+          ${apiTestState.fetchData ? `<div style="color:#aaa;margin:12px 0 8px;">Course:</div>${escapeHtml(JSON.stringify(apiTestState.fetchData, null, 2).slice(0, 800))}${JSON.stringify(apiTestState.fetchData).length > 800 ? '\n…' : ''}` : ''}
+        </div>
+      </details>
+    ` : '';
+
+    mount.innerHTML = `
+      <div style="
+        position: fixed; inset: 0; background: #1a1a1a; z-index: 9999;
+        padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 16px);
+        padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+        font-family: sans-serif; color: #fff; overflow-y: auto;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between;
+                    margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 11px; color: #888; text-transform: uppercase;
+                        letter-spacing: 2px;">Phase B Smoke Test</div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 4px;">
+              golfcourseapi.com
+            </div>
+          </div>
+          <button onclick="closeApiTestPanel()" style="
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            width: 36px; height: 36px; border-radius: 50%;
+            font-size: 20px; cursor: pointer;">×</button>
+        </div>
+
+        <div style="margin-bottom: 16px;">${stepRows}</div>
+
+        ${verdict}
+
+        ${dataPeek}
+      </div>
+    `;
+  }
+
+  function checkApiTestHash() {
+    if (window.location.hash === '#api-test' && !apiTestState.open) {
+      openApiTestPanel();
+    }
+  }
+  window.addEventListener('hashchange', checkApiTestHash);
+  // Defer initial check until auth resolves so isCurrentUserAdmin works.
+  // 1500ms is long enough for the auth-changed event to fire on a typical
+  // load. If admin gating fails, the panel just doesn't open — the user
+  // can refresh after sign-in.
+  setTimeout(checkApiTestHash, 1500);
 
   // ─────────────────────────────────────────────────────────────
   // Pin Greens (Phase 1)
