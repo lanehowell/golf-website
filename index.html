@@ -25144,6 +25144,36 @@
     return { ...base, holes: mergedHoles };
   }
 
+  // Filter a course's tees down to the ones that should appear in
+  // tee selectors for the current user. Behavior:
+  //   - prefs.gender set + at least one matching tee   → only those
+  //   - prefs.gender set + NO matching tees            → all tees
+  //     (so the app doesn't show a course with no tees; e.g. a
+  //     course imported with only male tees viewed by a female
+  //     user still works — falls back gracefully)
+  //   - prefs.gender unset (legacy / new user)         → all tees
+  //     (with gender pills shown in the UI so the user can tell)
+  // Tees imported before the gender field existed have no .gender
+  // attribute; those are always shown regardless of pref.
+  function getVisibleTees(course) {
+    if (!course || !Array.isArray(course.tees)) return [];
+    const g = prefs?.gender || null;
+    if (!g) return course.tees;
+    const matching = course.tees.filter(t => !t.gender || t.gender === g);
+    // If filter wiped out everything (course has only opposite-gender
+    // tees), fall back to all tees so the user has SOMETHING to play.
+    if (matching.length === 0) return course.tees;
+    return matching;
+  }
+
+  // Detect whether a course has tees from multiple genders. Used to
+  // decide whether to surface the gender-pref prompt.
+  function courseHasMultiGenderTees(course) {
+    if (!course || !Array.isArray(course.tees)) return false;
+    const genders = new Set(course.tees.map(t => t.gender).filter(Boolean));
+    return genders.size > 1;
+  }
+
   // Great-circle distance in yards. Used by GPS features for
   // tee/green/position math. Miles version (haversineMiles) lives
   // below and is used for course-list sorting.
@@ -27290,6 +27320,14 @@
     // Default is 'right' since that's ~90% of golfers; a lefty
     // flipping the toggle once in Profile is a one-time setup.
     handedness: 'right',
+
+    // Tee gender — affects which tees show up in tee selectors. Same
+    // physical tee box can have separate ratings for men and women on
+    // a scorecard (e.g. White tees: M 70.5/124, W 76.2/132), so this
+    // selects which version applies. Null default means "not set" —
+    // app shows all tees + an inline prompt the first time the user
+    // hits a course with both. 'male' | 'female' | null.
+    gender: null,
 
     // Round tools sheet configuration — user's hide/show + reorder
     // for the in-round tools menu. When null, the sheet renders the
@@ -31004,12 +31042,16 @@
         </div>`;
       return;
     }
-    // Default selected tee for this course = first tee unless user picked one
+    // Filter tees by user's gender pref (or show all if unset).
+    const visibleTees = getVisibleTees(course);
+    // Default selected tee for this course = first VISIBLE tee unless user picked one
     if (!courseDetailState.selectedTeeByCourse[courseId]) {
-      courseDetailState.selectedTeeByCourse[courseId] = course.tees[0].name;
+      courseDetailState.selectedTeeByCourse[courseId] = visibleTees[0]?.name || course.tees[0].name;
     }
     const selectedTeeName = courseDetailState.selectedTeeByCourse[courseId];
-    const tee = course.tees.find(t => t.name === selectedTeeName) || course.tees[0];
+    // Look up by name in ALL tees (in case user previously picked a
+    // tee that's now filtered out by a gender change).
+    const tee = course.tees.find(t => t.name === selectedTeeName) || visibleTees[0] || course.tees[0];
 
     const totalPar = course.holes.reduce((sum, h) => sum + h.par, 0);
     const frontPar = course.holes.slice(0, 9).reduce((s, h) => s + h.par, 0);
@@ -31017,8 +31059,10 @@
     const frontYards = tee.yardages.slice(0, 9).reduce((s, y) => s + y, 0);
     const backYards  = tee.yardages.slice(9).reduce((s, y) => s + y, 0);
 
-    // Tee box selector — color-coded segmented control
-    const teeButtons = course.tees.map(t => {
+    // Tee box selector — color-coded segmented control. Filtered to
+    // user's gender so multi-gender courses don't show duplicate tee
+    // names.
+    const teeButtons = visibleTees.map(t => {
       const active = t.name === selectedTeeName;
       // Choose a contrasting text color for the swatch (light tees get dark text)
       const lightTee = ['White', 'Gold', 'Yellow', 'Red'].includes(t.name);
@@ -31783,7 +31827,8 @@
     //    Only YOUR tee is editable here (each player picks their own).
     let teeChangeHtml = '';
     if (course && Array.isArray(course.tees)) {
-      const chips = course.tees.map(t => {
+      const visibleTees = getVisibleTees(course);
+      const chips = visibleTees.map(t => {
         const active = t.name === myTeeName;
         return `
           <button class="tee-btn${active ? ' active' : ''}"
@@ -40620,7 +40665,7 @@
       </option>
     `).join('');
 
-    const teeButtons = course.tees.map(t => {
+    const teeButtons = getVisibleTees(course).map(t => {
       const selected = t.name === coursePracticeSetupDraft.teeName;
       return `
         <button class="course-practice-tee-btn ${selected ? 'is-selected' : ''}"
@@ -42617,8 +42662,8 @@
       `<option value="${escapeHtml(c.id)}"${c.id === quickScoreState.courseId ? ' selected' : ''}>${escapeHtml(c.name)}</option>`
     ).join('');
 
-    // Tee dropdown — scoped to the selected course. Shows total yardage.
-    const teeOptions = (course?.tees || []).map(t =>
+    // Tee dropdown — scoped to the selected course, filtered to user's gender.
+    const teeOptions = (course ? getVisibleTees(course) : []).map(t =>
       `<option value="${escapeHtml(t.name)}"${t.name === quickScoreState.teeName ? ' selected' : ''}>${escapeHtml(t.name)} · ${t.totalYards || '—'} yd</option>`
     ).join('');
 
@@ -45047,7 +45092,7 @@
       backdrop.className = 'confirm-backdrop';
       let selected = defaultTeeName;
 
-      const renderTees = () => course.tees.map(t => {
+      const renderTees = () => getVisibleTees(course).map(t => {
         const active = t.name === selected;
         return `
           <button class="tee-btn${active ? ' active' : ''}" data-tee="${escapeHtml(t.name)}">
@@ -50470,6 +50515,7 @@
   // host future prefs like dominant eye, playing style, etc.
   function renderGameSection() {
     const handedness = prefs.handedness || 'right';
+    const gender = prefs.gender || null;  // 'male' | 'female' | null
     // Compute visible-tools summary for the Tools row
     const effective = getEffectiveDockTools();
     const toolsSummary = effective.length === DOCK_TOOLS.length
@@ -50486,6 +50532,17 @@
           <div class="seg-control">
             <button class="${handedness === 'right' ? 'active' : ''}" onclick="setHandedness('right')">Right</button>
             <button class="${handedness === 'left' ? 'active' : ''}" onclick="setHandedness('left')">Left</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Tee gender</div>
+            <div class="settings-row-sub">Picks which tee ratings show up. Same physical tee can have different ratings for men and women.</div>
+          </div>
+          <div class="seg-control">
+            <button class="${gender === 'male' ? 'active' : ''}" onclick="setGender('male')">Men's</button>
+            <button class="${gender === 'female' ? 'active' : ''}" onclick="setGender('female')">Women's</button>
+            <button class="${gender === null ? 'active' : ''}" onclick="setGender(null)">All</button>
           </div>
         </div>
         <button class="settings-row settings-row-link" onclick="openToolsEditorSheet()">
@@ -50511,6 +50568,27 @@
     savePreferences();
     renderProfile();
   }
+
+  // Set tee gender pref. 'male' | 'female' | null. null means "show all
+  // tees" — a useful explicit choice for users who don't want to specify,
+  // or who play scrambles with mixed groups. After change, re-render
+  // any panels that show tee selectors so the change takes effect right
+  // away. Course-detail tee state is keyed by course id, so a previously-
+  // selected tee that's now filtered out still resolves via fallback.
+  function setGender(val) {
+    if (val !== 'male' && val !== 'female' && val !== null) return;
+    if ((prefs.gender || null) === val) return;
+    prefs.gender = val;
+    savePreferences();
+    renderProfile();
+    // Re-render any tee-selector views the user might come back to.
+    // Course detail is the most common; the others (group lobby, course
+    // practice setup) re-render whenever they're shown.
+    if (currentPanelId === 'course-detail' && typeof renderCourseDetail === 'function') {
+      renderCourseDetail();
+    }
+  }
+  window.setGender = setGender;
 
   // ─────────────────────────────────────────────────────────────
   // Tools editor sheet — configure the in-round tools sheet.
@@ -53111,11 +53189,15 @@
       warnings.push('Missing lat/lng — Closest sort and GPS features won\'t work for this course');
     }
 
-    // Tees — concatenate male + female arrays. Each tee gets a name,
-    // color, yardages, totalYards, rating, slope.
+    // Tees — concatenate male + female arrays. Each tee carries its
+    // gender alongside the rating/slope so the runtime filter can
+    // show the right one for the current user. A "White" tee may
+    // appear twice (male's White and female's White) with different
+    // ratings — both stay in the data; the filter handles picking
+    // which to display.
     const apiTees = [
-      ...(Array.isArray(apiCourse.tees?.male) ? apiCourse.tees.male : []),
-      ...(Array.isArray(apiCourse.tees?.female) ? apiCourse.tees.female : []),
+      ...(Array.isArray(apiCourse.tees?.male) ? apiCourse.tees.male.map(t => ({ ...t, _gender: 'male' })) : []),
+      ...(Array.isArray(apiCourse.tees?.female) ? apiCourse.tees.female.map(t => ({ ...t, _gender: 'female' })) : []),
     ];
     if (apiTees.length === 0) {
       warnings.push('No tees in API response — course will not be playable');
@@ -53165,6 +53247,9 @@
         totalYards,
         rating: typeof t.course_rating === 'number' ? t.course_rating : null,
         slope: typeof t.slope_rating === 'number' ? t.slope_rating : null,
+        // Tag with gender so getVisibleTees can filter to the user's
+        // selected gender at runtime. 'male' | 'female'.
+        gender: t._gender,
       };
     });
 
