@@ -8393,7 +8393,16 @@
 
   .tools-sheet-backdrop {
     position: fixed;
-    inset: 0;
+    /* Don't cover the safe-area zone at the top. iOS Safari's
+       viewport-fit=cover safe-area extension collapses when a fixed
+       element paints at y=0 — content stops extending under the
+       dynamic island. By starting below the safe-area inset, the
+       backdrop dims only the actual content area and leaves the
+       dynamic-island region untouched. */
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(13, 13, 13, 0.35);
     z-index: calc(var(--z-raised) + 1);
     cursor: pointer;
@@ -34859,11 +34868,11 @@
     if (dockState.sheetOpen) return;
     dockState.sheetOpen = true;
     dockState.activeTool = null;
-    // === DEBUG: stripped down — no scroll lock, no animation, no drag ===
-    // dockState._animateNext = true;
-    // acquireScrollLock();
+    dockState._animateNext = true;
+    acquireScrollLock();
     renderRoundDock();
-    // requestAnimationFrame(attachSheetDragHandlers);
+    // Attach drag-to-close handlers after the DOM exists
+    requestAnimationFrame(attachSheetDragHandlers);
   }
 
   // Tap a tool in the list — switch sheet body to that tool's content.
@@ -35343,9 +35352,7 @@
     let sheetHtml = '';
     let backdropHtml = '';
     if (dockState.sheetOpen) {
-      // === DEBUG: backdrop disabled to test if it's causing the
-      //     iOS dynamic-island safe-area bug ===
-      // backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
+      backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
       sheetHtml = renderToolsSheet();
     }
 
