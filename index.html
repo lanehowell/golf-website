@@ -34884,12 +34884,6 @@
       document.documentElement.style.scrollBehavior = 'auto';
       document.documentElement.classList.remove('scroll-locked');
       document.body.style.transform = '';
-      // Force a synchronous layout pass so iOS Safari re-evaluates
-      // the safe-area extension state. Without this, the dynamic
-      // island region can stay in a stale "not extended" state after
-      // unlock, leaving a subtle bar at the top of the screen until
-      // the user navigates away and back.
-      void document.body.offsetHeight;
       window.scrollTo(0, _scrollLockY);
       requestAnimationFrame(() => {
         document.documentElement.style.scrollBehavior = prevBehavior;
