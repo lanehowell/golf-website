@@ -8392,16 +8392,22 @@
   }
 
   .tools-sheet-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 13, 13, 0.35);
-    z-index: calc(var(--z-raised) + 1);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    /* === DEBUG: animation/transition disabled to test if compositor
-       layer promotion is what triggers iOS safe-area collapse === */
-    /* animation: toolsBackdropFadeIn 220ms ease forwards; */
-    /* transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1); */
+    /* This class is no longer rendered, but kept here in case something
+       in the codebase references it (or for future re-introduction). */
+    display: none;
+  }
+
+  /* Dim the active panel content when the tools sheet is open.
+     Replaces the old fixed-position backdrop overlay, which caused
+     iOS Safari to collapse its viewport-fit=cover safe-area extension
+     under the dynamic island. Applied via filter so no new element
+     is needed. */
+  body.tools-sheet-active .panel.active {
+    filter: brightness(0.55);
+    transition: filter 220ms ease;
+  }
+  .panel.active {
+    transition: filter 320ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   @keyframes toolsBackdropFadeIn {
     from { opacity: 0; }
@@ -34856,9 +34862,27 @@
     dockState.activeTool = null;
     dockState._animateNext = true;
     acquireScrollLock();
+    document.body.classList.add('tools-sheet-active');
     renderRoundDock();
     // Attach drag-to-close handlers after the DOM exists
     requestAnimationFrame(attachSheetDragHandlers);
+    // Click-outside-to-close handler. Replaces the old backdrop's
+    // onclick — without a backdrop element we attach to document and
+    // close if the click is outside the sheet.
+    requestAnimationFrame(() => {
+      document.addEventListener('pointerdown', _toolsSheetOutsideClick, true);
+    });
+  }
+
+  function _toolsSheetOutsideClick(e) {
+    if (!dockState.sheetOpen) return;
+    const sheet = document.querySelector('.tools-sheet');
+    if (!sheet) return;
+    if (sheet.contains(e.target)) return;
+    // Also ignore clicks on the action bar buttons (Tools toggle,
+    // Save) — those have their own handlers.
+    if (e.target.closest && e.target.closest('.round-action-bar')) return;
+    closeToolsSheet();
   }
 
   // Tap a tool in the list — switch sheet body to that tool's content.
@@ -34942,28 +34966,23 @@
   // save-and-next if user prefers). Plays a slide-down animation.
   function closeToolsSheet() {
     if (!dockState.sheetOpen) return;
+    document.removeEventListener('pointerdown', _toolsSheetOutsideClick, true);
     const sheet = document.querySelector('.tools-sheet');
-    const backdrop = document.querySelector('.tools-sheet-backdrop');
     if (!sheet) {
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      document.body.classList.remove('tools-sheet-active');
       releaseScrollLock();
       renderRoundDock();
       return;
     }
     sheet.classList.add('closing');
-    // Fade the backdrop in sync with the sheet slide-down. Without
-    // this, the backdrop would vanish instantly when the sheet's
-    // transitionend fires (because the DOM node gets removed by
-    // renderRoundDock in the next step) — looks like a snap while
-    // the sheet animates smoothly. Adding .closing here triggers the
-    // CSS opacity transition to 0, matching the sheet timing.
-    if (backdrop) backdrop.classList.add('closing');
     const onDone = () => {
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      document.body.classList.remove('tools-sheet-active');
       releaseScrollLock();
       renderRoundDock();
     };
@@ -35338,7 +35357,10 @@
     let sheetHtml = '';
     let backdropHtml = '';
     if (dockState.sheetOpen) {
-      backdropHtml = `<div class="tools-sheet-backdrop" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
+      // Backdrop element removed — dimming is now done via a CSS filter
+      // on the active panel (toggled by body.tools-sheet-active class).
+      // A position:fixed full-viewport backdrop was causing iOS Safari
+      // to collapse its safe-area extension under the dynamic island.
       sheetHtml = renderToolsSheet();
     }
 
