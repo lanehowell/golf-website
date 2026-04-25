@@ -5090,6 +5090,98 @@
     max-width: 30ch;
   }
 
+  /* ──────────────────────────────────────────────────────────
+     GPS score input sheet — bottom sheet that slides up over
+     the dimmed map when the user taps "Input score" while in
+     GPS view. Hosts a clone of the regular round screen's
+     hole card so users can score without leaving GPS context.
+     The sheet sits at z=9500, above the GPS panel (9400), with
+     its own backdrop dimming the map further while open.
+     ────────────────────────────────────────────────────────── */
+  .gps-score-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9499;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-score-backdrop.opening,
+  .gps-score-backdrop.closing { opacity: 0; }
+
+  .gps-score-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9500;
+    background: var(--bg-page);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5), 0 -2px 8px rgba(0, 0, 0, 0.25);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0);
+    transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .gps-score-sheet.opening,
+  .gps-score-sheet.closing { transform: translateY(100%); }
+
+  /* Drag handle zone — wraps the visual pill in a generous hit-area
+     so users can grab the top of the sheet to swipe it down. The pill
+     itself stays small for visual restraint. touch-action: none stops
+     the browser from claiming the swipe as a page-scroll gesture
+     before our drag handler sees it. */
+  .gps-score-sheet-handle-zone {
+    flex-shrink: 0;
+    padding: 8px 0 12px;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-score-sheet-handle-zone:active { cursor: grabbing; }
+  .gps-score-sheet-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-medium);
+    margin: 0 auto;
+    pointer-events: none;
+  }
+  /* While dragging, kill the slide transition so the sheet follows the
+     finger 1:1 instead of lagging behind. attachBottomSheetDrag adds
+     this class on touchstart and removes it on touchend. */
+  .gps-score-sheet.is-dragging {
+    transition: none;
+  }
+
+  /* Content body — scrolls if the cloned card is taller than the
+     sheet's max-height, and houses the hole card + the action row
+     at the bottom. */
+  .gps-score-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-4) var(--space-4) var(--space-3);
+  }
+
+  /* Action row at the bottom of the sheet — Tools + Save buttons,
+     mirroring the regular round screen's action bar. Sticky to the
+     bottom of the sheet so they remain reachable while scrolling
+     long hole cards. */
+  .gps-score-sheet-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-page);
+    border-top: 1px solid var(--border-light);
+  }
+
   .tools-editor-sheet {
     position: fixed;
     left: 0;
@@ -8407,21 +8499,24 @@
     overflow: hidden;
   }
 
+  /* Tools sheet backdrop — semi-transparent dim layer behind the
+     sheet, same pattern as every other modal in the app (miss modal,
+     GPS score sheet, confirm dialog). Sits one z-step below the sheet
+     itself. Tapping the backdrop closes the sheet via inline onclick
+     in the rendered markup. */
   .tools-sheet-backdrop {
-    /* Backdrop element is no longer rendered — kept here for safety
-       in case any code references the class. */
-    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-raised) + 1);
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  @keyframes toolsBackdropFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+  .tools-sheet-backdrop.opening,
   .tools-sheet-backdrop.closing {
-    /* Cancel the fade-in animation (if still running) AND kill any
-       inline opacity set by the drag-to-close handler. Then the
-       transition above animates opacity from current → 0. */
-    animation: none;
-    opacity: 0 !important;
+    opacity: 0;
   }
 
   /* When the GPS panel is open (z=9400), the tools sheet's normal
@@ -8434,7 +8529,16 @@
   body.round-gps-open .tools-sheet           { z-index: 9460; }
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
-  body.round-gps-open .confirm-backdrop      { z-index: 9490; }
+  /* The miss-direction modal opens from the FIR/GIR ✗ button inside
+     the cloned score card. It must layer ABOVE the GPS score sheet
+     (z=9499/9500) so users can pick a miss direction without the
+     score sheet occluding the picker. */
+  body.round-gps-open .miss-modal-backdrop   { z-index: 9510; }
+  body.round-gps-open .miss-modal            { z-index: 9520; }
+  /* Confirm dialog must sit ABOVE everything else so finish-round and
+     other confirmation prompts triggered from the score sheet (or
+     anywhere) remain interactive. Highest in the GPS-open stack. */
+  body.round-gps-open .confirm-backdrop      { z-index: 9590; }
 
   .tools-sheet {
     position: fixed;
@@ -34318,6 +34422,11 @@
     // reset the pill to 'idle' (the HTML default). applySyncIndicator
     // restores whatever state the syncState machine is actually in.
     applySyncIndicator();
+    // If the GPS score input sheet is open on top of this panel, refresh
+    // its cloned card so score adjustments reflect immediately.
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      window.refreshGpsScoreSheetBody();
+    }
   }
 
   // Finish the current round — flip status to completed, write final totals.
@@ -34628,6 +34737,12 @@
     renderRoundDock();
     // Keep the sync indicator in sync with its state across re-renders
     applySyncIndicator();
+    // If the GPS score input sheet is open on top of this panel, refresh
+    // its cloned card so score adjustments reflect immediately. Guarded
+    // because the function may not exist at first render (defined later).
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      window.refreshGpsScoreSheetBody();
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -34913,11 +35028,17 @@
   // Tap a tool in the list — switch sheet body to that tool's content.
   function selectTool(toolId) {
     // GPS is a full-screen takeover, not an inline tool surface —
-    // a map needs real estate. Close the tools sheet, then open the
-    // dedicated GPS panel.
+    // a map needs real estate. The row is bidirectional: when GPS is
+    // closed, tap to open. When GPS is already open, tap to exit
+    // back to the simple hole-card view (label flipped to "Simple
+    // View" in renderToolsList for that case).
     if (toolId === 'gps') {
       closeToolsSheet();
-      openRoundGpsPanel();
+      if (roundGpsState && roundGpsState.open) {
+        closeRoundGpsPanelWithTransition();
+      } else {
+        openRoundGpsPanel();
+      }
       return;
     }
     animateSheetHeightChange(() => {
@@ -34993,6 +35114,7 @@
     if (!dockState.sheetOpen) return;
     document.removeEventListener('pointerdown', _toolsSheetOutsideClick, true);
     const sheet = document.querySelector('.tools-sheet');
+    const backdrop = document.querySelector('.tools-sheet-backdrop');
     if (!sheet) {
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
@@ -35002,6 +35124,11 @@
       return;
     }
     sheet.classList.add('closing');
+    // Fade the backdrop out in sync with the sheet's slide-down.
+    // Without this, the backdrop would snap-disappear at the end
+    // when renderRoundDock unmounts it — looks abrupt against the
+    // sheet's smooth animation.
+    if (backdrop) backdrop.classList.add('closing');
     const onDone = () => {
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
@@ -35380,10 +35507,11 @@
     let sheetHtml = '';
     let backdropHtml = '';
     if (dockState.sheetOpen) {
-      // Backdrop element removed — dimming is now done via a CSS filter
-      // on the active panel (toggled by body.tools-sheet-active class).
-      // A position:fixed full-viewport backdrop was causing iOS Safari
-      // to collapse its safe-area extension under the dynamic island.
+      // Backdrop dims the underlying panel while the sheet is open,
+      // matching every other modal/sheet in the app. Tap to close.
+      // Initial .opening class makes it fade in smoothly (removed on
+      // next frame, same as the sheet's slide-up animation).
+      backdropHtml = `<div class="tools-sheet-backdrop opening" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
       sheetHtml = renderToolsSheet();
     }
 
@@ -35392,15 +35520,21 @@
     // If we just opened the sheet, let the CSS animation run. The
     // sheet renders with .opening so CSS paints its initial
     // off-screen state, then we remove the class on next frame to
-    // trigger the transition.
+    // trigger the transition. Same treatment for the backdrop's
+    // fade-in.
     if (dockState._animateNext) {
       dockState._animateNext = false;
       const sheet = mount.querySelector('.tools-sheet.opening');
+      const backdrop = mount.querySelector('.tools-sheet-backdrop.opening');
       if (sheet) {
         void sheet.offsetHeight;  // force reflow
         requestAnimationFrame(() => {
           sheet.classList.remove('opening');
+          if (backdrop) backdrop.classList.remove('opening');
         });
+      } else if (backdrop) {
+        // Defensive — fade backdrop even if sheet ref didn't resolve
+        requestAnimationFrame(() => backdrop.classList.remove('opening'));
       }
     }
 
@@ -35480,16 +35614,31 @@
       caddie:    'Get a club suggestion',
       bag:       'Reference your club distances',
     };
-    const rows = getEffectiveDockTools().map(tool => `
-      <button class="tools-list-row" onclick="selectTool('${tool.id}')">
-        <span class="tools-list-row-icon" aria-hidden="true">${tool.icon}</span>
-        <span class="tools-list-row-body">
-          <span class="tools-list-row-label">${escapeHtml(tool.label)}</span>
-          <span class="tools-list-row-desc">${escapeHtml(DESCRIPTIONS[tool.id] || '')}</span>
-        </span>
-        <span class="tools-list-row-arrow" aria-hidden="true">→</span>
-      </button>
-    `).join('');
+    // While GPS is open, the GPS row pivots to its inverse — tapping it
+    // exits GPS back to the simple hole-card view. Same row, opposite
+    // semantic. Keeps the user's mental map of "Tools is where I switch
+    // between modes" without needing a separate toggle elsewhere.
+    const gpsIsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
+    const rows = getEffectiveDockTools().map(tool => {
+      let label = tool.label;
+      let icon = tool.icon;
+      let desc = DESCRIPTIONS[tool.id] || '';
+      if (tool.id === 'gps' && gpsIsOpen) {
+        label = 'Simple View';
+        icon = '📋';
+        desc = 'Back to the hole card';
+      }
+      return `
+        <button class="tools-list-row" onclick="selectTool('${tool.id}')">
+          <span class="tools-list-row-icon" aria-hidden="true">${icon}</span>
+          <span class="tools-list-row-body">
+            <span class="tools-list-row-label">${escapeHtml(label)}</span>
+            <span class="tools-list-row-desc">${escapeHtml(desc)}</span>
+          </span>
+          <span class="tools-list-row-arrow" aria-hidden="true">→</span>
+        </button>
+      `;
+    }).join('');
     return `<div class="tools-list">${rows}</div>`;
   }
 
@@ -54020,8 +54169,231 @@
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
+    // If the GPS score sheet was somehow left open (shouldn't happen
+    // in normal flow, but defensive), close it too so it doesn't
+    // persist as a zombie sheet over the underlying round panel.
+    if (typeof window.closeGpsScoreSheet === 'function') {
+      window.closeGpsScoreSheet();
+    }
   }
   window.closeRoundGpsPanel = closeRoundGpsPanel;
+
+  // ──────────────────────────────────────────────────────────
+  // GPS score input sheet — bottom sheet that lets the user
+  // score the current hole without exiting GPS view. Clones
+  // the regular round screen's .round-card from #round-mount /
+  // #group-round-mount (kept fresh by renderRound/renderGroupRound)
+  // so the modal stays visually identical to the regular view
+  // and inherits all its inline onclick handlers automatically.
+  //
+  // After saving, the sheet either:
+  //   - transitions GPS to the next unplayed hole and closes
+  //     the sheet (round still in progress), or
+  //   - closes GPS entirely and lets the regular finish flow
+  //     show the round summary (round just completed).
+  // ──────────────────────────────────────────────────────────
+  let __gpsScoreSheetOpen = false;
+
+  function isGroupRoundActiveForGps() {
+    return currentPanelId === 'group-round' || isGroupRoundActive();
+  }
+
+  // Build the sheet markup. Body is empty — refreshGpsScoreSheetBody
+  // populates it by cloning the live round-card right after mount.
+  function renderGpsScoreSheetShell() {
+    const isGroup = isGroupRoundActiveForGps();
+    // Determine the save button label. Mirrors the logic in renderRoundDock
+    // for the bottom action bar so the modal reads the same.
+    let saveLabel = 'Save & Next →';
+    let isFinalHole = false;
+    try {
+      if (isGroup && groupRoundState.doc) {
+        const course = getCourse(groupRoundState.doc.courseId);
+        const me = getMyGroupRoundPlayer();
+        if (course && me) {
+          const myScores = me.scores || {};
+          const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
+          const currentAlreadyScored = currentHoleNum != null && !!myScores[currentHoleNum];
+          const scoredCount = Object.keys(myScores).length + (currentAlreadyScored ? 0 : 1);
+          isFinalHole = scoredCount >= course.holes.length;
+          saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
+        }
+      } else {
+        const course = getCourse(roundState.courseId);
+        if (course) {
+          const currentHoleNum = course.holes[roundState.holeIndex]?.number;
+          const currentAlreadyScored = currentHoleNum != null && !!roundState.scores[currentHoleNum];
+          const scoredCount = Object.keys(roundState.scores).length + (currentAlreadyScored ? 0 : 1);
+          isFinalHole = scoredCount >= course.holes.length;
+          saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
+        }
+      }
+    } catch (_) { /* defensive — fall through with default label */ }
+
+    return `
+      <div class="gps-score-backdrop opening" onclick="closeGpsScoreSheet()" aria-hidden="true"></div>
+      <div class="gps-score-sheet opening" role="dialog" aria-modal="true" aria-label="Input score">
+        <div class="gps-score-sheet-handle-zone" aria-hidden="true">
+          <div class="gps-score-sheet-handle"></div>
+        </div>
+        <div class="gps-score-sheet-body" id="gps-score-sheet-body"></div>
+        <div class="gps-score-sheet-actions">
+          <button class="round-tools-btn" onclick="closeGpsScoreSheet()" aria-label="Close">
+            <span class="round-tools-btn-icon" aria-hidden="true">×</span>
+            <span class="round-tools-btn-label">Close</span>
+          </button>
+          <button class="round-save-btn${isFinalHole ? ' is-final' : ''}"
+                  onclick="gpsScoreSheetSaveAndNext()">
+            ${escapeHtml(saveLabel)}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Populate (or repopulate) the sheet body by cloning the live
+  // round-card from the underlying round mount. Called immediately
+  // after the shell mounts and again after every renderRound() while
+  // the sheet is open (so score adjustments stay reflected).
+  function refreshGpsScoreSheetBody() {
+    if (!__gpsScoreSheetOpen) return;
+    const body = document.getElementById('gps-score-sheet-body');
+    if (!body) return;
+    const isGroup = isGroupRoundActiveForGps();
+    const sourceMount = document.getElementById(isGroup ? 'group-round-mount' : 'round-mount');
+    if (!sourceMount) return;
+    const sourceCard = sourceMount.querySelector('.round-card');
+    if (!sourceCard) return;
+    // Deep clone preserves inline onclick attributes, which is all
+    // the round card uses for interactivity. Strip any animation
+    // classes — those are for the regular view's hole-transition
+    // animation and shouldn't replay inside the modal.
+    const clone = sourceCard.cloneNode(true);
+    clone.classList.remove('is-slide-forward', 'is-slide-back');
+    body.innerHTML = '';
+    body.appendChild(clone);
+  }
+  // Expose so the post-render hook in renderRound can call it.
+  window.refreshGpsScoreSheetBody = refreshGpsScoreSheetBody;
+
+  function openGpsScoreSheet() {
+    if (__gpsScoreSheetOpen) return;
+    __gpsScoreSheetOpen = true;
+    // Mount the sheet at body level so it overlays everything,
+    // including the GPS panel itself.
+    let mount = document.getElementById('gps-score-sheet-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'gps-score-sheet-mount';
+      document.body.appendChild(mount);
+    }
+    mount.innerHTML = renderGpsScoreSheetShell();
+    // Populate body with the cloned card after the shell is in DOM.
+    refreshGpsScoreSheetBody();
+    // Trigger the slide-up animation by removing the .opening class
+    // on the next frame (so the initial off-screen state paints first).
+    // After the sheet is in place, attach drag-to-close handlers to
+    // the handle zone so users can swipe down to dismiss — same
+    // pattern and gesture thresholds as the tools sheet.
+    requestAnimationFrame(() => {
+      const sheet = mount.querySelector('.gps-score-sheet');
+      const backdrop = mount.querySelector('.gps-score-backdrop');
+      if (sheet) sheet.classList.remove('opening');
+      if (backdrop) backdrop.classList.remove('opening');
+      const handle = mount.querySelector('.gps-score-sheet-handle-zone');
+      attachBottomSheetDrag({
+        sheetEl: sheet,
+        headerEl: handle,
+        backdropSelector: '.gps-score-backdrop',
+        closeFn: closeGpsScoreSheet,
+      });
+    });
+  }
+  window.openGpsScoreSheet = openGpsScoreSheet;
+
+  function closeGpsScoreSheet() {
+    if (!__gpsScoreSheetOpen) return;
+    const mount = document.getElementById('gps-score-sheet-mount');
+    if (!mount) {
+      __gpsScoreSheetOpen = false;
+      return;
+    }
+    const sheet = mount.querySelector('.gps-score-sheet');
+    const backdrop = mount.querySelector('.gps-score-backdrop');
+    if (sheet) sheet.classList.add('closing');
+    if (backdrop) backdrop.classList.add('closing');
+    const cleanup = () => {
+      __gpsScoreSheetOpen = false;
+      if (mount) mount.innerHTML = '';
+    };
+    // Wait for the slide-down transition before cleaning up. Falls
+    // back to a timeout in case transitionend doesn't fire.
+    let done = false;
+    const onDone = () => { if (!done) { done = true; cleanup(); } };
+    if (sheet) {
+      sheet.addEventListener('transitionend', (e) => {
+        if (e.propertyName === 'transform') onDone();
+      }, { once: true });
+    }
+    setTimeout(onDone, 360);
+  }
+  window.closeGpsScoreSheet = closeGpsScoreSheet;
+
+  // Save handler invoked from the sheet's primary button. Wraps the
+  // existing solo/group saveAndNext flow with GPS-aware navigation:
+  // if the round is still in progress after saving, transition GPS
+  // to the new current hole and close the sheet. If the round just
+  // completed, close GPS entirely so the regular finish-round flow
+  // can show the summary on the round panel underneath.
+  async function gpsScoreSheetSaveAndNext() {
+    const isGroup = isGroupRoundActiveForGps();
+
+    // Run the regular save handler first. For non-final holes this
+    // advances holeIndex and re-renders. For the final hole it
+    // pops a confirm dialog — if the user taps "Keep Playing" it
+    // returns without committing, leaving state untouched. We don't
+    // tear down GPS speculatively because that would orphan the user
+    // on the regular view if they cancel the finish.
+    if (isGroup) {
+      await grSaveAndNext();
+    } else {
+      await saveAndNext();
+    }
+
+    // Detect whether the round just completed. saveAndNext clears
+    // roundState (sets docId to null) when finishRoundWithConfirm
+    // succeeds, so a null docId is the signal. Group rounds use
+    // their own state — check groupRoundState.doc accordingly.
+    const roundJustCompleted = isGroup
+      ? !groupRoundState.doc
+      : !roundState.docId;
+
+    if (roundJustCompleted) {
+      // Round done — close the sheet, then close GPS so the user
+      // lands on the round summary that the finish flow opened
+      // underneath. Slight delay between sheet close and GPS close
+      // keeps the animation visually smooth.
+      closeGpsScoreSheet();
+      await new Promise((r) => setTimeout(r, 50));
+      closeRoundGpsPanel();
+      return;
+    }
+
+    // Round still in progress — transition GPS to whatever hole the
+    // round state now points at (next unplayed hole), then close the
+    // sheet so the user lands back on the clean GPS view for the new
+    // hole. They can re-open the sheet via Input Score when they're
+    // ready to score the next hole.
+    const nextHoleIndex = isGroup
+      ? groupRoundState.yourHoleIndex
+      : roundState.holeIndex;
+    if (typeof nextHoleIndex === 'number') {
+      transitionRoundGpsToHole(nextHoleIndex);
+    }
+    closeGpsScoreSheet();
+  }
+  window.gpsScoreSheetSaveAndNext = gpsScoreSheetSaveAndNext;
+
 
   // ─── Drag-to-position target ─────────────────────────────────
   // The target reticle drops automatically when GPS opens (Plan
@@ -54749,9 +55121,11 @@
         </button>
 
         <!-- Bottom action bar — mirrors the round screen's bar. Tools
-             button on the left, Input score on the right. Both close
-             GPS first since the underlying flows live on the round
-             screen and our z=9400 panel would cover them otherwise. -->
+             button on the left, Input score on the right. Tools opens
+             the tools sheet (which now offers "Simple View" to exit
+             GPS). Input score opens a bottom sheet hosting a clone of
+             the regular round screen's hole card — the user scores
+             without ever leaving GPS context. -->
         <div class="round-gps-action-bar">
           <button class="round-tools-btn"
                   onclick="openToolsSheet()"
@@ -54760,7 +55134,7 @@
             <span class="round-tools-btn-label">Tools</span>
           </button>
           <button class="round-save-btn"
-                  onclick="closeRoundGpsPanelWithTransition()">
+                  onclick="openGpsScoreSheet()">
             Input score →
           </button>
         </div>
