@@ -8393,29 +8393,15 @@
 
   .tools-sheet-backdrop {
     position: fixed;
-    /* Don't cover the safe-area zone at the top. iOS Safari's
-       viewport-fit=cover safe-area extension collapses when a fixed
-       element paints at y=0 — content stops extending under the
-       dynamic island. By starting below the safe-area inset, the
-       backdrop dims only the actual content area and leaves the
-       dynamic-island region untouched. */
-    top: env(safe-area-inset-top, 0px);
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(13, 13, 13, 0.35);
     z-index: calc(var(--z-raised) + 1);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    opacity: 1;
-    /* Fade-in is fast (220ms ease) — the dim appearing quickly feels
-       responsive when the user taps Tools. Fade-out is slower (320ms)
-       to match the sheet's slide-down feel so the dim lifts in sync
-       with the sheet leaving. Two mechanisms (animation for in,
-       transition for out) because animation-forwards pins opacity:1
-       after open, keeping inline opacity from drag-to-close working. */
-    animation: toolsBackdropFadeIn 220ms ease forwards;
-    transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* === DEBUG: animation/transition disabled to test if compositor
+       layer promotion is what triggers iOS safe-area collapse === */
+    /* animation: toolsBackdropFadeIn 220ms ease forwards; */
+    /* transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1); */
   }
   @keyframes toolsBackdropFadeIn {
     from { opacity: 0; }
