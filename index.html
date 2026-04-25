@@ -8385,15 +8385,11 @@
      card that grows to ~75vh max. */
 
   /* Body scroll lock — applied by JS when a bottom sheet or modal is
-     open. iOS Safari's viewport-fit=cover safe-area extension is
-     fragile and gets disabled by both position:fixed on body AND
-     overflow:hidden on html. So we don't apply ANY CSS layout change
-     for the lock — instead, JS attaches touchmove/wheel event blockers
-     at the document level. The page stays in its normal scrollable
-     state from iOS's perspective; events just don't cause scroll.
-     The .scroll-locked class is still toggled in case other code
-     queries it. */
-  /* (intentionally no rules for html.scroll-locked — see acquireScrollLock) */
+     open. */
+  html.scroll-locked { overflow: hidden; touch-action: none; }
+  html.scroll-locked body {
+    overflow: hidden;
+  }
 
   .tools-sheet-backdrop {
     position: fixed;
@@ -34843,58 +34839,9 @@
   // ─────────────────────────────────────────────────────────────
   let _scrollLockCount = 0;
   let _scrollLockY = 0;
-  let _scrollLockListenersAttached = false;
-
-  // Event handlers that block scroll inputs. We attach them at
-  // document level with capture+passive:false so we can preventDefault.
-  // This is preferable to overflow:hidden on html/body because iOS
-  // Safari's viewport-fit=cover safe-area treatment is fragile — it
-  // gets disabled both when body becomes position:fixed AND when html
-  // gets overflow:hidden. By only blocking events (not changing
-  // layout), the page stays in its normal "scrollable" state from
-  // iOS's perspective and the safe-area extension is preserved.
-  function _scrollLockBlockTouch(e) {
-    // Allow touchmove inside scrollable elements that opted in via
-    // data-scroll-lock-allow or are themselves the tools sheet body.
-    let node = e.target;
-    while (node && node !== document.documentElement) {
-      if (node.hasAttribute && node.hasAttribute('data-allow-scroll')) return;
-      // Tools sheet & shot edit sheet bodies should still scroll
-      if (node.classList && (
-          node.classList.contains('tools-sheet-body') ||
-          node.classList.contains('tools-sheet') ||
-          node.classList.contains('shot-edit-sheet') ||
-          node.classList.contains('confirm-dialog'))) return;
-      node = node.parentNode;
-    }
-    e.preventDefault();
-  }
-  function _scrollLockBlockWheel(e) {
-    let node = e.target;
-    while (node && node !== document.documentElement) {
-      if (node.hasAttribute && node.hasAttribute('data-allow-scroll')) return;
-      if (node.classList && (
-          node.classList.contains('tools-sheet-body') ||
-          node.classList.contains('tools-sheet') ||
-          node.classList.contains('shot-edit-sheet') ||
-          node.classList.contains('confirm-dialog'))) return;
-      node = node.parentNode;
-    }
-    e.preventDefault();
-  }
-
   function acquireScrollLock() {
     if (_scrollLockCount === 0) {
       _scrollLockY = window.scrollY || window.pageYOffset || 0;
-      // Attach event blockers. No CSS change — body and html stay
-      // exactly as they are, so iOS doesn't lose safe-area extension.
-      if (!_scrollLockListenersAttached) {
-        document.addEventListener('touchmove', _scrollLockBlockTouch, { passive: false, capture: true });
-        document.addEventListener('wheel', _scrollLockBlockWheel, { passive: false, capture: true });
-        _scrollLockListenersAttached = true;
-      }
-      // Keep the class toggle for any other code that reads it, but
-      // its CSS is now a no-op (the rule has been removed below).
       document.documentElement.classList.add('scroll-locked');
     }
     _scrollLockCount++;
@@ -34903,11 +34850,6 @@
     if (_scrollLockCount === 0) return;
     _scrollLockCount--;
     if (_scrollLockCount === 0) {
-      if (_scrollLockListenersAttached) {
-        document.removeEventListener('touchmove', _scrollLockBlockTouch, { capture: true });
-        document.removeEventListener('wheel', _scrollLockBlockWheel, { capture: true });
-        _scrollLockListenersAttached = false;
-      }
       document.documentElement.classList.remove('scroll-locked');
     }
   }
@@ -34917,11 +34859,11 @@
     if (dockState.sheetOpen) return;
     dockState.sheetOpen = true;
     dockState.activeTool = null;
-    dockState._animateNext = true;
-    acquireScrollLock();
+    // === DEBUG: stripped down — no scroll lock, no animation, no drag ===
+    // dockState._animateNext = true;
+    // acquireScrollLock();
     renderRoundDock();
-    // Attach drag-to-close handlers after the DOM exists
-    requestAnimationFrame(attachSheetDragHandlers);
+    // requestAnimationFrame(attachSheetDragHandlers);
   }
 
   // Tap a tool in the list — switch sheet body to that tool's content.
