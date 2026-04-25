@@ -4652,7 +4652,8 @@
     position: relative;
     min-height: 0;
   }
-  #pin-greens-map {
+  #pin-greens-map,
+  #pin-tees-map {
     position: absolute;
     inset: 0;
   }
@@ -4825,6 +4826,36 @@
     pointer-events: auto;
     backdrop-filter: blur(8px);
   }
+  /* Hole navigation chevrons — round buttons floating on the map's
+     left/right edges, vertical-centered. Match the close button's
+     visual language. */
+  .round-gps-hole-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-gps-hole-nav-prev { left: 12px; }
+  .round-gps-hole-nav-next { right: 12px; }
+  .round-gps-hole-nav:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
   /* Distance readout at bottom. Strong gradient from transparent
      up to near-opaque so the number has a solid backing but the
      map stays visible above. */
@@ -4861,6 +4892,29 @@
     font-size: 0.75rem;
     opacity: 0.7;
     margin-top: 8px;
+  }
+
+  /* Yardage labels at the midpoint of each line in the GPS view's
+     plan-shot mode. Semi-transparent black pill, white tabular-num
+     text. Positioned by Mapbox at the line's geographic midpoint —
+     css transform nudges it slightly upward so it sits just above
+     the line rather than on top of it. pointer-events none so a
+     drag from the reticle through the label doesn't catch on it. */
+  .round-gps-yardage-label {
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    transform: translateY(-14px);
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(2px);
   }
 
   /* Unpinned state — empty card in the middle with a prompt to
@@ -22883,6 +22937,11 @@
      transform issues. -->
 <div id="pin-greens-mount"></div>
 
+<!-- PIN TEES sheet mount — same shape as pin-greens, but writes to
+     courses/{id}.teeBoxes[holeNumber]._default for Option C tee
+     pinning. -->
+<div id="pin-tees-mount"></div>
+
 <!-- ROUND GPS panel mount — populated by renderRoundGpsPanel() when
      the user taps the GPS tool during a round. Full-screen satellite
      view with live distance-to-green. Body-level for the same reason
@@ -23519,6 +23578,30 @@
     // on first run, and by any future admin add-course flow.
     upsertCourse: async (courseId, data) => {
       await setDoc(doc(db, `courses/${courseId}`), data, { merge: true });
+    },
+
+    // Update a single green coord on a course doc. Per-hole keyed
+    // map under the `greenCoords` field. Phase 4: pins moved from
+    // per-user prefs to the shared course doc so anyone who's pinned
+    // a green helps everyone playing that course.
+    upsertCourseGreenCoord: async (courseId, holeNumber, lat, lng) => {
+      const fieldPath = `greenCoords.${holeNumber}`;
+      await updateDoc(doc(db, `courses/${courseId}`), {
+        [fieldPath]: { lat, lng },
+      });
+    },
+
+    // Update a single tee coord on a course doc. Two-level keyed map
+    // under the `teeBoxes` field: hole number → tee key → {lat,lng}.
+    // The teeKey is the tee name (e.g. 'Black', 'Blue') for per-tee
+    // precision, OR '_default' for "this hole's tee complex" in
+    // Option C mode where one pin represents all tees on a hole.
+    // Reader code can fall back from teeName → '_default'.
+    upsertCourseTeeCoord: async (courseId, holeNumber, teeKey, lat, lng) => {
+      const fieldPath = `teeBoxes.${holeNumber}.${teeKey}`;
+      await updateDoc(doc(db, `courses/${courseId}`), {
+        [fieldPath]: { lat, lng },
+      });
     },
 
     // Update top-level fields on a group round (status transitions,
@@ -25121,6 +25204,60 @@
     }
   }
 
+  // Phase 4 migration: copy any green pins from per-user prefs up to
+  // the shared course doc. Runs once on auth (after both prefs and
+  // courses load). Idempotent — for each pin in prefs.greenCoords:
+  //   - if the course doc DOESN'T already have a pin for that hole,
+  //     write the user's pin up
+  //   - if the course doc DOES have a pin, skip (assume the shared
+  //     pin is more current; we'd rather not overwrite shared data
+  //     with possibly-stale per-user data)
+  // After successful migration, the prefs entry stays put as a
+  // safety net — getCourse uses it as a fallback if the shared write
+  // failed silently. Doesn't matter; the next legitimate write will
+  // overwrite it.
+  async function migrateLegacyGreenPinsToCourseDocs() {
+    if (!window.fb || !prefs?.greenCoords) return;
+    if (!coursesLoaded) return;
+    let migratedCount = 0;
+    for (const courseId of Object.keys(prefs.greenCoords)) {
+      const userPins = prefs.greenCoords[courseId];
+      if (!userPins || typeof userPins !== 'object') continue;
+      const cachedCourse = coursesCache.get(courseId);
+      if (!cachedCourse) {
+        // Pin references a course that doesn't exist anymore — skip.
+        continue;
+      }
+      const sharedPins = (cachedCourse.greenCoords && typeof cachedCourse.greenCoords === 'object')
+        ? cachedCourse.greenCoords
+        : {};
+      for (const holeKey of Object.keys(userPins)) {
+        const pin = userPins[holeKey];
+        if (!pin || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') continue;
+        // Course doc already has this hole pinned? Skip — don't
+        // overwrite shared data with per-user.
+        if (sharedPins[holeKey]) continue;
+        try {
+          await window.fb.upsertCourseGreenCoord(courseId, holeKey, pin.lat, pin.lng);
+          migratedCount++;
+          // Also update the cache so subsequent getCourse() calls in
+          // this session see the just-migrated pin without a refetch.
+          if (!cachedCourse.greenCoords) cachedCourse.greenCoords = {};
+          cachedCourse.greenCoords[holeKey] = { lat: pin.lat, lng: pin.lng };
+        } catch (err) {
+          // Permission denied / other rule failures end migration
+          // for this course. Logged once; user pins still work via
+          // the prefs fallback in getCourse.
+          console.warn(`Pin migration failed for course ${courseId} hole ${holeKey}:`, err);
+          break;
+        }
+      }
+    }
+    if (migratedCount > 0) {
+      console.log(`Migrated ${migratedCount} legacy green pin(s) to course docs.`);
+    }
+  }
+
   function getCourse(courseId) {
     // Read from cache first (Firestore-backed once loaded; seeded
     // from COURSES otherwise). Fall back to the seed array directly
@@ -25130,18 +25267,67 @@
     let base = coursesCache.get(courseId);
     if (!base) base = COURSES.find(c => c.id === courseId);
     if (!base) return null;
-    // Merge any user-pinned green coords into the holes array. We do
-    // this on-read rather than mutating the cache so green coord
-    // pinning is purely per-user state — Phase 4 will add a fallback
-    // to shared publicCourses data.
-    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || null;
-    if (!pins) return base;
+
+    // Merge green pins from two sources, with the course doc winning
+    // on conflict:
+    //   1. course.greenCoords  — Phase 4: shared, lives on the course
+    //      doc, updated by anyone who pins.
+    //   2. prefs.greenCoords[courseId] — legacy: per-user, written
+    //      before Phase 4. Migrated up to the course doc on auth, but
+    //      kept as a read-fallback for any data that hasn't migrated
+    //      yet (or might fail to migrate due to rules / race / etc).
+    const sharedPins = (base.greenCoords && typeof base.greenCoords === 'object') ? base.greenCoords : {};
+    const userPins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
+    const hasShared = Object.keys(sharedPins).length > 0;
+    const hasUser = Object.keys(userPins).length > 0;
+    if (!hasShared && !hasUser) return base;
+
     const mergedHoles = base.holes.map(h => {
-      const pin = pins[h.number];
-      if (!pin || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return h;
+      // Prefer shared (course-doc) pin; fall back to user (prefs) pin.
+      const sharedPin = sharedPins[h.number];
+      const userPin = userPins[h.number];
+      const pin = (sharedPin && typeof sharedPin.lat === 'number' && typeof sharedPin.lng === 'number')
+        ? sharedPin
+        : (userPin && typeof userPin.lat === 'number' && typeof userPin.lng === 'number')
+          ? userPin
+          : null;
+      if (!pin) return h;
       return { ...h, greenLat: pin.lat, greenLng: pin.lng };
     });
     return { ...base, holes: mergedHoles };
+  }
+
+  // Read tee position for a specific (hole, teeName) pair. Returns
+  // { lat, lng } or null if not pinned.
+  //
+  // Lookup priority:
+  //   1. teeBoxes[holeNumber][teeName] — per-tee precision (future)
+  //   2. teeBoxes[holeNumber]['_default'] — Option C: one pin per hole
+  //                                         representing all tees
+  //   3. null — no pin available
+  //
+  // Reads from coursesCache directly (not from getCourse which only
+  // merges greens). Tees aren't on prefs as a fallback because the
+  // tee-pinning feature only ever wrote to course docs (no legacy
+  // per-user data to migrate).
+  function getTeePosition(courseOrId, holeNumber, teeName) {
+    const course = typeof courseOrId === 'string'
+      ? coursesCache.get(courseOrId)
+      : courseOrId;
+    if (!course || !course.teeBoxes) return null;
+    const holePins = course.teeBoxes[holeNumber];
+    if (!holePins) return null;
+    // Try the named tee first, then fall back to _default.
+    const candidates = [
+      teeName ? holePins[teeName] : null,
+      holePins['_default'],
+    ];
+    for (const pin of candidates) {
+      if (pin && typeof pin.lat === 'number' && typeof pin.lng === 'number') {
+        return { lat: pin.lat, lng: pin.lng };
+      }
+    }
+    return null;
   }
 
   // Filter a course's tees down to the ones that should appear in
@@ -25187,6 +25373,23 @@
               Math.sin(dLng / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c * 1.0936;
+  }
+
+  // Initial bearing (forward azimuth) in degrees, 0-360 clockwise
+  // from true north. Used by the GPS view to rotate the map so the
+  // tee→green direction points up — natural "I'm walking up the
+  // hole" orientation regardless of compass direction.
+  function bearingDegrees(lat1, lng1, lat2, lng2) {
+    const toRad = d => d * Math.PI / 180;
+    const toDeg = r => r * 180 / Math.PI;
+    const φ1 = toRad(lat1);
+    const φ2 = toRad(lat2);
+    const Δλ = toRad(lng2 - lng1);
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x = Math.cos(φ1) * Math.sin(φ2) -
+              Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+    const θ = Math.atan2(y, x);
+    return (toDeg(θ) + 360) % 360;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -30685,6 +30888,12 @@
       // needs their starter routines. Safe to call every session — the
       // function is idempotent. Runs in the background; UI doesn't wait.
       seedStarterRoutinesIfNeeded();
+      // Phase 4 migration: copy any legacy per-user green pins up to
+      // the shared course docs. Idempotent + best-effort (skips holes
+      // already on the course doc). Doesn't block UI; runs in
+      // background. No user-facing error if it fails — pins still
+      // work via the prefs fallback in getCourse().
+      migrateLegacyGreenPinsToCourseDocs();
     } else {
       // Signed out — clear caches and revert to default prefs
       stopGroupRoundInvitesSubscription();
@@ -31207,6 +31416,16 @@
         <button class="pin-greens-btn pin-greens-btn-primary course-gps-btn"
                 onclick="openPinGreensSheet('${escapeAttr(course.id)}')">
           ${pinGreensCountSaved(course.id) > 0 ? 'Edit pins' : 'Pin greens'}
+        </button>
+      </div>
+      <div class="course-gps-card">
+        <div class="course-gps-info">
+          <div class="course-gps-title">Tee coordinates</div>
+          <div class="course-gps-sub">${pinTeesCountSaved(course.id)}/18 pinned</div>
+        </div>
+        <button class="pin-greens-btn pin-greens-btn-primary course-gps-btn"
+                onclick="openPinTeesSheet('${escapeAttr(course.id)}')">
+          ${pinTeesCountSaved(course.id) > 0 ? 'Edit pins' : 'Pin tees'}
         </button>
       </div>
     `;
@@ -52545,11 +52764,16 @@
   }
   window.closePinGreensSheet = closePinGreensSheet;
 
-  // Load stored pin for the currently-selected hole, if any.
+  // Load stored pin for the currently-selected hole, if any. Reads
+  // from the course doc first (Phase 4 source of truth); falls back
+  // to legacy prefs.greenCoords for any hole not yet on the course
+  // doc (e.g. data still waiting for the migration to flush).
   function pinGreensLoadStoredPin() {
     const { courseId, holeNumber } = pinGreensState;
-    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
-    const pin = pins[holeNumber];
+    const course = coursesCache.get(courseId);
+    const sharedPins = (course && course.greenCoords) || {};
+    const userPins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
+    const pin = sharedPins[holeNumber] || userPins[holeNumber];
     if (pin && typeof pin.lat === 'number' && typeof pin.lng === 'number') {
       return { lat: pin.lat, lng: pin.lng };
     }
@@ -52557,13 +52781,20 @@
   }
 
   // How many holes in this course already have pins? Used for the
-  // "N / 18 pinned" progress indicator in the header.
+  // "N / 18 pinned" progress indicator in the header. Counts a hole
+  // as pinned if EITHER the course doc OR legacy prefs has a valid
+  // entry — same merge as pinGreensLoadStoredPin.
   function pinGreensCountSaved(courseId) {
-    const pins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
-    return Object.keys(pins).filter(k => {
-      const p = pins[k];
-      return p && typeof p.lat === 'number' && typeof p.lng === 'number';
-    }).length;
+    const course = coursesCache.get(courseId);
+    const sharedPins = (course && course.greenCoords) || {};
+    const userPins = (prefs.greenCoords && prefs.greenCoords[courseId]) || {};
+    const allHoleKeys = new Set([...Object.keys(sharedPins), ...Object.keys(userPins)]);
+    let count = 0;
+    for (const k of allHoleKeys) {
+      const pin = sharedPins[k] || userPins[k];
+      if (pin && typeof pin.lat === 'number' && typeof pin.lng === 'number') count++;
+    }
+    return count;
   }
 
   function renderPinGreensSheet() {
@@ -52741,19 +52972,35 @@
     pinGreensState.pendingLng = null;
   }
 
-  // Persist the pending pin to prefs.greenCoords + savePreferences.
+  // Persist the pending pin to the course doc + update the local
+  // cache. Phase 4: pins live on courses/{id}.greenCoords (shared
+  // across users), not on per-user prefs.
   async function pinGreensSavePin() {
     const { courseId, holeNumber, pendingLat, pendingLng } = pinGreensState;
     if (pendingLat == null || pendingLng == null) return;
-    if (!prefs.greenCoords) prefs.greenCoords = {};
-    if (!prefs.greenCoords[courseId]) prefs.greenCoords[courseId] = {};
-    prefs.greenCoords[courseId][holeNumber] = { lat: pendingLat, lng: pendingLng };
     try {
-      await savePreferences();
+      await window.fb.upsertCourseGreenCoord(courseId, holeNumber, pendingLat, pendingLng);
     } catch (err) {
       console.error('Failed to save green pin:', err);
-      showToast('Could not save pin', true);
+      // Common failure: Firestore rules don't allow this user to
+      // write to greenCoords on the course doc. Surface a clear
+      // message.
+      const msg = (err && err.code === 'permission-denied')
+        ? 'Permission denied — Firestore rules need updating'
+        : 'Could not save pin';
+      showToast(msg, true);
       return;
+    }
+    // Update the local courses cache so reads in this session see
+    // the new pin without re-fetching from Firestore. We mutate a
+    // fresh greenCoords object on the cached course (rather than the
+    // stored object) so other code paths reading the same cached
+    // entry don't see partial state.
+    const cached = coursesCache.get(courseId);
+    if (cached) {
+      const nextGreenCoords = { ...(cached.greenCoords || {}) };
+      nextGreenCoords[holeNumber] = { lat: pendingLat, lng: pendingLng };
+      coursesCache.set(courseId, { ...cached, greenCoords: nextGreenCoords });
     }
     // Update marker color to "saved" green, update progress, advance
     // the state machine. Don't auto-advance to the next hole — the
@@ -52806,6 +53053,320 @@
   window.pinGreensGoToHole = pinGreensGoToHole;
 
   // ─────────────────────────────────────────────────────────────
+  // Pin Tees (Option C — one tee complex per hole)
+  // ─────────────────────────────────────────────────────────────
+  // Structurally identical to Pin Greens, but writes to
+  // courses/{id}.teeBoxes[holeNumber]._default. Marker color is
+  // orange (greens use green) so the two pinning flows can't be
+  // confused at a glance. The '_default' key reflects Option C —
+  // one pin represents all tees on a hole. Future per-tee precision
+  // lets the user pin specific tee names; the data shape supports
+  // both via getTeePosition's name → _default fallback.
+
+  const pinTeesState = {
+    open: false,
+    courseId: null,
+    holeNumber: 1,
+    teeKey: '_default',     // Option C uses _default; future: 'Black', 'Blue', etc.
+    map: null,
+    pinMarker: null,
+    pendingLat: null,
+    pendingLng: null,
+    mode: 'empty',           // 'empty' | 'pending' | 'saved'
+  };
+
+  function openPinTeesSheet(courseId) {
+    if (pinTeesState.open) return;
+    const course = getCourse(courseId);
+    if (!course) return;
+    pinTeesState.open = true;
+    pinTeesState.courseId = courseId;
+    pinTeesState.holeNumber = 1;
+    pinTeesState.teeKey = '_default';
+    pinTeesState.map = null;
+    pinTeesState.pinMarker = null;
+    pinTeesState.pendingLat = null;
+    pinTeesState.pendingLng = null;
+    pinTeesState.mode = 'empty';
+    acquireScrollLock();
+    renderPinTeesSheet();
+  }
+  window.openPinTeesSheet = openPinTeesSheet;
+
+  function closePinTeesSheet() {
+    if (!pinTeesState.open) return;
+    if (pinTeesState.map) {
+      try { pinTeesState.map.remove(); } catch (_) {}
+    }
+    pinTeesState.open = false;
+    pinTeesState.courseId = null;
+    pinTeesState.map = null;
+    pinTeesState.pinMarker = null;
+    pinTeesState.pendingLat = null;
+    pinTeesState.pendingLng = null;
+    pinTeesState.mode = 'empty';
+    releaseScrollLock();
+    const mount = document.getElementById('pin-tees-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closePinTeesSheet = closePinTeesSheet;
+
+  // Load stored tee pin for the currently-selected hole, if any.
+  function pinTeesLoadStoredPin() {
+    const { courseId, holeNumber, teeKey } = pinTeesState;
+    const course = coursesCache.get(courseId);
+    return getTeePosition(course, holeNumber, teeKey === '_default' ? null : teeKey);
+  }
+
+  // How many holes have at least one tee pinned (any tee key counts).
+  function pinTeesCountSaved(courseId) {
+    const course = coursesCache.get(courseId);
+    const teeBoxes = (course && course.teeBoxes) || {};
+    let count = 0;
+    for (const holeKey of Object.keys(teeBoxes)) {
+      const holePins = teeBoxes[holeKey];
+      if (!holePins || typeof holePins !== 'object') continue;
+      // Any valid pin (under any tee key) counts this hole as pinned.
+      const hasAny = Object.values(holePins).some(p =>
+        p && typeof p.lat === 'number' && typeof p.lng === 'number'
+      );
+      if (hasAny) count++;
+    }
+    return count;
+  }
+
+  function renderPinTeesSheet() {
+    const mount = document.getElementById('pin-tees-mount');
+    if (!mount) return;
+    if (!pinTeesState.open) { mount.innerHTML = ''; return; }
+
+    const course = getCourse(pinTeesState.courseId);
+    if (!course) { closePinTeesSheet(); return; }
+
+    if (typeof mapboxgl === 'undefined') {
+      mount.innerHTML = `
+        <div class="pin-greens-sheet pin-greens-fallback">
+          <div class="pin-greens-fallback-title">Map didn't load</div>
+          <div class="pin-greens-fallback-body">Check your network and try again.</div>
+          <button class="pin-greens-btn pin-greens-btn-secondary" onclick="closePinTeesSheet()">Close</button>
+        </div>`;
+      return;
+    }
+
+    const h = pinTeesState.holeNumber;
+    const savedCount = pinTeesCountSaved(pinTeesState.courseId);
+    const storedPin = pinTeesLoadStoredPin();
+    const hasSaved = !!storedPin;
+
+    const existing = mount.querySelector('.pin-greens-sheet');
+    if (!existing) {
+      mount.innerHTML = `
+        <div class="pin-greens-sheet">
+          <div class="pin-greens-topbar">
+            <button class="pin-greens-close" onclick="closePinTeesSheet()" aria-label="Close">×</button>
+            <div class="pin-greens-title-block">
+              <div class="pin-greens-eyebrow">Pin Tees</div>
+              <div class="pin-greens-title">${escapeHtml(course.name)}</div>
+            </div>
+            <div class="pin-greens-progress" id="pin-tees-progress">${savedCount}/18</div>
+          </div>
+
+          <div class="pin-greens-map-wrap">
+            <div id="pin-tees-map"></div>
+            <div class="pin-greens-crosshair" aria-hidden="true">+</div>
+          </div>
+
+          <div class="pin-greens-footer" id="pin-tees-footer">
+          </div>
+        </div>`;
+
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      // Center on the green if we know it, else on course coords.
+      const greenForHole = course.holes[h - 1]?.greenLat;
+      const centerLng = greenForHole != null ? course.holes[h - 1].greenLng : course.lng;
+      const centerLat = greenForHole != null ? course.holes[h - 1].greenLat : course.lat;
+      const map = new mapboxgl.Map({
+        container: 'pin-tees-map',
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: [centerLng, centerLat],
+        zoom: 17,
+        attributionControl: true,
+      });
+      pinTeesState.map = map;
+
+      map.on('click', (e) => {
+        pinTeesHandleMapTap(e.lngLat.lat, e.lngLat.lng);
+      });
+    }
+
+    pinTeesRenderFooter();
+
+    if (hasSaved) {
+      pinTeesSetPinMarker(storedPin.lat, storedPin.lng, 'saved');
+      if (pinTeesState.map) {
+        pinTeesState.map.flyTo({
+          center: [storedPin.lng, storedPin.lat],
+          zoom: Math.max(pinTeesState.map.getZoom(), 17),
+          duration: 600,
+        });
+      }
+      pinTeesState.mode = 'saved';
+    } else {
+      pinTeesState.mode = 'empty';
+      pinTeesClearPinMarker();
+    }
+  }
+
+  function pinTeesRenderFooter() {
+    const footer = document.getElementById('pin-tees-footer');
+    if (!footer) return;
+    const h = pinTeesState.holeNumber;
+
+    let instruction, actionBtn;
+    if (pinTeesState.mode === 'empty') {
+      instruction = `Tap the tee box for hole ${h}`;
+      actionBtn = '';
+    } else if (pinTeesState.mode === 'pending') {
+      instruction = `Pin dropped. Tap again to adjust, or save.`;
+      actionBtn = `<button class="pin-greens-btn pin-greens-btn-primary" onclick="pinTeesSavePin()">Save this pin</button>`;
+    } else {
+      instruction = `Hole ${h} tee pinned. Tap to adjust, or move on.`;
+      actionBtn = '';
+    }
+
+    const prevDisabled = h <= 1 ? 'disabled' : '';
+    const nextDisabled = h >= 18 ? 'disabled' : '';
+
+    footer.innerHTML = `
+      <div class="pin-greens-instruction">${instruction}</div>
+      <div class="pin-greens-controls">
+        <button class="pin-greens-nav-btn" onclick="pinTeesPrevHole()" ${prevDisabled} aria-label="Previous hole">‹</button>
+        <div class="pin-greens-hole-indicator">Hole <span class="pin-greens-hole-num">${h}</span></div>
+        <button class="pin-greens-nav-btn" onclick="pinTeesNextHole()" ${nextDisabled} aria-label="Next hole">›</button>
+      </div>
+      ${actionBtn}
+    `;
+  }
+
+  function pinTeesHandleMapTap(lat, lng) {
+    pinTeesState.pendingLat = lat;
+    pinTeesState.pendingLng = lng;
+    pinTeesSetPinMarker(lat, lng, 'pending');
+    pinTeesState.mode = 'pending';
+    pinTeesRenderFooter();
+  }
+
+  // Tee marker uses orange so it visually distinguishes from greens
+  // (which are green). Orange in pending state, darker orange when
+  // saved. Important on courses where tee + green markers might both
+  // be on screen during pinning.
+  function pinTeesSetPinMarker(lat, lng, state) {
+    if (!pinTeesState.map) return;
+    if (pinTeesState.pinMarker) {
+      pinTeesState.pinMarker.setLngLat([lng, lat]);
+      const el = pinTeesState.pinMarker.getElement();
+      el.style.background = state === 'saved' ? '#C2410C' : '#F97316';
+      return;
+    }
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 20px; height: 20px; border-radius: 50%;
+      background: ${state === 'saved' ? '#C2410C' : '#F97316'};
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+    pinTeesState.pinMarker = new mapboxgl.Marker(el)
+      .setLngLat([lng, lat])
+      .addTo(pinTeesState.map);
+  }
+
+  function pinTeesClearPinMarker() {
+    if (pinTeesState.pinMarker) {
+      try { pinTeesState.pinMarker.remove(); } catch (_) {}
+      pinTeesState.pinMarker = null;
+    }
+    pinTeesState.pendingLat = null;
+    pinTeesState.pendingLng = null;
+  }
+
+  async function pinTeesSavePin() {
+    const { courseId, holeNumber, teeKey, pendingLat, pendingLng } = pinTeesState;
+    if (pendingLat == null || pendingLng == null) return;
+    try {
+      await window.fb.upsertCourseTeeCoord(courseId, holeNumber, teeKey, pendingLat, pendingLng);
+    } catch (err) {
+      console.error('Failed to save tee pin:', err);
+      const msg = (err && err.code === 'permission-denied')
+        ? 'Permission denied — Firestore rules need updating'
+        : 'Could not save pin';
+      showToast(msg, true);
+      return;
+    }
+    // Mirror into local cache so subsequent reads see the new pin.
+    const cached = coursesCache.get(courseId);
+    if (cached) {
+      const nextTeeBoxes = { ...(cached.teeBoxes || {}) };
+      const nextHole = { ...(nextTeeBoxes[holeNumber] || {}) };
+      nextHole[teeKey] = { lat: pendingLat, lng: pendingLng };
+      nextTeeBoxes[holeNumber] = nextHole;
+      coursesCache.set(courseId, { ...cached, teeBoxes: nextTeeBoxes });
+    }
+    pinTeesState.mode = 'saved';
+    pinTeesSetPinMarker(pendingLat, pendingLng, 'saved');
+    pinTeesState.pendingLat = null;
+    pinTeesState.pendingLng = null;
+    const progressEl = document.getElementById('pin-tees-progress');
+    if (progressEl) progressEl.textContent = `${pinTeesCountSaved(courseId)}/18`;
+    pinTeesRenderFooter();
+    showToast(`Hole ${holeNumber} tee pinned`);
+  }
+  window.pinTeesSavePin = pinTeesSavePin;
+
+  function pinTeesPrevHole() {
+    if (pinTeesState.holeNumber <= 1) return;
+    pinTeesGoToHole(pinTeesState.holeNumber - 1);
+  }
+  window.pinTeesPrevHole = pinTeesPrevHole;
+
+  function pinTeesNextHole() {
+    if (pinTeesState.holeNumber >= 18) return;
+    pinTeesGoToHole(pinTeesState.holeNumber + 1);
+  }
+  window.pinTeesNextHole = pinTeesNextHole;
+
+  function pinTeesGoToHole(holeNumber) {
+    pinTeesState.holeNumber = holeNumber;
+    pinTeesClearPinMarker();
+    const stored = pinTeesLoadStoredPin();
+    if (stored) {
+      pinTeesSetPinMarker(stored.lat, stored.lng, 'saved');
+      pinTeesState.mode = 'saved';
+      if (pinTeesState.map) {
+        pinTeesState.map.flyTo({
+          center: [stored.lng, stored.lat],
+          zoom: Math.max(pinTeesState.map.getZoom(), 17),
+          duration: 600,
+        });
+      }
+    } else {
+      pinTeesState.mode = 'empty';
+      // Recenter on the green for this new hole so user has a starting
+      // reference (tees are usually within 100y of the green's general
+      // direction).
+      const course = getCourse(pinTeesState.courseId);
+      const hole = course?.holes[holeNumber - 1];
+      if (hole?.greenLat != null && pinTeesState.map) {
+        pinTeesState.map.flyTo({
+          center: [hole.greenLng, hole.greenLat],
+          zoom: Math.max(pinTeesState.map.getZoom(), 17),
+          duration: 600,
+        });
+      }
+    }
+    pinTeesRenderFooter();
+  }
+  window.pinTeesGoToHole = pinTeesGoToHole;
+
+  // ─────────────────────────────────────────────────────────────
   // In-round GPS panel (Phase 2)
   // ─────────────────────────────────────────────────────────────
   // Full-screen satellite view that opens when the user taps GPS in
@@ -52826,14 +53387,43 @@
     map: null,
     userMarker: null,
     greenMarker: null,
+    teeMarker: null,         // orange dot for the tee box (Option C)
+    teeGreenLine: null,      // map source/layer id pair for the tee→green line
     watchTimer: null,
     userLat: null,
     userLng: null,
     courseId: null,
     holeNumber: null,
+    holeIndex: null,
     greenLat: null,
     greenLng: null,
+    teeLat: null,            // null if no tee pinned for this hole
+    teeLng: null,
+    holeYards: null,         // tee→green distance from yardage data (fallback)
+    // 'planning' | 'playing'. Planning mode = far from course, no
+    // user marker, framed on the whole hole, big number = hole
+    // yardage. Playing mode = on/near course, user marker visible,
+    // big number = distance to green. Open() defaults to planning;
+    // a sufficiently-close GPS fix upgrades to playing.
+    mode: 'planning',
+    // Drag-to-position target pin. Target is a draggable Mapbox
+    // marker; while it exists, the bottom readout switches from
+    // "to green" to "carry / remaining" mode.
+    targetActive: false,     // true when the target pin is shown
+    targetMarker: null,      // mapboxgl.Marker — sight reticle, draggable
+    targetLat: null,
+    targetLng: null,
+    targetLines: null,       // { fromSourceId, fromLayerId, greenSourceId, greenLayerId }
+    targetLabels: null,      // { fromLabel, greenLabel } — mapbox markers for yardage labels
   };
+
+  // Threshold for switching between planning and playing modes.
+  // Below this distance from course coordinates, GPS view treats
+  // the user as "on course" (playing mode); above, as "planning a
+  // future round" (no user marker, big number = hole yardage).
+  // 1 mile is loose enough to handle wandering around the clubhouse
+  // and the practice area, strict enough to filter "I'm at home."
+  const ROUND_GPS_PLAYING_THRESHOLD_MILES = 1;
 
   function openRoundGpsPanel() {
     if (roundGpsState.open) return;
@@ -52844,18 +53434,241 @@
     }
     const course = getCourse(ctx.courseId);
     if (!course) return;
-    const currentHole = course.holes[ctx.holeIndex];
-    if (!currentHole) return;
+    if (ctx.holeIndex < 0 || ctx.holeIndex >= course.holes.length) return;
 
     roundGpsState.open = true;
     roundGpsState.courseId = ctx.courseId;
-    roundGpsState.holeNumber = currentHole.number;
-    roundGpsState.greenLat = currentHole.greenLat ?? null;
-    roundGpsState.greenLng = currentHole.greenLng ?? null;
     acquireScrollLock();
-    renderRoundGpsPanel();
+    loadRoundGpsHoleAndRender(ctx.holeIndex);
   }
   window.openRoundGpsPanel = openRoundGpsPanel;
+
+  // Load a specific hole into the GPS view and (re)render. Used by
+  // open() for the initial hole — does a full DOM rebuild + fresh
+  // map. Subsequent hole changes use transitionRoundGpsToHole instead
+  // to animate smoothly without tearing down the map.
+  function loadRoundGpsHoleAndRender(holeIndex) {
+    const course = getCourse(roundGpsState.courseId);
+    if (!course) return;
+    if (holeIndex < 0 || holeIndex >= course.holes.length) return;
+    const ctx = getCurrentRoundContext();
+    const hole = course.holes[holeIndex];
+
+    const teeName = ctx?.teeName;
+    const teePos = getTeePosition(course, hole.number, teeName);
+    const tee = teeName ? course.tees.find(t => t.name === teeName) : null;
+    const holeYards = tee?.yardages?.[holeIndex] ?? null;
+
+    // Tear down the existing map and any markers/listeners. The
+    // map.remove() call also cleans up all attached markers, layers,
+    // and event listeners, so we don't have to manually unbind.
+    if (roundGpsState.watchTimer) {
+      clearInterval(roundGpsState.watchTimer);
+      roundGpsState.watchTimer = null;
+    }
+    if (roundGpsState.map) {
+      try { roundGpsState.map.remove(); } catch (_) {}
+      roundGpsState.map = null;
+    }
+
+    // Reset hole-specific state. Keep open=true and courseId so the
+    // panel doesn't unmount.
+    roundGpsState.holeIndex = holeIndex;
+    roundGpsState.holeNumber = hole.number;
+    roundGpsState.greenLat = hole.greenLat ?? null;
+    roundGpsState.greenLng = hole.greenLng ?? null;
+    roundGpsState.teeLat = teePos ? teePos.lat : null;
+    roundGpsState.teeLng = teePos ? teePos.lng : null;
+    roundGpsState.holeYards = holeYards;
+    // Keep playing-mode if user already has a fix; the user being on
+    // course doesn't change between holes within a round.
+    // (mode field stays as-is.)
+    // Reset markers & target since they're tied to the previous hole.
+    roundGpsState.userMarker = null;
+    roundGpsState.greenMarker = null;
+    roundGpsState.teeMarker = null;
+    roundGpsState.teeGreenLine = null;
+    roundGpsState.targetActive = false;
+    roundGpsState.targetMarker = null;
+    roundGpsState.targetLat = null;
+    roundGpsState.targetLng = null;
+    roundGpsState.targetLines = null;
+    roundGpsState.targetLabels = null;
+
+    renderRoundGpsPanel();
+  }
+
+  // Smooth transition to a different hole. Keeps the map instance
+  // alive — much nicer than a full rebuild. Updates green/tee
+  // markers in place, drops a fresh target at the new midpoint, and
+  // animates the camera with flyTo so the user sees a smooth pan +
+  // rotate from the old hole's view to the new hole's framing. The
+  // existing map's load handlers (bearing, fitBounds, dropTarget)
+  // already ran, so we don't re-trigger those — we directly call
+  // the equivalent logic.
+  function transitionRoundGpsToHole(holeIndex) {
+    const course = getCourse(roundGpsState.courseId);
+    if (!course) return;
+    if (holeIndex < 0 || holeIndex >= course.holes.length) return;
+    const map = roundGpsState.map;
+    if (!map) {
+      // No live map — fall back to full render.
+      loadRoundGpsHoleAndRender(holeIndex);
+      return;
+    }
+    const ctx = getCurrentRoundContext();
+    const hole = course.holes[holeIndex];
+
+    const teeName = ctx?.teeName;
+    const teePos = getTeePosition(course, hole.number, teeName);
+    const tee = teeName ? course.tees.find(t => t.name === teeName) : null;
+    const holeYards = tee?.yardages?.[holeIndex] ?? null;
+
+    // Update state.
+    roundGpsState.holeIndex = holeIndex;
+    roundGpsState.holeNumber = hole.number;
+    roundGpsState.greenLat = hole.greenLat ?? null;
+    roundGpsState.greenLng = hole.greenLng ?? null;
+    roundGpsState.teeLat = teePos ? teePos.lat : null;
+    roundGpsState.teeLng = teePos ? teePos.lng : null;
+    roundGpsState.holeYards = holeYards;
+
+    // Update header chip.
+    const chipEl = document.querySelector('.round-gps-hole-chip');
+    if (chipEl) chipEl.textContent = `Hole ${hole.number}`;
+
+    // Update prev/next disabled state.
+    const prevBtn = document.querySelector('.round-gps-hole-nav-prev');
+    const nextBtn = document.querySelector('.round-gps-hole-nav-next');
+    if (prevBtn) prevBtn.disabled = holeIndex <= 0;
+    if (nextBtn) nextBtn.disabled = holeIndex >= course.holes.length - 1;
+
+    // Move/replace the green marker. Markers don't have a smooth
+    // animation API in Mapbox — they just teleport. That's fine
+    // visually since they're small dots and the satellite imagery
+    // (the dominant visual element) animates smoothly.
+    if (roundGpsState.greenMarker) {
+      try { roundGpsState.greenMarker.remove(); } catch (_) {}
+      roundGpsState.greenMarker = null;
+    }
+    if (roundGpsState.greenLat != null) {
+      const greenEl = document.createElement('div');
+      greenEl.style.cssText = `
+        width: 22px; height: 22px; border-radius: 50%;
+        background: #2D6E34; border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+      roundGpsState.greenMarker = new mapboxgl.Marker(greenEl)
+        .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
+        .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${hole.number} green`))
+        .addTo(map);
+    }
+
+    // Move/replace the tee marker.
+    if (roundGpsState.teeMarker) {
+      try { roundGpsState.teeMarker.remove(); } catch (_) {}
+      roundGpsState.teeMarker = null;
+    }
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      const teeEl = document.createElement('div');
+      teeEl.style.cssText = `
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #C2410C; border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+      roundGpsState.teeMarker = new mapboxgl.Marker(teeEl)
+        .setLngLat([roundGpsState.teeLng, roundGpsState.teeLat])
+        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${hole.number} tee`))
+        .addTo(map);
+    }
+
+    // Tear down the old target so we can drop a fresh one at the
+    // new hole's midpoint. clearRoundGpsTarget handles markers,
+    // lines, labels, and the zoom listener.
+    clearRoundGpsTarget();
+
+    // Animate the camera to the new hole's frame. flyTo with both
+    // center, zoom, AND bearing in one call interpolates them
+    // together — smooth pan + rotate.
+    if (roundGpsState.greenLat != null) {
+      const targetBearing = (roundGpsState.teeLat != null)
+        ? bearingDegrees(
+            roundGpsState.teeLat, roundGpsState.teeLng,
+            roundGpsState.greenLat, roundGpsState.greenLng)
+        : 0;
+      if (roundGpsState.teeLat != null) {
+        // Use cameraForBounds + flyTo so we get the same framing as
+        // the initial render but animated smoothly.
+        const bounds = new mapboxgl.LngLatBounds()
+          .extend([roundGpsState.teeLng, roundGpsState.teeLat])
+          .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+        const cam = map.cameraForBounds(bounds, {
+          padding: { top: 100, bottom: 180, left: 60, right: 60 },
+          bearing: targetBearing,
+          maxZoom: 18,
+        });
+        if (cam) {
+          map.flyTo({
+            center: cam.center,
+            zoom: cam.zoom,
+            bearing: cam.bearing,
+            duration: 800,
+            essential: true,  // ignore prefers-reduced-motion suppression
+          });
+        }
+      } else {
+        // No tee — center on the green at zoom 17.
+        map.flyTo({
+          center: [roundGpsState.greenLng, roundGpsState.greenLat],
+          zoom: 17,
+          bearing: 0,
+          duration: 800,
+          essential: true,
+        });
+      }
+    }
+
+    // Drop a fresh target at the new midpoint. Schedule it to run
+    // once the camera has finished animating so the lines/labels
+    // size correctly to the final zoom (the pixel-aware shortening
+    // depends on the current zoom level). 'moveend' fires when the
+    // flyTo animation completes.
+    const dropAfterFly = () => {
+      if (!roundGpsState.targetActive) dropRoundGpsTarget();
+    };
+    map.once('moveend', dropAfterFly);
+
+    // Update the bottom readout for the new hole. Two cases — in
+    // playing mode the position-update tick will handle to-green;
+    // in planning mode we set it now.
+    if (roundGpsState.mode !== 'playing') {
+      const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
+      const valueEl = document.getElementById('round-gps-distance-value');
+      const subEl = document.getElementById('round-gps-distance-sub');
+      if (eyebrowEl) eyebrowEl.textContent = 'Hole';
+      if (valueEl) {
+        valueEl.textContent = roundGpsState.holeYards != null
+          ? roundGpsState.holeYards
+          : '—';
+      }
+      if (subEl) subEl.textContent = 'Drag the target to plan a shot';
+    }
+  }
+
+  // Hole change handlers — exposed to onclick attributes via window.
+  function roundGpsPrevHole() {
+    const idx = roundGpsState.holeIndex ?? 0;
+    if (idx <= 0) return;
+    transitionRoundGpsToHole(idx - 1);
+  }
+  window.roundGpsPrevHole = roundGpsPrevHole;
+
+  function roundGpsNextHole() {
+    const course = getCourse(roundGpsState.courseId);
+    if (!course) return;
+    const idx = roundGpsState.holeIndex ?? 0;
+    if (idx >= course.holes.length - 1) return;
+    transitionRoundGpsToHole(idx + 1);
+  }
+  window.roundGpsNextHole = roundGpsNextHole;
 
   function closeRoundGpsPanel() {
     if (!roundGpsState.open) return;
@@ -52870,17 +53683,506 @@
     roundGpsState.open = false;
     roundGpsState.userMarker = null;
     roundGpsState.greenMarker = null;
+    roundGpsState.teeMarker = null;
+    roundGpsState.teeGreenLine = null;
     roundGpsState.userLat = null;
     roundGpsState.userLng = null;
     roundGpsState.courseId = null;
     roundGpsState.holeNumber = null;
     roundGpsState.greenLat = null;
     roundGpsState.greenLng = null;
+    roundGpsState.teeLat = null;
+    roundGpsState.teeLng = null;
+    roundGpsState.holeYards = null;
+    roundGpsState.mode = 'planning';
+    roundGpsState.targetActive = false;
+    roundGpsState.targetMarker = null;
+    roundGpsState.targetLat = null;
+    roundGpsState.targetLng = null;
+    roundGpsState.targetLines = null;
+    roundGpsState.targetLabels = null;
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
   }
   window.closeRoundGpsPanel = closeRoundGpsPanel;
+
+  // ─── Drag-to-position target ─────────────────────────────────
+  // The target reticle drops automatically when GPS opens (Plan
+  // shot is the default mode). User drags it to plan their shot.
+  // The bottom readout shows shot distances based on the current
+  // mode (carry/remaining in playing mode, from-tee/remaining in
+  // planning mode). A future "clear" button could let users
+  // dismiss the target, but for now it's always present.
+
+  // Drop the target at a sensible default position based on what
+  // we know about the hole + user state.
+  function dropRoundGpsTarget() {
+    if (!roundGpsState.map) return;
+    if (roundGpsState.greenLat == null) return;
+
+    // Default position: midpoint of whatever pair makes sense for
+    // the current mode.
+    //   - Playing mode with user fix: midpoint of (user, green)
+    //   - Tee pinned (any mode): midpoint of (tee, green)
+    //   - Otherwise: just south of the green so the target is at
+    //     least visible and grabbable
+    let lat, lng;
+    if (roundGpsState.mode === 'playing'
+        && roundGpsState.userLat != null
+        && roundGpsState.userLng != null) {
+      lat = (roundGpsState.userLat + roundGpsState.greenLat) / 2;
+      lng = (roundGpsState.userLng + roundGpsState.greenLng) / 2;
+    } else if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      lat = (roundGpsState.teeLat + roundGpsState.greenLat) / 2;
+      lng = (roundGpsState.teeLng + roundGpsState.greenLng) / 2;
+    } else {
+      lat = roundGpsState.greenLat - 0.0005;
+      lng = roundGpsState.greenLng;
+    }
+
+    // Build the marker. Bigger than other markers so it's easy to
+    // grab on touch. SVG reticle (sight-style) instead of a colored
+    // dot — feels more like aiming, less like a generic pin. Mapbox
+    // handles the actual drag — we just listen to drag events and
+    // update lines + UI.
+    const el = document.createElement('div');
+    el.className = 'round-gps-target-marker';
+    el.style.cssText = `
+      width: 32px; height: 32px;
+      cursor: grab;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));`;
+    // Reticle: outer ring + four crosshair lines (broken at center,
+    // forming a sight). Tiny center dot for precise positioning.
+    // Stroke + dot both white, partially transparent so the imagery
+    // shows through.
+    el.innerHTML = `
+      <svg viewBox="0 0 32 32" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="13" fill="none"
+                stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
+        <line x1="16" y1="2"  x2="16" y2="10" stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
+        <line x1="16" y1="22" x2="16" y2="30" stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
+        <line x1="2"  y1="16" x2="10" y2="16" stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
+        <line x1="22" y1="16" x2="30" y2="16" stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
+        <circle cx="16" cy="16" r="1.75" fill="#fff" fill-opacity="0.95"/>
+      </svg>`;
+
+    const marker = new mapboxgl.Marker({
+      element: el,
+      draggable: true,
+      // Anchor center so the visual coordinate matches the dot's
+      // center pixel (default is bottom-anchored — wrong for a
+      // round dot you're trying to position precisely).
+      anchor: 'center',
+    }).setLngLat([lng, lat]).addTo(roundGpsState.map);
+
+    // While dragging, update the lines + the distance readout in
+    // real time. Use 'drag' (every frame) for a responsive feel.
+    marker.on('drag', () => {
+      const ll = marker.getLngLat();
+      roundGpsState.targetLat = ll.lat;
+      roundGpsState.targetLng = ll.lng;
+      el.style.cursor = 'grabbing';
+      updateRoundGpsTargetLines();
+      updateRoundGpsTargetReadout();
+    });
+    marker.on('dragend', () => {
+      el.style.cursor = 'grab';
+    });
+
+    roundGpsState.targetActive = true;
+    roundGpsState.targetMarker = marker;
+    roundGpsState.targetLat = lat;
+    roundGpsState.targetLng = lng;
+    drawRoundGpsTargetLines();
+    updateRoundGpsTargetReadout();
+
+    // Re-shorten the lines on zoom so the pixel pad stays aligned
+    // with the reticle's outer ring at any zoom level. 'zoom' fires
+    // continuously during a pinch — that's fine, the update is
+    // cheap (just project/unproject + setData).
+    if (roundGpsState.map) {
+      roundGpsState.map.on('zoom', updateRoundGpsTargetLines);
+    }
+  }
+
+  function clearRoundGpsTarget() {
+    if (roundGpsState.targetMarker) {
+      try { roundGpsState.targetMarker.remove(); } catch (_) {}
+    }
+    // Remove the zoom listener bound when target was activated.
+    if (roundGpsState.map) {
+      try { roundGpsState.map.off('zoom', updateRoundGpsTargetLines); } catch (_) {}
+    }
+    // Remove the lines from the map.
+    if (roundGpsState.map && roundGpsState.targetLines) {
+      const map = roundGpsState.map;
+      const { fromLayerId, fromSourceId, greenLayerId, greenSourceId } = roundGpsState.targetLines;
+      try { if (map.getLayer(fromLayerId)) map.removeLayer(fromLayerId); } catch (_) {}
+      try { if (map.getSource(fromSourceId)) map.removeSource(fromSourceId); } catch (_) {}
+      try { if (map.getLayer(greenLayerId)) map.removeLayer(greenLayerId); } catch (_) {}
+      try { if (map.getSource(greenSourceId)) map.removeSource(greenSourceId); } catch (_) {}
+    }
+    // Remove the midpoint yardage labels.
+    removeRoundGpsTargetLabels();
+    roundGpsState.targetActive = false;
+    roundGpsState.targetMarker = null;
+    roundGpsState.targetLat = null;
+    roundGpsState.targetLng = null;
+    roundGpsState.targetLines = null;
+    roundGpsState.targetLabels = null;
+
+    // Restore the bottom readout based on the current mode. Playing
+    // mode → to-green readout; planning mode → hole-yardage readout.
+    const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
+    const valueEl = document.getElementById('round-gps-distance-value');
+    const subEl = document.getElementById('round-gps-distance-sub');
+    if (roundGpsState.mode === 'playing'
+        && roundGpsState.userLat != null
+        && roundGpsState.userLng != null) {
+      if (eyebrowEl) eyebrowEl.textContent = 'To green';
+      const yards = haversineYards(
+        roundGpsState.userLat, roundGpsState.userLng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+      if (valueEl) valueEl.textContent = Math.round(yards);
+      // Sub-line will refresh on the next position tick (~2s).
+    } else {
+      if (eyebrowEl) eyebrowEl.textContent = 'Hole';
+      if (valueEl) {
+        valueEl.textContent = roundGpsState.holeYards != null
+          ? roundGpsState.holeYards
+          : '—';
+      }
+      if (subEl) subEl.textContent = 'Drag the target to plan a shot';
+    }
+  }
+  window.clearRoundGpsTarget = clearRoundGpsTarget;
+
+  // Initial line draw — both from→target and target→green lines.
+  // The "from" point is the user (playing mode) or the tee
+  // (planning mode + tee pinned). If neither, only the target→green
+  // line is drawn. Same paint style as the existing tee→green line
+  // so the map has a consistent visual language.
+  function drawRoundGpsTargetLines() {
+    const map = roundGpsState.map;
+    if (!map) return;
+
+    const draw = () => {
+      const fromSourceId = 'round-gps-target-from-source';
+      const fromLayerId = 'round-gps-target-from-layer';
+      const greenSourceId = 'round-gps-target-green-source';
+      const greenLayerId = 'round-gps-target-green-layer';
+      try {
+        // Defensive cleanup in case of double-draw.
+        if (map.getLayer(fromLayerId)) map.removeLayer(fromLayerId);
+        if (map.getSource(fromSourceId)) map.removeSource(fromSourceId);
+        if (map.getLayer(greenLayerId)) map.removeLayer(greenLayerId);
+        if (map.getSource(greenSourceId)) map.removeSource(greenSourceId);
+
+        // Pick the "from" point based on mode.
+        const fromPoint = pickRoundGpsFromPoint();
+
+        if (fromPoint) {
+          const fromEnd = shortenLineEnd(
+            map,
+            fromPoint.lng, fromPoint.lat,
+            roundGpsState.targetLng, roundGpsState.targetLat,
+            TARGET_RETICLE_PAD_PX);
+          map.addSource(fromSourceId, {
+            type: 'geojson',
+            data: lineFeature(
+              fromPoint.lng, fromPoint.lat,
+              fromEnd.lng, fromEnd.lat),
+          });
+          map.addLayer({
+            id: fromLayerId,
+            type: 'line',
+            source: fromSourceId,
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#fff',
+              'line-width': 2.5,
+              'line-opacity': 0.85,
+            },
+          });
+        }
+        // target → green (the remaining line). Start 17px away from
+        // the target on the target→green direction so the line
+        // meets the reticle's outer ring on this end.
+        const greenStart = shortenLineEnd(
+          map,
+          roundGpsState.greenLng, roundGpsState.greenLat,
+          roundGpsState.targetLng, roundGpsState.targetLat,
+          TARGET_RETICLE_PAD_PX);
+        map.addSource(greenSourceId, {
+          type: 'geojson',
+          data: lineFeature(
+            greenStart.lng, greenStart.lat,
+            roundGpsState.greenLng, roundGpsState.greenLat),
+        });
+        map.addLayer({
+          id: greenLayerId,
+          type: 'line',
+          source: greenSourceId,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#fff',
+            'line-width': 2,
+            'line-opacity': 0.65,
+          },
+        });
+
+        roundGpsState.targetLines = {
+          fromSourceId, fromLayerId, greenSourceId, greenLayerId,
+        };
+
+        // Drop the midpoint yardage labels (DOM markers).
+        createOrUpdateRoundGpsTargetLabels();
+      } catch (err) {
+        console.warn('Could not draw target lines:', err);
+      }
+    };
+    // Schedule the actual drawing. Mapbox's 'idle' fires when the
+    // map has finished any in-flight rendering work; that's a safer
+    // signal than 'load' for "you can add layers now" — load can
+    // fire before all style resources are settled. If the map is
+    // already idle (loaded() && !isMoving()), draw synchronously.
+    if (map.loaded() && !map.isMoving()) {
+      draw();
+    } else {
+      map.once('idle', draw);
+    }
+  }
+
+  // Pick the "from" point for the target's first line — playing
+  // mode uses the user's position; planning mode falls back to the
+  // tee pin if available; otherwise null (no first line drawn).
+  function pickRoundGpsFromPoint() {
+    if (roundGpsState.mode === 'playing'
+        && roundGpsState.userLat != null
+        && roundGpsState.userLng != null) {
+      return { lat: roundGpsState.userLat, lng: roundGpsState.userLng };
+    }
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      return { lat: roundGpsState.teeLat, lng: roundGpsState.teeLng };
+    }
+    return null;
+  }
+
+  // Build a GeoJSON LineString feature between two points. Helper
+  // used by the line-drawing functions to keep the data construction
+  // tidy (the same shape gets used twice on draw + many times on
+  // update).
+  function lineFeature(lng1, lat1, lng2, lat2) {
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [[lng1, lat1], [lng2, lat2]],
+      },
+    };
+  }
+
+  // Shorten a line on the "to" end by `padPixels` pixels (in screen
+  // space at the current zoom) so the line stops short of a marker
+  // at that endpoint. Mapbox project/unproject lets us work in pixel
+  // coords, then convert back. Used for the target-reticle endpoints
+  // — the reticle is 32px wide so a 16-17px pad lands the line right
+  // at the outer ring.
+  //
+  // Returns { lng, lat } of the shortened endpoint. If the line is
+  // shorter than the pad (caller standing on the marker), returns
+  // the original "to" point so the line just collapses naturally.
+  function shortenLineEnd(map, fromLng, fromLat, toLng, toLat, padPixels) {
+    if (!map) return { lng: toLng, lat: toLat };
+    try {
+      const fromPx = map.project([fromLng, fromLat]);
+      const toPx = map.project([toLng, toLat]);
+      const dx = toPx.x - fromPx.x;
+      const dy = toPx.y - fromPx.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len <= padPixels) return { lng: toLng, lat: toLat };
+      const ratio = (len - padPixels) / len;
+      const newPx = {
+        x: fromPx.x + dx * ratio,
+        y: fromPx.y + dy * ratio,
+      };
+      const ll = map.unproject([newPx.x, newPx.y]);
+      return { lng: ll.lng, lat: ll.lat };
+    } catch (_) {
+      return { lng: toLng, lat: toLat };
+    }
+  }
+
+  // Pixel pad for the target reticle. Reticle is 32px wide → outer
+  // ring is at 16px from center. Add a touch (1-2px) so the line
+  // stops just outside the ring rather than touching it.
+  const TARGET_RETICLE_PAD_PX = 17;
+
+  // While dragging, update the source data without removing/adding
+  // the layer (much smoother than a full redraw). Also moves the
+  // midpoint yardage labels to follow.
+  function updateRoundGpsTargetLines() {
+    const map = roundGpsState.map;
+    if (!map || !roundGpsState.targetLines) return;
+    const { fromSourceId, greenSourceId } = roundGpsState.targetLines;
+    try {
+      const fromPoint = pickRoundGpsFromPoint();
+      if (fromPoint && map.getSource(fromSourceId)) {
+        const fromEnd = shortenLineEnd(
+          map,
+          fromPoint.lng, fromPoint.lat,
+          roundGpsState.targetLng, roundGpsState.targetLat,
+          TARGET_RETICLE_PAD_PX);
+        map.getSource(fromSourceId).setData(lineFeature(
+          fromPoint.lng, fromPoint.lat,
+          fromEnd.lng, fromEnd.lat));
+      }
+      if (map.getSource(greenSourceId)) {
+        const greenStart = shortenLineEnd(
+          map,
+          roundGpsState.greenLng, roundGpsState.greenLat,
+          roundGpsState.targetLng, roundGpsState.targetLat,
+          TARGET_RETICLE_PAD_PX);
+        map.getSource(greenSourceId).setData(lineFeature(
+          greenStart.lng, greenStart.lat,
+          roundGpsState.greenLng, roundGpsState.greenLat));
+      }
+    } catch (err) {
+      // Swallow — drag fires every frame; a transient failure
+      // shouldn't spam the console.
+    }
+    // Reposition the yardage labels to track the new midpoints.
+    createOrUpdateRoundGpsTargetLabels();
+  }
+
+  // Create (first call) or update (subsequent calls) the two
+  // midpoint yardage labels. These are DOM-based Mapbox markers —
+  // simpler than symbol layers and free pan/zoom positioning.
+  // One label per line:
+  //   - "from" label at midpoint of from→target line, showing that
+  //     leg's distance (e.g. carry from user, or from-tee distance)
+  //   - "green" label at midpoint of target→green line, showing
+  //     remaining distance to the green
+  // If the from→target line doesn't exist (no user, no tee), the
+  // from label is skipped.
+  function createOrUpdateRoundGpsTargetLabels() {
+    const map = roundGpsState.map;
+    if (!map || !roundGpsState.targetActive) return;
+
+    const fromPoint = pickRoundGpsFromPoint();
+    let labels = roundGpsState.targetLabels;
+    if (!labels) labels = roundGpsState.targetLabels = { fromLabel: null, greenLabel: null };
+
+    // From → target label
+    if (fromPoint) {
+      const midLat = (fromPoint.lat + roundGpsState.targetLat) / 2;
+      const midLng = (fromPoint.lng + roundGpsState.targetLng) / 2;
+      const yards = haversineYards(
+        fromPoint.lat, fromPoint.lng,
+        roundGpsState.targetLat, roundGpsState.targetLng);
+      const text = `${Math.round(yards)}y`;
+      if (!labels.fromLabel) {
+        const el = buildRoundGpsLabelEl(text);
+        labels.fromLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([midLng, midLat])
+          .addTo(map);
+      } else {
+        labels.fromLabel.setLngLat([midLng, midLat]);
+        labels.fromLabel.getElement().textContent = text;
+      }
+    } else if (labels.fromLabel) {
+      // Mode changed — no longer a from-line, remove the label.
+      try { labels.fromLabel.remove(); } catch (_) {}
+      labels.fromLabel = null;
+    }
+
+    // Target → green label
+    {
+      const midLat = (roundGpsState.targetLat + roundGpsState.greenLat) / 2;
+      const midLng = (roundGpsState.targetLng + roundGpsState.greenLng) / 2;
+      const yards = haversineYards(
+        roundGpsState.targetLat, roundGpsState.targetLng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+      const text = `${Math.round(yards)}y`;
+      if (!labels.greenLabel) {
+        const el = buildRoundGpsLabelEl(text);
+        labels.greenLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([midLng, midLat])
+          .addTo(map);
+      } else {
+        labels.greenLabel.setLngLat([midLng, midLat]);
+        labels.greenLabel.getElement().textContent = text;
+      }
+    }
+  }
+
+  // Build the DOM element for a yardage label. Pill-shaped, semi-
+  // transparent black background, white tabular-numeric text.
+  // pointer-events: none so dragging the reticle through the
+  // label doesn't hit the label.
+  function buildRoundGpsLabelEl(text) {
+    const el = document.createElement('div');
+    el.className = 'round-gps-yardage-label';
+    el.textContent = text;
+    return el;
+  }
+
+  function removeRoundGpsTargetLabels() {
+    const labels = roundGpsState.targetLabels;
+    if (!labels) return;
+    if (labels.fromLabel) {
+      try { labels.fromLabel.remove(); } catch (_) {}
+    }
+    if (labels.greenLabel) {
+      try { labels.greenLabel.remove(); } catch (_) {}
+    }
+    roundGpsState.targetLabels = null;
+  }
+
+  // Update the bottom readout: when target is active, show carry
+  // as the big number and "remaining · to green · GPS accuracy" as
+  // the sub-line.
+  function updateRoundGpsTargetReadout() {
+    if (!roundGpsState.targetActive) return;
+    const v = document.getElementById('round-gps-distance-value');
+    const sub = document.getElementById('round-gps-distance-sub');
+    const eyebrow = document.getElementById('round-gps-distance-eyebrow');
+
+    const remainingYards = haversineYards(
+      roundGpsState.targetLat, roundGpsState.targetLng,
+      roundGpsState.greenLat, roundGpsState.greenLng);
+
+    if (roundGpsState.mode === 'playing'
+        && roundGpsState.userLat != null
+        && roundGpsState.userLng != null) {
+      // Playing mode — big number is carry (user → target), sub is
+      // remaining (target → green).
+      if (eyebrow) eyebrow.textContent = 'Carry';
+      const carryYards = haversineYards(
+        roundGpsState.userLat, roundGpsState.userLng,
+        roundGpsState.targetLat, roundGpsState.targetLng);
+      if (v) v.textContent = Math.round(carryYards);
+      if (sub) sub.textContent = `Remaining ${Math.round(remainingYards)}y`;
+    } else {
+      // Planning mode — no user, so "carry" is undefined. Instead:
+      //   - If tee is pinned: big number = tee → target (the
+      //     intended shot from the tee), sub = remaining
+      //   - If no tee: big number = remaining (target → green), sub
+      //     prompts pinning
+      if (eyebrow) eyebrow.textContent = roundGpsState.teeLat != null ? 'From tee' : 'To green';
+      if (roundGpsState.teeLat != null) {
+        const teeToTargetYards = haversineYards(
+          roundGpsState.teeLat, roundGpsState.teeLng,
+          roundGpsState.targetLat, roundGpsState.targetLng);
+        if (v) v.textContent = Math.round(teeToTargetYards);
+        if (sub) sub.textContent = `Remaining ${Math.round(remainingYards)}y · planning`;
+      } else {
+        if (v) v.textContent = Math.round(remainingYards);
+        if (sub) sub.textContent = `Pin a tee to see shot distances · planning`;
+      }
+    }
+  }
 
   // Launch the pinning flow for the current course. Exposed so the
   // "green not pinned" message can link to it.
@@ -52937,6 +54239,25 @@
       return;
     }
 
+    // Compute initial readout content based on starting mode. We
+    // open in planning mode (no user yet) — show hole yardage as the
+    // big number. Position update will flip this to to-green mode
+    // once a fix lands AND the user is close enough to the course.
+    const initialEyebrow = 'Hole';
+    const initialValue = roundGpsState.holeYards != null
+      ? roundGpsState.holeYards
+      : '—';
+    const initialSub = 'Drag the target to plan a shot';
+
+    // Hole-change buttons enabled state. roundGpsState.holeIndex
+    // is the current hole's index (0-based); disable prev at index 0
+    // and next at index N-1.
+    const course = getCourse(roundGpsState.courseId);
+    const totalHoles = course ? course.holes.length : 18;
+    const idx = roundGpsState.holeIndex ?? 0;
+    const prevDisabled = idx <= 0 ? 'disabled' : '';
+    const nextDisabled = idx >= totalHoles - 1 ? 'disabled' : '';
+
     // Happy path — build the map. Header strip overlaid on the map
     // carries the hole number, close button, and distance readout.
     mount.innerHTML = `
@@ -52950,18 +54271,28 @@
         <!-- Map fills the whole panel -->
         <div id="round-gps-map"></div>
 
+        <!-- Hole navigation chevrons, vertical-center on left/right -->
+        <button class="round-gps-hole-nav round-gps-hole-nav-prev"
+                onclick="roundGpsPrevHole()"
+                aria-label="Previous hole" ${prevDisabled}>‹</button>
+        <button class="round-gps-hole-nav round-gps-hole-nav-next"
+                onclick="roundGpsNextHole()"
+                aria-label="Next hole" ${nextDisabled}>›</button>
+
         <!-- Distance readout at the bottom -->
         <div class="round-gps-distance">
-          <div class="round-gps-distance-eyebrow">To green</div>
-          <div class="round-gps-distance-value" id="round-gps-distance-value">—</div>
+          <div class="round-gps-distance-eyebrow" id="round-gps-distance-eyebrow">${initialEyebrow}</div>
+          <div class="round-gps-distance-value" id="round-gps-distance-value">${initialValue}</div>
           <div class="round-gps-distance-sub" id="round-gps-distance-sub">
-            Getting your location…
+            ${initialSub}
           </div>
         </div>
       </div>`;
 
-    // Initialize map. Center on the green initially; we re-center
-    // to frame both user + green once we have the user's position.
+    // Initialize map. Default center is the green; if we also have
+    // the tee pinned, we'll fitBounds to frame the whole hole on
+    // load (below). The to-green-only fallback covers holes that
+    // don't have a tee pinned.
     mapboxgl.accessToken = MAPBOX_TOKEN;
     const map = new mapboxgl.Map({
       container: 'round-gps-map',
@@ -52971,6 +54302,31 @@
       attributionControl: true,
     });
     roundGpsState.map = map;
+
+    // If we have the tee pinned, frame the whole hole and rotate
+    // the map so the tee→green direction points up (tee at bottom
+    // of screen, green at top). All holes feel like you're walking
+    // up them regardless of compass direction.
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      map.once('load', () => {
+        try {
+          const bearing = bearingDegrees(
+            roundGpsState.teeLat, roundGpsState.teeLng,
+            roundGpsState.greenLat, roundGpsState.greenLng);
+          const bounds = new mapboxgl.LngLatBounds()
+            .extend([roundGpsState.teeLng, roundGpsState.teeLat])
+            .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+          map.fitBounds(bounds, {
+            padding: { top: 100, bottom: 180, left: 60, right: 60 },
+            duration: 0,
+            maxZoom: 18,
+            bearing,  // atomic rotation+fit so the rotation can't be reset
+          });
+        } catch (err) {
+          console.warn('Could not orient/frame hole:', err);
+        }
+      });
+    }
 
     // Green marker — same style as the saved pin in the pinning flow.
     const greenEl = document.createElement('div');
@@ -52983,6 +54339,32 @@
       .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${holeNum} green`))
       .addTo(map);
 
+    // Tee marker (Option C: one pin per hole) + tee→green line if
+    // the tee is pinned for this hole. Line goes on the map as a
+    // proper layer (markers can't be lines), so it scales/zooms
+    // correctly with the satellite imagery.
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      const teeEl = document.createElement('div');
+      teeEl.style.cssText = `
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #C2410C; border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+      roundGpsState.teeMarker = new mapboxgl.Marker(teeEl)
+        .setLngLat([roundGpsState.teeLng, roundGpsState.teeLat])
+        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${holeNum} tee`))
+        .addTo(map);
+    }
+
+    // Plan shot is the default mode now. Drop the target reticle as
+    // soon as the map is ready. dropRoundGpsTarget picks a sensible
+    // default position (midpoint of tee+green if tee pinned, else
+    // south of green). User can drag it from there.
+    const dropTarget = () => {
+      if (!roundGpsState.targetActive) dropRoundGpsTarget();
+    };
+    if (map.loaded() && !map.isMoving()) dropTarget();
+    else map.once('idle', dropTarget);
+
     // Kick off live position tracking. 2s is a good balance between
     // feeling "live" and not thrashing the device's GPS.
     updateRoundGpsPosition();
@@ -52993,8 +54375,9 @@
   // open and every 2s after.
   async function updateRoundGpsPosition() {
     if (!navigator.geolocation) {
-      const s = document.getElementById('round-gps-distance-sub');
-      if (s) s.textContent = 'Geolocation not supported';
+      // No geolocation — stay in planning mode forever. The
+      // initial render already showed hole yardage; nothing to
+      // update here.
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -53004,52 +54387,148 @@
         roundGpsState.userLat = latitude;
         roundGpsState.userLng = longitude;
 
-        // Blue "you" pin. Distinct from the orange course pins and
-        // the green green-marker so all three roles are unambiguous.
-        if (!roundGpsState.userMarker && roundGpsState.map) {
-          const el = document.createElement('div');
-          el.style.cssText = `
-            width: 18px; height: 18px; border-radius: 50%;
-            background: #2E86DE; border: 3px solid #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
-          roundGpsState.userMarker = new mapboxgl.Marker(el)
-            .setLngLat([longitude, latitude])
-            .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('You'))
-            .addTo(roundGpsState.map);
-        } else if (roundGpsState.userMarker) {
-          roundGpsState.userMarker.setLngLat([longitude, latitude]);
+        // On first fix, decide whether the user is on/near the
+        // course. If so, upgrade to playing mode (show user marker,
+        // frame on user+green, switch readout to to-green). If not,
+        // stay in planning mode — we have the user's position but
+        // we'd rather not clutter the map with a blue dot 28 miles
+        // from the action.
+        if (isFirst) {
+          const course = coursesCache.get(roundGpsState.courseId);
+          let onCourse = false;
+          if (course && typeof course.lat === 'number' && typeof course.lng === 'number') {
+            const milesAway = haversineMiles(
+              latitude, longitude, course.lat, course.lng);
+            onCourse = milesAway <= ROUND_GPS_PLAYING_THRESHOLD_MILES;
+          }
+          if (onCourse) {
+            upgradeRoundGpsToPlayingMode(latitude, longitude, accuracy);
+          }
+          // If not on course, do nothing on first fix — planning
+          // mode stays as-is. We keep tracking position so if the
+          // user drives to the course and the GPS view stays open,
+          // a later fix could trigger an upgrade — but that's an
+          // edge case not worth the complexity. The fix data is
+          // captured in state for the target's carry calculation.
         }
 
-        // On first fix, frame the map to include both user and
-        // green. Subsequent updates just move the user marker — no
-        // auto-recentering since we don't want the map sliding
-        // around under the user while they're looking at it.
-        if (isFirst && roundGpsState.map) {
-          const bounds = new mapboxgl.LngLatBounds()
-            .extend([longitude, latitude])
-            .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
-          roundGpsState.map.fitBounds(bounds, {
-            padding: { top: 120, bottom: 160, left: 60, right: 60 },
-            duration: 600,
-            maxZoom: 18,
-          });
-        }
+        // Once in playing mode, every fix updates the marker and
+        // the readout (or feeds the target if active).
+        if (roundGpsState.mode === 'playing') {
+          if (roundGpsState.userMarker) {
+            roundGpsState.userMarker.setLngLat([longitude, latitude]);
+          }
 
-        // Update distance.
-        const yards = haversineYards(latitude, longitude,
-                                      roundGpsState.greenLat,
-                                      roundGpsState.greenLng);
-        const valueEl = document.getElementById('round-gps-distance-value');
-        const subEl = document.getElementById('round-gps-distance-sub');
-        if (valueEl) valueEl.textContent = Math.round(yards);
-        if (subEl) subEl.textContent = `yards · GPS accuracy ±${Math.round(accuracy)}m`;
+          // If target is active, the user moved → refresh the
+          // you→target line and the carry/remaining readout.
+          if (roundGpsState.targetActive) {
+            updateRoundGpsTargetLines();
+            updateRoundGpsTargetReadout();
+            const subEl = document.getElementById('round-gps-distance-sub');
+            if (subEl && roundGpsState.targetLat != null) {
+              const remaining = haversineYards(
+                roundGpsState.targetLat, roundGpsState.targetLng,
+                roundGpsState.greenLat, roundGpsState.greenLng);
+              subEl.textContent = `Remaining ${Math.round(remaining)}y · ±${Math.round(accuracy)}m`;
+            }
+            return;
+          }
+
+          // Normal to-green mode — update the big number + sub-line.
+          const yards = haversineYards(latitude, longitude,
+                                        roundGpsState.greenLat,
+                                        roundGpsState.greenLng);
+          const valueEl = document.getElementById('round-gps-distance-value');
+          const subEl = document.getElementById('round-gps-distance-sub');
+          if (valueEl) valueEl.textContent = Math.round(yards);
+
+          const subParts = [];
+          if (roundGpsState.holeYards != null) {
+            subParts.push(`Hole ${roundGpsState.holeYards}y`);
+          }
+          if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+            const teeYards = haversineYards(latitude, longitude,
+                                             roundGpsState.teeLat,
+                                             roundGpsState.teeLng);
+            if (teeYards >= 20) {
+              subParts.push(`Tee shot ${Math.round(teeYards)}y`);
+            }
+          }
+          subParts.push(`±${Math.round(accuracy)}m`);
+          if (subEl) subEl.textContent = subParts.join(' · ');
+        } else {
+          // Planning mode — if the target is active, refresh the
+          // remaining-distance readout (target may have been dragged).
+          // No user position is included in carry calc since we're
+          // not showing the user.
+          if (roundGpsState.targetActive) {
+            updateRoundGpsTargetReadout();
+          }
+        }
       },
       (err) => {
-        const s = document.getElementById('round-gps-distance-sub');
-        if (s) s.textContent = `Location error: ${err.message}`;
+        // Geolocation denied or failed. Stay in planning mode.
+        // No need to surface this to the user — planning mode is a
+        // valid state.
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 1500 }
     );
+  }
+
+  // Transition from planning mode to playing mode. Called once when
+  // the first GPS fix lands and the user is within the threshold
+  // distance of the course. Drops the user marker, reframes the
+  // map on user+green, switches the readout to to-green mode.
+  function upgradeRoundGpsToPlayingMode(latitude, longitude, accuracy) {
+    if (roundGpsState.mode === 'playing') return;
+    roundGpsState.mode = 'playing';
+
+    // Drop the blue user marker.
+    if (!roundGpsState.userMarker && roundGpsState.map) {
+      const el = document.createElement('div');
+      el.style.cssText = `
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #2E86DE; border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
+      roundGpsState.userMarker = new mapboxgl.Marker(el)
+        .setLngLat([longitude, latitude])
+        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('You'))
+        .addTo(roundGpsState.map);
+    }
+
+    // Reframe the map to include user + green. This overrides the
+    // initial tee+green frame because the user's actual position is
+    // more relevant once they're on the course.
+    if (roundGpsState.map) {
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend([longitude, latitude])
+        .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+      roundGpsState.map.fitBounds(bounds, {
+        padding: { top: 120, bottom: 160, left: 60, right: 60 },
+        duration: 600,
+        maxZoom: 18,
+      });
+    }
+
+    // Switch the readout to to-green mode. Eyebrow: "To green",
+    // big number: yards from user to green, sub-line: hole yardage
+    // + tee-shot if applicable + GPS accuracy.
+    const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
+    if (eyebrowEl) eyebrowEl.textContent = 'To green';
+
+    const yards = haversineYards(latitude, longitude,
+                                  roundGpsState.greenLat,
+                                  roundGpsState.greenLng);
+    const valueEl = document.getElementById('round-gps-distance-value');
+    if (valueEl) valueEl.textContent = Math.round(yards);
+
+    const subParts = [];
+    if (roundGpsState.holeYards != null) {
+      subParts.push(`Hole ${roundGpsState.holeYards}y`);
+    }
+    subParts.push(`±${Math.round(accuracy)}m`);
+    const subEl = document.getElementById('round-gps-distance-sub');
+    if (subEl) subEl.textContent = subParts.join(' · ');
   }
 
   // ─────────────────────────────────────────────────────────────
