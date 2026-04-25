@@ -8384,18 +8384,15 @@
      card that grows to ~75vh max. */
 
   /* Body scroll lock — applied by JS when a bottom sheet or modal is
-     open. Prevents the page behind the sheet from scrolling when the
-     user drags inside the backdrop or the non-scrollable sheet edges.
-     position: fixed on body is the most reliable iOS approach (plain
-     overflow: hidden still allows scroll momentum on iOS Safari). We
-     preserve the scroll position via an inline `top: -Npx` that JS
-     sets before locking, and restore it on unlock. */
+     open. The naive approach (position:fixed on body) breaks iOS PWA
+     layout: once body has been position:fixed and back, iOS Safari
+     loses its viewport-fit=cover safe-area treatment — content stops
+     extending under the dynamic island for the rest of the session.
+     Instead we just overflow:hidden on html. Body stays position:static
+     so iOS keeps the full-bleed layout, and the visual scroll position
+     stays put naturally because nothing shifts. */
   html.scroll-locked { overflow: hidden; touch-action: none; }
   html.scroll-locked body {
-    position: fixed;
-    left: 0;
-    right: 0;
-    width: 100%;
     overflow: hidden;
   }
 
@@ -34858,7 +34855,10 @@
   function acquireScrollLock() {
     if (_scrollLockCount === 0) {
       _scrollLockY = window.scrollY || window.pageYOffset || 0;
-      document.body.style.top = `-${_scrollLockY}px`;
+      // Use transform instead of position:fixed + top:-Npx. iOS PWAs
+      // lose their viewport-fit=cover safe-area treatment after body
+      // has been position:fixed once. Transform preserves layout mode.
+      document.body.style.transform = `translateY(-${_scrollLockY}px)`;
       document.documentElement.classList.add('scroll-locked');
     }
     _scrollLockCount++;
@@ -34867,24 +34867,29 @@
     if (_scrollLockCount === 0) return;
     _scrollLockCount--;
     if (_scrollLockCount === 0) {
-      // Order matters to avoid a visible scroll jump on iOS Safari.
       // Steps:
-      //   1. Temporarily kill scroll-behavior (the design system sets
-      //      `scroll-behavior: smooth` on html globally, which would
-      //      make the restoration scroll animate instead of jump).
-      //   2. Remove the fixed-position lock. This causes the page to
-      //      momentarily scroll to top (position:fixed with top:-Npx
-      //      was the only thing keeping the visible scroll offset).
-      //   3. Clear the inline body top.
-      //   4. Immediately scroll back to the saved position. Because
-      //      scroll-behavior is off, this is instant — the user never
-      //      sees the intermediate scroll-to-top state.
-      //   5. Restore scroll-behavior on the next frame so smooth
-      //      scrolling works again for subsequent in-app navigation.
+      //   1. Temporarily kill scroll-behavior so the restoration is
+      //      instant (the design system sets `scroll-behavior: smooth`
+      //      on html globally; we don't want a smooth animation here).
+      //   2. Remove the lock — overflow:hidden on html clears.
+      //   3. Clear the inline transform.
+      //   4. Immediately scroll back to the saved position. Since the
+      //      transform was holding the visual position, removing it
+      //      "snaps" the page to the actual scroll position; we just
+      //      need to make sure the actual scroll position matches what
+      //      the user was seeing, which it already does (we never
+      //      actually scrolled; we just shifted via transform).
+      //   5. Restore scroll-behavior on the next frame.
       const prevBehavior = document.documentElement.style.scrollBehavior;
       document.documentElement.style.scrollBehavior = 'auto';
       document.documentElement.classList.remove('scroll-locked');
-      document.body.style.top = '';
+      document.body.style.transform = '';
+      // Force a synchronous layout pass so iOS Safari re-evaluates
+      // the safe-area extension state. Without this, the dynamic
+      // island region can stay in a stale "not extended" state after
+      // unlock, leaving a subtle bar at the top of the screen until
+      // the user navigates away and back.
+      void document.body.offsetHeight;
       window.scrollTo(0, _scrollLockY);
       requestAnimationFrame(() => {
         document.documentElement.style.scrollBehavior = prevBehavior;
