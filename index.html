@@ -5048,6 +5048,120 @@
   }
   .round-gps-action-bar > * { pointer-events: auto; }
 
+  /* Compact variant of round-tools-btn for the GPS three-button action
+     bar. Tighter padding so Tools + Log shot + Score all fit comfortably
+     on phone widths. Used only inside .round-gps-action-bar. */
+  .round-gps-action-bar .round-tools-btn-compact {
+    padding: var(--space-3) var(--space-3);
+    min-height: 48px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .round-gps-action-bar .round-tools-btn-compact .round-tools-btn-label {
+    font-size: var(--text-xs);
+  }
+
+  /* Log shot — primary action button in the GPS action bar. Orange
+     fill mirrors the language of the round-save-btn (familiar primary
+     CTA pattern in the app), but with a different shape and subtle
+     ⛳ icon to clearly distinguish it from "save the round score".
+     Sits between Tools and Score, gets the most flex so it expands
+     when there's room. */
+  .round-gps-shot-btn {
+    flex: 1;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: 2px solid var(--color-orange);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    min-height: 52px;
+    box-shadow:
+      0 8px 24px var(--color-orange-glow),
+      0 2px 6px rgba(13, 13, 13, 0.12);
+    transition:
+      transform var(--transition-spring),
+      background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .round-gps-shot-btn:hover {
+      background: var(--color-orange-light);
+      border-color: var(--color-orange-light);
+    }
+  }
+  .round-gps-shot-btn:active { transform: scale(0.98); }
+  .round-gps-shot-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .round-gps-shot-btn-icon {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+  .round-gps-shot-btn-label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.02em;
+  }
+  /* Shot count badge — appears after the label when shots are logged
+     for this hole. Helps the user see at a glance how many they've
+     already tracked. Empty by default (no shots → no badge). */
+  .round-gps-shot-btn-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .round-gps-shot-btn-count:empty { display: none; }
+
+  /* Shot pin marker — a small ball icon that appears at each logged
+     shot's start position on the map. Connected by thin orange lines
+     to show the path of play. Tappable for editing (opens the existing
+     shot edit sheet). The "current from" marker (where the next shot
+     will be hit FROM) gets a subtle orange ring to mark it as active. */
+  .round-gps-shot-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fefefe;
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    /* Hit-area boost — visual is 16px but tappable area is bigger so
+       fingers don't miss the small pin. */
+    box-sizing: content-box;
+    margin: -8px;
+    padding: 8px;
+    background-clip: content-box;
+    border-clip: content-box;
+  }
+  .round-gps-shot-marker.is-current-from {
+    background: var(--color-orange);
+    border-color: #fff;
+  }
+
   /* Recenter button — round, bottom-left, floating above the action
      bar so it doesn't get hidden by the bar's gradient. Reframes the
      map on tee+green at the proper bearing when tapped. */
@@ -8137,6 +8251,67 @@
     min-width: 28px;
     text-align: center;
   }
+
+  /* Score reconciliation banner — appears inside the round card when
+     the user's logged shot count doesn't match their entered strokes.
+     Informational, not blocking; tap to open the shots tool to see
+     what's logged. Hidden when in balance (no shots logged at all,
+     or count matches strokes). The banner is intentionally subtle —
+     a small warning, not a wall. Users may legitimately not log every
+     shot (chips, putts, etc.) and we trust their stroke count as truth. */
+  .round-card-reconcile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-orange-pale);
+    border: 1px solid var(--color-orange);
+    border-opacity: 0.3;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+    width: 100%;
+  }
+  html.dark .round-card-reconcile {
+    background: rgba(232, 93, 4, 0.10);
+    border-color: rgba(232, 93, 4, 0.4);
+  }
+  @media (hover: hover) {
+    .round-card-reconcile:hover {
+      background: rgba(232, 93, 4, 0.18);
+    }
+  }
+  .round-card-reconcile-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--color-orange-dark);
+  }
+  html.dark .round-card-reconcile-icon { color: var(--color-orange); }
+  .round-card-reconcile-text {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    color: var(--color-orange-dark);
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+  }
+  html.dark .round-card-reconcile-text { color: var(--color-orange); }
+  .round-card-reconcile-cta {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--color-orange-dark);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  html.dark .round-card-reconcile-cta { color: var(--color-orange); }
 
   /* Footer actions — primary CTA + secondary nav */
   .round-actions {
@@ -34743,6 +34918,8 @@
             </button>
           `}
         </div>
+
+        ${renderRoundCardReconcile(holeNum, strokes)}
       </div>
 
       <!-- Action footer — secondary actions only. Primary "Save & Next"
@@ -35060,6 +35237,8 @@
             </button>
           `}
         </div>
+
+        ${renderRoundCardReconcile(holeNum, strokes)}
       </div>
 
       <!-- Action footer — secondary actions only. Primary "Save & Next"
@@ -36254,6 +36433,20 @@
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
     }
+    // If GPS view is open, refresh the shot pins on the map so any
+    // changes are visible. Cheap re-render — small N of shots per hole.
+    if (typeof renderRoundGpsShotMarkers === 'function'
+        && roundGpsState.open) {
+      renderRoundGpsShotMarkers();
+      updateShotBtnCount();
+    }
+    // If the GPS score sheet is open on top of GPS, its cloned card
+    // needs refreshing so the reconciliation banner picks up the new
+    // shot count. Same dance happens for stroke adjustments inside the
+    // sheet via existing render code; this just covers the shot-edit path.
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      try { window.refreshGpsScoreSheetBody(); } catch (_) {}
+    }
     // Scratchpad for crash-recovery; real Firestore write fires on
     // next nav event (Save & Next, Previous, picker jump).
     writeScoreScratchpad();
@@ -36282,6 +36475,21 @@
     const sheetBody = document.querySelector('.tools-sheet-body');
     if (sheetBody && dockState.activeTool === 'shots') {
       sheetBody.innerHTML = renderShotsTool();
+    }
+    // If GPS is open and deleting a shot for the current hole,
+    // re-init shot tracking (recomputes lastShotEnd from the now-shorter
+    // shots array) and re-render pins. Without this, lastShotEnd
+    // would still reference the deleted shot's end position.
+    if (typeof renderRoundGpsShotMarkers === 'function'
+        && roundGpsState.open
+        && roundGpsState.holeNumber === holeNumber) {
+      initShotTrackingForHole();
+      renderRoundGpsShotMarkers();
+      updateShotBtnCount();
+    }
+    // Refresh GPS score sheet's cloned card if open.
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      try { window.refreshGpsScoreSheetBody(); } catch (_) {}
     }
     // Scratchpad — same save-on-nav model as shot save above.
     writeScoreScratchpad();
@@ -37359,12 +37567,56 @@
     `;
   }
 
-  // Set the tristate value and trigger the appropriate side effects.
+  // Render the score reconciliation banner inside a round card. Shows
+  // when the user's logged shot count for THIS hole differs from the
+  // strokes value they've entered. Helps catch missed taps (logged < strokes)
+  // and accidental duplicate taps (logged > strokes). Returns empty
+  // string when there's nothing to reconcile (balanced, OR no shots
+  // logged at all — that's the "didn't use shot tracking on this hole"
+  // path and should silently work).
+  //
+  // Tap behavior: opens the existing shots tool so the user can see
+  // what's logged and adjust. No modal-blocking — save proceeds
+  // regardless. We trust the user's stroke count as truth.
+  function renderRoundCardReconcile(holeNum, strokes) {
+    if (holeNum == null || strokes == null) return '';
+    const shots = getShotsForHole(holeNum);
+    const shotCount = shots ? shots.length : 0;
+    // Don't show if no shots logged — user clearly isn't tracking this
+    // hole. Also don't show if balanced.
+    if (shotCount === 0 || shotCount === strokes) return '';
+    const diff = strokes - shotCount;
+    let text;
+    if (diff > 0) {
+      // Logged < strokes — most common case (missed tap on tee, chip,
+      // putt, etc.). Phrase as "shots not logged" — frames the gap
+      // as missing data, not wrong data.
+      text = diff === 1
+        ? '1 shot not logged'
+        : `${diff} shots not logged`;
+    } else {
+      // Logged > strokes — extra taps. Phrase as "extra shot logged"
+      // so user understands they have a logging error to clean up.
+      const extra = Math.abs(diff);
+      text = extra === 1
+        ? '1 extra shot logged'
+        : `${extra} extra shots logged`;
+    }
+    return `
+      <button class="round-card-reconcile" onclick="selectTool('shots')" aria-label="${escapeHtml(text)}, tap to review">
+        <span class="round-card-reconcile-icon" aria-hidden="true">⚠</span>
+        <span class="round-card-reconcile-text">${escapeHtml(text)}</span>
+        <span class="round-card-reconcile-cta">Review →</span>
+      </button>
+    `;
+  }
+
   //   null  → clear value AND clear miss direction
   //   true  → set hit; clear miss direction (hit can't have a direction)
   //   false → set miss; open miss-direction modal so user can specify.
   //           (If they cancel the modal, state stays at "miss with no
   //           direction" — their tap was intentional.)
+  // Set the tristate value and trigger the appropriate side effects.
   function setTristate(kind, newValue) {
     const isGroup = kind.endsWith('-gr');
     const statKey = kind.startsWith('fir') ? 'fir' : 'gir';
@@ -54086,6 +54338,19 @@
     advanceDismissed: new Set(),
     advancePromptVisible: false,
     advancePromptHoleIndex: null,
+    // ── Shot tracking state ────────────────────────────────────
+    // lastShotEnd is the position where the next shot will be hit FROM.
+    // Set to the tee position when GPS is in playing mode on a fresh
+    // hole. Updates each time the user taps "Log shot" — that tap
+    // captures their current GPS as the END of the previous shot AND
+    // the START of the next one.
+    lastShotEnd: null,             // { lat, lng } | null
+    // Map artefacts for shot rendering. shotMarkers maps shot id →
+    // mapboxgl.Marker so we can remove them precisely on hole change
+    // or shot delete. shotLine is a single mapbox source/layer pair
+    // for the connecting line between consecutive shots.
+    shotMarkers: {},               // { [shotId]: mapboxgl.Marker }
+    shotLine: null,                // { sourceId, layerId } | null
   };
 
   // Threshold for switching between planning and playing modes.
@@ -54179,6 +54444,12 @@
     roundGpsState.targetLng = null;
     roundGpsState.targetLines = null;
     roundGpsState.targetLabels = null;
+    // Shot-tracking state — markers and line objects reference the
+    // about-to-be-destroyed map. Reset references; the actual map
+    // tear-down happens via map.remove() above.
+    roundGpsState.shotMarkers = {};
+    roundGpsState.shotLine = null;
+    roundGpsState.lastShotEnd = null;
 
     renderRoundGpsPanel();
   }
@@ -54287,6 +54558,11 @@
       // Tear down old target (markers, lines, labels, listeners).
       clearRoundGpsTarget();
 
+      // Tear down old hole's shot pins. They reference old GPS coords
+      // so re-rendering on the new hole's frame would be visually wrong.
+      // Re-init + re-render happens after flyTo lands (below).
+      clearRoundGpsShotMarkers();
+
       // Phase 2: flyTo. While the camera animates, the new green/tee
       // markers are at their new locations but invisible.
       if (roundGpsState.greenLat != null) {
@@ -54346,6 +54622,14 @@
       // visual; the overlays settling into place at the end is fine.
       const dropAfterFly = () => {
         if (!roundGpsState.targetActive) dropRoundGpsTarget();
+        // Initialize shot tracking for the new hole. Resets lastShotEnd
+        // to the new tee (or to the last logged shot's end if shots
+        // already exist on this hole) and renders any existing pins.
+        if (roundGpsState.mode === 'playing') {
+          initShotTrackingForHole();
+          renderRoundGpsShotMarkers();
+        }
+        updateShotBtnCount();
       };
       map.once('moveend', dropAfterFly);
     }, FADE_OUT_MS);
@@ -54569,6 +54853,13 @@
     roundGpsState.advanceDismissed = new Set();
     roundGpsState.advancePromptVisible = false;
     roundGpsState.advancePromptHoleIndex = null;
+    // Reset shot-tracking scratch state. The shots themselves remain
+    // in roundState.shots / me.shots (round-scoped). Only the GPS-
+    // view's view-state is cleared here. Map markers + line are
+    // already gone via map.remove() above.
+    roundGpsState.lastShotEnd = null;
+    roundGpsState.shotMarkers = {};
+    roundGpsState.shotLine = null;
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -54577,6 +54868,15 @@
     // persist as a zombie sheet over the underlying round panel.
     if (typeof window.closeGpsScoreSheet === 'function') {
       window.closeGpsScoreSheet();
+    }
+    // Re-render the underlying round panel so any shots logged during
+    // the GPS session show up in the score reconciliation banner.
+    // Cheap re-render — the round card is small.
+    if (typeof renderRound === 'function' && isRoundActive()) {
+      try { renderRound(); } catch (_) {}
+    }
+    if (typeof renderGroupRoundPanel === 'function' && isGroupRoundActive()) {
+      try { renderGroupRoundPanel(); } catch (_) {}
     }
   }
   window.closeRoundGpsPanel = closeRoundGpsPanel;
@@ -55449,6 +55749,392 @@
   }
   window.dismissRoundGpsAdvance = dismissRoundGpsAdvance;
 
+  // ──────────────────────────────────────────────────────────
+  // Shot tracking via GPS
+  //
+  // The user taps "Log shot" once per shot at their ball. That tap
+  // captures their current GPS as the END of the previous shot AND
+  // the START of the next one — one tap, two data points, the trick
+  // that makes shot tracking ergonomically viable mid-round.
+  //
+  // The first shot of a hole has its start auto-set to the tee
+  // position when GPS enters playing mode on a fresh hole, so the
+  // user doesn't need to remember to "log the tee shot start"
+  // before hitting.
+  //
+  // Shots persist to roundState.shots[holeNumber] (solo) or
+  // me.shots[holeNumber] (group) via the existing get/ensure helpers.
+  // The standard shot fields (club, distance, startLie, intent,
+  // mishit, result) are joined by GPS-specific fields (startLat,
+  // startLng, endLat, endLng, actualYards) — additive optional, so
+  // pre-GPS rounds remain backwards compatible.
+  // ──────────────────────────────────────────────────────────
+
+  // Set up shot-tracking state when GPS enters playing mode for a
+  // hole. The previous-shot-end starts at the tee — so the user's
+  // first "Log shot" tap will record their tee shot's landing point.
+  // If the tee position isn't pinned, we leave lastShotEnd null;
+  // the first shot start is then captured from current GPS at log time.
+  function initShotTrackingForHole() {
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      roundGpsState.lastShotEnd = {
+        lat: roundGpsState.teeLat,
+        lng: roundGpsState.teeLng,
+      };
+    } else {
+      roundGpsState.lastShotEnd = null;
+    }
+    // If shots already exist for this hole (resuming a tracked round
+    // mid-play), advance lastShotEnd to the END of the most recent
+    // shot. Players can leave the GPS view and come back; we want
+    // the next tap to extend the chain, not restart it.
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum != null) {
+      const shots = getShotsForHole(holeNum);
+      if (shots && shots.length) {
+        const last = shots[shots.length - 1];
+        if (last.endLat != null && last.endLng != null) {
+          roundGpsState.lastShotEnd = { lat: last.endLat, lng: last.endLng };
+        } else if (last.startLat != null && last.startLng != null) {
+          // Last shot has start but no end — must be a partial.
+          // Safest to set lastShotEnd to the start so the next tap
+          // captures THIS shot's end (rather than spawning a new one).
+          // Practically this means the partial gets completed.
+          roundGpsState.lastShotEnd = { lat: last.startLat, lng: last.startLng };
+        }
+      }
+    }
+  }
+
+  // Heuristic for the lie a fresh shot starts on. We can't read the
+  // satellite imagery to know, but the previous shot's context is a
+  // strong hint:
+  //   - First shot of hole → 'tee'
+  //   - Previous shot ended on/near the green → 'green' (likely a putt)
+  //   - Otherwise → 'fairway' as a reasonable default the user can edit
+  // The user can always override in the shot edit sheet. Auto-default
+  // just saves them one tap in the common case.
+  function inferShotStartLie(prevShot, isFirstShotOfHole) {
+    if (isFirstShotOfHole) return 'tee';
+    if (!prevShot) return 'fairway';
+    // Did the previous shot end on the green? Within 12 yards of
+    // green coord = likely on green. Outside that = fairway/rough,
+    // but distinguishing those needs satellite parsing we don't do.
+    if (prevShot.endLat != null && prevShot.endLng != null
+        && roundGpsState.greenLat != null) {
+      const distToGreen = haversineYards(
+        prevShot.endLat, prevShot.endLng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+      if (distToGreen < 12) return 'green';
+    }
+    return 'fairway';
+  }
+
+  // Heuristic for shot intent based on shot context:
+  //   - First shot of hole, par 4/5 → 'tee'
+  //   - Par 3 first shot → 'approach' (it's a tee shot, but functionally an approach)
+  //   - Starting on green → 'putt'
+  //   - Distance to target ≤ 40y → 'chip' (short game)
+  //   - Otherwise → 'approach' as the default for full-swing shots
+  function inferShotIntent(yardsToTarget, isFirstShotOfHole, startLie, holePar) {
+    if (startLie === 'green') return 'putt';
+    if (isFirstShotOfHole && holePar !== 3) return 'tee';
+    if (yardsToTarget != null && yardsToTarget <= 40) return 'chip';
+    return 'approach';
+  }
+
+  // Main handler — fired when the user taps the orange "Log shot"
+  // button in the GPS action bar. Captures current GPS, finalizes
+  // the previous shot's end (if one's pending), creates the next
+  // shot, opens the existing shot edit sheet for optional refinement.
+  async function logShotAtCurrentPosition() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.mode !== 'playing') {
+      showToast('GPS hasn\'t found you yet — wait a moment', true);
+      return;
+    }
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) {
+      showToast('No GPS fix — can\'t log shot position', true);
+      return;
+    }
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return;
+
+    // Guard against accidental duplicate logs — if the captured pos
+    // is within 2 yards of the previous shot's start (= where we
+    // currently are in the sequence), the user probably tapped twice
+    // accidentally. Show a toast, skip the log. This is well within
+    // GPS accuracy noise so we'd be making up an artificial sub-yard
+    // shot otherwise.
+    const existingShotsForCheck = getShotsForHole(holeNum);
+    const recentShot = existingShotsForCheck[existingShotsForCheck.length - 1];
+    if (recentShot && recentShot.startLat != null && recentShot.startLng != null) {
+      const distFromRecent = haversineYards(
+        recentShot.startLat, recentShot.startLng,
+        userPos.lat, userPos.lng);
+      if (distFromRecent < 2) {
+        showToast('You haven\'t moved much — log when you reach your ball', true);
+        return;
+      }
+    }
+
+    // Get the shot start position. lastShotEnd was set to the tee
+    // (or to the previous shot's end) — that's where THIS shot was hit
+    // FROM. If lastShotEnd is null (no tee pinned, no prior shots),
+    // we have a problem: we can't compute a yards-hit without a from.
+    // Fall back to using current pos as the start (zero-length placeholder).
+    const startLat = roundGpsState.lastShotEnd?.lat ?? userPos.lat;
+    const startLng = roundGpsState.lastShotEnd?.lng ?? userPos.lng;
+    const endLat = userPos.lat;
+    const endLng = userPos.lng;
+    const actualYards = roundGpsState.lastShotEnd
+      ? Math.round(haversineYards(startLat, startLng, endLat, endLng))
+      : null;
+
+    // Yards-to-target (the existing `distance` field semantic): if a
+    // target reticle was active, use distance from the shot START to
+    // the target. Otherwise, distance from the shot START to the green.
+    let yardsToTarget = null;
+    if (roundGpsState.targetActive
+        && roundGpsState.targetLat != null && roundGpsState.targetLng != null) {
+      yardsToTarget = Math.round(haversineYards(
+        startLat, startLng,
+        roundGpsState.targetLat, roundGpsState.targetLng));
+    } else if (roundGpsState.greenLat != null) {
+      yardsToTarget = Math.round(haversineYards(
+        startLat, startLng,
+        roundGpsState.greenLat, roundGpsState.greenLng));
+    }
+
+    // Look up the previous shot to inform start-lie inference.
+    const existingShots = getShotsForHole(holeNum);
+    const isFirstShotOfHole = existingShots.length === 0;
+    const prevShot = existingShots[existingShots.length - 1];
+    const startLie = inferShotStartLie(prevShot, isFirstShotOfHole);
+    const intent = inferShotIntent(
+      yardsToTarget, isFirstShotOfHole, startLie, roundGpsState.holePar);
+
+    // Default club: if start is on green → putter; if on tee with
+    // par 4/5 → driver; otherwise leave blank for user to fill in.
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    let defaultClub = '';
+    if (startLie === 'green') {
+      const putter = bag.find(c => c.type === 'putter');
+      if (putter) defaultClub = putter.name;
+    } else if (isFirstShotOfHole && roundGpsState.holePar !== 3) {
+      // Driver = first non-putter in distance-sorted bag (sortedBag
+      // puts longest-first, putter last).
+      const driver = bag.find(c => c.type !== 'putter');
+      if (driver) defaultClub = driver.name;
+    }
+
+    // Finalize the previous shot's end (if there's a previous shot
+    // we're now closing out). Only update the previous shot if it
+    // doesn't already have an end — guard against double-tap on Log
+    // shot which would otherwise overwrite a real end with the same
+    // current pos.
+    if (prevShot && prevShot.endLat == null) {
+      prevShot.endLat = startLat;
+      prevShot.endLng = startLng;
+      // Recompute the prev shot's actualYards if it had a startLat
+      // (old shots without start coords stay null).
+      if (prevShot.startLat != null && prevShot.startLng != null) {
+        prevShot.actualYards = Math.round(haversineYards(
+          prevShot.startLat, prevShot.startLng,
+          prevShot.endLat, prevShot.endLng));
+      }
+    }
+
+    // Create the new shot. Push it now (with sensible defaults) so
+    // even if the user dismisses the edit sheet without picking a
+    // club, the position is captured. They can fill in details later
+    // via the shots tool, or by tapping the pin to edit.
+    const shots = ensureShotsForHole(holeNum);
+    const newShot = {
+      id: newShotId(),
+      club: defaultClub,
+      distance: yardsToTarget,
+      startLie,
+      intent,
+      mishit: 'clean',
+      result: null,
+      // GPS-specific fields. These are additive — non-GPS shots from
+      // the regular round screen continue to work without them.
+      startLat,
+      startLng,
+      endLat: null,    // filled in by NEXT logShot tap
+      endLng: null,
+      actualYards: null,
+      loggedAt: Date.now(),
+    };
+    shots.push(newShot);
+
+    // Advance lastShotEnd to the captured position. The next tap
+    // will treat THIS spot as the from-position.
+    roundGpsState.lastShotEnd = { lat: endLat, lng: endLng };
+
+    // Render shot pins and the connecting line on the map.
+    renderRoundGpsShotMarkers();
+    updateShotBtnCount();
+
+    // Persist to scratchpad for crash-recovery; main Firestore write
+    // happens on next nav event (Save & Next, hole change, round end).
+    if (typeof writeScoreScratchpad === 'function') {
+      try { writeScoreScratchpad(); } catch (_) {}
+    }
+
+    // If the GPS score sheet is open beneath the about-to-open shot
+    // edit sheet, refresh its cloned card so the reconciliation
+    // banner picks up the new shot. Defensive — only matters if
+    // user opened score sheet first, then came back to GPS to log
+    // a shot. The shot edit sheet closing later will also refresh
+    // via saveShotDraft / closeShotEditSheet's handlers.
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      try { window.refreshGpsScoreSheetBody(); } catch (_) {}
+    }
+
+    // Open the shot edit sheet so the user can fill in club / details.
+    // They can dismiss without changing anything; defaults stand.
+    openShotEditSheet(holeNum, newShot.id);
+  }
+  window.logShotAtCurrentPosition = logShotAtCurrentPosition;
+
+  // Update the count badge on the Log Shot button so the user can
+  // see at a glance how many shots they've tracked on this hole.
+  function updateShotBtnCount() {
+    const countEl = document.getElementById('round-gps-shot-btn-count');
+    if (!countEl) return;
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) { countEl.textContent = ''; return; }
+    const n = getShotsForHole(holeNum).length;
+    countEl.textContent = n > 0 ? String(n) : '';
+  }
+
+  // Render or refresh all shot pins for the current hole. Called
+  // on initial map load (when entering playing mode), on every Log
+  // shot tap, and after shot edit/delete. Idempotent — clears and
+  // re-creates rather than diffing, since the shot count is small (<10).
+  function renderRoundGpsShotMarkers() {
+    const map = roundGpsState.map;
+    if (!map) return;
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return;
+
+    // Tear down existing markers + line first.
+    clearRoundGpsShotMarkers();
+
+    const shots = getShotsForHole(holeNum);
+    if (!shots || !shots.length) return;
+
+    // Build a list of all positions in chronological order. Each
+    // shot contributes its startLat/Lng (if present); the LAST
+    // shot also contributes its endLat/Lng if it's been finalized.
+    const points = [];
+    shots.forEach((s, i) => {
+      if (s.startLat != null && s.startLng != null) {
+        points.push({
+          shotId: s.id,
+          lat: s.startLat,
+          lng: s.startLng,
+          isCurrentFrom: false,
+          shotIndex: i,
+        });
+      }
+    });
+    // The position the NEXT shot will start from (= last shot's end,
+    // OR the lastShotEnd state if it's been advanced past the last
+    // logged shot's start). This is where the user is "now" in shot
+    // sequence terms.
+    if (roundGpsState.lastShotEnd
+        && shots.length > 0
+        && (shots[shots.length - 1].endLat != null
+            || roundGpsState.lastShotEnd.lat !== shots[shots.length - 1].startLat)) {
+      points.push({
+        shotId: '__current_from',
+        lat: roundGpsState.lastShotEnd.lat,
+        lng: roundGpsState.lastShotEnd.lng,
+        isCurrentFrom: true,
+        shotIndex: shots.length,
+      });
+    }
+
+    // Connecting line — thin orange polyline through all the points.
+    if (points.length >= 2) {
+      const sourceId = 'round-gps-shot-line-src';
+      const layerId = 'round-gps-shot-line-lyr';
+      const feature = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: points.map(p => [p.lng, p.lat]),
+        },
+      };
+      try {
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, { type: 'geojson', data: feature });
+        } else {
+          map.getSource(sourceId).setData(feature);
+        }
+        if (!map.getLayer(layerId)) {
+          map.addLayer({
+            id: layerId,
+            type: 'line',
+            source: sourceId,
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#ff8a3d',
+              'line-width': 2,
+              'line-opacity': 0.7,
+            },
+          });
+        }
+        roundGpsState.shotLine = { sourceId, layerId };
+      } catch (_) { /* swallow — map may not be fully initialized */ }
+    }
+
+    // Pin markers — one per point.
+    points.forEach((p, idx) => {
+      const el = document.createElement('div');
+      el.className = 'round-gps-shot-marker';
+      if (p.isCurrentFrom) el.classList.add('is-current-from');
+      el.title = p.isCurrentFrom
+        ? 'You are here (next shot start)'
+        : `Shot ${p.shotIndex + 1} start`;
+      // Tap a real shot pin to edit; the "current from" pin isn't
+      // a logged shot so it isn't tappable.
+      if (!p.isCurrentFrom) {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openShotEditSheet(holeNum, p.shotId);
+        });
+      }
+      try {
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([p.lng, p.lat])
+          .addTo(map);
+        roundGpsState.shotMarkers[p.shotId] = marker;
+      } catch (_) {}
+    });
+  }
+
+  // Tear down all shot pins and the connecting line. Called when
+  // changing holes, closing GPS, or before a re-render in
+  // renderRoundGpsShotMarkers itself.
+  function clearRoundGpsShotMarkers() {
+    const map = roundGpsState.map;
+    Object.values(roundGpsState.shotMarkers).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    roundGpsState.shotMarkers = {};
+    if (map && roundGpsState.shotLine) {
+      const { sourceId, layerId } = roundGpsState.shotLine;
+      try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+      try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+    }
+    roundGpsState.shotLine = null;
+  }
+
   // Pick the "from" point for the target's first line — playing
   // mode uses the user's position; planning mode falls back to the
   // tee pin if available; otherwise null (no first line drawn).
@@ -56029,16 +56715,30 @@
              GPS). Input score opens a bottom sheet hosting a clone of
              the regular round screen's hole card — the user scores
              without ever leaving GPS context. -->
+        <!-- Bottom action bar — Tools (secondary), Log Shot (primary
+             orange), Score (secondary). Log Shot is the in-play action
+             tapped once per shot to capture position. Score remains
+             accessible via its own button for end-of-hole input. -->
         <div class="round-gps-action-bar">
-          <button class="round-tools-btn"
+          <button class="round-tools-btn round-tools-btn-compact"
                   onclick="openToolsSheet()"
                   aria-label="Open tools">
             <span class="round-tools-btn-icon" aria-hidden="true">⋯</span>
             <span class="round-tools-btn-label">Tools</span>
           </button>
-          <button class="round-save-btn"
-                  onclick="openGpsScoreSheet()">
-            Input score →
+          <button class="round-gps-shot-btn"
+                  id="round-gps-shot-btn"
+                  onclick="logShotAtCurrentPosition()"
+                  aria-label="Log shot at current position">
+            <span class="round-gps-shot-btn-icon" aria-hidden="true">⛳</span>
+            <span class="round-gps-shot-btn-label">Log shot</span>
+            <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
+          </button>
+          <button class="round-tools-btn round-tools-btn-compact"
+                  onclick="openGpsScoreSheet()"
+                  aria-label="Input score">
+            <span class="round-tools-btn-icon" aria-hidden="true">✎</span>
+            <span class="round-tools-btn-label">Score</span>
           </button>
         </div>
       </div>`;
@@ -56514,6 +57214,19 @@
     // Refresh the info bar so the distance label flips to "TO GREEN"
     // and the value shows user → green distance.
     updateRoundGpsInfoBar();
+
+    // Initialize shot tracking for this hole — sets lastShotEnd to
+    // the tee position (or to the most recent logged shot's end if
+    // resuming a partially-tracked round). Renders any existing
+    // shot pins on the map. updateShotBtnCount keeps the badge in
+    // sync after re-render.
+    initShotTrackingForHole();
+    if (roundGpsState.map.loaded() && !roundGpsState.map.isMoving()) {
+      renderRoundGpsShotMarkers();
+    } else {
+      roundGpsState.map.once('idle', renderRoundGpsShotMarkers);
+    }
+    updateShotBtnCount();
   }
 
   // ─────────────────────────────────────────────────────────────
