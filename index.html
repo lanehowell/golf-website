@@ -4777,6 +4777,20 @@
     background: #000;
     display: flex;
     flex-direction: column;
+    transform: translateY(0);
+    transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  /* Opening state — panel starts off the bottom of the screen, then
+     slides up when the class is removed on next frame. Used by the
+     panel render path for a smooth entry transition. */
+  .round-gps-panel.opening {
+    transform: translateY(100%);
+  }
+  /* Closing state — panel slides fully off the bottom of the screen.
+     The transitionend listener fires when this is complete, then the
+     panel unmounts. */
+  .round-gps-panel.closing {
+    transform: translateY(100%);
   }
   #round-gps-map {
     position: absolute;
@@ -4790,21 +4804,55 @@
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     z-index: 2;
     pointer-events: none;
   }
-  .round-gps-hole-chip {
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: var(--radius-pill);
-    font-family: var(--font-display);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
+
+  /* Info bar — horizontally centered, semi-transparent black with a
+     subtle blur. Three stat cells (HOLE / PAR / DISTANCE) divided by
+     thin vertical lines. Sits at the top of the map view replacing
+     the old corner pill. */
+  .round-gps-info-bar {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: var(--radius-lg);
+    padding: 10px 4px;
     pointer-events: auto;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+  .round-gps-info-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    color: #fff;
+    min-width: 56px;
+  }
+  .round-gps-info-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    opacity: 0.65;
+    margin-bottom: 2px;
+  }
+  .round-gps-info-value {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .round-gps-info-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.18);
+    align-self: stretch;
+    margin: 4px 0;
   }
   .round-gps-close {
     width: 40px;
@@ -4821,10 +4869,13 @@
     justify-content: center;
   }
   .round-gps-close-float {
-    background: rgba(0, 0, 0, 0.75);
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 16px;
+    background: rgba(0, 0, 0, 0.55);
     color: #fff;
     pointer-events: auto;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
   }
   /* Hole navigation chevrons — round buttons floating on the map's
      left/right edges, vertical-centered. Match the close button's
@@ -4856,65 +4907,91 @@
     opacity: 0.3;
     cursor: default;
   }
-  /* Distance readout at bottom. Strong gradient from transparent
-     up to near-opaque so the number has a solid backing but the
-     map stays visible above. */
-  .round-gps-distance {
+  /* Bottom action bar inside the GPS view. Mirrors the round-action-bar
+     pattern but on a dark map background. The buttons themselves
+     reuse .round-tools-btn / .round-save-btn classes from the round
+     screen for consistent styling. */
+  .round-gps-action-bar {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 32px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
-    color: #fff;
-    text-align: center;
-    z-index: 2;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.6) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
     pointer-events: none;
   }
-  .round-gps-distance-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    opacity: 0.7;
-    margin-bottom: 6px;
+  .round-gps-action-bar > * { pointer-events: auto; }
+
+  /* Recenter button — round, bottom-left, floating above the action
+     bar so it doesn't get hidden by the bar's gradient. Reframes the
+     map on tee+green at the proper bearing when tapped. */
+  .round-gps-recenter {
+    position: absolute;
+    left: 16px;
+    /* Sit ~16px above the action bar's top edge. Action bar is roughly
+       64px tall + safe-area-bottom inset. */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    -webkit-tap-highlight-color: transparent;
   }
-  .round-gps-distance-value {
-    font-family: var(--font-display);
-    font-size: 64px;
-    font-weight: var(--weight-bold);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .round-gps-distance-sub {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    opacity: 0.7;
-    margin-top: 8px;
-  }
+  .round-gps-recenter:active { background: rgba(0, 0, 0, 0.75); }
 
   /* Yardage labels at the midpoint of each line in the GPS view's
-     plan-shot mode. Semi-transparent black pill, white tabular-num
-     text. Positioned by Mapbox at the line's geographic midpoint —
-     css transform nudges it slightly upward so it sits just above
-     the line rather than on top of it. pointer-events none so a
-     drag from the reticle through the label doesn't catch on it. */
+     plan-shot mode. Semi-transparent black perfect circle, white
+     tabular-num text. Positioned by Mapbox at a perpendicular offset
+     from the line's midpoint (the offset is computed in JS based on
+     line direction). pointer-events none so a drag from the reticle
+     through the label doesn't catch on it. */
   .round-gps-yardage-label {
+    width: 46px;
+    height: 46px;
     background: rgba(0, 0, 0, 0.65);
     color: #fff;
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.95rem;
     font-weight: var(--weight-semibold);
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    padding: 3px 9px;
-    border-radius: var(--radius-pill);
-    transform: translateY(-14px);
+    letter-spacing: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     user-select: none;
     pointer-events: none;
     white-space: nowrap;
     backdrop-filter: blur(2px);
+    box-sizing: border-box;
+  }
+
+  /* Hole-change transition fade. JS sets opacity directly on
+     elements with this class; CSS handles the smooth interpolation.
+     Applied to markers and yardage labels so they all fade together
+     during a hole change. Lines (Mapbox painted layers) animate
+     separately via JS rAF since CSS doesn't apply to WebGL. */
+  .round-gps-fadable {
+    transition: opacity 220ms ease-out;
   }
 
   /* Unpinned state — empty card in the middle with a prompt to
@@ -8343,6 +8420,18 @@
     animation: none;
     opacity: 0 !important;
   }
+
+  /* When the GPS panel is open (z=9400), the tools sheet's normal
+     z (~12) puts it underneath. Boost both backdrop + sheet above
+     the GPS panel so opening Tools from inside GPS works without
+     having to close GPS first. Scoped to body.round-gps-open so
+     normal round-screen behavior is unchanged. Same applies to the
+     shot-edit sheet, which is reached via the Shots tool. */
+  body.round-gps-open .tools-sheet-backdrop { z-index: 9450; }
+  body.round-gps-open .tools-sheet           { z-index: 9460; }
+  body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
+  body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
+  body.round-gps-open .confirm-backdrop      { z-index: 9490; }
 
   .tools-sheet {
     position: fixed;
@@ -23830,6 +23919,49 @@
   // to a Firebase Cloud Function so the key isn't in the bundle.
   const GOLFCOURSEAPI_KEY = 'BYQAWBUQRSWZW6GL76P7BMLKRM';
 
+  // Apply a subtle visual treatment to a Mapbox satellite map. Two
+  // goals:
+  //   1. Make the imagery feel more like a designed app surface and
+  //      less like a raw satellite photo.
+  //   2. Soften the noticeable color shift Mapbox applies when
+  //      swapping tile providers between zoom tiers (around zoom
+  //      14-16). Without help, the transition is sharp — golf
+  //      imagery in particular goes from bright/green at lower
+  //      zooms to darker/desaturated at higher zooms, and the swap
+  //      is jarring.
+  //
+  // Tactics:
+  //   - raster-saturation pulled down ~30% so the green-vs-not-green
+  //     difference between zoom tiers is muted (primary tool)
+  //   - small brightness lift + contrast bump for app-like polish
+  //
+  // (Note: raster-fade-duration was tried and reverted — extending
+  // it caused satellite tiles to fade slowly during hole-change
+  // flyTo, which read as "the whole map is fading in.")
+  //
+  // Markers and overlays are unaffected — they sit on top of the
+  // satellite layer.
+  function applyMapboxPolish(map) {
+    const apply = () => {
+      try {
+        // Pull saturation down ~30% so the green-vs-not-green
+        // difference between zoom tiers is muted. This is the
+        // primary tool for taming the tile-tier color shift.
+        map.setPaintProperty('satellite', 'raster-saturation', -0.35);
+        map.setPaintProperty('satellite', 'raster-brightness-min', 0.05);
+        map.setPaintProperty('satellite', 'raster-contrast', 0.08);
+        // raster-fade-duration left at default — extending it caused
+        // satellite tiles to fade in slowly after every camera move
+        // (including flyTo), making the map look like it's fading
+        // in during hole-change transitions.
+      } catch (err) {
+        console.warn('applyMapboxPolish: could not adjust satellite layer', err);
+      }
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once('load', apply);
+  }
+
   // ─────────────────────────────────────────────────────────────
   // Splash screen — mobile-only initial loader
   // ─────────────────────────────────────────────────────────────
@@ -34764,10 +34896,7 @@
     // dedicated GPS panel.
     if (toolId === 'gps') {
       closeToolsSheet();
-      // Small delay so the sheet close animation completes before
-      // the GPS panel slides in. Feels less jarring than both
-      // transitioning simultaneously.
-      setTimeout(() => openRoundGpsPanel(), 220);
+      openRoundGpsPanel();
       return;
     }
     animateSheetHeightChange(() => {
@@ -52866,9 +52995,12 @@
         zoom: 17,  // Zoomed tighter than the Phase 0 test — user's
                    // probably going to zoom in further, but 17 gets
                    // them close to "a hole" without needing 5 pinches.
+        minZoom: 15,  // prevent zooming out into the tile-tier color shift
+        maxZoom: 19,
         attributionControl: true,
       });
       pinGreensState.map = map;
+      applyMapboxPolish(map);
 
       // Tap handler — drop / move a pin at the clicked spot.
       map.on('click', (e) => {
@@ -53190,9 +53322,12 @@
         style: 'mapbox://styles/mapbox/satellite-v9',
         center: [centerLng, centerLat],
         zoom: 17,
+        minZoom: 15,
+        maxZoom: 19,
         attributionControl: true,
       });
       pinTeesState.map = map;
+      applyMapboxPolish(map);
 
       map.on('click', (e) => {
         pinTeesHandleMapTap(e.lngLat.lat, e.lngLat.lng);
@@ -53400,6 +53535,7 @@
     teeLat: null,            // null if no tee pinned for this hole
     teeLng: null,
     holeYards: null,         // tee→green distance from yardage data (fallback)
+    holePar: null,           // par for the current hole (3, 4, 5, etc.)
     // 'planning' | 'playing'. Planning mode = far from course, no
     // user marker, framed on the whole hole, big number = hole
     // yardage. Playing mode = on/near course, user marker visible,
@@ -53438,6 +53574,7 @@
 
     roundGpsState.open = true;
     roundGpsState.courseId = ctx.courseId;
+    document.body.classList.add('round-gps-open');
     acquireScrollLock();
     loadRoundGpsHoleAndRender(ctx.holeIndex);
   }
@@ -53480,9 +53617,7 @@
     roundGpsState.teeLat = teePos ? teePos.lat : null;
     roundGpsState.teeLng = teePos ? teePos.lng : null;
     roundGpsState.holeYards = holeYards;
-    // Keep playing-mode if user already has a fix; the user being on
-    // course doesn't change between holes within a round.
-    // (mode field stays as-is.)
+    roundGpsState.holePar = hole.par ?? null;
     // Reset markers & target since they're tied to the previous hole.
     roundGpsState.userMarker = null;
     roundGpsState.greenMarker = null;
@@ -53498,21 +53633,20 @@
     renderRoundGpsPanel();
   }
 
-  // Smooth transition to a different hole. Keeps the map instance
-  // alive — much nicer than a full rebuild. Updates green/tee
-  // markers in place, drops a fresh target at the new midpoint, and
-  // animates the camera with flyTo so the user sees a smooth pan +
-  // rotate from the old hole's view to the new hole's framing. The
-  // existing map's load handlers (bearing, fitBounds, dropTarget)
-  // already ran, so we don't re-trigger those — we directly call
-  // the equivalent logic.
+  // Smooth transition to a different hole. Three phases:
+  //   1. Fade out current overlays (markers, target, labels, lines)
+  //      over ~180ms while updating the header chip + nav state.
+  //   2. flyTo runs ~800ms with a clean satellite map underneath.
+  //   3. After flyTo lands, render new target/lines/labels with
+  //      opacity 0, then fade them in over ~220ms in unison.
+  // Total transition: ~1.2s. Slightly longer than the previous
+  // "everything pops in piecemeal" approach, but feels coordinated.
   function transitionRoundGpsToHole(holeIndex) {
     const course = getCourse(roundGpsState.courseId);
     if (!course) return;
     if (holeIndex < 0 || holeIndex >= course.holes.length) return;
     const map = roundGpsState.map;
     if (!map) {
-      // No live map — fall back to full render.
       loadRoundGpsHoleAndRender(holeIndex);
       return;
     }
@@ -53524,133 +53658,221 @@
     const tee = teeName ? course.tees.find(t => t.name === teeName) : null;
     const holeYards = tee?.yardages?.[holeIndex] ?? null;
 
-    // Update state.
-    roundGpsState.holeIndex = holeIndex;
-    roundGpsState.holeNumber = hole.number;
-    roundGpsState.greenLat = hole.greenLat ?? null;
-    roundGpsState.greenLng = hole.greenLng ?? null;
-    roundGpsState.teeLat = teePos ? teePos.lat : null;
-    roundGpsState.teeLng = teePos ? teePos.lng : null;
-    roundGpsState.holeYards = holeYards;
-
-    // Update header chip.
-    const chipEl = document.querySelector('.round-gps-hole-chip');
-    if (chipEl) chipEl.textContent = `Hole ${hole.number}`;
-
-    // Update prev/next disabled state.
+    // Update info bar + nav button state immediately. These are
+    // outside the map/overlay area so they don't need to fade.
+    const newPar = hole.par != null ? hole.par : '—';
+    const holeEl = document.getElementById('round-gps-info-hole');
+    const parEl = document.getElementById('round-gps-info-par');
+    if (holeEl) holeEl.textContent = hole.number;
+    if (parEl) parEl.textContent = newPar;
+    // Distance value/label refresh handled by updateRoundGpsInfoBar
+    // — call it after state has been updated below. For now, just
+    // update the static parts. (Mode rarely flips during a transition;
+    // distance gets refreshed via the position-update tick or
+    // immediately below if planning.)
     const prevBtn = document.querySelector('.round-gps-hole-nav-prev');
     const nextBtn = document.querySelector('.round-gps-hole-nav-next');
     if (prevBtn) prevBtn.disabled = holeIndex <= 0;
     if (nextBtn) nextBtn.disabled = holeIndex >= course.holes.length - 1;
 
-    // Move/replace the green marker. Markers don't have a smooth
-    // animation API in Mapbox — they just teleport. That's fine
-    // visually since they're small dots and the satellite imagery
-    // (the dominant visual element) animates smoothly.
-    if (roundGpsState.greenMarker) {
-      try { roundGpsState.greenMarker.remove(); } catch (_) {}
-      roundGpsState.greenMarker = null;
-    }
-    if (roundGpsState.greenLat != null) {
-      const greenEl = document.createElement('div');
-      greenEl.style.cssText = `
-        width: 22px; height: 22px; border-radius: 50%;
-        background: #2D6E34; border: 3px solid #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
-      roundGpsState.greenMarker = new mapboxgl.Marker(greenEl)
-        .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
-        .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${hole.number} green`))
-        .addTo(map);
-    }
+    // Phase 1: fade out current overlays. setRoundGpsOverlaysOpacity
+    // walks every fadable element (marker DOM nodes + label DOM nodes)
+    // and sets opacity. The CSS transition on .round-gps-fadable
+    // handles the smooth animation.
+    setRoundGpsOverlaysOpacity(0);
 
-    // Move/replace the tee marker.
-    if (roundGpsState.teeMarker) {
-      try { roundGpsState.teeMarker.remove(); } catch (_) {}
-      roundGpsState.teeMarker = null;
-    }
-    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
-      const teeEl = document.createElement('div');
-      teeEl.style.cssText = `
-        width: 20px; height: 20px; border-radius: 50%;
-        background: #C2410C; border: 3px solid #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
-      roundGpsState.teeMarker = new mapboxgl.Marker(teeEl)
-        .setLngLat([roundGpsState.teeLng, roundGpsState.teeLat])
-        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${hole.number} tee`))
-        .addTo(map);
-    }
+    // Wait for fade-out, then proceed. Slight buffer beyond the CSS
+    // transition duration to avoid the fade abruptly cutting.
+    const FADE_OUT_MS = 200;
+    const FLY_MS = 800;
+    const FADE_IN_MS = 220;
 
-    // Tear down the old target so we can drop a fresh one at the
-    // new hole's midpoint. clearRoundGpsTarget handles markers,
-    // lines, labels, and the zoom listener.
-    clearRoundGpsTarget();
+    setTimeout(() => {
+      // Update state.
+      roundGpsState.holeIndex = holeIndex;
+      roundGpsState.holeNumber = hole.number;
+      roundGpsState.greenLat = hole.greenLat ?? null;
+      roundGpsState.greenLng = hole.greenLng ?? null;
+      roundGpsState.teeLat = teePos ? teePos.lat : null;
+      roundGpsState.teeLng = teePos ? teePos.lng : null;
+      roundGpsState.holeYards = holeYards;
+      roundGpsState.holePar = hole.par ?? null;
 
-    // Animate the camera to the new hole's frame. flyTo with both
-    // center, zoom, AND bearing in one call interpolates them
-    // together — smooth pan + rotate.
-    if (roundGpsState.greenLat != null) {
-      const targetBearing = (roundGpsState.teeLat != null)
-        ? bearingDegrees(
-            roundGpsState.teeLat, roundGpsState.teeLng,
-            roundGpsState.greenLat, roundGpsState.greenLng)
-        : 0;
-      if (roundGpsState.teeLat != null) {
-        // Use cameraForBounds + flyTo so we get the same framing as
-        // the initial render but animated smoothly.
-        const bounds = new mapboxgl.LngLatBounds()
-          .extend([roundGpsState.teeLng, roundGpsState.teeLat])
-          .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
-        const cam = map.cameraForBounds(bounds, {
-          padding: { top: 100, bottom: 180, left: 60, right: 60 },
-          bearing: targetBearing,
-          maxZoom: 18,
-        });
-        if (cam) {
+      // Refresh info bar with the new hole's data. Distance value
+      // updates here too — playing mode will continue to refresh on
+      // each position tick.
+      updateRoundGpsInfoBar();
+
+      // Replace green marker at new location.
+      if (roundGpsState.greenMarker) {
+        try { roundGpsState.greenMarker.remove(); } catch (_) {}
+        roundGpsState.greenMarker = null;
+      }
+      if (roundGpsState.greenLat != null) {
+        const greenEl = buildGreenMarkerEl();
+        roundGpsState.greenMarker = new mapboxgl.Marker({ element: greenEl, anchor: 'center' })
+          .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
+          .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${hole.number} green`))
+          .addTo(map);
+      }
+
+      // Replace tee marker at new location.
+      if (roundGpsState.teeMarker) {
+        try { roundGpsState.teeMarker.remove(); } catch (_) {}
+        roundGpsState.teeMarker = null;
+      }
+      if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+        const teeEl = buildTeeMarkerEl();
+        roundGpsState.teeMarker = new mapboxgl.Marker({ element: teeEl, anchor: 'center' })
+          .setLngLat([roundGpsState.teeLng, roundGpsState.teeLat])
+          .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${hole.number} tee`))
+          .addTo(map);
+      }
+
+      // Tear down old target (markers, lines, labels, listeners).
+      clearRoundGpsTarget();
+
+      // Phase 2: flyTo. While the camera animates, the new green/tee
+      // markers are at their new locations but invisible.
+      if (roundGpsState.greenLat != null) {
+        const targetBearing = (roundGpsState.teeLat != null)
+          ? bearingDegrees(
+              roundGpsState.teeLat, roundGpsState.teeLng,
+              roundGpsState.greenLat, roundGpsState.greenLng)
+          : 0;
+        if (roundGpsState.teeLat != null) {
+          const bounds = new mapboxgl.LngLatBounds()
+            .extend([roundGpsState.teeLng, roundGpsState.teeLat])
+            .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+          const cam = map.cameraForBounds(bounds, {
+            padding: { top: 100, bottom: 180, left: 60, right: 60 },
+            bearing: targetBearing,
+            maxZoom: 18,
+          });
+          if (cam) {
+            map.flyTo({
+              center: cam.center,
+              zoom: cam.zoom,
+              bearing: cam.bearing,
+              duration: FLY_MS,
+              essential: true,
+            });
+          }
+        } else {
           map.flyTo({
-            center: cam.center,
-            zoom: cam.zoom,
-            bearing: cam.bearing,
-            duration: 800,
-            essential: true,  // ignore prefers-reduced-motion suppression
+            center: [roundGpsState.greenLng, roundGpsState.greenLat],
+            zoom: 17,
+            bearing: 0,
+            duration: FLY_MS,
+            essential: true,
           });
         }
-      } else {
-        // No tee — center on the green at zoom 17.
-        map.flyTo({
-          center: [roundGpsState.greenLng, roundGpsState.greenLat],
-          zoom: 17,
-          bearing: 0,
-          duration: 800,
-          essential: true,
-        });
       }
-    }
 
-    // Drop a fresh target at the new midpoint. Schedule it to run
-    // once the camera has finished animating so the lines/labels
-    // size correctly to the final zoom (the pixel-aware shortening
-    // depends on the current zoom level). 'moveend' fires when the
-    // flyTo animation completes.
-    const dropAfterFly = () => {
-      if (!roundGpsState.targetActive) dropRoundGpsTarget();
+      // Update bottom readout (planning mode only — playing mode
+      // refreshes via position tick).
+      if (roundGpsState.mode !== 'playing') {
+        const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
+        const valueEl = document.getElementById('round-gps-distance-value');
+        const subEl = document.getElementById('round-gps-distance-sub');
+        if (eyebrowEl) eyebrowEl.textContent = 'Hole';
+        if (valueEl) {
+          valueEl.textContent = roundGpsState.holeYards != null
+            ? roundGpsState.holeYards
+            : '—';
+        }
+        if (subEl) subEl.textContent = 'Drag the target to plan a shot';
+      }
+
+      // Phase 3: on moveend, drop the new target. The previous fade-in
+      // attempt looked weird (fade triggered after elements were
+      // already visible from the camera animation). Just drop them
+      // straight in — the camera's smooth pan/rotate is the dominant
+      // visual; the overlays settling into place at the end is fine.
+      const dropAfterFly = () => {
+        if (!roundGpsState.targetActive) dropRoundGpsTarget();
+      };
+      map.once('moveend', dropAfterFly);
+    }, FADE_OUT_MS);
+  }
+
+  // Snap all fadable overlays to opacity 0 without animating. Used
+  // when freshly-created overlays need to start hidden — we don't
+  // want them to first appear at opacity 1 and then fade out before
+  // fading in.
+  function snapRoundGpsOverlaysHidden() {
+    forEachRoundGpsOverlayEl(el => {
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+    });
+  }
+
+  // Clear the inline transition override added by snap, so the CSS
+  // class's transition takes effect again.
+  function clearRoundGpsOverlaysSnap() {
+    forEachRoundGpsOverlayEl(el => {
+      el.style.transition = '';
+    });
+  }
+
+  // Walk every fadable overlay element and call fn(el).
+  function forEachRoundGpsOverlayEl(fn) {
+    const candidates = [];
+    if (roundGpsState.greenMarker) candidates.push(roundGpsState.greenMarker.getElement());
+    if (roundGpsState.teeMarker) candidates.push(roundGpsState.teeMarker.getElement());
+    if (roundGpsState.userMarker) candidates.push(roundGpsState.userMarker.getElement());
+    if (roundGpsState.targetMarker) candidates.push(roundGpsState.targetMarker.getElement());
+    const labels = roundGpsState.targetLabels;
+    if (labels?.fromLabel) candidates.push(labels.fromLabel.getElement());
+    if (labels?.greenLabel) candidates.push(labels.greenLabel.getElement());
+    for (const el of candidates) {
+      if (!el) continue;
+      el.classList.add('round-gps-fadable');
+      fn(el);
+    }
+  }
+
+  // Walk every fadable overlay (markers, labels) and set opacity.
+  // The .round-gps-fadable CSS class has a transition on opacity so
+  // this animates smoothly. Lines are painted layers, not DOM —
+  // handled separately via applyRoundGpsLineOpacity.
+  function setRoundGpsOverlaysOpacity(opacity) {
+    forEachRoundGpsOverlayEl(el => {
+      el.style.opacity = String(opacity);
+    });
+  }
+
+  // Set the opacity of all target lines (Mapbox painted layers)
+  // to a specific value. Used by the fade-in tween.
+  function applyRoundGpsLineOpacity(opacity) {
+    const map = roundGpsState.map;
+    if (!map || !roundGpsState.targetLines) return;
+    const { fromLayerId, greenLayerId } = roundGpsState.targetLines;
+    try {
+      if (fromLayerId && map.getLayer(fromLayerId)) {
+        map.setPaintProperty(fromLayerId, 'line-opacity', 0.85 * opacity);
+      }
+      if (greenLayerId && map.getLayer(greenLayerId)) {
+        map.setPaintProperty(greenLayerId, 'line-opacity', 0.65 * opacity);
+      }
+    } catch (_) {}
+  }
+
+  // Tween the line opacity from `from` to `to` over `durationMs`.
+  // Mapbox doesn't natively animate paint properties, so we step
+  // manually via rAF. Cheap (just a setPaintProperty call per frame).
+  function tweenRoundGpsLineOpacity(from, to, durationMs) {
+    const start = performance.now();
+    const step = () => {
+      const elapsed = performance.now() - start;
+      const t = Math.min(1, elapsed / durationMs);
+      // Ease-out so the fade in feels natural.
+      const eased = 1 - Math.pow(1 - t, 2);
+      const value = from + (to - from) * eased;
+      applyRoundGpsLineOpacity(value);
+      if (t < 1) requestAnimationFrame(step);
     };
-    map.once('moveend', dropAfterFly);
-
-    // Update the bottom readout for the new hole. Two cases — in
-    // playing mode the position-update tick will handle to-green;
-    // in planning mode we set it now.
-    if (roundGpsState.mode !== 'playing') {
-      const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
-      const valueEl = document.getElementById('round-gps-distance-value');
-      const subEl = document.getElementById('round-gps-distance-sub');
-      if (eyebrowEl) eyebrowEl.textContent = 'Hole';
-      if (valueEl) {
-        valueEl.textContent = roundGpsState.holeYards != null
-          ? roundGpsState.holeYards
-          : '—';
-      }
-      if (subEl) subEl.textContent = 'Drag the target to plan a shot';
-    }
+    requestAnimationFrame(step);
   }
 
   // Hole change handlers — exposed to onclick attributes via window.
@@ -53670,6 +53892,73 @@
   }
   window.roundGpsNextHole = roundGpsNextHole;
 
+  // Recenter the map on the current hole — reframe to fit tee+green
+  // with bearing pointing tee→green, matching the initial framing.
+  // Useful after the user has panned/zoomed away while exploring.
+  function roundGpsRecenter() {
+    const map = roundGpsState.map;
+    if (!map) return;
+    if (roundGpsState.greenLat == null) return;
+    const bearing = (roundGpsState.teeLat != null)
+      ? bearingDegrees(
+          roundGpsState.teeLat, roundGpsState.teeLng,
+          roundGpsState.greenLat, roundGpsState.greenLng)
+      : 0;
+    if (roundGpsState.teeLat != null) {
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend([roundGpsState.teeLng, roundGpsState.teeLat])
+        .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
+      const cam = map.cameraForBounds(bounds, {
+        padding: { top: 100, bottom: 180, left: 60, right: 60 },
+        bearing,
+        maxZoom: 18,
+      });
+      if (cam) {
+        map.flyTo({
+          center: cam.center,
+          zoom: cam.zoom,
+          bearing: cam.bearing,
+          duration: 600,
+          essential: true,
+        });
+      }
+    } else {
+      // No tee — just center on the green at zoom 17, bearing 0.
+      map.flyTo({
+        center: [roundGpsState.greenLng, roundGpsState.greenLat],
+        zoom: 17,
+        bearing: 0,
+        duration: 600,
+        essential: true,
+      });
+    }
+  }
+  window.roundGpsRecenter = roundGpsRecenter;
+
+  // Close GPS with a slide-down + fade-out transition. Used when
+  // exiting via Input Score so it doesn't feel like a hard cut. The
+  // .closing class triggers a CSS transition; we wait for it before
+  // actually unmounting via the underlying close function.
+  function closeRoundGpsPanelWithTransition() {
+    if (!roundGpsState.open) return;
+    const panel = document.querySelector('.round-gps-panel');
+    if (!panel) {
+      closeRoundGpsPanel();
+      return;
+    }
+    panel.classList.add('closing');
+    const onEnd = () => {
+      panel.removeEventListener('transitionend', onEnd);
+      closeRoundGpsPanel();
+    };
+    panel.addEventListener('transitionend', onEnd);
+    // Safety fallback in case transitionend doesn't fire.
+    setTimeout(() => {
+      if (roundGpsState.open) closeRoundGpsPanel();
+    }, 450);
+  }
+  window.closeRoundGpsPanelWithTransition = closeRoundGpsPanelWithTransition;
+
   function closeRoundGpsPanel() {
     if (!roundGpsState.open) return;
     if (roundGpsState.watchTimer) {
@@ -53681,6 +53970,7 @@
       roundGpsState.map = null;
     }
     roundGpsState.open = false;
+    document.body.classList.remove('round-gps-open');
     roundGpsState.userMarker = null;
     roundGpsState.greenMarker = null;
     roundGpsState.teeMarker = null;
@@ -53694,6 +53984,7 @@
     roundGpsState.teeLat = null;
     roundGpsState.teeLng = null;
     roundGpsState.holeYards = null;
+    roundGpsState.holePar = null;
     roundGpsState.mode = 'planning';
     roundGpsState.targetActive = false;
     roundGpsState.targetMarker = null;
@@ -53714,6 +54005,55 @@
   // mode (carry/remaining in playing mode, from-tee/remaining in
   // planning mode). A future "clear" button could let users
   // dismiss the target, but for now it's always present.
+
+  // Marker DOM builders for the in-round GPS view. Centralized so
+  // initial render and hole-transition use the same visuals.
+
+  // Green marker: white center fading softly to transparent at the
+  // edge via radial gradient. No hard border — the soft fade IS the
+  // shape. Reads as a "target glow point" rather than a generic pin.
+  function buildGreenMarkerEl() {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 28px; height: 28px;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 1) 10%,
+        rgba(255, 255, 255, 0.7) 30%,
+        rgba(255, 255, 255, 0.25) 60%,
+        rgba(255, 255, 255, 0) 100%);
+      border-radius: 50%;
+      pointer-events: auto;`;
+    return el;
+  }
+
+  // Tee marker: inline-SVG golf ball. White sphere with a subtle
+  // gray shadow on one side and a few dimple dots for texture.
+  // Sized at 20px to match the original tee marker footprint.
+  function buildTeeMarkerEl() {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 20px; height: 20px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));`;
+    el.innerHTML = `
+      <svg viewBox="0 0 20 20" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ball-grad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="70%" stop-color="#e8e8e8"/>
+            <stop offset="100%" stop-color="#bcbcbc"/>
+          </radialGradient>
+        </defs>
+        <circle cx="10" cy="10" r="9" fill="url(#ball-grad)" stroke="#888" stroke-width="0.5"/>
+        <!-- Dimple dots — small, scattered, faint -->
+        <circle cx="7" cy="7" r="0.7" fill="#cdcdcd"/>
+        <circle cx="13" cy="8" r="0.7" fill="#cdcdcd"/>
+        <circle cx="9" cy="11" r="0.7" fill="#cdcdcd"/>
+        <circle cx="13" cy="13" r="0.7" fill="#cdcdcd"/>
+        <circle cx="6" cy="12" r="0.7" fill="#cdcdcd"/>
+      </svg>`;
+    return el;
+  }
 
   // Drop the target at a sensible default position based on what
   // we know about the hole + user state.
@@ -53747,7 +54087,7 @@
     // handles the actual drag — we just listen to drag events and
     // update lines + UI.
     const el = document.createElement('div');
-    el.className = 'round-gps-target-marker';
+    el.className = 'round-gps-target-marker round-gps-fadable';
     el.style.cssText = `
       width: 32px; height: 32px;
       cursor: grab;
@@ -53943,11 +54283,10 @@
       }
     };
     // Schedule the actual drawing. Mapbox's 'idle' fires when the
-    // map has finished any in-flight rendering work; that's a safer
-    // signal than 'load' for "you can add layers now" — load can
-    // fire before all style resources are settled. If the map is
-    // already idle (loaded() && !isMoving()), draw synchronously.
-    if (map.loaded() && !map.isMoving()) {
+    // map has finished any in-flight rendering work. We only need
+    // to defer if the map isn't loaded yet — once loaded, layers
+    // can be added at any time, including during animations.
+    if (map.loaded()) {
       draw();
     } else {
       map.once('idle', draw);
@@ -54074,10 +54413,16 @@
     let labels = roundGpsState.targetLabels;
     if (!labels) labels = roundGpsState.targetLabels = { fromLabel: null, greenLabel: null };
 
-    // From → target label
+    // From → target label — offset perpendicular to the line.
     if (fromPoint) {
       const midLat = (fromPoint.lat + roundGpsState.targetLat) / 2;
       const midLng = (fromPoint.lng + roundGpsState.targetLng) / 2;
+      const offsetPos = perpendicularOffsetLngLat(
+        map,
+        fromPoint.lng, fromPoint.lat,
+        roundGpsState.targetLng, roundGpsState.targetLat,
+        midLng, midLat,
+        ROUND_GPS_LABEL_OFFSET_PX);
       const yards = haversineYards(
         fromPoint.lat, fromPoint.lng,
         roundGpsState.targetLat, roundGpsState.targetLng);
@@ -54085,10 +54430,10 @@
       if (!labels.fromLabel) {
         const el = buildRoundGpsLabelEl(text);
         labels.fromLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([midLng, midLat])
+          .setLngLat([offsetPos.lng, offsetPos.lat])
           .addTo(map);
       } else {
-        labels.fromLabel.setLngLat([midLng, midLat]);
+        labels.fromLabel.setLngLat([offsetPos.lng, offsetPos.lat]);
         labels.fromLabel.getElement().textContent = text;
       }
     } else if (labels.fromLabel) {
@@ -54097,10 +54442,18 @@
       labels.fromLabel = null;
     }
 
-    // Target → green label
+    // Target → green label — offset perpendicular in the OPPOSITE
+    // direction so the two labels don't crowd each other when the
+    // lines are roughly parallel.
     {
       const midLat = (roundGpsState.targetLat + roundGpsState.greenLat) / 2;
       const midLng = (roundGpsState.targetLng + roundGpsState.greenLng) / 2;
+      const offsetPos = perpendicularOffsetLngLat(
+        map,
+        roundGpsState.targetLng, roundGpsState.targetLat,
+        roundGpsState.greenLng, roundGpsState.greenLat,
+        midLng, midLat,
+        -ROUND_GPS_LABEL_OFFSET_PX);  // negative = other side
       const yards = haversineYards(
         roundGpsState.targetLat, roundGpsState.targetLng,
         roundGpsState.greenLat, roundGpsState.greenLng);
@@ -54108,22 +54461,51 @@
       if (!labels.greenLabel) {
         const el = buildRoundGpsLabelEl(text);
         labels.greenLabel = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([midLng, midLat])
+          .setLngLat([offsetPos.lng, offsetPos.lat])
           .addTo(map);
       } else {
-        labels.greenLabel.setLngLat([midLng, midLat]);
+        labels.greenLabel.setLngLat([offsetPos.lng, offsetPos.lat]);
         labels.greenLabel.getElement().textContent = text;
       }
     }
   }
 
-  // Build the DOM element for a yardage label. Pill-shaped, semi-
+  // How many pixels off the line the labels sit. Larger = more
+  // separation from the line; too large can crowd the markers.
+  const ROUND_GPS_LABEL_OFFSET_PX = 36;
+
+  // Compute a lat/lng position that's `offsetPx` pixels perpendicular
+  // to the from→to line, anchored at the given midpoint. Positive
+  // offset = one side, negative = the other. Used for label
+  // placement so labels sit beside the line rather than on it.
+  function perpendicularOffsetLngLat(map, fromLng, fromLat, toLng, toLat,
+                                      anchorLng, anchorLat, offsetPx) {
+    if (!map) return { lng: anchorLng, lat: anchorLat };
+    try {
+      const fromPx = map.project([fromLng, fromLat]);
+      const toPx = map.project([toLng, toLat]);
+      const dx = toPx.x - fromPx.x;
+      const dy = toPx.y - fromPx.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len === 0) return { lng: anchorLng, lat: anchorLat };
+      // Perpendicular unit vector (rotate 90°): (-dy, dx) / len.
+      const px = (-dy / len) * offsetPx;
+      const py = (dx / len) * offsetPx;
+      const anchorPx = map.project([anchorLng, anchorLat]);
+      const offsetLatLng = map.unproject([anchorPx.x + px, anchorPx.y + py]);
+      return { lng: offsetLatLng.lng, lat: offsetLatLng.lat };
+    } catch (_) {
+      return { lng: anchorLng, lat: anchorLat };
+    }
+  }
+
+  // Build the DOM element for a yardage label. Circle, semi-
   // transparent black background, white tabular-numeric text.
   // pointer-events: none so dragging the reticle through the
   // label doesn't hit the label.
   function buildRoundGpsLabelEl(text) {
     const el = document.createElement('div');
-    el.className = 'round-gps-yardage-label';
+    el.className = 'round-gps-yardage-label round-gps-fadable';
     el.textContent = text;
     return el;
   }
@@ -54138,6 +54520,42 @@
       try { labels.greenLabel.remove(); } catch (_) {}
     }
     roundGpsState.targetLabels = null;
+  }
+
+  // Update the info bar at the top of the GPS view. Refreshes hole,
+  // par, and distance based on current state. Distance is "to green"
+  // from user's position when in playing mode (and we have a fix);
+  // hole yardage from the catalog otherwise.
+  function updateRoundGpsInfoBar() {
+    const holeEl = document.getElementById('round-gps-info-hole');
+    const parEl = document.getElementById('round-gps-info-par');
+    const distLabelEl = document.getElementById('round-gps-info-distance-label');
+    const distValueEl = document.getElementById('round-gps-info-distance-value');
+    if (holeEl && roundGpsState.holeNumber != null) {
+      holeEl.textContent = roundGpsState.holeNumber;
+    }
+    if (parEl) {
+      parEl.textContent = roundGpsState.holePar != null ? roundGpsState.holePar : '—';
+    }
+    // Distance label + value depend on mode + whether we have a fix.
+    if (roundGpsState.mode === 'playing'
+        && roundGpsState.userLat != null
+        && roundGpsState.userLng != null
+        && roundGpsState.greenLat != null) {
+      const yards = haversineYards(
+        roundGpsState.userLat, roundGpsState.userLng,
+        roundGpsState.greenLat, roundGpsState.greenLng);
+      if (distLabelEl) distLabelEl.textContent = 'TO GREEN';
+      if (distValueEl) distValueEl.textContent = Math.round(yards);
+    } else {
+      // Planning mode (or no fix yet) — show hole yardage.
+      if (distLabelEl) distLabelEl.textContent = 'DISTANCE';
+      if (distValueEl) {
+        distValueEl.textContent = roundGpsState.holeYards != null
+          ? roundGpsState.holeYards
+          : '—';
+      }
+    }
   }
 
   // Update the bottom readout: when target is active, show carry
@@ -54239,16 +54657,6 @@
       return;
     }
 
-    // Compute initial readout content based on starting mode. We
-    // open in planning mode (no user yet) — show hole yardage as the
-    // big number. Position update will flip this to to-green mode
-    // once a fix lands AND the user is close enough to the course.
-    const initialEyebrow = 'Hole';
-    const initialValue = roundGpsState.holeYards != null
-      ? roundGpsState.holeYards
-      : '—';
-    const initialSub = 'Drag the target to plan a shot';
-
     // Hole-change buttons enabled state. roundGpsState.holeIndex
     // is the current hole's index (0-based); disable prev at index 0
     // and next at index N-1.
@@ -54258,14 +54666,38 @@
     const prevDisabled = idx <= 0 ? 'disabled' : '';
     const nextDisabled = idx >= totalHoles - 1 ? 'disabled' : '';
 
-    // Happy path — build the map. Header strip overlaid on the map
-    // carries the hole number, close button, and distance readout.
+    // Compute initial info-bar values. Distance label + value depend
+    // on mode: in playing mode it's "to green" from user's position
+    // (but we don't have a fix yet on initial render, so fall back to
+    // hole yardage); in planning mode it's just the hole yardage.
+    const initPar = roundGpsState.holePar != null ? roundGpsState.holePar : '—';
+    const initDistanceLabel = roundGpsState.mode === 'playing' ? 'TO GREEN' : 'DISTANCE';
+    const initDistanceValue = roundGpsState.holeYards != null ? roundGpsState.holeYards : '—';
+
+    // Happy path — build the map. Centered info bar at top, close
+    // button top-right. Panel renders with .opening class (off-screen);
+    // we strip it on the next frame to trigger the slide-up.
     mount.innerHTML = `
-      <div class="round-gps-panel">
-        <!-- Header strip floating over the map -->
+      <div class="round-gps-panel opening">
+        <!-- Top: centered info bar (hole, par, distance) + close button -->
         <div class="round-gps-header">
-          <div class="round-gps-hole-chip">Hole ${holeNum}</div>
-          <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanel()" aria-label="Close">×</button>
+          <div class="round-gps-info-bar" id="round-gps-info-bar">
+            <div class="round-gps-info-cell">
+              <div class="round-gps-info-label">HOLE</div>
+              <div class="round-gps-info-value" id="round-gps-info-hole">${holeNum}</div>
+            </div>
+            <div class="round-gps-info-divider"></div>
+            <div class="round-gps-info-cell">
+              <div class="round-gps-info-label">PAR</div>
+              <div class="round-gps-info-value" id="round-gps-info-par">${initPar}</div>
+            </div>
+            <div class="round-gps-info-divider"></div>
+            <div class="round-gps-info-cell">
+              <div class="round-gps-info-label" id="round-gps-info-distance-label">${initDistanceLabel}</div>
+              <div class="round-gps-info-value" id="round-gps-info-distance-value">${initDistanceValue}</div>
+            </div>
+          </div>
+          <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanelWithTransition()" aria-label="Close">×</button>
         </div>
 
         <!-- Map fills the whole panel -->
@@ -54279,13 +54711,33 @@
                 onclick="roundGpsNextHole()"
                 aria-label="Next hole" ${nextDisabled}>›</button>
 
-        <!-- Distance readout at the bottom -->
-        <div class="round-gps-distance">
-          <div class="round-gps-distance-eyebrow" id="round-gps-distance-eyebrow">${initialEyebrow}</div>
-          <div class="round-gps-distance-value" id="round-gps-distance-value">${initialValue}</div>
-          <div class="round-gps-distance-sub" id="round-gps-distance-sub">
-            ${initialSub}
-          </div>
+        <!-- Recenter button — sits bottom-left above the tools button.
+             Tap to reframe the map on tee+green at the proper bearing,
+             matching the initial render (useful after panning around). -->
+        <button class="round-gps-recenter"
+                onclick="roundGpsRecenter()"
+                aria-label="Recenter map on hole">
+          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+        </button>
+
+        <!-- Bottom action bar — mirrors the round screen's bar. Tools
+             button on the left, Input score on the right. Both close
+             GPS first since the underlying flows live on the round
+             screen and our z=9400 panel would cover them otherwise. -->
+        <div class="round-gps-action-bar">
+          <button class="round-tools-btn"
+                  onclick="openToolsSheet()"
+                  aria-label="Open tools">
+            <span class="round-tools-btn-icon" aria-hidden="true">⋯</span>
+            <span class="round-tools-btn-label">Tools</span>
+          </button>
+          <button class="round-save-btn"
+                  onclick="closeRoundGpsPanelWithTransition()">
+            Input score →
+          </button>
         </div>
       </div>`;
 
@@ -54299,9 +54751,23 @@
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [roundGpsState.greenLng, roundGpsState.greenLat],
       zoom: 17,
+      minZoom: 15,
+      maxZoom: 19,
       attributionControl: true,
     });
     roundGpsState.map = map;
+    applyMapboxPolish(map);
+
+    // Trigger slide-up by stripping the .opening class on the next
+    // frame. The forced reflow ensures the off-screen state paints
+    // before the transition starts.
+    const panelEl = mount.querySelector('.round-gps-panel');
+    if (panelEl) {
+      void panelEl.offsetHeight;  // force reflow
+      requestAnimationFrame(() => {
+        panelEl.classList.remove('opening');
+      });
+    }
 
     // If we have the tee pinned, frame the whole hole and rotate
     // the map so the tee→green direction points up (tee at bottom
@@ -54328,28 +54794,17 @@
       });
     }
 
-    // Green marker — same style as the saved pin in the pinning flow.
-    const greenEl = document.createElement('div');
-    greenEl.style.cssText = `
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #2D6E34; border: 3px solid #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
-    roundGpsState.greenMarker = new mapboxgl.Marker(greenEl)
+    // Green marker — soft white radial-gradient glow.
+    const greenEl = buildGreenMarkerEl();
+    roundGpsState.greenMarker = new mapboxgl.Marker({ element: greenEl, anchor: 'center' })
       .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
       .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${holeNum} green`))
       .addTo(map);
 
-    // Tee marker (Option C: one pin per hole) + tee→green line if
-    // the tee is pinned for this hole. Line goes on the map as a
-    // proper layer (markers can't be lines), so it scales/zooms
-    // correctly with the satellite imagery.
+    // Tee marker (Option C: one pin per hole). Golf-ball SVG.
     if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
-      const teeEl = document.createElement('div');
-      teeEl.style.cssText = `
-        width: 20px; height: 20px; border-radius: 50%;
-        background: #C2410C; border: 3px solid #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.6);`;
-      roundGpsState.teeMarker = new mapboxgl.Marker(teeEl)
+      const teeEl = buildTeeMarkerEl();
+      roundGpsState.teeMarker = new mapboxgl.Marker({ element: teeEl, anchor: 'center' })
         .setLngLat([roundGpsState.teeLng, roundGpsState.teeLat])
         .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${holeNum} tee`))
         .addTo(map);
@@ -54434,33 +54889,12 @@
             return;
           }
 
-          // Normal to-green mode — update the big number + sub-line.
-          const yards = haversineYards(latitude, longitude,
-                                        roundGpsState.greenLat,
-                                        roundGpsState.greenLng);
-          const valueEl = document.getElementById('round-gps-distance-value');
-          const subEl = document.getElementById('round-gps-distance-sub');
-          if (valueEl) valueEl.textContent = Math.round(yards);
-
-          const subParts = [];
-          if (roundGpsState.holeYards != null) {
-            subParts.push(`Hole ${roundGpsState.holeYards}y`);
-          }
-          if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
-            const teeYards = haversineYards(latitude, longitude,
-                                             roundGpsState.teeLat,
-                                             roundGpsState.teeLng);
-            if (teeYards >= 20) {
-              subParts.push(`Tee shot ${Math.round(teeYards)}y`);
-            }
-          }
-          subParts.push(`±${Math.round(accuracy)}m`);
-          if (subEl) subEl.textContent = subParts.join(' · ');
+          // Normal to-green mode — update the info bar's distance
+          // (which uses user→green when in playing mode with a fix).
+          updateRoundGpsInfoBar();
         } else {
           // Planning mode — if the target is active, refresh the
-          // remaining-distance readout (target may have been dragged).
-          // No user position is included in carry calc since we're
-          // not showing the user.
+          // target readout (target may have been dragged).
           if (roundGpsState.targetActive) {
             updateRoundGpsTargetReadout();
           }
@@ -54498,8 +54932,20 @@
 
     // Reframe the map to include user + green. This overrides the
     // initial tee+green frame because the user's actual position is
-    // more relevant once they're on the course.
+    // more relevant once they're on the course. Bearing logic:
+    //   - Tee pinned: keep the tee→green bearing (matches the
+    //     planning view; zero change vs prior behavior).
+    //   - Tee not pinned: use user→green bearing so the map orients
+    //     along the user's remaining shot direction instead of
+    //     defaulting to north-up (which is disorienting).
     if (roundGpsState.map) {
+      const reframeBearing = (roundGpsState.teeLat != null)
+        ? bearingDegrees(
+            roundGpsState.teeLat, roundGpsState.teeLng,
+            roundGpsState.greenLat, roundGpsState.greenLng)
+        : bearingDegrees(
+            latitude, longitude,
+            roundGpsState.greenLat, roundGpsState.greenLng);
       const bounds = new mapboxgl.LngLatBounds()
         .extend([longitude, latitude])
         .extend([roundGpsState.greenLng, roundGpsState.greenLat]);
@@ -54507,28 +54953,13 @@
         padding: { top: 120, bottom: 160, left: 60, right: 60 },
         duration: 600,
         maxZoom: 18,
+        bearing: reframeBearing,
       });
     }
 
-    // Switch the readout to to-green mode. Eyebrow: "To green",
-    // big number: yards from user to green, sub-line: hole yardage
-    // + tee-shot if applicable + GPS accuracy.
-    const eyebrowEl = document.getElementById('round-gps-distance-eyebrow');
-    if (eyebrowEl) eyebrowEl.textContent = 'To green';
-
-    const yards = haversineYards(latitude, longitude,
-                                  roundGpsState.greenLat,
-                                  roundGpsState.greenLng);
-    const valueEl = document.getElementById('round-gps-distance-value');
-    if (valueEl) valueEl.textContent = Math.round(yards);
-
-    const subParts = [];
-    if (roundGpsState.holeYards != null) {
-      subParts.push(`Hole ${roundGpsState.holeYards}y`);
-    }
-    subParts.push(`±${Math.round(accuracy)}m`);
-    const subEl = document.getElementById('round-gps-distance-sub');
-    if (subEl) subEl.textContent = subParts.join(' · ');
+    // Refresh the info bar so the distance label flips to "TO GREEN"
+    // and the value shows user → green distance.
+    updateRoundGpsInfoBar();
   }
 
   // ─────────────────────────────────────────────────────────────
