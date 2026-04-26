@@ -17488,7 +17488,13 @@
       justify-content: stretch;
     }
     .confirm-dialog {
-      position: absolute;
+      /* position:fixed (not absolute) — pins directly to the visual
+         viewport bottom rather than the backdrop's bounds. On iOS
+         Safari + PWA mode, the backdrop's inset:0 bounds can lag
+         the visual viewport during URL-bar / safe-area transitions,
+         leaving the dialog floating above the screen bottom.
+         position:fixed sidesteps this entirely. */
+      position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
