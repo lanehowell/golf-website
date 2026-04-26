@@ -36503,7 +36503,18 @@
         </div>`;
     }
     const course = getCourse(ctx.courseId);
-    const hole = course?.holes?.[ctx.holeIndex];
+    // When GPS view is open, the user can independently navigate
+    // between holes via the prev/next chevrons — that hole may be
+    // different from the round's score-card hole. Track shots should
+    // reflect what the user is VISUALLY on, which is the GPS hole
+    // when GPS is open. Fall back to round context otherwise.
+    let hole;
+    if (roundGpsState.open && roundGpsState.holeNumber != null && course) {
+      hole = course.holes?.find(h => h.number === roundGpsState.holeNumber);
+    }
+    if (!hole) {
+      hole = course?.holes?.[ctx.holeIndex];
+    }
     if (!hole) return '';
     const holeNum = hole.number;
     const shots = getShotsForHole(holeNum);
@@ -37187,7 +37198,6 @@
 
     // (continuing below — bodyHtml uses mapSectionHtml as a prefix)
     const bodyHtml = `
-      ${mapSectionHtml}
       <div class="shot-edit-section">
         <label class="shot-edit-label">Club</label>
         ${clubPickerHtml}
@@ -37279,7 +37289,9 @@
       <div class="shot-edit-section">
         <label class="shot-edit-label">Contact</label>
         <div class="shot-lie-picker shot-lie-picker-compact">${mishitOptionsHtml}</div>
-      </div>`;
+      </div>
+
+      ${mapSectionHtml}`;
 
     if (isAlreadyOpen) {
       // Update body in place — preserves the open state, the slide-up
@@ -37293,11 +37305,11 @@
       // resources on every chip tap.
       const bodyHtmlNoMap = bodyHtml.replace(mapSectionHtml, '');
       // Preserve the existing map element, then append re-rendered
-      // sections after it.
+      // sections + map at the end (map sits at the bottom of the sheet).
       const existingMapSection = existingBody.querySelector('.shot-edit-map-section');
       existingBody.innerHTML = bodyHtmlNoMap;
       if (existingMapSection) {
-        existingBody.insertBefore(existingMapSection, existingBody.firstChild);
+        existingBody.appendChild(existingMapSection);
       }
       // Footer might also need an update if isEditing changed (it
       // shouldn't during a single edit session, but safe to keep
@@ -37914,15 +37926,27 @@
   function renderCaddie() {
     // Context hint: show the current hole's par/yardage if we have it.
     // Works for both solo and group rounds via the unified context reader.
+    // When GPS view is open, prefer the GPS-current hole (user may have
+    // navigated independently in GPS to a different hole than the round
+    // score-card hole).
     let holeHint = '';
     const ctx = getCurrentRoundContext();
     if (ctx) {
       const course = getCourse(ctx.courseId);
       if (course) {
-        const hole = course.holes[ctx.holeIndex];
+        let hole;
+        let holeIdx;
+        if (roundGpsState.open && roundGpsState.holeNumber != null) {
+          holeIdx = course.holes.findIndex(h => h.number === roundGpsState.holeNumber);
+          if (holeIdx >= 0) hole = course.holes[holeIdx];
+        }
+        if (!hole) {
+          holeIdx = ctx.holeIndex;
+          hole = course.holes[holeIdx];
+        }
         const tee = course.tees.find(t => t.name === ctx.teeName);
         if (hole && tee) {
-          const yards = tee.yardages[ctx.holeIndex];
+          const yards = tee.yardages[holeIdx];
           holeHint = `Hole ${hole.number} · Par ${hole.par} · ${yards.toLocaleString()} ${distanceUnit()}`;
         }
       }
