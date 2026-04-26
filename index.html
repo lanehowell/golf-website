@@ -5217,9 +5217,10 @@
   .round-gps-set-target {
     position: absolute;
     left: 16px;
-    /* Stack above recenter: recenter sits at 64+safe+12, this one
-       sits 56px above (44px button + 12px gap). */
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px);
+    /* Stack above recenter and layers button. Each button is 44px
+       tall + 12px gap = 56px stride. Recenter at base, Layers at +56,
+       Set-target at +112. */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 112px);
     z-index: 5;
     width: 44px;
     height: 44px;
@@ -5250,6 +5251,149 @@
     .round-gps-set-target[data-state="set"]:hover {
       background: var(--color-orange-light);
     }
+  }
+
+  /* Layers button — sits above the recenter button. Same circular
+     dark-pill style as recenter for visual harmony in the bottom-left
+     stack. Tap opens the layers popup above it. */
+  .round-gps-layers-btn {
+    position: absolute;
+    left: 16px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 150ms ease-out, transform 100ms ease-out;
+  }
+  .round-gps-layers-btn:active { transform: scale(0.92); }
+  .round-gps-layers-btn[aria-expanded="true"] {
+    background: rgba(0, 0, 0, 0.85);
+  }
+  @media (hover: hover) {
+    .round-gps-layers-btn:hover {
+      background: rgba(0, 0, 0, 0.75);
+    }
+  }
+
+  /* Layers popup — appears above the layers button when toggled.
+     Hidden by default (display: none). Opens by sliding up + fading
+     in with a spring-like ease, anchored to bottom-left so it feels
+     like it's growing out of the layers button. Closes faster so it
+     gets out of the way snappily. */
+  .round-gps-layers-popup {
+    position: absolute;
+    left: 16px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px + 44px + 8px);
+    z-index: 6;
+    min-width: 180px;
+    background: rgba(20, 20, 20, 0.92);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    padding: var(--space-2);
+    display: none;
+    transform-origin: bottom left;
+    /* Initial (off-screen) state */
+    transform: translateY(12px) scale(0.92);
+    opacity: 0;
+  }
+  /* Mid-animation: still rendered but in initial state. .is-opening
+     gets added before the next-frame transition to .is-open kicks
+     off the spring. */
+  .round-gps-layers-popup.is-opening,
+  .round-gps-layers-popup.is-open,
+  .round-gps-layers-popup.is-closing {
+    display: block;
+  }
+  .round-gps-layers-popup.is-open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    /* Spring ease — slight overshoot for a "pops open" feel. */
+    transition:
+      transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 160ms ease-out;
+  }
+  .round-gps-layers-popup.is-closing {
+    transform: translateY(8px) scale(0.96);
+    opacity: 0;
+    /* Faster, plain ease on close — get out of the way. */
+    transition:
+      transform 140ms ease-in,
+      opacity 120ms ease-in;
+  }
+  .round-gps-layers-popup-title {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    padding: var(--space-2) var(--space-3) var(--space-1) var(--space-3);
+  }
+  .round-gps-layers-popup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast);
+  }
+  .round-gps-layers-popup-row:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  @media (hover: hover) {
+    .round-gps-layers-popup-row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+  /* Toggle indicator — small pill with a dot inside. Position shifts
+     based on aria-pressed (off = left, on = right). Color flips too. */
+  .round-gps-layers-popup-toggle {
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.18);
+    position: relative;
+    flex-shrink: 0;
+    transition: background var(--transition-fast);
+  }
+  .round-gps-layers-popup-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform var(--transition-fast);
+  }
+  .round-gps-layers-popup-row[aria-pressed="true"] .round-gps-layers-popup-toggle {
+    background: #FFD600;
+  }
+  .round-gps-layers-popup-row[aria-pressed="true"] .round-gps-layers-popup-toggle::after {
+    transform: translateX(14px);
+    background: #1a1a1a;
   }
 
   /* Wind compass — bottom-right floating button. Mirrors the recenter
@@ -55424,6 +55568,11 @@
     // hole change and GPS close.
     committedTarget: null,         // { lat, lng } | null
     committedTargetMarker: null,   // mapboxgl.Marker for the on-map pin
+    // Layer visibility toggles — controlled by the Layers popup.
+    // Default true (visible). New layers can be added by extending
+    // this object plus the popup markup. Reset to defaults on
+    // closeRoundGpsPanel.
+    layers: { trail: true },
   };
 
   // Threshold for switching between planning and playing modes.
@@ -55946,6 +56095,13 @@
     // the state field so the next GPS session starts clean.
     roundGpsState.committedTarget = null;
     roundGpsState.committedTargetMarker = null;
+    // Reset Layers toggles to defaults so a new GPS session starts
+    // with everything visible. Also close the popup if it was open
+    // and detach its outside-click handler.
+    roundGpsState.layers = { trail: true };
+    if (typeof closeRoundGpsLayersPopup === 'function') {
+      try { closeRoundGpsLayersPopup(); } catch (_) {}
+    }
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -57748,6 +57904,12 @@
         roundGpsState.shotMarkers[p.shotId] = marker;
       } catch (_) {}
     });
+
+    // Honor current Layers toggle — if user has the trail hidden, the
+    // freshly-rendered markers + line should also be hidden.
+    if (roundGpsState.layers && roundGpsState.layers.trail === false) {
+      applyRoundGpsLayerVisibility('trail');
+    }
   }
 
   // Tear down all shot pins and the connecting line. Called when
@@ -57765,6 +57927,140 @@
       try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
     }
     roundGpsState.shotLine = null;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Layers popup — bottom-left button stack opens this small panel
+  // for toggling map layers on/off. Currently just the shot trail;
+  // future layers (yardage labels, planning lines, etc) get added by
+  // extending roundGpsState.layers + the popup markup + a case in
+  // applyRoundGpsLayerVisibility.
+  // ──────────────────────────────────────────────────────────
+
+  let _layersPopupOutsideClick = null;
+  let _layersPopupCloseTimer = null;
+
+  function toggleRoundGpsLayersPopup() {
+    const popup = document.getElementById('round-gps-layers-popup');
+    const btn = document.getElementById('round-gps-layers-btn');
+    if (!popup || !btn) return;
+    // Currently-open check — both .is-open and .is-opening count as
+    // "showing", so a second tap during the open animation closes it.
+    const isShowing = popup.classList.contains('is-open')
+                   || popup.classList.contains('is-opening');
+    if (isShowing) {
+      closeRoundGpsLayersPopup();
+    } else {
+      openRoundGpsLayersPopup();
+    }
+  }
+  window.toggleRoundGpsLayersPopup = toggleRoundGpsLayersPopup;
+
+  function openRoundGpsLayersPopup() {
+    const popup = document.getElementById('round-gps-layers-popup');
+    const btn = document.getElementById('round-gps-layers-btn');
+    if (!popup || !btn) return;
+    // Cancel any in-flight close so we don't fight the close
+    // animation with an open.
+    if (_layersPopupCloseTimer) {
+      clearTimeout(_layersPopupCloseTimer);
+      _layersPopupCloseTimer = null;
+    }
+    popup.classList.remove('is-closing');
+    // Step 1: paint the initial state (display:block + initial transform).
+    popup.classList.add('is-opening');
+    popup.setAttribute('aria-hidden', 'false');
+    btn.setAttribute('aria-expanded', 'true');
+    // Step 2: force a reflow so the browser commits the initial state
+    // BEFORE we add .is-open (which triggers the transition).
+    void popup.offsetHeight;
+    // Step 3: kick off the open transition.
+    requestAnimationFrame(() => {
+      popup.classList.remove('is-opening');
+      popup.classList.add('is-open');
+      // Click-outside-to-close. Attach next frame so the click that
+      // OPENED the popup doesn't immediately close it.
+      _layersPopupOutsideClick = (e) => {
+        if (popup.contains(e.target)) return;
+        if (btn.contains(e.target)) return;
+        closeRoundGpsLayersPopup();
+      };
+      document.addEventListener('pointerdown', _layersPopupOutsideClick, true);
+    });
+  }
+
+  function closeRoundGpsLayersPopup() {
+    const popup = document.getElementById('round-gps-layers-popup');
+    const btn = document.getElementById('round-gps-layers-btn');
+    if (popup) {
+      // Detach outside-click listener immediately — don't wait for
+      // animation to finish. Also clear any opening state so we go
+      // cleanly into closing regardless of where we were.
+      popup.classList.remove('is-opening', 'is-open');
+      popup.classList.add('is-closing');
+      popup.setAttribute('aria-hidden', 'true');
+      // After the close animation, remove .is-closing so the popup
+      // returns to display:none. Use transitionend for accuracy with
+      // a setTimeout fallback in case the event doesn't fire (e.g.,
+      // the user opened DevTools and animations are paused).
+      const onEnd = () => {
+        popup.classList.remove('is-closing');
+        popup.removeEventListener('transitionend', onEnd);
+        if (_layersPopupCloseTimer) {
+          clearTimeout(_layersPopupCloseTimer);
+          _layersPopupCloseTimer = null;
+        }
+      };
+      popup.addEventListener('transitionend', onEnd);
+      _layersPopupCloseTimer = setTimeout(onEnd, 200);
+    }
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (_layersPopupOutsideClick) {
+      document.removeEventListener('pointerdown', _layersPopupOutsideClick, true);
+      _layersPopupOutsideClick = null;
+    }
+  }
+
+  // Toggle a layer's visibility. Updates state + applies visibility +
+  // updates the popup row's pressed state to match.
+  function toggleRoundGpsLayer(layerId) {
+    if (!roundGpsState.layers || !(layerId in roundGpsState.layers)) return;
+    roundGpsState.layers[layerId] = !roundGpsState.layers[layerId];
+    applyRoundGpsLayerVisibility(layerId);
+    // Update the row's aria-pressed so the toggle indicator flips.
+    const row = document.getElementById(`round-gps-layers-${layerId}-row`);
+    if (row) {
+      row.setAttribute('aria-pressed', roundGpsState.layers[layerId] ? 'true' : 'false');
+    }
+    haptic('light');
+  }
+  window.toggleRoundGpsLayer = toggleRoundGpsLayer;
+
+  // Apply a layer's visibility to the actual map elements. Called on
+  // toggle and after renderRoundGpsShotMarkers re-creates the trail
+  // (so newly-rendered markers honor the current toggle state).
+  function applyRoundGpsLayerVisibility(layerId) {
+    if (!roundGpsState.layers) return;
+    const visible = roundGpsState.layers[layerId];
+    if (layerId === 'trail') {
+      // Hide/show each shot marker DOM element.
+      Object.values(roundGpsState.shotMarkers).forEach(marker => {
+        try {
+          const el = marker.getElement();
+          if (el) el.style.display = visible ? '' : 'none';
+        } catch (_) {}
+      });
+      // Hide/show the connecting line layer via Mapbox's layout prop.
+      const map = roundGpsState.map;
+      if (map && roundGpsState.shotLine) {
+        try {
+          map.setLayoutProperty(
+            roundGpsState.shotLine.layerId,
+            'visibility',
+            visible ? 'visible' : 'none');
+        } catch (_) {}
+      }
+    }
   }
 
   // Pick the "from" point for the target's first line — playing
@@ -58366,6 +58662,37 @@
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
           </svg>
         </button>
+
+        <!-- Layers button — sits above the recenter button. Tap to
+             open a small popup with toggles for map layers (shot
+             trail, etc). Always visible during a round; the popup is
+             hidden until the button is tapped. -->
+        <button class="round-gps-layers-btn"
+                id="round-gps-layers-btn"
+                onclick="toggleRoundGpsLayersPopup()"
+                aria-label="Toggle map layers"
+                aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 22 8.5 12 15 2 8.5 12 2"/>
+            <polyline points="2 15.5 12 22 22 15.5"/>
+          </svg>
+        </button>
+
+        <!-- Layers popup — small panel that appears above the layers
+             button. Lists togglable map layers. Hidden by default;
+             JS shows/hides via the .is-open class. -->
+        <div class="round-gps-layers-popup" id="round-gps-layers-popup"
+             role="dialog" aria-label="Map layers"
+             aria-hidden="true">
+          <div class="round-gps-layers-popup-title">Layers</div>
+          <button class="round-gps-layers-popup-row"
+                  id="round-gps-layers-trail-row"
+                  onclick="toggleRoundGpsLayer('trail')"
+                  aria-pressed="true">
+            <span class="round-gps-layers-popup-label">Shot trail</span>
+            <span class="round-gps-layers-popup-toggle" aria-hidden="true"></span>
+          </button>
+        </div>
 
         <!-- Bottom action bar — mirrors the round screen's bar. Tools
              button on the left, Input score on the right. Tools opens
