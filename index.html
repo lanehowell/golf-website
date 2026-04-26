@@ -56591,17 +56591,13 @@
     renderRoundGpsShotMarkers();
     refreshRoundGpsActionButton();
 
-    // Auto-clear the dropped reticle after a successful log. The
-    // reticle's job was to capture target intent for THIS shot;
-    // the shot record now stores targetLat/targetLng. Leaving the
-    // reticle active would silently inherit this shot's target into
-    // the next one, producing wrong miss data. Forcing a re-drop
-    // for each shot guarantees fresh intent. The user can still
-    // skip dropping a reticle entirely — approach/chip will fall
-    // back to the green-default for target.
-    if (roundGpsState.targetActive) {
-      try { clearRoundGpsTarget(); } catch (_) {}
-    }
+    // Reticle is left in place — the user can see where they were
+    // aimed and drag it to a new spot for the next shot. Tradeoff:
+    // if they tap Log shot for the next shot WITHOUT moving the
+    // reticle first, that next shot inherits this shot's stale
+    // target. But the reticle is visible on screen, so the user can
+    // tell something's off and adjust. Forcing a re-drop on every
+    // single shot was too much friction in practice.
 
     // Persist to scratchpad for crash-recovery; main Firestore write
     // happens on next nav event (Save & Next, hole change, round end).
