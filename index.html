@@ -54135,15 +54135,18 @@
     };
 
     // Pre-sample the bezier into N points (in lat/lng). Animation
-    // just slices into this array as t advances. 32 points gives
+    // just slices into this array as t advances. 24 points gives
     // a smooth curve without too much geometry overhead.
     //
-    // The first and last samples are forced to the exact start/end
-    // lat/lng — skipping the project→unproject round-trip on those
-    // endpoints. Without this, floating-point drift in the projection
-    // math would land the line slightly short of (or past) the
-    // numbered marker we drop at the end position.
-    const N = 32;
+    // The first sample is forced to the exact start lat/lng. The
+    // last two samples form a straight segment ending at the exact
+    // end lat/lng — this guarantees the visible "landing" of the
+    // line points cleanly at the marker, even if mid-curve samples
+    // have small projection drift from the project→unproject round-
+    // trip. (Pure bezier sampling can land the line a few pixels
+    // off the marker because the unprojected lat/lngs are reprojected
+    // for rendering with subtle floating-point variance.)
+    const N = 24;
     const curvePoints = [];
     for (let i = 0; i <= N; i++) {
       if (i === 0) {
