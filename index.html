@@ -5188,60 +5188,46 @@
   }
   .round-gps-recenter:active { background: rgba(0, 0, 0, 0.75); }
 
-  /* "Set as target" button — small pill that lives just below the
-     reticle. Three states via data-state:
-       - none → "Set as target" — subdued white-on-dark
-       - set  → "✓ Target set"  — orange tint, committed at this spot
-       - move → "Move target here" — brighter orange, action available
-     The button is placed via Mapbox marker (lat/lng-anchored) so it
-     follows the reticle as it drags. pointer-events:auto so it's
-     tappable; doesn't intercept map drags from the surrounding area. */
-  .round-gps-target-btn {
-    /* Reset button defaults that browsers love to add */
-    appearance: none;
-    -webkit-appearance: none;
+  /* Set-as-target button — sits just above the recenter button in the
+     bottom-left button stack. Same circular shape and styling family.
+     Two states: idle (default white-on-dark) and set (orange) for an
+     active committed target. Hidden via inline display:none in markup
+     when no reticle is dropped. */
+  .round-gps-set-target {
+    position: absolute;
+    left: 16px;
+    /* Stack above recenter: recenter sits at 64+safe+12, this one
+       sits 56px above (44px button + 12px gap). */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     border: none;
-    margin: 0;
-    font: inherit;
-    /* Visual */
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.65);
+    background: rgba(0, 0, 0, 0.55);
     color: #fff;
-    font-family: var(--font-body);
-    font-size: 0.72rem;
-    font-weight: var(--weight-semibold);
-    letter-spacing: 0.02em;
-    white-space: nowrap;
     cursor: pointer;
-    pointer-events: auto;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    transition: background 120ms ease-out, transform 100ms ease-out;
+    transition: background 150ms ease-out, transform 100ms ease-out;
   }
-  .round-gps-target-btn:active {
-    transform: scale(0.95);
-  }
-  .round-gps-target-btn[data-state="set"] {
-    background: rgba(232, 93, 4, 0.85);
+  .round-gps-set-target:active { transform: scale(0.92); }
+  .round-gps-set-target[data-state="set"] {
+    background: var(--color-orange);
     color: #fff;
-  }
-  .round-gps-target-btn[data-state="move"] {
-    background: rgba(232, 93, 4, 0.65);
-    color: #fff;
+    box-shadow: 0 2px 14px rgba(232, 93, 4, 0.45),
+                0 2px 8px rgba(0, 0, 0, 0.25);
   }
   @media (hover: hover) {
-    .round-gps-target-btn:hover {
-      background: rgba(0, 0, 0, 0.8);
+    .round-gps-set-target:hover {
+      background: rgba(0, 0, 0, 0.75);
     }
-    .round-gps-target-btn[data-state="set"]:hover {
-      background: rgba(232, 93, 4, 0.95);
-    }
-    .round-gps-target-btn[data-state="move"]:hover {
-      background: rgba(232, 93, 4, 0.85);
+    .round-gps-set-target[data-state="set"]:hover {
+      background: var(--color-orange-light);
     }
   }
 
@@ -7732,6 +7718,25 @@
   html.dark .shot-row-mishit {
     background: rgba(232, 93, 4, 0.18);
     color: var(--color-orange);
+  }
+  /* Chip proximity badge — distance from the cup after the chip
+     landed. Neutral informational treatment (not pass/fail). Slate
+     tint so it reads as a data point rather than a judgment. */
+  .shot-row-proximity {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    background: var(--bg-elevated);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid var(--border-light);
+  }
+  html.dark .shot-row-proximity {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   /* Result badge — shows dispersion outcome. "On" gets a green success
      treatment so it reads as a positive data point; any miss (Long,
@@ -36521,6 +36526,12 @@
         // when not yet set, so the user knows it's editable.
         const intentLbl = s.intent ? (SHOT_INTENT_SHORT[s.intent] || s.intent) : 'Set intent';
         const intentClass = s.intent ? '' : ' is-empty';
+        // Chip proximity badge — shows "→ Xft" when a chip has its
+        // proximity-to-hole field filled in. Otherwise hidden. Tells
+        // the user at a glance "did I get this chip close?".
+        const proximityBadge = (s.intent === 'chip' && typeof s.proximityFt === 'number')
+          ? `<span class="shot-row-proximity">→ ${s.proximityFt}ft</span>`
+          : '';
         return `
           <div class="shot-row" role="button" tabindex="0"
                onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')"
@@ -36534,6 +36545,7 @@
               </span>
               <span class="shot-row-bottom">
                 <span class="shot-row-path">From ${fromLbl}</span>
+                ${proximityBadge}
                 ${resultBadge}
                 ${mishitBadge}
               </span>
@@ -36664,6 +36676,11 @@
         }
         shotEditState.draft.distanceFeet = null;
       }
+      // Chip proximity is chip-specific. If user is toggling away
+      // from chip, drop the value so it doesn't pollute non-chip data.
+      if (value !== 'chip') {
+        shotEditState.draft.proximityFt = null;
+      }
     }
     renderShotEditSheet();
   }
@@ -36693,6 +36710,10 @@
           shotEditState.draft.distance = Math.round((shotEditState.draft.distanceFeet / 3) * 10) / 10;
         }
         shotEditState.draft.distanceFeet = null;
+      }
+      // Chip proximity is chip-specific; clear if not chip.
+      if (shotEditState.draft.intent !== 'chip') {
+        shotEditState.draft.proximityFt = null;
       }
     }
     renderShotEditSheet();
@@ -36727,6 +36748,28 @@
     // sub-foot precision is theater.
     shotEditState.draft.distanceFeet = Math.round(n);
   }
+
+  // Chip proximity setter — distance from the cup AFTER the chip
+  // landed. Manually entered in feet since GPS can't tell us cup
+  // position. Used by chip stats ("got it within X feet" averages).
+  // Mutually compatible with the existing fields — chips have BOTH
+  // distance (yards-to-target = chip start→green-center) AND
+  // proximityFt (chip end→cup).
+  function updateShotDraftProximityFt(displayValue) {
+    if (!shotEditState.draft) return;
+    const trimmed = (displayValue ?? '').toString().trim();
+    if (trimmed === '') {
+      shotEditState.draft.proximityFt = null;
+      return;
+    }
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n < 0) {
+      shotEditState.draft.proximityFt = null;
+      return;
+    }
+    shotEditState.draft.proximityFt = Math.min(200, Math.round(n));
+  }
+  window.updateShotDraftProximityFt = updateShotDraftProximityFt;
 
   // Commit the draft to roundState.shots and persist. Handles both
   // add and edit cases.
@@ -36855,11 +36898,19 @@
     // but displayed in user's unit. Putts are special: stored in feet
     // (draft.distanceFeet, integer) since "5y putt" reads weird.
     const isPutt = draft.intent === 'putt';
+    // Chips get an additional input — proximity to the hole AFTER the
+    // chip lands. GPS captures the chip's end position but not where
+    // the cup is, so this is manually entered. The standard short-game
+    // stat (chip "got it close" distance). Stored in integer feet.
+    const isChip = draft.intent === 'chip';
     const distDisplay = (typeof draft.distance === 'number')
       ? distanceToDisplay(draft.distance)
       : '';
     const distFeetDisplay = (typeof draft.distanceFeet === 'number')
       ? String(draft.distanceFeet)
+      : '';
+    const proximityFtDisplay = (typeof draft.proximityFt === 'number')
+      ? String(draft.proximityFt)
       : '';
 
     // Segmented pickers — helper to generate the chip set
@@ -36963,6 +37014,26 @@
           `}
         </div>
       </div>
+
+      ${isChip ? `
+        <div class="shot-edit-section">
+          <label class="shot-edit-label">
+            Distance from hole after chip
+            <span class="shot-edit-label-hint">optional</span>
+          </label>
+          <div class="shot-edit-dist-row">
+            <input type="number"
+                   inputmode="numeric"
+                   class="shot-edit-dist-input"
+                   placeholder="—"
+                   min="0"
+                   max="200"
+                   value="${proximityFtDisplay}"
+                   oninput="updateShotDraftProximityFt(this.value)" />
+            <span class="shot-edit-dist-unit">ft</span>
+          </div>
+        </div>
+      ` : ''}
 
       <div class="shot-edit-section">
         <label class="shot-edit-label">Lie</label>
@@ -55645,25 +55716,6 @@
       anchor: 'center',
     }).setLngLat([lng, lat]).addTo(roundGpsState.map);
 
-    // Build the "Set as target" button — its own Mapbox marker so
-    // it doesn't intercept drags on the reticle. Anchored top-center
-    // so it sits just below the reticle. Updates position via the
-    // reticle's drag handlers below.
-    const btnEl = document.createElement('button');
-    btnEl.className = 'round-gps-target-btn round-gps-fadable';
-    btnEl.type = 'button';
-    btnEl.setAttribute('aria-label', 'Set as target');
-    btnEl.onclick = (e) => {
-      e.stopPropagation();
-      toggleRoundGpsCommittedTarget();
-    };
-    const btnMarker = new mapboxgl.Marker({
-      element: btnEl,
-      anchor: 'top',
-      offset: [0, 22],  // push button below the 32px reticle
-    }).setLngLat([lng, lat]).addTo(roundGpsState.map);
-    roundGpsState.targetBtnMarker = btnMarker;
-
     // While dragging, update the lines + the distance readout in
     // real time. Use 'drag' (every frame) for a responsive feel.
     marker.on('dragstart', () => {
@@ -55687,14 +55739,10 @@
       roundGpsState.targetLat = ll.lat;
       roundGpsState.targetLng = ll.lng;
       el.style.cursor = 'grabbing';
-      // Keep the button glued under the reticle.
-      if (roundGpsState.targetBtnMarker) {
-        roundGpsState.targetBtnMarker.setLngLat([ll.lng, ll.lat]);
-      }
       updateRoundGpsTargetLines();
       updateRoundGpsTargetReadout();
-      // Button label may need to flip ("Move target here" vs "Target set")
-      // based on whether the reticle is now AT the committed target or not.
+      // The fixed Set-target button's state may flip — orange "set"
+      // when reticle is back at the committed target, default when not.
       refreshRoundGpsTargetBtn();
     });
     marker.on('dragend', () => {
@@ -55721,12 +55769,6 @@
   function clearRoundGpsTarget() {
     if (roundGpsState.targetMarker) {
       try { roundGpsState.targetMarker.remove(); } catch (_) {}
-    }
-    // Remove the "Set as target" button marker that lived next to the
-    // reticle. Lifecycle is tied to the reticle's — both gone together.
-    if (roundGpsState.targetBtnMarker) {
-      try { roundGpsState.targetBtnMarker.remove(); } catch (_) {}
-      roundGpsState.targetBtnMarker = null;
     }
     // Remove the zoom listener bound when target was activated.
     if (roundGpsState.map) {
@@ -55772,6 +55814,8 @@
       }
       if (subEl) subEl.textContent = 'Drag the target to plan a shot';
     }
+    // Hide the fixed Set-target button — no reticle = nothing to commit.
+    refreshRoundGpsTargetBtn();
   }
   window.clearRoundGpsTarget = clearRoundGpsTarget;
 
@@ -55879,34 +55923,25 @@
     roundGpsState.committedTarget = null;
   }
 
-  // Update the "Set as target" button label + visual state to match
-  // the relationship between the reticle and the committed target.
-  // Three states:
-  //   1. No committed target → "Set as target" (default subdued)
-  //   2. Committed = reticle  → "✓ Target set" (active orange)
-  //   3. Committed ≠ reticle  → "Move target here" (orange but
-  //                              indicates action available)
+  // Update the fixed Set-target button (bottom-left button stack)
+  // based on current reticle + committed target state. Three behaviors:
+  //   1. No reticle dropped → hide button entirely
+  //   2. Reticle dropped, no committed target → show button (idle/white)
+  //   3. Committed target exists → show button (orange/set state)
+  // The button's onclick (toggleRoundGpsCommittedTarget) handles all
+  // tap behaviors: commit reticle position, or clear if already at it.
   function refreshRoundGpsTargetBtn() {
-    if (!roundGpsState.targetBtnMarker) return;
-    const btnEl = roundGpsState.targetBtnMarker.getElement();
-    if (!btnEl) return;
-    const committed = roundGpsState.committedTarget;
-    const reticleAt = (roundGpsState.targetLat != null && roundGpsState.targetLng != null)
-      ? { lat: roundGpsState.targetLat, lng: roundGpsState.targetLng }
-      : null;
-    let label, state;
-    if (!committed) {
-      label = '🎯 Set as target';
-      state = 'none';
-    } else if (reticleAt && sameLatLngApprox(committed, reticleAt)) {
-      label = '✓ Target set';
-      state = 'set';
-    } else {
-      label = '🎯 Move target here';
-      state = 'move';
+    const btn = document.getElementById('round-gps-set-target-btn');
+    if (!btn) return;
+    if (!roundGpsState.targetActive) {
+      btn.style.display = 'none';
+      return;
     }
-    btnEl.textContent = label;
-    btnEl.dataset.state = state;
+    btn.style.display = 'flex';
+    btn.dataset.state = roundGpsState.committedTarget ? 'set' : 'idle';
+    btn.setAttribute('aria-label', roundGpsState.committedTarget
+      ? 'Target set — tap to update or clear'
+      : 'Set scope position as target');
   }
 
   // Initial line draw — both from→target and target→green lines.
@@ -56798,6 +56833,11 @@
       club: defaultClub,
       distance: yardsToTarget,
       distanceFeet: null,  // putts handled separately via score sheet
+      // Chip proximity to the cup AFTER the chip lands. Manually
+      // entered by the user in the edit sheet (GPS doesn't know cup
+      // position). Null for non-chip shots and for chips the user
+      // hasn't filled in yet.
+      proximityFt: null,
       startLie,
       intent,
       mishit: 'clean',
@@ -57697,6 +57737,30 @@
         </div>
 
         <!-- Recenter button — sits bottom-left above the tools button.
+             Tap to reframe the map on tee+green at the proper bearing,
+             matching the initial render (useful after panning around). -->
+        <!-- "Set as target" button — sits above the recenter button.
+             Tappable when a reticle is dropped; commits the reticle's
+             current position as the upcoming shot's aim point. Visible
+             state varies:
+               - hidden when no reticle is dropped
+               - default (white) when reticle is dropped, no target set
+               - orange when a target is committed (tap = update/clear)
+             The visibility + state are managed via JS — see
+             refreshRoundGpsTargetBtn. -->
+        <button class="round-gps-set-target"
+                id="round-gps-set-target-btn"
+                onclick="toggleRoundGpsCommittedTarget()"
+                aria-label="Set scope position as target"
+                style="display: none">
+          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+
+        <!-- Recenter button — bottom-left, floating above the action bar.
              Tap to reframe the map on tee+green at the proper bearing,
              matching the initial render (useful after panning around). -->
         <button class="round-gps-recenter"
