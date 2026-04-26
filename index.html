@@ -14151,6 +14151,19 @@
   body.round-replay-open .training-nav,
   body.round-replay-open .mobile-bottomnav { display: none !important; }
 
+  /* Round-replay fullscreen takeover. The mount lives at body level
+     (so it can escape any panel transforms / containing blocks), but
+     it only adopts fullscreen positioning when replay is open. When
+     closed, the empty mount is invisible / zero-size. */
+  body.round-replay-open #round-replay-mount {
+    position: fixed;
+    inset: 0;
+    z-index: 9300;
+    background: #000;
+    overflow: hidden;
+  }
+  /* Legacy rule kept for compat in case anything still references
+     the old #panel-round-replay id. New entry uses #round-replay-mount. */
   #panel-round-replay {
     position: fixed;
     inset: 0;
