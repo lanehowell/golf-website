@@ -5111,7 +5111,7 @@
     line-height: 1;
   }
   .round-gps-shot-btn-label {
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
     font-weight: var(--weight-bold);
     letter-spacing: 0.02em;
   }
@@ -56256,16 +56256,24 @@
     // update lines + UI.
     const el = document.createElement('div');
     el.className = 'round-gps-target-marker round-gps-fadable';
+    // Near-invisible background ensures the entire 32x32 div is
+    // unambiguously hit-testable on every browser. Without this, the
+    // SVG inside has limited hit area (just the strokes/dots, not the
+    // transparent gaps) and another marker stacked on top can shadow
+    // the few pixels of actual hit area.
+    // Z-index 2 keeps the reticle ABOVE the committed target marker
+    // (z-index 1) so taps land here even when both are at the same
+    // lat/lng — critical for being able to drag the reticle when a
+    // target is committed.
     el.style.cssText = `
       width: 32px; height: 32px;
       cursor: grab;
+      background: rgba(0, 0, 0, 0.01);
+      border-radius: 50%;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));`;
-    // Reticle: outer ring + four crosshair lines (broken at center,
-    // forming a sight). Tiny center dot for precise positioning.
-    // Stroke + dot both white, partially transparent so the imagery
-    // shows through.
     el.innerHTML = `
-      <svg viewBox="0 0 32 32" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 32 32" width="32" height="32" xmlns="http://www.w3.org/2000/svg"
+           style="pointer-events: none">
         <circle cx="16" cy="16" r="13" fill="none"
                 stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
         <line x1="16" y1="2"  x2="16" y2="10" stroke="#fff" stroke-width="1.75" stroke-opacity="0.95"/>
@@ -56283,6 +56291,15 @@
       // round dot you're trying to position precisely).
       anchor: 'center',
     }).setLngLat([lng, lat]).addTo(roundGpsState.map);
+
+    // Set z-index on Mapbox's actual rendered element (wrapper). This
+    // is the only z-index that affects sibling marker stacking. Other
+    // markers like the committed target get a lower z-index so the
+    // reticle wins all touch events when they overlap.
+    try {
+      const renderedEl = marker.getElement();
+      if (renderedEl) renderedEl.style.zIndex = '2';
+    } catch (_) {}
 
     // While dragging, update the lines + the distance readout in
     // real time. Use 'drag' (every frame) for a responsive feel.
@@ -56462,12 +56479,17 @@
     el.className = 'round-gps-committed-target-marker round-gps-fadable';
     // Orange filled pin with a darker outline. Smaller than the
     // reticle (24px vs 32px) so they read as distinct sizes too.
+    // The SVG explicitly opts out of pointer events so taps fall
+    // through to the reticle underneath when the two pins overlap.
     el.innerHTML = `
-      <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg"
+           style="pointer-events: none">
         <circle cx="12" cy="12" r="9" fill="#ff8a3d"
                 stroke="#fff" stroke-width="2"
-                opacity="0.95"/>
-        <circle cx="12" cy="12" r="2.5" fill="#fff"/>
+                opacity="0.95"
+                pointer-events="none"/>
+        <circle cx="12" cy="12" r="2.5" fill="#fff"
+                pointer-events="none"/>
       </svg>`;
     el.style.cssText = `
       width: 24px; height: 24px;
@@ -56477,6 +56499,17 @@
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([ct.lng, ct.lat])
         .addTo(map);
+      // Belt-and-suspenders: also set pointer-events:none AND z-index
+      // on whatever Mapbox actually rendered. The committed target is
+      // purely visual; it must NEVER absorb touches that should have
+      // reached the reticle (z-index 2). z-index 1 puts it below.
+      try {
+        const renderedEl = marker.getElement();
+        if (renderedEl) {
+          renderedEl.style.pointerEvents = 'none';
+          renderedEl.style.zIndex = '1';
+        }
+      } catch (_) {}
       roundGpsState.committedTargetMarker = marker;
     } catch (_) {}
   }
