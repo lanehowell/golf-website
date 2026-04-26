@@ -5157,10 +5157,6 @@
     background-clip: content-box;
     border-clip: content-box;
   }
-  .round-gps-shot-marker.is-current-from {
-    background: var(--color-orange);
-    border-color: #fff;
-  }
 
   /* Recenter button — round, bottom-left, floating above the action
      bar so it doesn't get hidden by the bar's gradient. Reframes the
@@ -57066,9 +57062,12 @@
     const shots = getShotsForHole(holeNum);
     if (!shots || !shots.length) return;
 
-    // Build a list of all positions in chronological order. Each
-    // shot contributes its startLat/Lng (if present); the LAST
-    // shot also contributes its endLat/Lng if it's been finalized.
+    // Build a list of all shot start positions in chronological order.
+    // Each logged shot contributes one pin at its startLat/Lng. Pins
+    // are tappable (open the edit sheet). The user's live position
+    // (blue dot) already shows where the NEXT shot will start, so we
+    // don't add a separate "current from" pin — that was redundant
+    // and confused the visual story.
     const points = [];
     shots.forEach((s, i) => {
       if (s.startLat != null && s.startLng != null) {
@@ -57076,37 +57075,32 @@
           shotId: s.id,
           lat: s.startLat,
           lng: s.startLng,
-          isCurrentFrom: false,
           shotIndex: i,
         });
       }
     });
-    // The position the NEXT shot will start from (= last shot's end,
-    // OR the lastShotEnd state if it's been advanced past the last
-    // logged shot's start). This is where the user is "now" in shot
-    // sequence terms.
-    if (roundGpsState.lastShotEnd
-        && shots.length > 0
-        && (shots[shots.length - 1].endLat != null
-            || roundGpsState.lastShotEnd.lat !== shots[shots.length - 1].startLat)) {
-      points.push({
-        shotId: '__current_from',
-        lat: roundGpsState.lastShotEnd.lat,
-        lng: roundGpsState.lastShotEnd.lng,
-        isCurrentFrom: true,
-        shotIndex: shots.length,
-      });
+
+    // Build the line coordinates separately. Includes shot starts
+    // PLUS the last shot's endLat/Lng if it's been finalized. That
+    // way the trail visibly extends to the most recent ball position
+    // even if only one shot is logged. No marker at the line endpoint
+    // — when the user logs the next shot, its start pin will land at
+    // that same spot.
+    const lineCoords = points.map(p => [p.lng, p.lat]);
+    const lastShot = shots[shots.length - 1];
+    if (lastShot && lastShot.endLat != null && lastShot.endLng != null) {
+      lineCoords.push([lastShot.endLng, lastShot.endLat]);
     }
 
-    // Connecting line — thin orange polyline through all the points.
-    if (points.length >= 2) {
+    // Connecting line — thin orange polyline through the points.
+    if (lineCoords.length >= 2) {
       const sourceId = 'round-gps-shot-line-src';
       const layerId = 'round-gps-shot-line-lyr';
       const feature = {
         type: 'Feature',
         geometry: {
           type: 'LineString',
-          coordinates: points.map(p => [p.lng, p.lat]),
+          coordinates: lineCoords,
         },
       };
       try {
@@ -57132,22 +57126,15 @@
       } catch (_) { /* swallow — map may not be fully initialized */ }
     }
 
-    // Pin markers — one per point.
-    points.forEach((p, idx) => {
+    // Pin markers — one per logged shot start. All white, all tappable.
+    points.forEach((p) => {
       const el = document.createElement('div');
       el.className = 'round-gps-shot-marker';
-      if (p.isCurrentFrom) el.classList.add('is-current-from');
-      el.title = p.isCurrentFrom
-        ? 'You are here (next shot start)'
-        : `Shot ${p.shotIndex + 1} start`;
-      // Tap a real shot pin to edit; the "current from" pin isn't
-      // a logged shot so it isn't tappable.
-      if (!p.isCurrentFrom) {
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openShotEditSheet(holeNum, p.shotId);
-        });
-      }
+      el.title = `Shot ${p.shotIndex + 1} start`;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openShotEditSheet(holeNum, p.shotId);
+      });
       try {
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([p.lng, p.lat])
