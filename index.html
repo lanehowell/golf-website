@@ -5149,13 +5149,20 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    /* Hit-area boost — visual is 16px but tappable area is bigger so
-       fingers don't miss the small pin. */
-    box-sizing: content-box;
-    margin: -8px;
-    padding: 8px;
-    background-clip: content-box;
-    border-clip: content-box;
+    /* Position is relative for the ::before hitbox below. */
+    position: relative;
+  }
+  /* Touch hitbox boost — invisible 16px pad around the 16px visual,
+     so the tappable area is ~48px without affecting the marker's
+     positioning (it's absolute, doesn't change layout box).
+     Critical: do NOT use margin/padding on the marker itself for
+     this — Mapbox anchors at the element's bounding box, so any size
+     change there shifts the visual relative to its lat/lng. */
+  .round-gps-shot-marker::before {
+    content: '';
+    position: absolute;
+    top: -16px; left: -16px; right: -16px; bottom: -16px;
+    border-radius: 50%;
   }
 
   /* Recenter button — round, bottom-left, floating above the action
@@ -5244,7 +5251,7 @@
     border: none;
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
-    cursor: default;
+    cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -5252,8 +5259,17 @@
     gap: 1px;
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
-    pointer-events: none;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    /* Reset button defaults */
+    font: inherit;
+    padding: 0;
+    transition: background var(--transition-fast), transform 100ms ease-out;
     /* Hidden until wind data lands. JS removes the .is-hidden class. */
+  }
+  .round-gps-wind:active { transform: scale(0.94); }
+  @media (hover: hover) {
+    .round-gps-wind:hover { background: rgba(0, 0, 0, 0.75); }
   }
   .round-gps-wind.is-hidden { display: none; }
   .round-gps-wind-arrow {
@@ -7981,7 +7997,10 @@
   }
   .shot-edit-map {
     width: 100%;
-    height: 180px;
+    /* Square aspect ratio — gives much more vertical room for precise
+       pin dragging on phones. On a ~340px-wide sheet, that's ~340px
+       square instead of the previous 180px tall rectangle. */
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--bg-elevated);
@@ -7992,6 +8011,15 @@
   }
   html.dark .shot-edit-map {
     border-color: rgba(255, 255, 255, 0.08);
+  }
+  /* Small caption under the map explaining drag affordance. */
+  .shot-edit-map-caption {
+    margin-top: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
   }
   .shot-edit-label {
     display: flex;
@@ -8273,6 +8301,70 @@
   .shot-result-cell-label {
     line-height: 1.1;
     text-align: center;
+  }
+
+  /* Binary Good/Miss picker — used by GPS-tracked shots in place of
+     the 9-way compass. Two big tappable cards side-by-side. Good gets
+     a green success treatment when active; Miss gets a neutral slate
+     treatment (NOT a destructive red — a miss is data, not failure). */
+  .shot-result-binary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+  .shot-result-binary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    padding: var(--space-4) var(--space-3);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-result-binary-btn:active { transform: scale(0.97); }
+  @media (hover: hover) {
+    .shot-result-binary-btn:not(.is-active):hover {
+      border-color: var(--color-orange);
+      color: var(--text-primary);
+    }
+  }
+  .shot-result-binary-icon {
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    line-height: 1;
+  }
+  /* Active states — Good is green-success, Miss is slate-neutral. */
+  .shot-result-binary-btn.is-good.is-active {
+    background: #EFF8F0;
+    border-color: #2D6E34;
+    color: #2D6E34;
+  }
+  html.dark .shot-result-binary-btn.is-good.is-active {
+    background: rgba(45, 110, 52, 0.22);
+    border-color: #8FCE94;
+    color: #8FCE94;
+  }
+  .shot-result-binary-btn.is-miss.is-active {
+    background: var(--bg-elevated);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+  html.dark .shot-result-binary-btn.is-miss.is-active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: var(--text-primary);
   }
   /* Empty placeholder — shouldn't exist in our 3x3 (all 9 cells filled)
      but defined defensively in case SHOT_RESULTS ever changes shape. */
@@ -35724,6 +35816,9 @@
   // result yet (shot logged mid-hole, result filled in after). The
   // "on" cell is center of the grid (on target).
   const SHOT_RESULTS = [
+    // 9-way compass — used by non-GPS shots (manual add via Track Shots
+    // tool, no coords). User explicitly classifies dispersion since
+    // there's no geometric data to derive it from.
     { id: 'long-left',   label: 'Long Left',   short: 'L-L', row: 0, col: 0 },
     { id: 'long',        label: 'Long',        short: 'Long', row: 0, col: 1 },
     { id: 'long-right',  label: 'Long Right',  short: 'L-R', row: 0, col: 2 },
@@ -35733,6 +35828,13 @@
     { id: 'short-left',  label: 'Short Left',  short: 'S-L', row: 2, col: 0 },
     { id: 'short',       label: 'Short',       short: 'Short', row: 2, col: 1 },
     { id: 'short-right', label: 'Short Right', short: 'S-R', row: 2, col: 2 },
+    // Binary judgment — used by GPS-tracked shots, where the geometric
+    // miss data (alongShot/lateralOffset) already captures dispersion.
+    // The user just provides "was this a good shot or not." Captures
+    // judgment that geometry can't (e.g., hit the green but in a bad
+    // spot, or missed the green but smartly).
+    { id: 'good',        label: 'Good shot',   short: 'Good' },
+    { id: 'miss',        label: 'Miss',        short: 'Miss' },
   ];
 
   // Short labels for the compact shot row. Only start lies — there's
@@ -36359,9 +36461,12 @@
     if (dockState.sheetOpen) {
       // Backdrop dims the underlying panel while the sheet is open,
       // matching every other modal/sheet in the app. Tap to close.
-      // Initial .opening class makes it fade in smoothly (removed on
-      // next frame, same as the sheet's slide-up animation).
-      backdropHtml = `<div class="tools-sheet-backdrop opening" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
+      // Only add the .opening class (opacity 0 → fade in) on the
+      // FIRST render — subsequent re-renders (e.g., switching tools)
+      // shouldn't re-animate the backdrop, otherwise it'd flash
+      // un-dimmed every time.
+      const backdropOpening = dockState._animateNext ? ' opening' : '';
+      backdropHtml = `<div class="tools-sheet-backdrop${backdropOpening}" onclick="closeToolsSheet()" aria-hidden="true"></div>`;
       sheetHtml = renderToolsSheet();
     }
 
@@ -36589,13 +36694,16 @@
         const mishitBadge = (s.mishit && s.mishit !== 'clean')
           ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
           : '';
-        // Result badge — shows dispersion outcome if recorded. "On" gets
-        // a distinct "on target" treatment; any miss shows the short
-        // label (Long, L-L, etc.). Skipped when null so rows stay quiet
-        // until the user logs a result.
+        // Result badge — shows the outcome if recorded. Positive
+        // outcomes (the explicit "good" judgment, or "on target" from
+        // the compass) get a distinct success treatment; everything
+        // else (any compass miss direction or the explicit "miss"
+        // judgment) gets the neutral-miss treatment. Skipped when
+        // null so rows stay quiet until the user logs a result.
         const resultMeta = s.result ? SHOT_RESULTS.find(r => r.id === s.result) : null;
+        const isPositiveResult = s.result === 'on' || s.result === 'good';
         const resultBadge = resultMeta
-          ? `<span class="shot-row-result shot-row-result-${s.result === 'on' ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
+          ? `<span class="shot-row-result shot-row-result-${isPositiveResult ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
           : '';
         // Intent chip — display-only on the row. Set/changed via the
         // edit sheet (tap the row). Subtle "Set intent" placeholder
@@ -36716,33 +36824,31 @@
     const map = new mapboxgl.Map({
       container,
       style: 'mapbox://styles/mapbox/satellite-v9',
-      // Initial center will be replaced by fitBounds; just need a
-      // reasonable starting spot to avoid zoom-0 flash.
       center: [shot.startLng, shot.startLat],
       zoom: 16,
-      interactive: false,
+      // Interactive so users can pan/zoom to position pins precisely.
+      // Drag handles on markers still take precedence within the marker's
+      // hitbox — Mapbox handles that.
+      interactive: true,
       attributionControl: false,
+      // Disable controls that would clutter the small preview.
+      doubleClickZoom: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchZoomRotate: true,
     });
     shotEditState.map = map;
 
     map.on('load', () => {
       // Build line(s) — flight line is always drawn; intent line
       // only if the shot had a target. Both via separate sources/layers
-      // so the styling (solid vs dashed) can differ.
+      // so the styling (solid vs dashed) can differ. setData on the
+      // sources is what drag updates use to redraw geometry in place.
       try {
         // Flight line: start → end. Solid orange.
         map.addSource('shot-edit-flight', {
           type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [shot.startLng, shot.startLat],
-                [shot.endLng, shot.endLat],
-              ],
-            },
-          },
+          data: buildShotEditFlightFeature(),
         });
         map.addLayer({
           id: 'shot-edit-flight-layer',
@@ -36757,19 +36863,10 @@
         });
 
         // Intent line: start → target. Dashed white. Only if target.
-        if (shot.targetLat != null && shot.targetLng != null) {
+        if (hasShotEditTarget()) {
           map.addSource('shot-edit-intent', {
             type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [shot.startLng, shot.startLat],
-                  [shot.targetLng, shot.targetLat],
-                ],
-              },
-            },
+            data: buildShotEditIntentFeature(),
           });
           map.addLayer({
             id: 'shot-edit-intent-layer',
@@ -36787,38 +36884,82 @@
       } catch (_) {}
     });
 
-    // Markers — added independently of the load event since DOM
-    // markers are managed by Mapbox without needing the style ready.
-    // Start marker: small white circle (matches the in-round shot pin
-    // visual language).
+    // Helper: append a transparent absolute-positioned hitbox child
+    // to a marker so the touchable area is bigger than the visual.
+    // Doesn't change the parent's bounding box (the parent is sized
+    // to the visual), so Mapbox's anchor calculation puts the visual
+    // exactly at the lat/lng. This is the key bit — earlier versions
+    // used padding/margin which shifted the bounding box and caused
+    // the visual to drift away from line endpoints.
+    const addHitbox = (parentEl) => {
+      const hb = document.createElement('div');
+      hb.style.cssText = `
+        position: absolute;
+        top: -10px; left: -10px; right: -10px; bottom: -10px;
+        border-radius: 50%;`;
+      parentEl.appendChild(hb);
+    };
+
+    // Start marker — small white circle, draggable. The element
+    // itself IS the visual; size matches the rendered circle exactly.
     const startEl = document.createElement('div');
     startEl.style.cssText = `
       width: 14px; height: 14px;
       border-radius: 50%;
       background: #fefefe;
       border: 2px solid rgba(0,0,0,0.6);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);`;
-    new mapboxgl.Marker({ element: startEl, anchor: 'center' })
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      cursor: grab;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;`;
+    addHitbox(startEl);
+    const startMarker = new mapboxgl.Marker({
+      element: startEl, anchor: 'center', draggable: true,
+    })
       .setLngLat([shot.startLng, shot.startLat])
       .addTo(map);
+    startMarker.on('drag', () => {
+      const ll = startMarker.getLngLat();
+      if (shotEditState.draft) {
+        shotEditState.draft.startLat = ll.lat;
+        shotEditState.draft.startLng = ll.lng;
+      }
+      // Both lines depend on start — redraw both.
+      updateShotEditFlightLine();
+      updateShotEditIntentLine();
+    });
+    shotEditState.startMarker = startMarker;
 
-    // End marker: orange filled circle — emphasizes "this is where
-    // the ball ended up", which is what the pin in the main map
-    // shows too. Slightly bigger than start so it reads as the
-    // primary point.
+    // End marker — orange filled circle, draggable.
     const endEl = document.createElement('div');
     endEl.style.cssText = `
       width: 18px; height: 18px;
       border-radius: 50%;
       background: var(--color-orange, #E85D04);
       border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);`;
-    new mapboxgl.Marker({ element: endEl, anchor: 'center' })
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      cursor: grab;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;`;
+    addHitbox(endEl);
+    const endMarker = new mapboxgl.Marker({
+      element: endEl, anchor: 'center', draggable: true,
+    })
       .setLngLat([shot.endLng, shot.endLat])
       .addTo(map);
+    endMarker.on('drag', () => {
+      const ll = endMarker.getLngLat();
+      if (shotEditState.draft) {
+        shotEditState.draft.endLat = ll.lat;
+        shotEditState.draft.endLng = ll.lng;
+      }
+      // Only flight line depends on end; intent line is start→target,
+      // unaffected by end position.
+      updateShotEditFlightLine();
+    });
+    shotEditState.endMarker = endMarker;
 
-    // Target marker (if any): concentric circles (matches the
-    // committed-target pin visual on the main GPS map).
+    // Target marker (if any) — concentric circles, draggable.
     if (shot.targetLat != null && shot.targetLng != null) {
       const tgtEl = document.createElement('div');
       tgtEl.innerHTML = `
@@ -36829,16 +36970,31 @@
         </svg>`;
       tgtEl.style.cssText = `
         width: 20px; height: 20px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));`;
-      new mapboxgl.Marker({ element: tgtEl, anchor: 'center' })
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+        cursor: grab;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;`;
+      addHitbox(tgtEl);
+      const tgtMarker = new mapboxgl.Marker({
+        element: tgtEl, anchor: 'center', draggable: true,
+      })
         .setLngLat([shot.targetLng, shot.targetLat])
         .addTo(map);
+      tgtMarker.on('drag', () => {
+        const ll = tgtMarker.getLngLat();
+        if (shotEditState.draft) {
+          shotEditState.draft.targetLat = ll.lat;
+          shotEditState.draft.targetLng = ll.lng;
+        }
+        // Only intent line depends on target; flight is unaffected.
+        updateShotEditIntentLine();
+      });
+      shotEditState.targetMarker = tgtMarker;
     }
 
     // Frame the shot — fit bounds to encompass all points with
-    // generous padding so nothing's clipped at the edges. If only
-    // start + end (no target), bounds is just those two; otherwise
-    // includes target too.
+    // generous padding. If only start + end (no target), bounds is
+    // just those two; otherwise includes target too.
     const bounds = new mapboxgl.LngLatBounds()
       .extend([shot.startLng, shot.startLat])
       .extend([shot.endLng, shot.endLat]);
@@ -36847,9 +37003,64 @@
     }
     map.fitBounds(bounds, {
       padding: 32,
-      duration: 0,  // no animation on initial fit — sheet is sliding up
-      maxZoom: 18,  // don't zoom in too far if all points are clustered
+      duration: 0,
+      maxZoom: 18,
     });
+  }
+
+  // Helpers used by drag handlers + initial map render. Read CURRENT
+  // draft coords (so during drag, they reflect mid-drag positions).
+
+  function hasShotEditTarget() {
+    const d = shotEditState.draft;
+    return !!(d && d.targetLat != null && d.targetLng != null);
+  }
+
+  function buildShotEditFlightFeature() {
+    const d = shotEditState.draft;
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [d.startLng, d.startLat],
+          [d.endLng, d.endLat],
+        ],
+      },
+    };
+  }
+
+  function buildShotEditIntentFeature() {
+    const d = shotEditState.draft;
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [d.startLng, d.startLat],
+          [d.targetLng, d.targetLat],
+        ],
+      },
+    };
+  }
+
+  function updateShotEditFlightLine() {
+    const map = shotEditState.map;
+    if (!map) return;
+    try {
+      const src = map.getSource('shot-edit-flight');
+      if (src) src.setData(buildShotEditFlightFeature());
+    } catch (_) {}
+  }
+
+  function updateShotEditIntentLine() {
+    const map = shotEditState.map;
+    if (!map) return;
+    if (!hasShotEditTarget()) return;
+    try {
+      const src = map.getSource('shot-edit-intent');
+      if (src) src.setData(buildShotEditIntentFeature());
+    } catch (_) {}
   }
 
   function cleanupShotEditMap() {
@@ -36857,6 +37068,12 @@
       try { shotEditState.map.remove(); } catch (_) {}
       shotEditState.map = null;
     }
+    // Marker references — Mapbox.remove() above also tears down the
+    // markers, but we hold direct refs on shotEditState that should
+    // be nulled so the next sheet open starts clean.
+    shotEditState.startMarker = null;
+    shotEditState.endMarker = null;
+    shotEditState.targetMarker = null;
   }
 
   function closeShotEditSheet() {
@@ -37026,6 +37243,33 @@
       showToast('Pick a club', true);
       return;
     }
+    // Recompute geometric metrics from current coords. Drag-to-edit
+    // in the preview map updates startLat/Lng, endLat/Lng, targetLat/Lng
+    // on the draft, but actualYards + miss vector need to refresh to
+    // match. User-editable `distance` field (yards-to-target text input)
+    // is intentionally NOT recomputed — it represents the user's intent
+    // for this shot, which they may have manually overridden.
+    if (typeof draft.startLat === 'number' && typeof draft.startLng === 'number'
+        && typeof draft.endLat === 'number' && typeof draft.endLng === 'number') {
+      draft.actualYards = Math.round(haversineYards(
+        draft.startLat, draft.startLng,
+        draft.endLat, draft.endLng));
+      // Miss vector — only meaningful when target is set.
+      if (typeof draft.targetLat === 'number' && typeof draft.targetLng === 'number') {
+        const miss = computeShotMissVector(
+          draft.startLat, draft.startLng,
+          draft.targetLat, draft.targetLng,
+          draft.endLat, draft.endLng);
+        if (miss) {
+          draft.alongShot = miss.alongShot;
+          draft.lateralOffset = miss.lateralOffset;
+        }
+      } else {
+        // No target → no miss metrics.
+        draft.alongShot = null;
+        draft.lateralOffset = null;
+      }
+    }
     const shots = ensureShotsForHole(holeNumber);
     if (editingId) {
       const idx = shots.findIndex(s => s.id === editingId);
@@ -37176,13 +37420,19 @@
     const mishitOptionsHtml = renderSegmented(SHOT_MISHITS, draft.mishit || 'clean', 'mishit');
     const intentOptionsHtml = renderIntentSegmented(SHOT_INTENTS, draft.intent || null);
 
-    // Result picker — 3×3 compass grid. Tap a cell to set, tap the
-    // active cell again to clear (result is genuinely optional; a
-    // user might log a shot mid-hole before they know where it ended
-    // up). Center cell = "on target". Building this as an explicit
-    // grid rather than a segmented strip because the spatial layout
-    // IS the interaction model: top = long, bottom = short, left =
-    // left, right = right.
+    // Result picker — two flavors based on whether we have GPS data.
+    //
+    // GPS-tracked shots (start + end coords present) get a binary
+    // Good/Miss picker. The compass dispersion (long/left/etc.) is
+    // already captured geometrically via alongShot/lateralOffset —
+    // no need for the user to re-classify it. What the geometry can't
+    // capture is judgment ("hit the green in a bad spot" / "smart
+    // miss left of the bunker"), so we ask the user that directly.
+    //
+    // Non-GPS shots (manually added via Track Shots without coords)
+    // get the 9-way compass since there's no auto-derived dispersion.
+    const hasShotGpsData = typeof draft.startLat === 'number'
+      && typeof draft.endLat === 'number';
     const resultGridHtml = (() => {
       const cells = [];
       for (let row = 0; row < 3; row++) {
@@ -37204,6 +37454,23 @@
       }
       return cells.join('');
     })();
+    const resultBinaryHtml = `
+      <div class="shot-result-binary">
+        <button type="button"
+                class="shot-result-binary-btn is-good${draft.result === 'good' ? ' is-active' : ''}"
+                onclick="toggleShotDraft('result', 'good')"
+                aria-pressed="${draft.result === 'good' ? 'true' : 'false'}">
+          <span class="shot-result-binary-icon" aria-hidden="true">✓</span>
+          <span class="shot-result-binary-label">Good shot</span>
+        </button>
+        <button type="button"
+                class="shot-result-binary-btn is-miss${draft.result === 'miss' ? ' is-active' : ''}"
+                onclick="toggleShotDraft('result', 'miss')"
+                aria-pressed="${draft.result === 'miss' ? 'true' : 'false'}">
+          <span class="shot-result-binary-icon" aria-hidden="true">✗</span>
+          <span class="shot-result-binary-label">Miss</span>
+        </button>
+      </div>`;
 
     // Par 3 hint — when the user picks a Tee lie on a par 3, surface
     // a soft tip that par-3 tee shots are typically tracked as
@@ -37237,6 +37504,9 @@
     const mapSectionHtml = hasMappableCoords
       ? `<div class="shot-edit-section shot-edit-map-section">
            <div class="shot-edit-map" id="shot-edit-map"></div>
+           <div class="shot-edit-map-caption">
+             Drag pins to correct positions · Save to apply
+           </div>
          </div>`
       : '';
 
@@ -37314,8 +37584,8 @@
         </label>
         ${(() => {
           // Inline GPS-derived miss context, if we have it. Replaces
-          // nothing — just appears between the label and the compass
-          // grid as a small summary the user can read at a glance.
+          // nothing — just appears between the label and the picker
+          // as a small summary the user can read at a glance.
           // Hidden for shots without geometry (no target, no end yet).
           const ctx = getShotMissContext(draft);
           if (!ctx.hasContext) return '';
@@ -37327,7 +37597,9 @@
             </div>
           `;
         })()}
-        <div class="shot-result-grid">${resultGridHtml}</div>
+        ${hasShotGpsData
+          ? resultBinaryHtml
+          : `<div class="shot-result-grid">${resultGridHtml}</div>`}
       </div>
 
       <div class="shot-edit-section">
@@ -56532,6 +56804,21 @@
   // rotates so "down" = tailwind, "up" = into the wind, sides =
   // crosswinds — interpretation matches every other golf app.
   // ──────────────────────────────────────────────────────────
+  // Tap handler for the wind overlay in the GPS view — opens the
+  // tools sheet to the weather panel. Lets the user dive into the
+  // full weather context (forecast, more details) from the small
+  // wind icon they're already looking at. Idempotent — works whether
+  // tools sheet is open or not.
+  function openWeatherFromGps() {
+    try {
+      if (typeof openToolsSheet === 'function') openToolsSheet();
+      if (typeof selectTool === 'function') selectTool('weather');
+    } catch (err) {
+      console.error('openWeatherFromGps:', err);
+    }
+  }
+  window.openWeatherFromGps = openWeatherFromGps;
+
   function updateRoundGpsWindOverlay() {
     const el = document.getElementById('round-gps-wind');
     if (!el) return;
@@ -57253,13 +57540,16 @@
       } catch (_) {}
     }
 
-    // Update the connecting tee→green line if it's drawn.
-    if (roundGpsState.map && roundGpsState.greenLat != null) {
-      // The tee→green line is rebuilt by various render paths; simplest
-      // is to call the existing render which redraws everything based
-      // on current state.
-      // (Skip — no clean single function to call without side effects.
-      // The line will refresh on next position fix or hole transition.)
+    // Reframe the map around the new tee+green pair. Uses the same
+    // helper as the manual recenter button, which (now that teeLat is
+    // set) bounds the camera to both points with bearing aligned along
+    // tee→green. Strong visual confirmation that the system registered
+    // the Set tee action — much more obvious than just the marker
+    // quietly appearing. flyTo's zoom changes also trigger the
+    // reticle's line-redraw listeners, so its from/to lines update
+    // for the new viewport seamlessly.
+    if (typeof roundGpsRecenter === 'function') {
+      try { roundGpsRecenter(); } catch (_) {}
     }
 
     // Refresh the button so it morphs back to "Log shot" mode now
@@ -57281,19 +57571,16 @@
     if (!btn) return;
     const mode = getRoundGpsLogButtonMode();
     const labelEl = btn.querySelector('.round-gps-shot-btn-label');
-    const iconEl = btn.querySelector('.round-gps-shot-btn-icon');
     if (mode === 'set-tee') {
       btn.dataset.mode = 'set-tee';
       btn.setAttribute('onclick', 'setTeeAtCurrentPosition()');
       btn.setAttribute('aria-label', 'Set tee position to current location');
       if (labelEl) labelEl.textContent = 'Set tee';
-      if (iconEl) iconEl.textContent = '📍';
     } else {
       btn.dataset.mode = 'log';
       btn.setAttribute('onclick', 'logShotAtCurrentPosition()');
       btn.setAttribute('aria-label', 'Log shot at current position');
       if (labelEl) labelEl.textContent = 'Log shot';
-      if (iconEl) iconEl.textContent = '⛳';
     }
     updateShotBtnCount();
   }
@@ -57962,8 +58249,10 @@
              from the user's POV looking down the hole). Hidden until
              weather data lands. updateRoundGpsWindOverlay populates
              this and re-orients when the map rotates. -->
-        <div class="round-gps-wind is-hidden" id="round-gps-wind"
-             aria-label="Wind direction and speed">
+        <button class="round-gps-wind is-hidden" id="round-gps-wind"
+                type="button"
+                onclick="openWeatherFromGps()"
+                aria-label="Wind direction and speed — tap for weather">
           <svg class="round-gps-wind-arrow" id="round-gps-wind-arrow"
                viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -57971,7 +58260,7 @@
           </svg>
           <span class="round-gps-wind-speed" id="round-gps-wind-speed">—</span>
           <span class="round-gps-wind-unit">MPH</span>
-        </div>
+        </button>
 
         <!-- Auto-advance prompt — appears when the user is detected on
              a different hole's tee, prompting them to switch the GPS
@@ -58037,21 +58326,18 @@
           <button class="round-tools-btn round-tools-btn-compact"
                   onclick="openToolsSheet()"
                   aria-label="Open tools">
-            <span class="round-tools-btn-icon" aria-hidden="true">⋯</span>
             <span class="round-tools-btn-label">Tools</span>
           </button>
           <button class="round-gps-shot-btn"
                   id="round-gps-shot-btn"
                   onclick="logShotAtCurrentPosition()"
                   aria-label="Log shot at current position">
-            <span class="round-gps-shot-btn-icon" aria-hidden="true">⛳</span>
             <span class="round-gps-shot-btn-label">Log shot</span>
             <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
           </button>
           <button class="round-tools-btn round-tools-btn-compact"
                   onclick="openGpsScoreSheet()"
                   aria-label="Input score">
-            <span class="round-tools-btn-icon" aria-hidden="true">✎</span>
             <span class="round-tools-btn-label">Score</span>
           </button>
         </div>
