@@ -8515,25 +8515,28 @@
      the 9-way compass. Two big tappable cards side-by-side. Good gets
      a green success treatment when active; Miss gets a neutral slate
      treatment (NOT a destructive red — a miss is data, not failure). */
-  .shot-result-binary {
+  /* Lie picker — used for GPS-tracked shots in the edit sheet. Six
+     lie outcomes (Fairway / Rough / Bunker / Recovery / Fringe / Green)
+     in a 3-col grid. The 'green' option gets a distinct green-tinted
+     active state because picking it triggers putt-mode on the bottom
+     GPS Log button. */
+  .shot-result-lie-picker {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-3);
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-2);
   }
-  .shot-result-binary-btn {
+  .shot-result-lie-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
     background: var(--bg-surface);
     border: 1.5px solid var(--border-light);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     color: var(--text-secondary);
     font-family: var(--font-body);
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    padding: var(--space-4) var(--space-3);
+    padding: var(--space-3) var(--space-2);
     cursor: pointer;
     transition: background var(--transition-fast),
                 border-color var(--transition-fast),
@@ -8541,38 +8544,35 @@
                 transform var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
-  .shot-result-binary-btn:active { transform: scale(0.97); }
+  .shot-result-lie-btn:active { transform: scale(0.97); }
   @media (hover: hover) {
-    .shot-result-binary-btn:not(.is-active):hover {
+    .shot-result-lie-btn:not(.is-active):hover {
       border-color: var(--color-orange);
       color: var(--text-primary);
     }
   }
-  .shot-result-binary-icon {
-    font-size: var(--text-md);
-    font-weight: var(--weight-semibold);
-    line-height: 1;
+  /* Default active state — orange accent. */
+  .shot-result-lie-btn.is-active {
+    background: rgba(232, 93, 4, 0.12);
+    border-color: var(--color-orange);
+    color: var(--color-orange);
   }
-  /* Active states — Good is green-success, Miss is slate-neutral. */
-  .shot-result-binary-btn.is-good.is-active {
+  html.dark .shot-result-lie-btn.is-active {
+    background: rgba(232, 93, 4, 0.20);
+    border-color: var(--color-orange);
+    color: var(--color-orange-light, #FF9D4A);
+  }
+  /* 'Green' lie active state — green-tinted to signal "this triggers
+     putt mode" without needing a separate explanatory line. */
+  .shot-result-lie-btn.is-green.is-active {
     background: #EFF8F0;
     border-color: #2D6E34;
     color: #2D6E34;
   }
-  html.dark .shot-result-binary-btn.is-good.is-active {
+  html.dark .shot-result-lie-btn.is-green.is-active {
     background: rgba(45, 110, 52, 0.22);
     border-color: #8FCE94;
     color: #8FCE94;
-  }
-  .shot-result-binary-btn.is-miss.is-active {
-    background: var(--bg-elevated);
-    border-color: var(--text-secondary);
-    color: var(--text-primary);
-  }
-  html.dark .shot-result-binary-btn.is-miss.is-active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: var(--text-primary);
   }
   /* Empty placeholder — shouldn't exist in our 3x3 (all 9 cells filled)
      but defined defensively in case SHOT_RESULTS ever changes shape. */
@@ -8618,6 +8618,240 @@
   }
   @media (hover: hover) {
     .shot-edit-delete:hover { background: rgba(200, 50, 0, 0.08); }
+  }
+
+  /* ── Putt log modal — focused bottom sheet for logging a single putt.
+     Triggered from the GPS view's bottom button when the most recent
+     shot on this hole landed on the green. Captures distance + made/
+     missed in one tap-light flow. Mirrors shot-edit-sheet structure:
+     fade-in backdrop, slide-up sheet from the bottom edge. */
+  .putt-log-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-dropdown) + 25);
+    background: rgba(13, 13, 13, 0.55);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .putt-log-backdrop.opening,
+  .putt-log-backdrop.closing { opacity: 0; }
+  .putt-log-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-dropdown) + 26);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -12px 40px rgba(13, 13, 13, 0.3);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .putt-log-sheet.opening,
+  .putt-log-sheet.closing { transform: translateY(100%); }
+  .putt-log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .putt-log-eyebrow {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-orange);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+  }
+  .putt-log-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .putt-log-close:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+  }
+  .putt-log-body {
+    padding: var(--space-5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .putt-log-title {
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .putt-log-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .putt-log-distance-input {
+    width: 100%;
+    padding: var(--space-4);
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--transition-fast);
+  }
+  .putt-log-distance-input::-webkit-outer-spin-button,
+  .putt-log-distance-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .putt-log-distance-input::placeholder { color: var(--text-muted); }
+  .putt-log-distance-input:focus {
+    outline: none;
+    border-color: var(--color-orange);
+  }
+  .putt-log-made-section {
+    margin-top: var(--space-5);
+  }
+  .putt-log-made-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+  .putt-log-made-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-3);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast),
+                transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .putt-log-made-btn:active { transform: scale(0.97); }
+  @media (hover: hover) {
+    .putt-log-made-btn:not(.is-active):hover {
+      border-color: var(--color-orange);
+      color: var(--text-primary);
+    }
+  }
+  .putt-log-made-btn.is-made.is-active {
+    background: #EFF8F0;
+    border-color: #2D6E34;
+    color: #2D6E34;
+  }
+  html.dark .putt-log-made-btn.is-made.is-active {
+    background: rgba(45, 110, 52, 0.22);
+    border-color: #8FCE94;
+    color: #8FCE94;
+  }
+  .putt-log-made-btn.is-missed.is-active {
+    background: var(--bg-elevated);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+  html.dark .putt-log-made-btn.is-missed.is-active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: var(--text-primary);
+  }
+  .putt-log-actions {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .putt-log-cancel-btn {
+    flex: 1;
+    padding: var(--space-4);
+    background: transparent;
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .putt-log-cancel-btn:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+  }
+  .putt-log-save-btn {
+    flex: 2;
+    padding: var(--space-4);
+    background: var(--color-orange);
+    border: none;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .putt-log-save-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .putt-log-save-btn:not(:disabled):active { transform: scale(0.98); }
+  @media (hover: hover) {
+    .putt-log-save-btn:not(:disabled):hover {
+      background: var(--color-orange-light);
+    }
   }
 
   /* Penalties row — collapsed (just an "+ Add penalty" link) by default
@@ -9498,6 +9732,8 @@
   body.round-gps-open .tools-sheet           { z-index: 9460; }
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
+  body.round-gps-open .putt-log-backdrop     { z-index: 9485; }
+  body.round-gps-open .putt-log-sheet        { z-index: 9495; }
   /* The hole picker can be opened by tapping the HOLE cell in the GPS
      info bar. It needs to render above the GPS panel (z=9400) but
      below the score sheet (9499/9500) and miss modal (9510/9520),
@@ -13837,6 +14073,288 @@
   }
   /* Par — no mark, just the number. No ::before rendered. */
   .rs-score-none::before { display: none; }
+
+  /* ── Round Replay entry button — surfaces on round summary screen
+     between the scorecard and insights sections. Card-style row;
+     this is the headline "watch it play out" CTA so it gets a
+     premium gradient background + prominent orange play icon. */
+  .round-replay-entry {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    margin: var(--space-5) 0;
+    padding: var(--space-4) var(--space-5);
+    background: linear-gradient(135deg,
+      rgba(232, 93, 4, 0.10) 0%,
+      rgba(232, 93, 4, 0.04) 100%);
+    border: 1px solid rgba(232, 93, 4, 0.25);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+  }
+  .round-replay-entry:active { transform: scale(0.99); }
+  @media (hover: hover) {
+    .round-replay-entry:hover {
+      background: linear-gradient(135deg,
+        rgba(232, 93, 4, 0.16) 0%,
+        rgba(232, 93, 4, 0.06) 100%);
+      border-color: rgba(232, 93, 4, 0.5);
+    }
+  }
+  .round-replay-entry-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-orange);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(232, 93, 4, 0.35);
+  }
+  .round-replay-entry-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .round-replay-entry-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .round-replay-entry-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .round-replay-entry-arrow {
+    flex-shrink: 0;
+    color: var(--color-orange);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+  }
+
+  /* ── Round Replay panel — full-screen takeover for post-round playback.
+     Map fills most of the screen; top bar shows hole context; bottom bar
+     has play/pause + prev/next controls. Body class round-replay-open
+     hides any other floating UI that would compete (mobile bottom nav,
+     etc) — same trick as the GPS view. */
+  body.round-replay-open .training-nav,
+  body.round-replay-open .mobile-bottomnav { display: none !important; }
+
+  #panel-round-replay {
+    position: fixed;
+    inset: 0;
+    z-index: 9300;
+    background: #000;
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  #round-replay-mount {
+    width: 100%;
+    height: 100%;
+  }
+  .round-replay-shell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+  }
+  .round-replay-topbar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
+    background: linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0));
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .round-replay-close {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), transform 100ms ease-out;
+  }
+  .round-replay-close:active { transform: scale(0.92); }
+  @media (hover: hover) {
+    .round-replay-close:hover { background: rgba(0, 0, 0, 0.75); }
+  }
+  .round-replay-title-block {
+    flex: 1;
+    min-width: 0;
+  }
+  .round-replay-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: rgba(255, 255, 255, 0.65);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .round-replay-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: #fff;
+    line-height: 1.1;
+    margin-top: 2px;
+  }
+  .round-replay-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .round-replay-map-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+  .round-replay-map {
+    position: absolute;
+    inset: 0;
+    background: #1a1a1a;
+  }
+  .round-replay-shot-caption {
+    position: absolute;
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 2;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    padding: var(--space-2) var(--space-4);
+    border-radius: 999px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    /* Hidden when empty — class doesn't render content. */
+  }
+  .round-replay-shot-caption:empty { display: none; }
+
+  .round-replay-bottombar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    padding: var(--space-4);
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0));
+    flex-shrink: 0;
+  }
+  .round-replay-nav-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                transform 100ms ease-out,
+                opacity var(--transition-fast);
+  }
+  .round-replay-nav-btn:active { transform: scale(0.92); }
+  .round-replay-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  @media (hover: hover) {
+    .round-replay-nav-btn:not(:disabled):hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+  .round-replay-play-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-orange);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(232, 93, 4, 0.45);
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                transform 100ms ease-out;
+  }
+  .round-replay-play-btn:active { transform: scale(0.94); }
+  @media (hover: hover) {
+    .round-replay-play-btn:hover { background: var(--color-orange-light); }
+  }
+
+  /* Map markers */
+  .round-replay-tee-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .round-replay-green-marker {
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  }
+  .round-replay-ball-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #FFD600;
+    border: 2px solid rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 12px rgba(255, 214, 0, 0.7),
+                0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .round-replay-error {
+    padding: var(--space-8);
+    color: var(--text-muted);
+    text-align: center;
+    font-family: var(--font-body);
+  }
 
   .round-summary-actions {
     text-align: center;
@@ -24058,6 +24576,18 @@
      when the round panel is active; when it renders empty, there's
      nothing visible. -->
 <div id="round-dock-mount"></div>
+
+<!-- PUTT LOG MODAL mount — bottom sheet for entering distance and
+     made/missed when in putt mode (after a shot has landed on the
+     green). Body-level for the same reason as the round dock mount:
+     escapes panel transforms. Empty when the modal is closed. -->
+<div id="putt-log-modal-mount"></div>
+
+<!-- ROUND REPLAY mount — populated by openReplay() with a full-screen
+     Mapbox view that animates the user's shots hole-by-hole. Body-level
+     for the same containing-block reason as the other floating UI
+     mounts. Empty when replay is closed. -->
+<div id="round-replay-mount"></div>
 
 <!-- LOBBY ACTION BAR mount — populated by renderGroupLobby() with the
      fixed bottom Start Round pill (or "Waiting for…" hint). Lives at
@@ -36019,6 +36549,7 @@
     { id: 'rough',    label: 'Rough' },
     { id: 'sand',     label: 'Bunker' },
     { id: 'recovery', label: 'Recovery' },
+    { id: 'fringe',   label: 'Fringe' },
     { id: 'green',    label: 'Green' },
   ];
   // Shot intent — what the user was trying to do with this shot. Used
@@ -36063,13 +36594,22 @@
     { id: 'short-left',  label: 'Short Left',  short: 'S-L', row: 2, col: 0 },
     { id: 'short',       label: 'Short',       short: 'Short', row: 2, col: 1 },
     { id: 'short-right', label: 'Short Right', short: 'S-R', row: 2, col: 2 },
-    // Binary judgment — used by GPS-tracked shots, where the geometric
-    // miss data (alongShot/lateralOffset) already captures dispersion.
-    // The user just provides "was this a good shot or not." Captures
-    // judgment that geometry can't (e.g., hit the green but in a bad
-    // spot, or missed the green but smartly).
-    { id: 'good',        label: 'Good shot',   short: 'Good' },
-    { id: 'miss',        label: 'Miss',        short: 'Miss' },
+    // Lie outcomes — used by GPS-tracked shots. Classifies WHERE the
+    // ball ended up rather than dispersion direction (which the GPS
+    // already captures geometrically via alongShot/lateralOffset). The
+    // ids align exactly with SHOT_START_LIES so shot N's `result` can
+    // become shot N+1's `startLie` automatically — providing a clean
+    // "current ball lie" chain through the round.
+    //
+    // 'green' specifically triggers putt-mode in the GPS button: when
+    // the most recent shot for the hole ended on the green, the next
+    // tap of "Log shot" becomes "Log putt" instead.
+    { id: 'fairway',  label: 'Fairway',  short: 'Fwy' },
+    { id: 'rough',    label: 'Rough',    short: 'Rgh' },
+    { id: 'sand',     label: 'Bunker',   short: 'Sand' },
+    { id: 'recovery', label: 'Recovery', short: 'Rec' },
+    { id: 'fringe',   label: 'Fringe',   short: 'Frg' },
+    { id: 'green',    label: 'Green',    short: 'Grn' },
   ];
 
   // Short labels for the compact shot row. Only start lies — there's
@@ -36080,6 +36620,7 @@
     rough: 'Rgh',
     sand: 'Sand',
     recovery: 'Rec',
+    fringe: 'Frg',
     green: 'Grn',
   };
 
@@ -36138,12 +36679,87 @@
     return roundState.shots[holeNumber];
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Putt list helpers — putts are an ARRAY of { distanceFt, made }
+  // entries on the score record, accumulating one entry per putt
+  // logged via the GPS Log putt button. The legacy `entry.putts`
+  // (number) and `entry.firstPuttFeet` fields stay in sync with the
+  // array (auto-derived) so the score sheet UI and stats keep working
+  // unchanged for rounds that pre-date putt-mode.
+  // ─────────────────────────────────────────────────────────────
+
+  // Resolve the score entry for the current solo or group round.
+  // Returns null if no round is active or the player record is missing.
+  function getEntryForHole(holeNumber) {
+    if (holeNumber == null) return null;
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      return me?.scores?.[holeNumber] || null;
+    }
+    return roundState.scores?.[holeNumber] || null;
+  }
+
+  // Ensure a score entry exists for the hole, creating one with
+  // sensible defaults if not. Returns the entry (always non-null).
+  function ensureEntryForHole(holeNumber) {
+    if (holeNumber == null) return null;
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      if (!me) return null;
+      if (!me.scores) me.scores = {};
+      if (!me.scores[holeNumber]) me.scores[holeNumber] = { strokes: null, putts: 0, fir: null, gir: null };
+      return me.scores[holeNumber];
+    }
+    if (!roundState.scores) roundState.scores = {};
+    if (!roundState.scores[holeNumber]) roundState.scores[holeNumber] = { strokes: null, putts: 0, fir: null, gir: null };
+    return roundState.scores[holeNumber];
+  }
+
+  function getPuttsForHole(holeNumber) {
+    const entry = getEntryForHole(holeNumber);
+    return entry?.puttList || [];
+  }
+
+  function ensurePuttsForHole(holeNumber) {
+    const entry = ensureEntryForHole(holeNumber);
+    if (!entry) return [];
+    if (!entry.puttList) entry.puttList = [];
+    return entry.puttList;
+  }
+
+  // Derive the legacy fields (entry.putts, entry.firstPuttFeet) from
+  // the puttList. Called after any putt mutation so the score sheet
+  // UI reads the right counts. Also bumps entry.strokes if needed
+  // (when adding a putt would push the running stroke count above
+  // whatever's currently stored — e.g., user logs a putt before
+  // entering strokes manually).
+  function syncLegacyPuttFields(holeNumber) {
+    const entry = getEntryForHole(holeNumber);
+    if (!entry || !entry.puttList) return;
+    entry.putts = entry.puttList.length;
+    if (entry.puttList.length > 0 && entry.puttList[0].distanceFt != null) {
+      entry.firstPuttFeet = entry.puttList[0].distanceFt;
+    } else {
+      entry.firstPuttFeet = null;
+    }
+  }
+
   // Smart default for a new shot's startLie. First shot defaults to tee;
   // subsequent shots default to fairway (a safe assumption when chaining
   // — the user adjusts if they're elsewhere).
   function suggestStartLieForNewShot(holeNumber) {
     const shots = getShotsForHole(holeNumber);
     if (shots.length === 0) return 'tee';
+    // Chain from the previous shot's result. The lie-outcome ids
+    // (fairway, rough, sand, recovery, fringe, green) are exactly the
+    // valid start lie ids, so we can use them directly. Compass values
+    // (long-left, short-right, etc.) and legacy good/miss don't map
+    // to lies — fall back to fairway in that case.
+    const VALID_LIES = new Set(['tee', 'fairway', 'rough', 'sand', 'recovery', 'fringe', 'green']);
+    const prevShot = shots[shots.length - 1];
+    if (prevShot && prevShot.result && VALID_LIES.has(prevShot.result)) {
+      return prevShot.result;
+    }
     return 'fairway';
   }
 
@@ -36930,13 +37546,20 @@
           ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
           : '';
         // Result badge — shows the outcome if recorded. Positive
-        // outcomes (the explicit "good" judgment, or "on target" from
-        // the compass) get a distinct success treatment; everything
-        // else (any compass miss direction or the explicit "miss"
-        // judgment) gets the neutral-miss treatment. Skipped when
+        // outcomes (compass 'on', or any of the favorable lies fairway/
+        // green/fringe) get a green success treatment; everything else
+        // (any compass miss direction, rough/sand/recovery) gets the
+        // neutral-miss treatment. The legacy 'good'/'miss' values from
+        // the previous binary picker are still recognized for backward
+        // compat with shots logged before this change. Skipped when
         // null so rows stay quiet until the user logs a result.
         const resultMeta = s.result ? SHOT_RESULTS.find(r => r.id === s.result) : null;
-        const isPositiveResult = s.result === 'on' || s.result === 'good';
+        const POSITIVE_RESULTS = new Set([
+          'on',                              // compass center
+          'good',                            // legacy binary positive
+          'fairway', 'green', 'fringe',      // favorable lies
+        ]);
+        const isPositiveResult = POSITIVE_RESULTS.has(s.result);
         const resultBadge = resultMeta
           ? `<span class="shot-row-result shot-row-result-${isPositiveResult ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
           : '';
@@ -37689,22 +38312,32 @@
       }
       return cells.join('');
     })();
-    const resultBinaryHtml = `
-      <div class="shot-result-binary">
-        <button type="button"
-                class="shot-result-binary-btn is-good${draft.result === 'good' ? ' is-active' : ''}"
-                onclick="toggleShotDraft('result', 'good')"
-                aria-pressed="${draft.result === 'good' ? 'true' : 'false'}">
-          <span class="shot-result-binary-icon" aria-hidden="true">✓</span>
-          <span class="shot-result-binary-label">Good shot</span>
-        </button>
-        <button type="button"
-                class="shot-result-binary-btn is-miss${draft.result === 'miss' ? ' is-active' : ''}"
-                onclick="toggleShotDraft('result', 'miss')"
-                aria-pressed="${draft.result === 'miss' ? 'true' : 'false'}">
-          <span class="shot-result-binary-icon" aria-hidden="true">✗</span>
-          <span class="shot-result-binary-label">Miss</span>
-        </button>
+    // Lie picker for GPS shots — replaces the older Good/Miss binary.
+    // Six lie outcomes, arranged in a 3-col grid for compact mobile
+    // layout. Green is visually distinct (slight green tint when
+    // active) because picking 'green' is the trigger for putt-mode
+    // on the bottom GPS button.
+    const resultLiePickerHtml = `
+      <div class="shot-result-lie-picker">
+        ${[
+          { id: 'fairway',  label: 'Fairway' },
+          { id: 'rough',    label: 'Rough' },
+          { id: 'sand',     label: 'Bunker' },
+          { id: 'recovery', label: 'Recovery' },
+          { id: 'fringe',   label: 'Fringe' },
+          { id: 'green',    label: 'Green' },
+        ].map(opt => {
+          const isActive = draft.result === opt.id;
+          const isGreen = opt.id === 'green';
+          return `
+            <button type="button"
+                    class="shot-result-lie-btn${isActive ? ' is-active' : ''}${isGreen ? ' is-green' : ''}"
+                    onclick="toggleShotDraft('result', '${opt.id}')"
+                    aria-label="${escapeAttr(opt.label)}"
+                    aria-pressed="${isActive ? 'true' : 'false'}">
+              ${escapeHtml(opt.label)}
+            </button>`;
+        }).join('')}
       </div>`;
 
     // Par 3 hint — when the user picks a Tee lie on a par 3, surface
@@ -37833,7 +38466,7 @@
           `;
         })()}
         ${hasShotGpsData
-          ? resultBinaryHtml
+          ? resultLiePickerHtml
           : `<div class="shot-result-grid">${resultGridHtml}</div>`}
       </div>
 
@@ -38878,13 +39511,29 @@
         : `${extra} extra shots logged`;
     }
     return `
-      <button class="round-card-reconcile" onclick="selectTool('shots')" aria-label="${escapeHtml(text)}, tap to review">
+      <button class="round-card-reconcile" onclick="openShotsToolFromReconcile()" aria-label="${escapeHtml(text)}, tap to review">
         <span class="round-card-reconcile-icon" aria-hidden="true">⚠</span>
         <span class="round-card-reconcile-text">${escapeHtml(text)}</span>
         <span class="round-card-reconcile-cta">Review →</span>
       </button>
     `;
   }
+
+  // Tap handler for the reconciliation banner's Review button.
+  // Opens the tools sheet (no-op if already open) then selects the
+  // shots tool. selectTool() alone wasn't enough — it just sets state
+  // and re-renders, but renderRoundDock skips the sheet markup unless
+  // the sheet is already open. So tapping Review from a closed sheet
+  // did nothing visibly.
+  function openShotsToolFromReconcile() {
+    try {
+      if (typeof openToolsSheet === 'function') openToolsSheet();
+      if (typeof selectTool === 'function') selectTool('shots');
+    } catch (err) {
+      console.error('openShotsToolFromReconcile:', err);
+    }
+  }
+  window.openShotsToolFromReconcile = openShotsToolFromReconcile;
 
   //   null  → clear value AND clear miss direction
   //   true  → set hit; clear miss direction (hit can't have a direction)
@@ -52041,6 +52690,43 @@
       ` : ''}
 
       ${(() => {
+        // Round Replay entry — only show if the round has GPS-tracked
+        // shots somewhere. Quick-score rounds (no per-hole detail)
+        // and rounds where the user just typed scores without
+        // tracking shots have nothing to animate.
+        const shotsMap = round.shots || {};
+        let totalShots = 0;
+        let holesWithShots = 0;
+        for (const arr of Object.values(shotsMap)) {
+          if (!Array.isArray(arr)) continue;
+          const valid = arr.filter(s =>
+            typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+            typeof s.endLat === 'number' && typeof s.endLng === 'number');
+          if (valid.length > 0) {
+            totalShots += valid.length;
+            holesWithShots += 1;
+          }
+        }
+        if (totalShots === 0) return '';
+        return `
+          <button class="round-replay-entry"
+                  onclick="openReplay('${round.id}')"
+                  aria-label="Watch round replay">
+            <div class="round-replay-entry-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/>
+              </svg>
+            </div>
+            <div class="round-replay-entry-text">
+              <div class="round-replay-entry-title">Replay round</div>
+              <div class="round-replay-entry-sub">${totalShots} shots across ${holesWithShots} hole${holesWithShots === 1 ? '' : 's'}</div>
+            </div>
+            <div class="round-replay-entry-arrow" aria-hidden="true">→</div>
+          </button>
+        `;
+      })()}
+
+      ${(() => {
         // Wrap "How you played" + shot stat cards under one Round
         // Insights section. Skip the wrapper entirely if both inner
         // renderers come back empty (e.g. quick-score round, no data
@@ -52097,6 +52783,7 @@
   // the group round doc's live players[] array.
 
   async function hydrateRoundSummaryLeaderboard(round) {
+
     const mount = document.getElementById('round-summary-leaderboard-mount');
     if (!mount) return;
     const grId = round.groupRoundId;
@@ -52741,6 +53428,579 @@
     showToast(newVisibility === 'public' ? 'Round made public' : 'Round made private');
     renderRoundSummary();
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // ROUND REPLAY — full-screen satellite view that animates the
+  // user's GPS-tracked shots hole by hole. Entered from the Round
+  // Insights screen via the "Replay round" button (only shown on
+  // rounds with GPS shot data).
+  //
+  // Animation: each shot's ball traces a bezier arc from start to
+  // end. The arc's control point is computed in SCREEN space so
+  // the curve always reads as "up" on screen regardless of map
+  // rotation. Behind the ball, the recorded straight-line shot
+  // path is drawn so the user sees the trail accumulate.
+  //
+  // Per-hole flow: fly to bounds → wait for user to tap play (or
+  // auto-play after hole-nav) → animate shots in order → show putt
+  // summary text. Mapbox instance persists across hole changes.
+  // ─────────────────────────────────────────────────────────────
+  const replayState = {
+    open: false,
+    roundId: null,
+    round: null,         // resolved round object
+    course: null,        // resolved course (with green pins applied)
+    holesPlayed: [],     // array of hole numbers that have GPS shots
+    currentHoleIndex: 0, // index into holesPlayed
+    currentShotIndex: 0, // index into the current hole's shots
+    playing: false,
+    map: null,
+    teeMarker: null,
+    greenMarker: null,
+    ballMarker: null,
+    animFrameId: null,
+    pauseTimerId: null,
+    // Track shot lines drawn on the map so we can clear them when
+    // navigating between holes. Each entry: { sourceId, layerId }.
+    drawnShotLines: [],
+  };
+
+  async function openReplay(roundId) {
+    // Resolve round + course before opening — fail fast with a
+    // toast if anything's missing rather than render an empty shell.
+    let round = null;
+    if (Array.isArray(recentRounds)) round = recentRounds.find(r => r.id === roundId);
+    if (!round) {
+      showToast('Round not found', true);
+      return;
+    }
+    const course = getCourse(round.courseId);
+    if (!course) {
+      showToast('Course data unavailable', true);
+      return;
+    }
+    // Compute the holes that have GPS-tracked shots so we know what
+    // to navigate through. Skip holes with shots that lack coords
+    // (they're putts-only or pre-feature manual entries).
+    const shotsMap = round.shots || {};
+    const holesPlayed = [];
+    for (const [holeStr, arr] of Object.entries(shotsMap)) {
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+      const valid = arr.filter(s =>
+        typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+        typeof s.endLat === 'number' && typeof s.endLng === 'number');
+      if (valid.length > 0) holesPlayed.push(parseInt(holeStr, 10));
+    }
+    holesPlayed.sort((a, b) => a - b);
+    if (holesPlayed.length === 0) {
+      showToast('No GPS shots in this round', true);
+      return;
+    }
+    replayState.open = true;
+    replayState.roundId = roundId;
+    replayState.round = round;
+    replayState.course = course;
+    replayState.holesPlayed = holesPlayed;
+    replayState.currentHoleIndex = 0;
+    replayState.currentShotIndex = 0;
+    replayState.playing = false;
+    document.body.classList.add('round-replay-open');
+    renderReplayShell();
+    // Init Mapbox after the shell mounts so the container exists.
+    requestAnimationFrame(() => {
+      initReplayMap();
+      loadReplayHole(0, { autoPlay: false });
+    });
+  }
+  window.openReplay = openReplay;
+
+  function closeReplay() {
+    if (!replayState.open) return;
+    cancelReplayAnimation();
+    if (replayState.map) {
+      try { replayState.map.remove(); } catch (_) {}
+      replayState.map = null;
+    }
+    replayState.teeMarker = null;
+    replayState.greenMarker = null;
+    replayState.ballMarker = null;
+    replayState.drawnShotLines = [];
+    replayState.open = false;
+    replayState.round = null;
+    replayState.course = null;
+    document.body.classList.remove('round-replay-open');
+    const mount = document.getElementById('round-replay-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closeReplay = closeReplay;
+
+  function renderReplayShell() {
+    const mount = document.getElementById('round-replay-mount');
+    if (!mount) return;
+    const round = replayState.round;
+    const course = replayState.course;
+    const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
+    const totalHoles = replayState.holesPlayed.length;
+    const isFirst = replayState.currentHoleIndex === 0;
+    const isLast = replayState.currentHoleIndex === totalHoles - 1;
+    const playing = replayState.playing;
+    // Subtitle: "Hole 7 · Par 4 · 412y" — pulls from course data
+    // for the current hole. Falls back gracefully if missing.
+    const holeData = course.holes.find(h => h.number === holeNum);
+    let subText = `Hole ${holeNum}`;
+    if (holeData) {
+      const par = holeData.par;
+      // Yardage from the round's tee selection.
+      let yds = null;
+      if (round.teeName && course.tees) {
+        const tee = course.tees.find(t => t.name === round.teeName);
+        if (tee && tee.yardages) {
+          const idx = course.holes.findIndex(h => h.number === holeNum);
+          if (idx >= 0) yds = tee.yardages[idx];
+        }
+      }
+      if (par != null) subText += ` · Par ${par}`;
+      if (yds != null) subText += ` · ${yds}y`;
+    }
+    // Page indicator — "1 / 12" style.
+    const pageText = `${replayState.currentHoleIndex + 1} of ${totalHoles}`;
+    mount.innerHTML = `
+      <div class="round-replay-shell">
+        <div class="round-replay-topbar">
+          <button class="round-replay-close" onclick="closeReplay()" aria-label="Close replay">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div class="round-replay-title-block">
+            <div class="round-replay-eyebrow">Replay · ${escapeHtml(pageText)}</div>
+            <div class="round-replay-title">${escapeHtml(course.name || 'Round')}</div>
+            <div class="round-replay-sub">${escapeHtml(subText)}</div>
+          </div>
+        </div>
+        <div class="round-replay-map-wrap">
+          <div class="round-replay-map" id="round-replay-map"></div>
+          <div class="round-replay-shot-caption" id="round-replay-shot-caption"></div>
+        </div>
+        <div class="round-replay-bottombar">
+          <button class="round-replay-nav-btn"
+                  onclick="replayPrevHole()"
+                  ${isFirst ? 'disabled' : ''}
+                  aria-label="Previous hole">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <button class="round-replay-play-btn"
+                  onclick="${playing ? 'replayPause()' : 'replayPlay()'}"
+                  aria-label="${playing ? 'Pause' : 'Play'}">
+            ${playing
+              ? `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>`
+              : `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none"><polygon points="7 5 19 12 7 19 7 5"/></svg>`}
+          </button>
+          <button class="round-replay-nav-btn"
+                  onclick="replayNextHole()"
+                  ${isLast ? 'disabled' : ''}
+                  aria-label="Next hole">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function initReplayMap() {
+    const container = document.getElementById('round-replay-map');
+    if (!container || typeof mapboxgl === 'undefined') return;
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [0, 0],
+      zoom: 1,
+      attributionControl: false,
+      // Allow user to pan/zoom — they may want to inspect a shot.
+      interactive: true,
+      doubleClickZoom: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+    });
+    replayState.map = map;
+  }
+
+  function loadReplayHole(idx, { autoPlay = false } = {}) {
+    cancelReplayAnimation();
+    replayState.currentHoleIndex = idx;
+    replayState.currentShotIndex = 0;
+    replayState.playing = false;
+    // Re-render shell so subtitle / page indicator / nav buttons
+    // reflect the new hole.
+    renderReplayShell();
+    // Clear any drawn shot lines + markers from previous hole.
+    clearReplayMapOverlays();
+    const map = replayState.map;
+    if (!map) return;
+    const holeNum = replayState.holesPlayed[idx];
+    const shots = getReplayShotsForHole(holeNum);
+    if (shots.length === 0) {
+      setReplayCaption('No shots tracked on this hole');
+      return;
+    }
+    // Compute bounds: include all shot start/end points + tee/green
+    // pins if available so the framing tells the story of the hole.
+    const bounds = new mapboxgl.LngLatBounds();
+    shots.forEach(s => {
+      bounds.extend([s.startLng, s.startLat]);
+      bounds.extend([s.endLng, s.endLat]);
+    });
+    const course = replayState.course;
+    const holeData = course.holes.find(h => h.number === holeNum);
+    if (holeData?.greenLat != null && holeData?.greenLng != null) {
+      bounds.extend([holeData.greenLng, holeData.greenLat]);
+    }
+    // Tee position: prefer the explicit tee pin for the round's
+    // tee, else use the first shot's start as a proxy (which IS
+    // where the user teed off).
+    let teePos = null;
+    if (typeof getTeePosition === 'function') {
+      teePos = getTeePosition(course, holeNum, replayState.round.teeName);
+    }
+    if (!teePos && shots.length > 0) {
+      teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
+    }
+    if (teePos) bounds.extend([teePos.lng, teePos.lat]);
+    // flyTo the bounds — animated transition between holes.
+    map.fitBounds(bounds, {
+      padding: { top: 80, right: 60, bottom: 120, left: 60 },
+      duration: 800,
+      maxZoom: 17,
+    });
+    // After the camera settles, render markers + caption + (optionally) auto-play.
+    setTimeout(() => {
+      renderReplayStaticMarkers(holeNum, teePos, holeData);
+      // Caption: "Tap play to watch your X shot[s]" — invitation.
+      setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
+      if (autoPlay) replayPlay();
+    }, 850);
+  }
+
+  function getReplayShotsForHole(holeNum) {
+    const shotsMap = replayState.round?.shots || {};
+    const arr = shotsMap[holeNum] || shotsMap[String(holeNum)] || [];
+    return arr.filter(s =>
+      typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+      typeof s.endLat === 'number' && typeof s.endLng === 'number');
+  }
+
+  function clearReplayMapOverlays() {
+    const map = replayState.map;
+    if (replayState.teeMarker) {
+      try { replayState.teeMarker.remove(); } catch (_) {}
+      replayState.teeMarker = null;
+    }
+    if (replayState.greenMarker) {
+      try { replayState.greenMarker.remove(); } catch (_) {}
+      replayState.greenMarker = null;
+    }
+    if (replayState.ballMarker) {
+      try { replayState.ballMarker.remove(); } catch (_) {}
+      replayState.ballMarker = null;
+    }
+    if (map) {
+      replayState.drawnShotLines.forEach(({ sourceId, layerId }) => {
+        try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+        try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+      });
+    }
+    replayState.drawnShotLines = [];
+  }
+
+  function renderReplayStaticMarkers(holeNum, teePos, holeData) {
+    const map = replayState.map;
+    if (!map) return;
+    // Tee marker — small white circle. Skip if we couldn't resolve
+    // a tee position.
+    if (teePos) {
+      const teeEl = document.createElement('div');
+      teeEl.className = 'round-replay-tee-marker';
+      const teeMarker = new mapboxgl.Marker({ element: teeEl, anchor: 'center' })
+        .setLngLat([teePos.lng, teePos.lat])
+        .addTo(map);
+      replayState.teeMarker = teeMarker;
+    }
+    // Green marker — radial halo.
+    if (holeData?.greenLat != null && holeData?.greenLng != null) {
+      const greenEl = document.createElement('div');
+      greenEl.className = 'round-replay-green-marker';
+      greenEl.innerHTML = `
+        <svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="rr-green-grad-${holeNum}" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff" stop-opacity="0.95"/>
+              <stop offset="50%" stop-color="#fff" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="12" cy="12" r="11" fill="url(#rr-green-grad-${holeNum})"/>
+          <circle cx="12" cy="12" r="3" fill="#fff"/>
+        </svg>`;
+      const greenMarker = new mapboxgl.Marker({ element: greenEl, anchor: 'center' })
+        .setLngLat([holeData.greenLng, holeData.greenLat])
+        .addTo(map);
+      replayState.greenMarker = greenMarker;
+    }
+  }
+
+  function setReplayCaption(text) {
+    const el = document.getElementById('round-replay-shot-caption');
+    if (el) el.textContent = text || '';
+  }
+
+  function replayPlay() {
+    if (!replayState.open || !replayState.map) return;
+    // Already playing — no-op.
+    if (replayState.playing) return;
+    replayState.playing = true;
+    renderReplayShell();
+    runReplayShotSequence();
+  }
+  window.replayPlay = replayPlay;
+
+  function replayPause() {
+    if (!replayState.playing) return;
+    replayState.playing = false;
+    cancelReplayAnimation();
+    renderReplayShell();
+  }
+  window.replayPause = replayPause;
+
+  function cancelReplayAnimation() {
+    if (replayState.animFrameId) {
+      cancelAnimationFrame(replayState.animFrameId);
+      replayState.animFrameId = null;
+    }
+    if (replayState.pauseTimerId) {
+      clearTimeout(replayState.pauseTimerId);
+      replayState.pauseTimerId = null;
+    }
+    if (replayState.ballMarker) {
+      try { replayState.ballMarker.remove(); } catch (_) {}
+      replayState.ballMarker = null;
+    }
+  }
+
+  // Recursive shot-by-shot animation. Plays the current shot, then
+  // schedules the next one after a brief pause. Stops cleanly on
+  // pause/close (checks replayState.playing each step).
+  function runReplayShotSequence() {
+    if (!replayState.playing) return;
+    const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
+    const shots = getReplayShotsForHole(holeNum);
+    const idx = replayState.currentShotIndex;
+    if (idx >= shots.length) {
+      // All shots animated — show putt summary if there were putts.
+      onReplayHoleAnimationComplete(holeNum);
+      return;
+    }
+    const shot = shots[idx];
+    animateReplayShot(shot, idx + 1, () => {
+      // After this shot finishes, advance and schedule the next.
+      if (!replayState.playing) return;
+      replayState.currentShotIndex = idx + 1;
+      replayState.pauseTimerId = setTimeout(() => {
+        replayState.pauseTimerId = null;
+        runReplayShotSequence();
+      }, 300);
+    });
+  }
+
+  function animateReplayShot(shot, shotNumber, onComplete) {
+    const map = replayState.map;
+    if (!map) { onComplete && onComplete(); return; }
+
+    // Duration scales with distance: 50y → 400ms, 250y → 800ms.
+    const yards = (typeof shot.actualYards === 'number')
+      ? shot.actualYards
+      : 100; // Fallback if no distance — shouldn't happen with GPS shots.
+    const duration = Math.max(400, Math.min(1200, 300 + yards * 2));
+
+    // Set caption with shot info.
+    const clubName = shot.club ? formatClubName(shot.club) : '';
+    let caption = `Shot ${shotNumber}`;
+    if (clubName) caption += ` · ${clubName}`;
+    if (typeof shot.actualYards === 'number') caption += ` · ${Math.round(shot.actualYards)}y`;
+    setReplayCaption(caption);
+
+    // Compute bezier control point in screen space.
+    // Project start + end to pixels, find midpoint, offset
+    // perpendicular to the line (in screen space) by ~15% of the
+    // shot's screen length. The perpendicular goes "up" relative
+    // to the shot direction (screen-space rotation of the line
+    // vector by 90 degrees CCW). On a north-up map this typically
+    // means a vertical-ish lift, which reads as ball arc.
+    const startPx = map.project([shot.startLng, shot.startLat]);
+    const endPx = map.project([shot.endLng, shot.endLat]);
+    const midPx = { x: (startPx.x + endPx.x) / 2, y: (startPx.y + endPx.y) / 2 };
+    const dx = endPx.x - startPx.x;
+    const dy = endPx.y - startPx.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    // Perpendicular vector (rotate 90° CCW): (-dy, dx) normalized.
+    // We want the curve to go "up" on screen — negative y in pixel
+    // coords. Pick whichever perpendicular has the more-negative
+    // y component so the arc feels like ball lift regardless of
+    // shot direction (left-to-right vs right-to-left).
+    let perpX = -dy / (len || 1);
+    let perpY = dx / (len || 1);
+    if (perpY > 0) { perpX = -perpX; perpY = -perpY; } // flip to point up
+    // Arc magnitude — 15% of shot length, capped so massive drives
+    // don't fly off the screen.
+    const archMag = Math.min(120, len * 0.15);
+    const ctrlPx = {
+      x: midPx.x + perpX * archMag,
+      y: midPx.y + perpY * archMag,
+    };
+
+    // Draw the recorded straight-line trail as a Mapbox layer that
+    // grows from start toward end as the animation progresses. To
+    // keep things simple for v1, we draw the full straight line at
+    // animation start and let the ball arc above it. Future polish:
+    // grow the line along with the ball.
+    const lineSourceId = `round-replay-shot-line-${shotNumber}-${Date.now()}`;
+    const lineLayerId = `${lineSourceId}-lyr`;
+    try {
+      map.addSource(lineSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [shot.startLng, shot.startLat],
+              [shot.endLng, shot.endLat],
+            ],
+          },
+        },
+      });
+      map.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: lineSourceId,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#FFD600',
+          'line-width': 2.5,
+          'line-opacity': 0.9,
+        },
+      });
+      replayState.drawnShotLines.push({ sourceId: lineSourceId, layerId: lineLayerId });
+    } catch (_) {}
+
+    // Create the ball marker at the start position. Re-create per
+    // shot so each shot starts cleanly at its origin.
+    if (replayState.ballMarker) {
+      try { replayState.ballMarker.remove(); } catch (_) {}
+      replayState.ballMarker = null;
+    }
+    const ballEl = document.createElement('div');
+    ballEl.className = 'round-replay-ball-marker';
+    const ball = new mapboxgl.Marker({ element: ballEl, anchor: 'center' })
+      .setLngLat([shot.startLng, shot.startLat])
+      .addTo(map);
+    replayState.ballMarker = ball;
+
+    // Animate. Easing: ease-out cubic, so the ball decelerates as
+    // it lands (matches the feel of ball flight).
+    const t0 = performance.now();
+    const step = (now) => {
+      if (!replayState.playing) return;
+      const t = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      // Quadratic Bezier: (1-t)²·P0 + 2(1-t)t·C + t²·P1
+      const inv = 1 - eased;
+      const px = inv * inv * startPx.x + 2 * inv * eased * ctrlPx.x + eased * eased * endPx.x;
+      const py = inv * inv * startPx.y + 2 * inv * eased * ctrlPx.y + eased * eased * endPx.y;
+      // Unproject back to lat/lng for the marker.
+      try {
+        const ll = map.unproject([px, py]);
+        ball.setLngLat(ll);
+      } catch (_) {}
+      if (t < 1) {
+        replayState.animFrameId = requestAnimationFrame(step);
+      } else {
+        replayState.animFrameId = null;
+        onComplete && onComplete();
+      }
+    };
+    replayState.animFrameId = requestAnimationFrame(step);
+  }
+
+  function onReplayHoleAnimationComplete(holeNum) {
+    // After all shots, show putt summary if any.
+    const round = replayState.round;
+    let entry = null;
+    if (round?.scores) {
+      entry = round.scores[holeNum] || round.scores[String(holeNum)];
+    }
+    const putts = entry?.putts || 0;
+    const strokes = entry?.strokes;
+    let text = '';
+    if (putts > 0) {
+      const par = replayState.course.holes.find(h => h.number === holeNum)?.par;
+      const score = strokes != null
+        ? (par != null ? formatScoreToPar(strokes, par) : `${strokes} strokes`)
+        : '';
+      text = `${putts} putt${putts === 1 ? '' : 's'} to finish${score ? ' — ' + score : ''}`;
+    } else if (strokes != null) {
+      text = `Hole complete — ${strokes} strokes`;
+    } else {
+      text = 'Hole complete';
+    }
+    setReplayCaption(text);
+    replayState.playing = false;
+    renderReplayShell();
+  }
+
+  // Tiny helper — formats strokes vs par into "−1 (3)" style text.
+  function formatScoreToPar(strokes, par) {
+    if (strokes == null || par == null) return `${strokes}`;
+    const diff = strokes - par;
+    if (diff === 0) return `${strokes} (par)`;
+    if (diff < 0) return `${strokes} (${diff})`; // negative naturally formatted
+    return `${strokes} (+${diff})`;
+  }
+
+  // Format a clubId into a human label. Falls back to the raw id
+  // if no friendly name found.
+  function formatClubName(clubId) {
+    if (!clubId) return '';
+    // Map common clubIds to short labels. Other cases — return as-is
+    // (already user-readable in most cases).
+    const map = {
+      driver: 'Driver',
+      '3w': '3-wood', '5w': '5-wood', '7w': '7-wood',
+      '2h': '2-hybrid', '3h': '3-hybrid', '4h': '4-hybrid', '5h': '5-hybrid',
+      '3i': '3-iron', '4i': '4-iron', '5i': '5-iron', '6i': '6-iron',
+      '7i': '7-iron', '8i': '8-iron', '9i': '9-iron',
+      pw: 'PW', gw: 'GW', sw: 'SW', lw: 'LW',
+      putter: 'Putter',
+    };
+    return map[clubId.toLowerCase()] || clubId;
+  }
+
+  function replayPrevHole() {
+    const idx = replayState.currentHoleIndex;
+    if (idx <= 0) return;
+    loadReplayHole(idx - 1, { autoPlay: true });
+  }
+  window.replayPrevHole = replayPrevHole;
+
+  function replayNextHole() {
+    const idx = replayState.currentHoleIndex;
+    if (idx >= replayState.holesPlayed.length - 1) return;
+    loadReplayHole(idx + 1, { autoPlay: true });
+  }
+  window.replayNextHole = replayNextHole;
 
   // Delete a completed round from the summary screen. After deletion,
   // navigate back to Play landing — there's no round left to summarize.
@@ -57515,6 +58775,184 @@
   // vector + actualYards are all computed at creation time. This
   // matches the user's mental model: "this pin is where my ball
   // went," not "this pin is where I hit from."
+  // ─────────────────────────────────────────────────────────────
+  // Putt log modal — bottom sheet for logging a putt's distance and
+  // whether it was made. Triggered by the GPS Log putt button when
+  // in putt mode (most recent shot ended on the green).
+  //
+  // Each putt becomes its own entry in entry.puttList — gives us
+  // per-putt distance data for stats (lag-putt accuracy, conversion
+  // rates by distance, etc) instead of the legacy "total putts +
+  // first putt distance" coarse view.
+  // ─────────────────────────────────────────────────────────────
+  const puttModalState = {
+    open: false,
+    holeNumber: null,
+    distanceFt: null, // number entered by user, null if not yet typed
+    made: null,       // true | false | null (null = not yet picked)
+  };
+
+  function openPuttLogModal() {
+    if (!roundGpsState.open) return;
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return;
+    puttModalState.open = true;
+    puttModalState.holeNumber = holeNum;
+    puttModalState.distanceFt = null;
+    puttModalState.made = null;
+    acquireScrollLock();
+    renderPuttLogModal();
+  }
+  window.openPuttLogModal = openPuttLogModal;
+
+  function closePuttLogModal() {
+    if (!puttModalState.open) return;
+    const mount = document.getElementById('putt-log-modal-mount');
+    const sheet = mount?.querySelector('.putt-log-sheet');
+    const backdrop = mount?.querySelector('.putt-log-backdrop');
+    if (sheet) sheet.classList.add('closing');
+    if (backdrop) backdrop.classList.add('closing');
+    setTimeout(() => {
+      puttModalState.open = false;
+      if (mount) mount.innerHTML = '';
+      releaseScrollLock();
+    }, 220);
+  }
+  window.closePuttLogModal = closePuttLogModal;
+
+  function setPuttModalDistance(value) {
+    const n = parseInt(value, 10);
+    puttModalState.distanceFt = (Number.isFinite(n) && n >= 0) ? n : null;
+    // Don't re-render — input is uncontrolled, just track in state.
+    // Save button enable/disable handled via attribute toggle below.
+    const saveBtn = document.getElementById('putt-log-save-btn');
+    if (saveBtn) saveBtn.disabled = !canSavePuttModal();
+  }
+  window.setPuttModalDistance = setPuttModalDistance;
+
+  function setPuttModalMade(made) {
+    puttModalState.made = made;
+    renderPuttLogModal(); // re-render to update toggle visuals
+  }
+  window.setPuttModalMade = setPuttModalMade;
+
+  function canSavePuttModal() {
+    // Distance is optional — user might not remember exact distance,
+    // and we don't want to block them from logging the putt over that.
+    // Made/missed IS required — without it the putt's outcome is lost.
+    return puttModalState.made === true || puttModalState.made === false;
+  }
+
+  async function savePuttFromModal() {
+    if (!canSavePuttModal()) return;
+    const holeNum = puttModalState.holeNumber;
+    if (holeNum == null) return;
+    const puttList = ensurePuttsForHole(holeNum);
+    puttList.push({
+      distanceFt: puttModalState.distanceFt,
+      made: puttModalState.made,
+      loggedAt: Date.now(),
+    });
+    syncLegacyPuttFields(holeNum);
+    // Recompute strokes — if the user logged a putt before entering
+    // strokes for the hole, bump strokes to reflect total shots+putts.
+    const entry = ensureEntryForHole(holeNum);
+    const shotCount = getShotsForHole(holeNum).length;
+    const totalStrokes = shotCount + puttList.length;
+    if (entry.strokes == null || entry.strokes < totalStrokes) {
+      entry.strokes = totalStrokes;
+    }
+    // Persist — both solo and group rounds have their own save paths.
+    if (typeof persistShotChanges === 'function') {
+      try { persistShotChanges(); } catch (_) {}
+    }
+    haptic('light');
+    closePuttLogModal();
+    // Refresh the GPS button + count so the user sees updated state.
+    refreshRoundGpsActionButton();
+  }
+  window.savePuttFromModal = savePuttFromModal;
+
+  function renderPuttLogModal() {
+    const mount = document.getElementById('putt-log-modal-mount');
+    if (!mount) return;
+    if (!puttModalState.open) { mount.innerHTML = ''; return; }
+    const holeNum = puttModalState.holeNumber;
+    const existingPutts = getPuttsForHole(holeNum);
+    const puttNumber = existingPutts.length + 1;
+    const ordinal = puttNumber === 1 ? '1st' : puttNumber === 2 ? '2nd' : puttNumber === 3 ? '3rd' : `${puttNumber}th`;
+    const isFirstRender = !mount.querySelector('.putt-log-sheet');
+    mount.innerHTML = `
+      <div class="putt-log-backdrop${isFirstRender ? ' opening' : ''}"
+           onclick="closePuttLogModal()"
+           aria-hidden="true"></div>
+      <div class="putt-log-sheet${isFirstRender ? ' opening' : ''}"
+           role="dialog" aria-modal="true" aria-labelledby="putt-log-title">
+        <div class="putt-log-header">
+          <div class="putt-log-eyebrow">Hole ${holeNum} · ${ordinal} putt</div>
+          <button class="putt-log-close" onclick="closePuttLogModal()" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="putt-log-body">
+          <h3 class="putt-log-title" id="putt-log-title">Log putt</h3>
+          <label class="putt-log-label" for="putt-log-distance">Distance (feet)</label>
+          <input type="number"
+                 inputmode="numeric"
+                 pattern="[0-9]*"
+                 id="putt-log-distance"
+                 class="putt-log-distance-input"
+                 placeholder="—"
+                 min="0"
+                 step="1"
+                 value="${puttModalState.distanceFt != null ? puttModalState.distanceFt : ''}"
+                 oninput="setPuttModalDistance(this.value)"
+                 autofocus />
+          <div class="putt-log-made-section">
+            <div class="putt-log-label">Result</div>
+            <div class="putt-log-made-row">
+              <button type="button"
+                      class="putt-log-made-btn is-made${puttModalState.made === true ? ' is-active' : ''}"
+                      onclick="setPuttModalMade(true)"
+                      aria-pressed="${puttModalState.made === true ? 'true' : 'false'}">
+                <span aria-hidden="true">✓</span>
+                Made it
+              </button>
+              <button type="button"
+                      class="putt-log-made-btn is-missed${puttModalState.made === false ? ' is-active' : ''}"
+                      onclick="setPuttModalMade(false)"
+                      aria-pressed="${puttModalState.made === false ? 'true' : 'false'}">
+                <span aria-hidden="true">✗</span>
+                Missed
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="putt-log-actions">
+          <button class="putt-log-cancel-btn" onclick="closePuttLogModal()">Cancel</button>
+          <button class="putt-log-save-btn"
+                  id="putt-log-save-btn"
+                  onclick="savePuttFromModal()"
+                  ${canSavePuttModal() ? '' : 'disabled'}>
+            Save putt
+          </button>
+        </div>
+      </div>`;
+    // Strip the .opening class on the next frame so the slide-up
+    // animation runs (CSS transitions from translateY(100%) → 0).
+    if (isFirstRender) {
+      requestAnimationFrame(() => {
+        const sheet = mount.querySelector('.putt-log-sheet.opening');
+        const bd = mount.querySelector('.putt-log-backdrop.opening');
+        if (sheet) sheet.classList.remove('opening');
+        if (bd) bd.classList.remove('opening');
+        // Auto-focus the distance input on first render.
+        const input = mount.querySelector('#putt-log-distance');
+        if (input) try { input.focus(); } catch (_) {}
+      });
+    }
+  }
+
   async function logShotAtCurrentPosition() {
     if (!roundGpsState.open) return;
     if (roundGpsState.mode !== 'playing') {
@@ -57761,10 +59199,18 @@
     if (!userPos) return 'log';
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return 'log';
+    // Putt mode — if the most recent shot on this hole landed on the
+    // green, the next action is putting rather than another GPS shot.
+    // Putts are tracked manually (distance + made/missed) since GPS
+    // accuracy isn't sufficient at putting distances.
+    const shots = getShotsForHole(holeNum);
+    if (shots && shots.length > 0) {
+      const last = shots[shots.length - 1];
+      if (last && last.result === 'green') return 'putt';
+    }
     // Already set tee for this hole this session → button stays in
     // log mode. User committed, next action is logging shot 1.
     if (roundGpsState.teeManuallySetHoles.has(holeNum)) return 'log';
-    const shots = getShotsForHole(holeNum);
     if (shots && shots.length > 0) return 'log';
     if (roundGpsState.teeLat == null || roundGpsState.teeLng == null) return 'log';
     const distFromPinnedTee = haversineYards(
@@ -57856,6 +59302,13 @@
       btn.setAttribute('onclick', 'setTeeAtCurrentPosition()');
       btn.setAttribute('aria-label', 'Set tee position to current location');
       if (labelEl) labelEl.textContent = 'Set tee';
+    } else if (mode === 'putt') {
+      // Putt mode — kicks off after a shot has landed on the green.
+      // Tap opens a modal for distance + made/missed; not a GPS log.
+      btn.dataset.mode = 'putt';
+      btn.setAttribute('onclick', 'openPuttLogModal()');
+      btn.setAttribute('aria-label', 'Log putt');
+      if (labelEl) labelEl.textContent = 'Log putt';
     } else {
       btn.dataset.mode = 'log';
       btn.setAttribute('onclick', 'logShotAtCurrentPosition()');
@@ -57872,6 +59325,16 @@
     if (!countEl) return;
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) { countEl.textContent = ''; return; }
+    // In putt mode, show putt count; otherwise show shot count.
+    // Both reflect what the corresponding button is logging — gives
+    // the user a running tally without having to dig into the score
+    // sheet.
+    const mode = getRoundGpsLogButtonMode();
+    if (mode === 'putt') {
+      const puttCount = getPuttsForHole(holeNum).length;
+      countEl.textContent = puttCount > 0 ? String(puttCount) : '';
+      return;
+    }
     const n = getShotsForHole(holeNum).length;
     countEl.textContent = n > 0 ? String(n) : '';
   }
