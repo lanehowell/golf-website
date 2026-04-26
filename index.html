@@ -54114,11 +54114,21 @@
     if (typeof shot.actualYards === 'number') caption += ` · ${Math.round(shot.actualYards)}y`;
     setReplayCaption(caption);
 
-    // Compute bezier control point in screen space — same approach
-    // as in-round arc, but now used to shape the LINE rather than
-    // a floating ball's path. Project endpoints to pixels, find a
-    // perpendicular offset that points "up" on screen, place the
-    // control point there.
+    // Compute bezier control point in screen space. The arc magnitude
+    // is scaled by how HORIZONTAL the shot is on screen — a shot going
+    // purely "up the screen" (typical on a tee→green-rotated map for
+    // straight-down-the-fairway approaches) gets no arc, since the
+    // perpendicular would bow the line sideways in a way that doesn't
+    // read as ball flight. Shots with significant horizontal component
+    // get a more pronounced arc.
+    //
+    // Why scale: ball flight visually reads as arc only when the
+    // perpendicular has a meaningful "vertical screen" component.
+    // For purely vertical screen shots, ANY perpendicular is sideways,
+    // and any arc magnitude makes the line bow off the shot direction
+    // by that amount. With multiple stacked shots in a hole replay,
+    // this cascades into trails that wander far from the actual
+    // shot positions.
     const startPx = map.project([shot.startLng, shot.startLat]);
     const endPx = map.project([shot.endLng, shot.endLat]);
     const midPx = { x: (startPx.x + endPx.x) / 2, y: (startPx.y + endPx.y) / 2 };
@@ -54128,7 +54138,14 @@
     let perpX = -dy / (len || 1);
     let perpY = dx / (len || 1);
     if (perpY > 0) { perpX = -perpX; perpY = -perpY; } // flip to point up
-    const archMag = Math.min(140, len * 0.18);
+    // Horizontal-ness: |dx| / len. 0 = pure vertical, 1 = pure horizontal.
+    // Used as a multiplier for arc magnitude. Square it so the arc fades
+    // off quickly for near-vertical shots — most ball-flight shots don't
+    // need a sideways curve to read well.
+    const horizFactor = (len > 0) ? Math.pow(Math.abs(dx) / len, 2) : 0;
+    // Base arc magnitude proportional to shot length, capped to 90px so
+    // it never overpowers the shot itself. Then scaled by horizFactor.
+    const archMag = Math.min(90, len * 0.18) * horizFactor;
     const ctrlPx = {
       x: midPx.x + perpX * archMag,
       y: midPx.y + perpY * archMag,
