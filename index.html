@@ -17352,7 +17352,19 @@
      CONFIRM DIALOG — custom modal for destructive/warning confirmations
      Replaces native window.confirm() with a design-system-matched dialog.
      ══════════════════════════════════════════════════════════════ */
+  /* Wrapper — open/closed gate for the whole dialog. Hidden by
+     default; shows when .open is added. The actual layout is done
+     by the children (backdrop + dialog) which are independently
+     position:fixed and don't depend on this wrapper for sizing. */
+  .confirm-wrap {
+    display: none;
+  }
+  .confirm-wrap.open {
+    display: block;
+  }
+
   .confirm-backdrop {
+    /* Dim layer covering the viewport. Tap to dismiss. */
     display: none;
     position: fixed;
     inset: 0;
@@ -17363,23 +17375,29 @@
        + 100) was evaluating to `auto` and letting DOM order decide
        the stack — which on the Play panel meant the nav won. */
     z-index: 9000;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-4);
     animation: fadeIn 0.18s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .confirm-backdrop.open { display: flex; }
+  .confirm-backdrop.open { display: block; }
 
   .confirm-dialog {
+    /* Desktop default: centered floating card. Mobile override below
+       pins it to the bottom edge as a sheet. */
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9001;
     background: var(--bg-elevated);
     border-radius: var(--radius-lg);
-    width: 100%;
+    width: calc(100% - var(--space-8));
     max-width: 420px;
     box-shadow: var(--shadow-xl);
     animation: scaleIn 0.22s ease;
     overflow: hidden;
   }
+  .confirm-wrap.open .confirm-dialog { display: block; }
   .confirm-dialog-body {
     padding: var(--space-6) var(--space-6) var(--space-5);
   }
@@ -17475,31 +17493,15 @@
 
   /* Mobile: bottom-sheet style to match the log modal's mobile treatment */
   @media (max-width: 560px) {
-    .confirm-backdrop {
-      padding: 0;
-      /* Drop the flex layout on mobile. The dialog is position:fixed
-         and pinned to the viewport bottom directly — no flex parent
-         needed for positioning. iOS Safari has had bugs where fixed
-         children inside a flex parent get stretched/aligned against
-         the flex bounds instead of the viewport, which manifests as
-         the dialog floating above the screen bottom. Plain block
-         layout on the backdrop sidesteps this entirely. */
-      display: none; /* still hidden until .open */
-      align-items: initial;
-      justify-content: initial;
-    }
-    .confirm-backdrop.open { display: block; }
     .confirm-dialog {
-      /* position:fixed (not absolute) — pins directly to the visual
-         viewport bottom rather than the backdrop's bounds. On iOS
-         Safari + PWA mode, the backdrop's inset:0 bounds can lag
-         the visual viewport during URL-bar / safe-area transitions,
-         leaving the dialog floating above the screen bottom.
-         position:fixed sidesteps this entirely. */
-      position: fixed;
+      /* Pin to viewport bottom directly. Override the desktop's
+         centered-floating positioning entirely. */
+      top: auto;
       left: 0;
       right: 0;
       bottom: 0;
+      transform: none;
+      width: 100%;
       max-width: 100%;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       animation: confirmSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -24195,8 +24197,12 @@
 <div id="shot-edit-sheet-mount"></div>
 
 <!-- CONFIRM DIALOG — reusable custom modal replacing window.confirm().
-     Content is populated by confirmDialog() at open time. -->
-<div class="confirm-backdrop" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" onclick="if(event.target===this) __confirmDialogResolve(false)">
+     Content is populated by confirmDialog() at open time. Structure
+     mirrors the tools-sheet pattern: backdrop + dialog as SIBLINGS,
+     both position:fixed. Nested structure (dialog inside backdrop)
+     was causing iOS Safari to misposition the dialog. -->
+<div id="confirm-dialog-wrap" class="confirm-wrap" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+  <div class="confirm-backdrop" id="confirm-dialog" onclick="if(event.target===this) __confirmDialogResolve(false)"></div>
   <div class="confirm-dialog">
     <div class="confirm-dialog-body">
       <div class="confirm-dialog-eyebrow" id="confirm-dialog-eyebrow">Confirm</div>
@@ -30908,6 +30914,8 @@
     if (!__confirmDialogCurrent) return;
     const { resolve, previousFocus, keyHandler } = __confirmDialogCurrent;
     __confirmDialogCurrent = null;
+    const wrap = document.getElementById('confirm-dialog-wrap');
+    if (wrap) wrap.classList.remove('open');
     const backdrop = document.getElementById('confirm-dialog');
     if (backdrop) backdrop.classList.remove('open');
     unlockBodyScroll();
@@ -30973,6 +30981,10 @@
       };
 
       __confirmDialogCurrent = { resolve, previousFocus, keyHandler };
+      // .open toggles the WRAPPER (which contains both backdrop and
+      // dialog as siblings), so both children become visible together.
+      const wrap = document.getElementById('confirm-dialog-wrap');
+      if (wrap) wrap.classList.add('open');
       backdrop.classList.add('open');
       lockBodyScroll();
       document.addEventListener('keydown', keyHandler, true);
