@@ -17477,16 +17477,18 @@
   @media (max-width: 560px) {
     .confirm-backdrop {
       padding: 0;
-      /* Switch the dialog from flex-positioned to absolute-positioned at
-         the backdrop's bottom edge. flex-end alignment was being subtly
-         affected by the body's padding-bottom reservation for the
-         bottom nav (~64px + safe-area), causing the dialog to float
-         well above the screen bottom on iOS PWA. position:absolute on
-         the dialog with bottom:0 is immune — it positions relative to
-         the fixed backdrop, ignoring body padding entirely. */
-      align-items: stretch;
-      justify-content: stretch;
+      /* Drop the flex layout on mobile. The dialog is position:fixed
+         and pinned to the viewport bottom directly — no flex parent
+         needed for positioning. iOS Safari has had bugs where fixed
+         children inside a flex parent get stretched/aligned against
+         the flex bounds instead of the viewport, which manifests as
+         the dialog floating above the screen bottom. Plain block
+         layout on the backdrop sidesteps this entirely. */
+      display: none; /* still hidden until .open */
+      align-items: initial;
+      justify-content: initial;
     }
+    .confirm-backdrop.open { display: block; }
     .confirm-dialog {
       /* position:fixed (not absolute) — pins directly to the visual
          viewport bottom rather than the backdrop's bounds. On iOS
