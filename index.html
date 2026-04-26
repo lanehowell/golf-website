@@ -53541,7 +53541,7 @@
     }
     replayState.teeMarker = null;
     replayState.greenMarker = null;
-    replayState.ballMarker = null;
+    replayState.shotEndMarkers = [];
     replayState.drawnShotLines = [];
     replayState.open = false;
     replayState.round = null;
@@ -53728,19 +53728,57 @@
       teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
     }
     if (teePos) bounds.extend([teePos.lng, teePos.lat]);
-    // flyTo the bounds — animated transition between holes.
-    map.fitBounds(bounds, {
-      padding: { top: 80, right: 60, bottom: 120, left: 60 },
-      duration: 800,
+    // Compute bearing from tee → green so the map rotates to put
+    // the tee at the bottom and green at the top — matches the
+    // in-round GPS view's framing convention. Falls back to bearing
+    // 0 (north up) if either pin is missing.
+    let bearing = 0;
+    if (teePos && holeData?.greenLat != null && holeData?.greenLng != null) {
+      bearing = bearingDegrees(
+        teePos.lat, teePos.lng,
+        holeData.greenLat, holeData.greenLng);
+    } else if (shots.length >= 2) {
+      // Both pins missing — derive bearing from shot 1 start to
+      // last shot end. Approximates "playing direction."
+      const first = shots[0];
+      const last = shots[shots.length - 1];
+      bearing = bearingDegrees(
+        first.startLat, first.startLng,
+        last.endLat, last.endLng);
+    }
+    // Use cameraForBounds + flyTo so bearing + zoom + center are
+    // all computed together (same pattern as roundGpsRecenter).
+    // Asymmetric padding (more on bottom) leaves room for the
+    // bottom bar + caption.
+    const cam = map.cameraForBounds(bounds, {
+      padding: { top: 60, bottom: 140, left: 50, right: 50 },
+      bearing,
       maxZoom: 17,
     });
+    if (cam) {
+      map.flyTo({
+        center: cam.center,
+        zoom: cam.zoom,
+        bearing: cam.bearing,
+        duration: 800,
+        essential: true,
+      });
+    } else {
+      // Fallback if cameraForBounds fails for some reason.
+      map.fitBounds(bounds, {
+        padding: { top: 60, right: 50, bottom: 140, left: 50 },
+        duration: 800,
+        maxZoom: 17,
+        bearing,
+      });
+    }
     // After the camera settles, render markers + caption + (optionally) auto-play.
     setTimeout(() => {
       renderReplayStaticMarkers(holeNum, teePos, holeData);
       // Caption: "Tap play to watch your X shot[s]" — invitation.
       setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
       if (autoPlay) replayPlay();
-    }, 850);
+    }, 900);
   }
 
   function getReplayShotsForHole(holeNum) {
@@ -53761,10 +53799,13 @@
       try { replayState.greenMarker.remove(); } catch (_) {}
       replayState.greenMarker = null;
     }
-    if (replayState.ballMarker) {
-      try { replayState.ballMarker.remove(); } catch (_) {}
-      replayState.ballMarker = null;
+    // Clear all numbered shot-end markers from the previous hole.
+    if (Array.isArray(replayState.shotEndMarkers)) {
+      replayState.shotEndMarkers.forEach(m => {
+        try { m.remove(); } catch (_) {}
+      });
     }
+    replayState.shotEndMarkers = [];
     if (map) {
       replayState.drawnShotLines.forEach(({ sourceId, layerId }) => {
         try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
@@ -53842,10 +53883,6 @@
       clearTimeout(replayState.pauseTimerId);
       replayState.pauseTimerId = null;
     }
-    if (replayState.ballMarker) {
-      try { replayState.ballMarker.remove(); } catch (_) {}
-      replayState.ballMarker = null;
-    }
   }
 
   // Recursive shot-by-shot animation. Plays the current shot, then
@@ -53880,7 +53917,7 @@
     // Duration scales with distance: 50y → 400ms, 250y → 800ms.
     const yards = (typeof shot.actualYards === 'number')
       ? shot.actualYards
-      : 100; // Fallback if no distance — shouldn't happen with GPS shots.
+      : 100;
     const duration = Math.max(400, Math.min(1200, 300 + yards * 2));
 
     // Set caption with shot info.
@@ -53890,56 +53927,57 @@
     if (typeof shot.actualYards === 'number') caption += ` · ${Math.round(shot.actualYards)}y`;
     setReplayCaption(caption);
 
-    // Compute bezier control point in screen space.
-    // Project start + end to pixels, find midpoint, offset
-    // perpendicular to the line (in screen space) by ~15% of the
-    // shot's screen length. The perpendicular goes "up" relative
-    // to the shot direction (screen-space rotation of the line
-    // vector by 90 degrees CCW). On a north-up map this typically
-    // means a vertical-ish lift, which reads as ball arc.
+    // Compute bezier control point in screen space — same approach
+    // as in-round arc, but now used to shape the LINE rather than
+    // a floating ball's path. Project endpoints to pixels, find a
+    // perpendicular offset that points "up" on screen, place the
+    // control point there.
     const startPx = map.project([shot.startLng, shot.startLat]);
     const endPx = map.project([shot.endLng, shot.endLat]);
     const midPx = { x: (startPx.x + endPx.x) / 2, y: (startPx.y + endPx.y) / 2 };
     const dx = endPx.x - startPx.x;
     const dy = endPx.y - startPx.y;
     const len = Math.sqrt(dx * dx + dy * dy);
-    // Perpendicular vector (rotate 90° CCW): (-dy, dx) normalized.
-    // We want the curve to go "up" on screen — negative y in pixel
-    // coords. Pick whichever perpendicular has the more-negative
-    // y component so the arc feels like ball lift regardless of
-    // shot direction (left-to-right vs right-to-left).
     let perpX = -dy / (len || 1);
     let perpY = dx / (len || 1);
     if (perpY > 0) { perpX = -perpX; perpY = -perpY; } // flip to point up
-    // Arc magnitude — 15% of shot length, capped so massive drives
-    // don't fly off the screen.
-    const archMag = Math.min(120, len * 0.15);
+    const archMag = Math.min(140, len * 0.18);
     const ctrlPx = {
       x: midPx.x + perpX * archMag,
       y: midPx.y + perpY * archMag,
     };
 
-    // Draw the recorded straight-line trail as a Mapbox layer that
-    // grows from start toward end as the animation progresses. To
-    // keep things simple for v1, we draw the full straight line at
-    // animation start and let the ball arc above it. Future polish:
-    // grow the line along with the ball.
+    // Pre-sample the bezier into N points (in lat/lng). Animation
+    // just slices into this array as t advances. 32 points gives
+    // a smooth curve without too much geometry overhead.
+    const N = 32;
+    const curvePoints = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const inv = 1 - t;
+      const px = inv * inv * startPx.x + 2 * inv * t * ctrlPx.x + t * t * endPx.x;
+      const py = inv * inv * startPx.y + 2 * inv * t * ctrlPx.y + t * t * endPx.y;
+      try {
+        const ll = map.unproject([px, py]);
+        curvePoints.push([ll.lng, ll.lat]);
+      } catch (_) {
+        curvePoints.push([shot.endLng, shot.endLat]);
+      }
+    }
+
+    // Each shot gets its own source + layer. Keeps previous shots'
+    // lines visible as the user watches the hole play out.
     const lineSourceId = `round-replay-shot-line-${shotNumber}-${Date.now()}`;
     const lineLayerId = `${lineSourceId}-lyr`;
+    const initialFeature = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [curvePoints[0]], // empty-ish to start; updated as anim progresses
+      },
+    };
     try {
-      map.addSource(lineSourceId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [shot.startLng, shot.startLat],
-              [shot.endLng, shot.endLat],
-            ],
-          },
-        },
-      });
+      map.addSource(lineSourceId, { type: 'geojson', data: initialFeature });
       map.addLayer({
         id: lineLayerId,
         type: 'line',
@@ -53947,50 +53985,71 @@
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': '#FFD600',
-          'line-width': 2.5,
-          'line-opacity': 0.9,
+          'line-width': 2.75,
+          'line-opacity': 0.95,
         },
       });
       replayState.drawnShotLines.push({ sourceId: lineSourceId, layerId: lineLayerId });
     } catch (_) {}
 
-    // Create the ball marker at the start position. Re-create per
-    // shot so each shot starts cleanly at its origin.
-    if (replayState.ballMarker) {
-      try { replayState.ballMarker.remove(); } catch (_) {}
-      replayState.ballMarker = null;
-    }
-    const ballEl = document.createElement('div');
-    ballEl.className = 'round-replay-ball-marker';
-    const ball = new mapboxgl.Marker({ element: ballEl, anchor: 'center' })
-      .setLngLat([shot.startLng, shot.startLat])
-      .addTo(map);
-    replayState.ballMarker = ball;
-
-    // Animate. Easing: ease-out cubic, so the ball decelerates as
-    // it lands (matches the feel of ball flight).
+    // Animate. Easing: ease-out cubic — line draws fast at start,
+    // decelerates as it lands. Matches ball flight feel.
     const t0 = performance.now();
     const step = (now) => {
       if (!replayState.playing) return;
       const t = Math.min(1, (now - t0) / duration);
-      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-      // Quadratic Bezier: (1-t)²·P0 + 2(1-t)t·C + t²·P1
-      const inv = 1 - eased;
-      const px = inv * inv * startPx.x + 2 * inv * eased * ctrlPx.x + eased * eased * endPx.x;
-      const py = inv * inv * startPx.y + 2 * inv * eased * ctrlPx.y + eased * eased * endPx.y;
-      // Unproject back to lat/lng for the marker.
+      const eased = 1 - Math.pow(1 - t, 3);
+      // How many curve points are visible at this t?
+      const upToIndex = Math.max(1, Math.floor(eased * N));
+      const visiblePts = curvePoints.slice(0, upToIndex + 1);
       try {
-        const ll = map.unproject([px, py]);
-        ball.setLngLat(ll);
+        const src = map.getSource(lineSourceId);
+        if (src) {
+          src.setData({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: visiblePts },
+          });
+        }
       } catch (_) {}
       if (t < 1) {
         replayState.animFrameId = requestAnimationFrame(step);
       } else {
         replayState.animFrameId = null;
+        // Snap to full curve at the end — guard against floating-
+        // point landing slightly short of the last sample.
+        try {
+          const src = map.getSource(lineSourceId);
+          if (src) src.setData({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: curvePoints },
+          });
+        } catch (_) {}
+        // Drop the numbered shot pin at the end position.
+        addReplayShotEndMarker(shot, shotNumber);
         onComplete && onComplete();
       }
     };
     replayState.animFrameId = requestAnimationFrame(step);
+  }
+
+  // Drops a yellow numbered marker at the shot's end position.
+  // Same visual language as in-round shot pins (round-gps-shot-marker).
+  // Tracked in replayState.shotEndMarkers so clearReplayMapOverlays
+  // can tear them down on hole nav.
+  function addReplayShotEndMarker(shot, shotNumber) {
+    const map = replayState.map;
+    if (!map) return;
+    const el = document.createElement('div');
+    el.className = 'round-gps-shot-marker'; // reuse existing styling
+    el.textContent = String(shotNumber);
+    el.title = `Shot ${shotNumber}`;
+    try {
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([shot.endLng, shot.endLat])
+        .addTo(map);
+      if (!replayState.shotEndMarkers) replayState.shotEndMarkers = [];
+      replayState.shotEndMarkers.push(marker);
+    } catch (_) {}
   }
 
   function onReplayHoleAnimationComplete(holeNum) {
