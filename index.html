@@ -33866,6 +33866,50 @@
     }
   }
 
+  // Solo round debounced save — mirrors the group debouncer pattern.
+  // Used by shot-tracking actions (Log shot, Add shot via Track Shots
+  // tool, edit/delete via shot edit sheet) so changes survive a refresh
+  // even if the user doesn't navigate to another hole afterward.
+  //
+  // The original "save only on nav events" pattern is still in place for
+  // score steppers — those almost always lead to Save & Next anyway, and
+  // not debouncing them avoids a write on every +/- tap. Shot logging
+  // is different: the user might log several shots and then close the
+  // app without navigating, so we need to persist eagerly.
+  let __soloRoundSaveTimer = null;
+  function queueAutoSaveRound() {
+    if (__soloRoundSaveTimer) clearTimeout(__soloRoundSaveTimer);
+    __soloRoundSaveTimer = setTimeout(() => {
+      __soloRoundSaveTimer = null;
+      autoSaveRound().catch(err => console.error('Failed debounced save:', err));
+    }, 800);
+  }
+
+  // Unified shot-change persistence — call after any shot logging or
+  // shot-edit operation so the change reaches Firestore regardless
+  // of whether the user navigates afterward. Routes to solo or group
+  // based on active round mode.
+  //
+  // Both branches also write the scratchpad as a belt-and-suspenders
+  // measure for crash-during-debounce. Note the scratchpad only stores
+  // ONE hole, so it's an imperfect backup for cross-hole edits — but
+  // the Firestore write below is the real source of truth, scratchpad
+  // is just for the narrow window before the debounce fires.
+  function persistShotChanges() {
+    try {
+      if (isGroupRoundActive()) {
+        queueSaveMyGroupScores();
+      } else if (isRoundActive()) {
+        queueAutoSaveRound();
+      }
+      if (typeof writeScoreScratchpad === 'function') {
+        writeScoreScratchpad();
+      }
+    } catch (err) {
+      console.error('persistShotChanges:', err);
+    }
+  }
+
   // Group-round versions of the solo score mutators. Separate from the
   // solo ones because they read/write different state and trigger a
   // debounced Firestore write instead of the solo round's autosave path.
@@ -37013,9 +37057,9 @@
     if (typeof window.refreshGpsScoreSheetBody === 'function') {
       try { window.refreshGpsScoreSheetBody(); } catch (_) {}
     }
-    // Scratchpad for crash-recovery; real Firestore write fires on
-    // next nav event (Save & Next, Previous, picker jump).
-    writeScoreScratchpad();
+    // Persist via the unified path — debounced Firestore save plus
+    // scratchpad backup. Same as logShotAtCurrentPosition.
+    persistShotChanges();
   }
 
   // Delete flow — confirm then drop from the shots array. Accessible
@@ -37057,8 +37101,8 @@
     if (typeof window.refreshGpsScoreSheetBody === 'function') {
       try { window.refreshGpsScoreSheetBody(); } catch (_) {}
     }
-    // Scratchpad — same save-on-nav model as shot save above.
-    writeScoreScratchpad();
+    // Same unified persistence as save/log paths.
+    persistShotChanges();
   }
 
   function renderShotEditSheet() {
@@ -57106,11 +57150,11 @@
     // even if the reticle stays, the next shot won't pick up THIS
     // shot's target unless the user explicitly commits again.
 
-    // Persist to scratchpad for crash-recovery; main Firestore write
-    // happens on next nav event (Save & Next, hole change, round end).
-    if (typeof writeScoreScratchpad === 'function') {
-      try { writeScoreScratchpad(); } catch (_) {}
-    }
+    // Persist the new shot. Triggers a debounced Firestore save (so
+    // the data survives a refresh even if the user doesn't navigate
+    // to another hole) plus writes the scratchpad as a belt-and-
+    // suspenders backup for crash-during-debounce.
+    persistShotChanges();
 
     // If the GPS score sheet is open beneath the about-to-open shot
     // edit sheet, refresh its cloned card so the reconciliation
