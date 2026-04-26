@@ -7968,6 +7968,31 @@
     margin-bottom: var(--space-5);
   }
   .shot-edit-section:last-child { margin-bottom: 0; }
+
+  /* Shot map preview — small Mapbox map at the top of the sheet
+     showing start, end, and target with the flight line. Sized as a
+     wide rectangle since shots tend to span more horizontally than
+     vertically. Rounded + bordered to match the sheet's visual
+     vocabulary. The .shot-edit-map-section variant has no label, so
+     we tighten the bottom margin and remove the default section
+     spacing-top to land it flush against the sheet header. */
+  .shot-edit-map-section {
+    margin-bottom: var(--space-4);
+  }
+  .shot-edit-map {
+    width: 100%;
+    height: 180px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    /* Mapbox renders into an absolutely-positioned canvas inside a
+       relative container, which it sets up automatically. Just make
+       sure our container clips to the rounded corners. */
+  }
+  html.dark .shot-edit-map {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
   .shot-edit-label {
     display: flex;
     align-items: baseline;
@@ -36613,11 +36638,178 @@
     renderShotEditSheet();
   }
 
+  // Build the small Mapbox map embedded in the shot edit sheet.
+  // Shows start (white pin), end (orange pin), and target (orange
+  // concentric circles, if any). Lines: solid orange start→end
+  // (the actual flight) and, if target exists, dashed white start→
+  // target (the intended line).
+  //
+  // Read-only for v1 — interaction disabled. fitBounds frames all
+  // points with padding so nothing's clipped. Cleanup happens via
+  // cleanupShotEditMap on sheet close.
+  function renderShotEditMap(shot) {
+    if (typeof mapboxgl === 'undefined') return;
+    const container = document.getElementById('shot-edit-map');
+    if (!container) return;
+    if (shot.startLat == null || shot.startLng == null
+        || shot.endLat == null || shot.endLng == null) return;
+
+    // Tear down any prior instance in case of re-init (defensive).
+    cleanupShotEditMap();
+
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      // Initial center will be replaced by fitBounds; just need a
+      // reasonable starting spot to avoid zoom-0 flash.
+      center: [shot.startLng, shot.startLat],
+      zoom: 16,
+      interactive: false,
+      attributionControl: false,
+    });
+    shotEditState.map = map;
+
+    map.on('load', () => {
+      // Build line(s) — flight line is always drawn; intent line
+      // only if the shot had a target. Both via separate sources/layers
+      // so the styling (solid vs dashed) can differ.
+      try {
+        // Flight line: start → end. Solid orange.
+        map.addSource('shot-edit-flight', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [shot.startLng, shot.startLat],
+                [shot.endLng, shot.endLat],
+              ],
+            },
+          },
+        });
+        map.addLayer({
+          id: 'shot-edit-flight-layer',
+          type: 'line',
+          source: 'shot-edit-flight',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#ff8a3d',
+            'line-width': 2.5,
+            'line-opacity': 0.9,
+          },
+        });
+
+        // Intent line: start → target. Dashed white. Only if target.
+        if (shot.targetLat != null && shot.targetLng != null) {
+          map.addSource('shot-edit-intent', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [shot.startLng, shot.startLat],
+                  [shot.targetLng, shot.targetLat],
+                ],
+              },
+            },
+          });
+          map.addLayer({
+            id: 'shot-edit-intent-layer',
+            type: 'line',
+            source: 'shot-edit-intent',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#ffffff',
+              'line-width': 1.5,
+              'line-opacity': 0.6,
+              'line-dasharray': [2, 2],
+            },
+          });
+        }
+      } catch (_) {}
+    });
+
+    // Markers — added independently of the load event since DOM
+    // markers are managed by Mapbox without needing the style ready.
+    // Start marker: small white circle (matches the in-round shot pin
+    // visual language).
+    const startEl = document.createElement('div');
+    startEl.style.cssText = `
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fefefe;
+      border: 2px solid rgba(0,0,0,0.6);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);`;
+    new mapboxgl.Marker({ element: startEl, anchor: 'center' })
+      .setLngLat([shot.startLng, shot.startLat])
+      .addTo(map);
+
+    // End marker: orange filled circle — emphasizes "this is where
+    // the ball ended up", which is what the pin in the main map
+    // shows too. Slightly bigger than start so it reads as the
+    // primary point.
+    const endEl = document.createElement('div');
+    endEl.style.cssText = `
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--color-orange, #E85D04);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);`;
+    new mapboxgl.Marker({ element: endEl, anchor: 'center' })
+      .setLngLat([shot.endLng, shot.endLat])
+      .addTo(map);
+
+    // Target marker (if any): concentric circles (matches the
+    // committed-target pin visual on the main GPS map).
+    if (shot.targetLat != null && shot.targetLng != null) {
+      const tgtEl = document.createElement('div');
+      tgtEl.innerHTML = `
+        <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" fill="#ff8a3d"
+                  stroke="#fff" stroke-width="2" opacity="0.9"/>
+          <circle cx="12" cy="12" r="2.5" fill="#fff"/>
+        </svg>`;
+      tgtEl.style.cssText = `
+        width: 20px; height: 20px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));`;
+      new mapboxgl.Marker({ element: tgtEl, anchor: 'center' })
+        .setLngLat([shot.targetLng, shot.targetLat])
+        .addTo(map);
+    }
+
+    // Frame the shot — fit bounds to encompass all points with
+    // generous padding so nothing's clipped at the edges. If only
+    // start + end (no target), bounds is just those two; otherwise
+    // includes target too.
+    const bounds = new mapboxgl.LngLatBounds()
+      .extend([shot.startLng, shot.startLat])
+      .extend([shot.endLng, shot.endLat]);
+    if (shot.targetLat != null && shot.targetLng != null) {
+      bounds.extend([shot.targetLng, shot.targetLat]);
+    }
+    map.fitBounds(bounds, {
+      padding: 32,
+      duration: 0,  // no animation on initial fit — sheet is sliding up
+      maxZoom: 18,  // don't zoom in too far if all points are clustered
+    });
+  }
+
+  function cleanupShotEditMap() {
+    if (shotEditState.map) {
+      try { shotEditState.map.remove(); } catch (_) {}
+      shotEditState.map = null;
+    }
+  }
+
   function closeShotEditSheet() {
     if (!shotEditState.open) return;
     const el = document.querySelector('.shot-edit-sheet');
     const backdrop = document.querySelector('.shot-edit-backdrop');
     if (!el || !backdrop) {
+      cleanupShotEditMap();
       shotEditState.open = false;
       shotEditState.draft = null;
       shotEditState.editingId = null;
@@ -36633,6 +36825,7 @@
     const finish = () => {
       if (done) return;
       done = true;
+      cleanupShotEditMap();
       shotEditState.open = false;
       shotEditState.draft = null;
       shotEditState.editingId = null;
@@ -36977,9 +37170,24 @@
 
     // Body markup — extracted so we can swap it in place when the
     // sheet is already mounted, instead of rebuilding the wrapper
-    // (which would re-trigger the slide-up animation on every chip
-    // tap).
+    // Shot map preview — small Mapbox map at the top of the sheet
+    // showing start, end, and target with the shot's flight line.
+    // Read-only for v1; future iteration could add drag-to-edit.
+    // Skipped entirely if start+end coords are missing (legacy
+    // shots, manual-add without GPS). Empty string just means no
+    // section renders — clean degradation.
+    const hasMappableCoords =
+      typeof draft.startLat === 'number' && typeof draft.startLng === 'number' &&
+      typeof draft.endLat === 'number' && typeof draft.endLng === 'number';
+    const mapSectionHtml = hasMappableCoords
+      ? `<div class="shot-edit-section shot-edit-map-section">
+           <div class="shot-edit-map" id="shot-edit-map"></div>
+         </div>`
+      : '';
+
+    // (continuing below — bodyHtml uses mapSectionHtml as a prefix)
     const bodyHtml = `
+      ${mapSectionHtml}
       <div class="shot-edit-section">
         <label class="shot-edit-label">Club</label>
         ${clubPickerHtml}
@@ -37076,7 +37284,21 @@
     if (isAlreadyOpen) {
       // Update body in place — preserves the open state, the slide-up
       // animation doesn't replay, scroll position holds.
-      existingBody.innerHTML = bodyHtml;
+      //
+      // Strip out the map section from the new body HTML so the
+      // existing map div (with its live Mapbox instance) survives the
+      // innerHTML swap. The map's content doesn't change between
+      // re-renders (start/end/target are immutable for v1) so leaving
+      // it untouched is correct AND avoids destroying/recreating GPU
+      // resources on every chip tap.
+      const bodyHtmlNoMap = bodyHtml.replace(mapSectionHtml, '');
+      // Preserve the existing map element, then append re-rendered
+      // sections after it.
+      const existingMapSection = existingBody.querySelector('.shot-edit-map-section');
+      existingBody.innerHTML = bodyHtmlNoMap;
+      if (existingMapSection) {
+        existingBody.insertBefore(existingMapSection, existingBody.firstChild);
+      }
       // Footer might also need an update if isEditing changed (it
       // shouldn't during a single edit session, but safe to keep
       // it in sync). Skip if footer doesn't exist for some reason.
@@ -37111,6 +37333,16 @@
       requestAnimationFrame(() => {
         sheet.classList.remove('opening');
         if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    // Init the shot map after the sheet is in the DOM. Defer with
+    // requestAnimationFrame so the slide-up animation gets to start
+    // before the heavier Mapbox init kicks in. Skipped silently if
+    // the shot lacks coords (no map div was rendered in that case).
+    if (hasMappableCoords) {
+      requestAnimationFrame(() => {
+        try { renderShotEditMap(draft); } catch (_) {}
       });
     }
   }
@@ -56638,9 +56870,16 @@
   }
 
   // Main handler — fired when the user taps the orange "Log shot"
-  // button in the GPS action bar. Captures current GPS, finalizes
-  // the previous shot's end (if one's pending), creates the next
-  // shot, opens the existing shot edit sheet for optional refinement.
+  // button in the GPS action bar. Captures current GPS as the END
+  // of the just-hit shot, derives the START from the previous shot's
+  // end (or the tee for the first shot), pushes a complete shot
+  // record, opens the existing shot edit sheet for optional refinement.
+  //
+  // Each tap creates ONE complete shot record. Unlike the old model
+  // (which lazily filled a shot's end on the NEXT tap), end + miss
+  // vector + actualYards are all computed at creation time. This
+  // matches the user's mental model: "this pin is where my ball
+  // went," not "this pin is where I hit from."
   async function logShotAtCurrentPosition() {
     if (!roundGpsState.open) return;
     if (roundGpsState.mode !== 'playing') {
@@ -56655,65 +56894,54 @@
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return;
 
-    // Guard against accidental duplicate logs — if the captured pos
-    // is within a small threshold of the previous shot's start, the
-    // user probably tapped twice accidentally.
-    //
-    // Two threshold tiers:
-    //   - Putts: 0.5 yards (~1.5 ft). Tap-ins routinely happen well
-    //     under 2 yards; the standard guard would block them.
-    //   - All other shots: 2 yards. Well within GPS noise so a sub-
-    //     2y "shot" would be artificial.
-    //
-    // Also catch the Set-tee → immediate Log-shot edge case via
-    // lastShotEnd check — there's no recentShot yet (Set tee doesn't
-    // push a shot), but lastShotEnd was set to the tee position.
-    const existingShotsForCheck = getShotsForHole(holeNum);
-    const recentShot = existingShotsForCheck[existingShotsForCheck.length - 1];
-    const recentWasPutt = recentShot && recentShot.intent === 'putt';
-    const dupThresholdYards = recentWasPutt ? 0.5 : 2;
-    if (recentShot && recentShot.startLat != null && recentShot.startLng != null) {
-      const distFromRecent = haversineYards(
-        recentShot.startLat, recentShot.startLng,
-        userPos.lat, userPos.lng);
-      if (distFromRecent < dupThresholdYards) {
-        showToast('You haven\'t moved much — log when you reach your ball', true);
-        return;
-      }
-    } else if (roundGpsState.lastShotEnd) {
-      // No prior shot but we have a from-position (Set tee just ran,
-      // OR tee was inherited from course data). Check for "tapping
-      // immediately after Set tee from the same spot".
-      const distFromLast = haversineYards(
-        roundGpsState.lastShotEnd.lat, roundGpsState.lastShotEnd.lng,
-        userPos.lat, userPos.lng);
-      if (distFromLast < 2) {
-        showToast('Walk to your ball before logging the shot', true);
-        return;
-      }
-    }
+    // Look up previous shot for start derivation + lie inference.
+    const existingShots = getShotsForHole(holeNum);
+    const isFirstShotOfHole = existingShots.length === 0;
+    const prevShot = existingShots[existingShots.length - 1];
 
-    // Get the shot start position. lastShotEnd was set to the tee
-    // (or to the previous shot's end) — that's where THIS shot was hit
-    // FROM. If lastShotEnd is null (no tee pinned, no prior shots),
-    // we have a problem: we can't compute a yards-hit without a from.
-    // Fall back to using current pos as the start (zero-length placeholder).
-    const startLat = roundGpsState.lastShotEnd?.lat ?? userPos.lat;
-    const startLng = roundGpsState.lastShotEnd?.lng ?? userPos.lng;
+    // Derive shot start. Priority:
+    //   1. Previous shot's end (chained ball positions through hole)
+    //   2. roundGpsState.lastShotEnd (set by Set tee or as backup)
+    //   3. userPos as zero-length fallback (shouldn't happen in practice)
+    let startLat, startLng;
+    if (prevShot && prevShot.endLat != null && prevShot.endLng != null) {
+      startLat = prevShot.endLat;
+      startLng = prevShot.endLng;
+    } else if (roundGpsState.lastShotEnd) {
+      startLat = roundGpsState.lastShotEnd.lat;
+      startLng = roundGpsState.lastShotEnd.lng;
+    } else {
+      startLat = userPos.lat;
+      startLng = userPos.lng;
+    }
     const endLat = userPos.lat;
     const endLng = userPos.lng;
-    const actualYards = roundGpsState.lastShotEnd
-      ? Math.round(haversineYards(startLat, startLng, endLat, endLng))
-      : null;
 
-    // Determine the user's aimed-at target. Priority:
-    //   1. Committed target (set via the "Set as target" toggle on
-    //      the reticle). This is the explicit user intent.
-    //   2. Otherwise, intent-aware default — applied below after
-    //      intent is inferred (approach / chip / par-3 tee → green).
-    // The planning reticle (targetLat / targetLng on roundGpsState)
-    // is NOT used here. It's a measurement tool, not a target. To
-    // capture target intent, the user must tap "Set as target".
+    // Duplicate-tap guard — if user hasn't physically moved since the
+    // last log, they probably double-tapped. Threshold tiers:
+    //   - Putts: 0.5 yards (~1.5 ft). Tap-ins routinely happen well
+    //     under 2 yards; standard guard would block them. (Future-proof:
+    //     putts can't currently be GPS-logged but the threshold stays
+    //     in case of a manual-intent edge case.)
+    //   - All other shots: 2 yards. Within GPS noise; sub-2y "shots"
+    //     would be artificial.
+    // Compares userPos (this tap's position) against startLat/Lng
+    // (= previous shot's end OR Set-tee position). If they're the
+    // same spot, the user hasn't moved.
+    const recentWasPutt = prevShot && prevShot.intent === 'putt';
+    const dupThresholdYards = recentWasPutt ? 0.5 : 2;
+    const distFromStart = haversineYards(startLat, startLng, endLat, endLng);
+    if (distFromStart < dupThresholdYards) {
+      const msg = isFirstShotOfHole && roundGpsState.lastShotEnd
+        ? 'Walk to your ball before logging the shot'
+        : 'You haven\'t moved much — log when you reach your ball';
+      showToast(msg, true);
+      return;
+    }
+
+    // Determine target. Priority:
+    //   1. Committed target (set via "Set as target" button on reticle)
+    //   2. Intent-aware default applied below after intent is inferred
     let targetLat = null;
     let targetLng = null;
     if (roundGpsState.committedTarget) {
@@ -56735,10 +56963,7 @@
         roundGpsState.greenLat, roundGpsState.greenLng));
     }
 
-    // Look up the previous shot to inform start-lie inference.
-    const existingShots = getShotsForHole(holeNum);
-    const isFirstShotOfHole = existingShots.length === 0;
-    const prevShot = existingShots[existingShots.length - 1];
+    // Infer start lie + intent from prev shot context.
     const startLie = inferShotStartLie(prevShot, isFirstShotOfHole);
     const intent = inferShotIntent(
       yardsToTarget, isFirstShotOfHole, startLie, roundGpsState.holePar);
@@ -56747,19 +56972,16 @@
     // green (tap-ins are sub-yard, made putts can't be logged because
     // the user doesn't walk to the cup, and we don't have actual cup
     // coords — only green center). Putts live in the score sheet:
-    // total putts + first-putt distance, both manually entered. This
-    // also makes reconciliation cleaner: shot count + putt count =
-    // stroke count, no special "missed putt" handling needed.
+    // total putts + first-putt distance, both manually entered.
     if (intent === 'putt') {
       showToast('Putts are tracked in your score — tap Score', false);
       return;
     }
 
-    // Apply the intent-aware default for target lat/lng if no reticle
-    // was active. Approach/chip/par-3-tee → green is a sensible default
-    // (you're aiming at the green). Tee on par 4/5 and layup → leave
-    // null; the user must drop a reticle explicitly. Recovery → leave
-    // null. Putt is excluded because the function exits above.
+    // Apply intent-aware default for target if no committed target.
+    // Approach/chip/par-3-tee → green is sensible. Tee on par 4/5 and
+    // layup → leave null; user must commit a target explicitly. Recovery
+    // → leave null. Putt is excluded above.
     if (targetLat == null && roundGpsState.greenLat != null) {
       const isPar3Tee = isFirstShotOfHole && roundGpsState.holePar === 3;
       const useGreenDefault = (intent === 'approach')
@@ -56771,100 +56993,73 @@
       }
     }
 
-    // Default club: if start is on green → putter; if on tee with
-    // par 4/5 → driver; otherwise leave blank for user to fill in.
-    // Note: a green-start shot with non-putt intent is unusual but
-    // possible if the user manually overrode intent in the edit sheet
-    // earlier; keep the putter default for that edge case.
+    // Default club: green-lie → putter; first shot par 4/5 → driver;
+    // otherwise blank. (Green-lie + non-putt intent is unusual but
+    // possible after a manual edit; keep putter default for that.)
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     let defaultClub = '';
     if (startLie === 'green') {
       const putter = bag.find(c => c.type === 'putter');
       if (putter) defaultClub = putter.name;
     } else if (isFirstShotOfHole && roundGpsState.holePar !== 3) {
-      // Driver = first non-putter in distance-sorted bag (sortedBag
-      // puts longest-first, putter last).
       const driver = bag.find(c => c.type !== 'putter');
       if (driver) defaultClub = driver.name;
     }
 
-    // Finalize the previous shot's end (if there's a previous shot
-    // we're now closing out). Only update the previous shot if it
-    // doesn't already have an end — guard against double-tap on Log
-    // shot which would otherwise overwrite a real end with the same
-    // current pos.
-    if (prevShot && prevShot.endLat == null) {
-      prevShot.endLat = startLat;
-      prevShot.endLng = startLng;
-      // Recompute the prev shot's actualYards if it had a startLat
-      // (old shots without start coords stay null).
-      if (prevShot.startLat != null && prevShot.startLng != null) {
-        prevShot.actualYards = Math.round(haversineYards(
-          prevShot.startLat, prevShot.startLng,
-          prevShot.endLat, prevShot.endLng));
-      }
-      // Compute miss vector (alongShot + lateralOffset) if the prev
-      // shot stored a target. No target = no aim point = no miss
-      // metrics. Pre-feature shots without targetLat skip this entirely.
-      if (prevShot.targetLat != null && prevShot.targetLng != null
-          && prevShot.startLat != null && prevShot.startLng != null) {
-        const miss = computeShotMissVector(
-          prevShot.startLat, prevShot.startLng,
-          prevShot.targetLat, prevShot.targetLng,
-          prevShot.endLat, prevShot.endLng);
-        if (miss) {
-          prevShot.alongShot = miss.alongShot;
-          prevShot.lateralOffset = miss.lateralOffset;
-        }
+    // Compute actualYards (start→end distance) — the ball's flight.
+    const actualYards = Math.round(
+      haversineYards(startLat, startLng, endLat, endLng));
+
+    // Compute miss vector (alongShot + lateralOffset) if a target
+    // was set. No target = no aim point = no miss metrics.
+    let alongShot = null;
+    let lateralOffset = null;
+    if (targetLat != null && targetLng != null) {
+      const miss = computeShotMissVector(
+        startLat, startLng, targetLat, targetLng, endLat, endLng);
+      if (miss) {
+        alongShot = miss.alongShot;
+        lateralOffset = miss.lateralOffset;
       }
     }
 
-    // Create the new shot. Push it now (with sensible defaults) so
-    // even if the user dismisses the edit sheet without picking a
-    // club, the position is captured. They can fill in details later
-    // via the shots tool, or by tapping the pin to edit.
+    // Create the complete shot record. All fields set at tap time.
+    // Pre-feature shot records (created by the old lazy-end model)
+    // can still exist; the rendering code handles their null endLat
+    // gracefully (just doesn't render a pin).
     const shots = ensureShotsForHole(holeNum);
     const newShot = {
       id: newShotId(),
       club: defaultClub,
       distance: yardsToTarget,
       distanceFeet: null,  // putts handled separately via score sheet
-      // Chip proximity to the cup AFTER the chip lands. Manually
-      // entered by the user in the edit sheet (GPS doesn't know cup
-      // position). Null for non-chip shots and for chips the user
-      // hasn't filled in yet.
+      // Chip proximity — manually entered in edit sheet for chips.
       proximityFt: null,
       startLie,
       intent,
       mishit: 'clean',
       result: null,
-      // GPS-specific fields. These are additive — non-GPS shots from
-      // the regular round screen continue to work without them.
+      // GPS coords. Both start AND end set immediately.
       startLat,
       startLng,
-      endLat: null,    // filled in by NEXT logShot tap
-      endLng: null,
-      // Where the user was aiming. Either an explicit dropped reticle,
-      // or the intent-aware default (green for approach/chip/par-3 tee;
-      // null for tee on par 4/5 / layup / recovery). Used to compute
-      // alongShot + lateralOffset when end gets captured.
+      endLat,
+      endLng,
+      // Aim point — committed target OR intent-aware default OR null.
       targetLat,
       targetLng,
-      actualYards: null,
-      // Geometric miss metrics — signed yards along the start→target
-      // line and perpendicular to it. Computed when end is captured
-      // (next logShot tap finalizes prev shot's end). Both null until
-      // then, AND null forever if targetLat is null (no aim point).
+      // Computed metrics — actualYards always set, miss vector set
+      // only when a target exists.
+      actualYards,
       // alongShot: + = past target, − = short of target
       // lateralOffset: + = right of target line, − = left
-      alongShot: null,
-      lateralOffset: null,
+      alongShot,
+      lateralOffset,
       loggedAt: Date.now(),
     };
     shots.push(newShot);
 
-    // Advance lastShotEnd to the captured position. The next tap
-    // will treat THIS spot as the from-position.
+    // Advance lastShotEnd to the captured end position. Next tap
+    // will derive THIS end as that shot's start.
     roundGpsState.lastShotEnd = { lat: endLat, lng: endLng };
 
     // Render shot pins and the connecting line on the map.
@@ -57062,35 +57257,35 @@
     const shots = getShotsForHole(holeNum);
     if (!shots || !shots.length) return;
 
-    // Build a list of all shot start positions in chronological order.
-    // Each logged shot contributes one pin at its startLat/Lng. Pins
-    // are tappable (open the edit sheet). The user's live position
-    // (blue dot) already shows where the NEXT shot will start, so we
-    // don't add a separate "current from" pin — that was redundant
-    // and confused the visual story.
+    // Build a list of one pin per logged shot, at each shot's END
+    // position (= where the ball went). This matches the user's
+    // mental model — a shot pin represents the result of the swing.
+    // Shots without endLat (older lazy-finalize records that never
+    // got their end set) are skipped; they'll show up once filled in.
     const points = [];
     shots.forEach((s, i) => {
-      if (s.startLat != null && s.startLng != null) {
+      if (s.endLat != null && s.endLng != null) {
         points.push({
           shotId: s.id,
-          lat: s.startLat,
-          lng: s.startLng,
+          lat: s.endLat,
+          lng: s.endLng,
           shotIndex: i,
         });
       }
     });
 
-    // Build the line coordinates separately. Includes shot starts
-    // PLUS the last shot's endLat/Lng if it's been finalized. That
-    // way the trail visibly extends to the most recent ball position
-    // even if only one shot is logged. No marker at the line endpoint
-    // — when the user logs the next shot, its start pin will land at
-    // that same spot.
-    const lineCoords = points.map(p => [p.lng, p.lat]);
-    const lastShot = shots[shots.length - 1];
-    if (lastShot && lastShot.endLat != null && lastShot.endLng != null) {
-      lineCoords.push([lastShot.endLng, lastShot.endLat]);
+    // Connecting line — traces ball-end positions in order. To make the
+    // trail start from the tee (or from shot 1's start), we prepend
+    // the first shot's startLat/Lng before all the end points. That
+    // way the visual story is: tee/start → ball 1 → ball 2 → ... .
+    // No marker at the prepended start point; the tee marker handles
+    // that visually.
+    const lineCoords = [];
+    const firstShot = shots[0];
+    if (firstShot && firstShot.startLat != null && firstShot.startLng != null) {
+      lineCoords.push([firstShot.startLng, firstShot.startLat]);
     }
+    points.forEach(p => lineCoords.push([p.lng, p.lat]));
 
     // Connecting line — thin orange polyline through the points.
     if (lineCoords.length >= 2) {
@@ -57126,11 +57321,12 @@
       } catch (_) { /* swallow — map may not be fully initialized */ }
     }
 
-    // Pin markers — one per logged shot start. All white, all tappable.
+    // Pin markers — one per logged shot, at its END position. All
+    // white, all tappable to open the edit sheet for that shot.
     points.forEach((p) => {
       const el = document.createElement('div');
       el.className = 'round-gps-shot-marker';
-      el.title = `Shot ${p.shotIndex + 1} start`;
+      el.title = `Shot ${p.shotIndex + 1}`;
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         openShotEditSheet(holeNum, p.shotId);
