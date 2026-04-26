@@ -2636,11 +2636,11 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-3);
   }
   .course-gps-info {
     flex: 1;
@@ -2660,11 +2660,51 @@
     margin-top: 4px;
     font-variant-numeric: tabular-nums;
   }
+  /* Self-contained button styling — does NOT inherit from
+     .pin-greens-btn (which has width:100%). Pill on the right of
+     the row, sized to its content. Empty state (no pins yet) gets
+     the orange treatment to invite action; populated state is a
+     subtle outline so it doesn't dominate. */
   .course-gps-btn {
+    flex-shrink: 0;
     width: auto;
-    padding: 10px 16px;
-    font-size: var(--text-sm);
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+  }
+  .course-gps-btn:active { transform: scale(0.97); }
+  @media (hover: hover) {
+    .course-gps-btn:hover {
+      border-color: var(--color-orange);
+      color: var(--color-orange);
+    }
+  }
+  /* Empty state — no pins set yet — gets the orange CTA treatment
+     to invite action. */
+  .course-gps-btn.is-empty {
+    background: var(--color-orange);
+    border-color: var(--color-orange);
+    color: #fff;
+  }
+  @media (hover: hover) {
+    .course-gps-btn.is-empty:hover {
+      background: var(--color-orange-light);
+      border-color: var(--color-orange-light);
+      color: #fff;
+    }
   }
 
   /* Tee box selector — color swatch + name + distance per tee */
@@ -17457,12 +17497,19 @@
       animation: confirmSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
+    /* Tighten internal padding on mobile — the sheet's bottom edge
+       already gets safe-area padding via the outer dialog; we don't
+       need additional space-6 below the action buttons. */
+    .confirm-dialog-body {
+      padding: var(--space-5) var(--space-5) var(--space-4);
+    }
+    .confirm-dialog-actions {
+      padding: var(--space-2) var(--space-5) var(--space-4);
+      flex-direction: column-reverse; /* Confirm on top on mobile for thumb reach */
+    }
     @keyframes confirmSlideUp {
       from { transform: translateY(100%); }
       to   { transform: translateY(0); }
-    }
-    .confirm-dialog-actions {
-      flex-direction: column-reverse; /* Confirm on top on mobile for thumb reach */
     }
     .confirm-btn { padding: var(--space-4) var(--space-5); font-size: var(--text-base); }
   }
@@ -32642,9 +32689,9 @@
           <div class="course-gps-title">Green coordinates</div>
           <div class="course-gps-sub">${pinGreensCountSaved(course.id)}/18 pinned</div>
         </div>
-        <button class="pin-greens-btn pin-greens-btn-primary course-gps-btn"
+        <button class="course-gps-btn ${pinGreensCountSaved(course.id) > 0 ? '' : 'is-empty'}"
                 onclick="openPinGreensSheet('${escapeAttr(course.id)}')">
-          ${pinGreensCountSaved(course.id) > 0 ? 'Edit pins' : 'Pin greens'}
+          ${pinGreensCountSaved(course.id) > 0 ? 'Edit' : 'Set up'}
         </button>
       </div>
       <div class="course-gps-card">
@@ -32652,9 +32699,9 @@
           <div class="course-gps-title">Tee coordinates</div>
           <div class="course-gps-sub">${pinTeesCountSaved(course.id)}/18 pinned</div>
         </div>
-        <button class="pin-greens-btn pin-greens-btn-primary course-gps-btn"
+        <button class="course-gps-btn ${pinTeesCountSaved(course.id) > 0 ? '' : 'is-empty'}"
                 onclick="openPinTeesSheet('${escapeAttr(course.id)}')">
-          ${pinTeesCountSaved(course.id) > 0 ? 'Edit pins' : 'Pin tees'}
+          ${pinTeesCountSaved(course.id) > 0 ? 'Edit' : 'Set up'}
         </button>
       </div>
     `;
