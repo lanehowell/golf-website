@@ -5141,27 +5141,45 @@
      shot edit sheet). The "current from" marker (where the next shot
      will be hit FROM) gets a subtle orange ring to mark it as active. */
   .round-gps-shot-marker {
-    width: 16px;
-    height: 16px;
+    /* Sized to fit a 1-2 digit shot number comfortably. Bigger than
+       the previous unnumbered marker (16px → 22px) so the digit is
+       readable. */
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #fefefe;
-    border: 2px solid rgba(0, 0, 0, 0.6);
+    background: #FFD600;
+    border: 2px solid rgba(0, 0, 0, 0.7);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    /* Center the shot number text inside the circle. Dark text on
+       yellow gives strong contrast against any satellite imagery
+       beneath. Tabular numerals so 1-digit and 2-digit pins align
+       to the same baseline. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: #1a1a1a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    user-select: none;
     /* Position is relative for the ::before hitbox below. */
     position: relative;
   }
-  /* Touch hitbox boost — invisible 16px pad around the 16px visual,
-     so the tappable area is ~48px without affecting the marker's
-     positioning (it's absolute, doesn't change layout box).
+  /* Touch hitbox boost — invisible pad around the visual, so the
+     tappable area is ~50px without affecting the marker's positioning
+     (it's absolute, doesn't change layout box).
      Critical: do NOT use margin/padding on the marker itself for
      this — Mapbox anchors at the element's bounding box, so any size
      change there shifts the visual relative to its lat/lng. */
   .round-gps-shot-marker::before {
     content: '';
     position: absolute;
-    top: -16px; left: -16px; right: -16px; bottom: -16px;
+    top: -14px; left: -14px; right: -14px; bottom: -14px;
     border-radius: 50%;
   }
 
@@ -36856,7 +36874,7 @@
           source: 'shot-edit-flight',
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
-            'line-color': '#ff8a3d',
+            'line-color': '#FFD600',
             'line-width': 2.5,
             'line-opacity': 0.9,
           },
@@ -57675,7 +57693,9 @@
     }
     points.forEach(p => lineCoords.push([p.lng, p.lat]));
 
-    // Connecting line — thin orange polyline through the points.
+    // Connecting line — thin yellow polyline through the shot points.
+    // Yellow stands out against satellite imagery (grass, dirt, sand)
+    // better than orange and reads as a continuous "ball trail."
     if (lineCoords.length >= 2) {
       const sourceId = 'round-gps-shot-line-src';
       const layerId = 'round-gps-shot-line-lyr';
@@ -57699,9 +57719,9 @@
             source: sourceId,
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
-              'line-color': '#ff8a3d',
-              'line-width': 2,
-              'line-opacity': 0.7,
+              'line-color': '#FFD600',
+              'line-width': 2.25,
+              'line-opacity': 0.9,
             },
           });
         }
@@ -57709,12 +57729,14 @@
       } catch (_) { /* swallow — map may not be fully initialized */ }
     }
 
-    // Pin markers — one per logged shot, at its END position. All
-    // white, all tappable to open the edit sheet for that shot.
+    // Pin markers — one per logged shot, at its END position. Yellow
+    // circle with the shot number inside (1, 2, 3...). Tappable to
+    // open the edit sheet for that shot.
     points.forEach((p) => {
       const el = document.createElement('div');
       el.className = 'round-gps-shot-marker';
       el.title = `Shot ${p.shotIndex + 1}`;
+      el.textContent = String(p.shotIndex + 1);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         openShotEditSheet(holeNum, p.shotId);
