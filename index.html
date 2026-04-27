@@ -31698,7 +31698,8 @@
     if (wrap) wrap.classList.remove('open');
     const backdrop = document.getElementById('confirm-dialog');
     if (backdrop) backdrop.classList.remove('open');
-    unlockBodyScroll();
+    // Pair with acquireScrollLock used in confirmDialog() above.
+    releaseScrollLock();
     document.removeEventListener('keydown', keyHandler, true);
     // Return focus to the element that triggered the dialog
     if (previousFocus && typeof previousFocus.focus === 'function') {
@@ -31766,7 +31767,11 @@
       const wrap = document.getElementById('confirm-dialog-wrap');
       if (wrap) wrap.classList.add('open');
       backdrop.classList.add('open');
-      lockBodyScroll();
+      // Use acquireScrollLock instead of lockBodyScroll — the latter's
+      // position:fixed approach causes visible body re-anchoring on
+      // iOS, while acquireScrollLock just disables overflow on html.
+      // Same system used by all other sheet/modal surfaces.
+      acquireScrollLock();
       document.addEventListener('keydown', keyHandler, true);
       // Focus the confirm button after the open animation starts so screen
       // readers announce the dialog. Confirm first = fast path for OK,
