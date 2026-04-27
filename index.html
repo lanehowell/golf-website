@@ -5453,12 +5453,16 @@
 
   .pin-modal-header {
     display: grid;
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 40px 1fr 40px;
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-3);
     border-bottom: 1px solid var(--border-light);
     background: var(--bg-surface);
+  }
+  .pin-modal-header-spacer {
+    /* Empty cell to balance the close button so the title centers
+       properly in the middle column. */
   }
   .pin-modal-close {
     width: 32px;
@@ -5482,23 +5486,6 @@
     color: var(--text-primary);
     text-align: center;
   }
-  .pin-modal-set-btn {
-    background: var(--color-orange);
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    padding: 8px 18px;
-    font-family: var(--font-body);
-    font-size: 0.88rem;
-    font-weight: var(--weight-semibold);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 120ms ease-out, transform 80ms ease-out;
-  }
-  .pin-modal-set-btn:active {
-    transform: scale(0.96);
-    background: var(--color-orange-light);
-  }
 
   .pin-modal-map-wrap {
     flex: 1;
@@ -5514,7 +5501,7 @@
      map wrap, fixed in screen coords. The user pans the map below to
      position. The SVG pin's base (white circle at coord 7,20 in
      viewBox; centered horizontally) needs to sit at 50%/50% of the
-     wrap. SVG dimensions 22w × 34h; base pixel position ~(11, 31).
+     wrap. SVG dimensions 22w × 39h; base pixel position ~(11, 31).
      So shift the SVG element left by `50% - 11px` to put the pole
      (SVG center) at the wrap's horizontal center, and up by
      `50% - 31px` to put the base at vertical center. */
@@ -5554,56 +5541,85 @@
     100%    { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   }
 
+  /* Footer is now a vertical stack: prominent distance display,
+     full-width primary commit, optional secondary remove link. */
   .pin-modal-footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+    padding: var(--space-4) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
     border-top: 1px solid var(--border-light);
     background: var(--bg-surface);
   }
+  .pin-modal-distance-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
   .pin-modal-distance {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    line-height: 1.1;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
   }
   .pin-modal-distance-label {
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
   }
   .pin-modal-distance-value {
     font-family: var(--font-display);
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     font-weight: var(--weight-bold);
     color: var(--text-primary);
+    line-height: 1;
   }
   .pin-modal-distance-unit {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     color: var(--text-muted);
-    margin-left: 2px;
+    margin-left: 3px;
     font-weight: var(--weight-normal);
   }
+  /* Primary commit — full-width orange button at the bottom.
+     Unmistakably the main action of the modal. */
+  .pin-modal-set-btn {
+    background: var(--color-orange);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 14px 0;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out, transform 80ms ease-out;
+  }
+  .pin-modal-set-btn:active {
+    transform: scale(0.98);
+    background: var(--color-orange-light);
+  }
+  /* Secondary destructive — text-style, subtle. Only appears when
+     editing an existing pin. Sits below Set Pin to keep it out of
+     the primary action's way. */
   .pin-modal-remove {
     background: transparent;
     color: #c14c4c;
-    border: 1px solid rgba(193, 76, 76, 0.5);
-    border-radius: 999px;
-    padding: 6px 14px;
+    border: none;
+    padding: 6px 0;
     font-family: var(--font-body);
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: var(--weight-medium);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    white-space: nowrap;
+    text-align: center;
   }
   .pin-modal-remove:active {
-    background: rgba(193, 76, 76, 0.12);
+    color: #d56767;
   }
 
   /* Locked pin marker on the main GPS map. Tap-to-edit (re-opens
@@ -63284,7 +63300,7 @@
         <div class="pin-modal-header">
           <button class="pin-modal-close" onclick="closePinPlacementModal()" aria-label="Cancel">×</button>
           <div class="pin-modal-title">Place pin</div>
-          <button class="pin-modal-set-btn" onclick="commitPinFromModal()">Set Pin</button>
+          <div class="pin-modal-header-spacer"></div>
         </div>
         <div class="pin-modal-map-wrap">
           <div id="pin-modal-map" class="pin-modal-map"></div>
@@ -63302,7 +63318,10 @@
           <div class="pin-modal-hint" id="pin-modal-hint">Pan map to position pin</div>
         </div>
         <div class="pin-modal-footer">
-          <div class="pin-modal-distance" id="pin-modal-distance">—</div>
+          <div class="pin-modal-distance-row">
+            <div class="pin-modal-distance" id="pin-modal-distance">—</div>
+          </div>
+          <button class="pin-modal-set-btn" onclick="commitPinFromModal()">Set Pin</button>
           ${hasExisting ? `
             <button class="pin-modal-remove" onclick="removePinFromModal()">Remove pin</button>
           ` : ''}
@@ -63435,7 +63454,7 @@
     let yards, prefix;
     if (userLat != null && userLng != null) {
       yards = haversineYards(userLat, userLng, lat, lng);
-      prefix = 'From you';
+      prefix = 'Pin from you';
     } else {
       // No GPS fix — show distance from green center as next-best
       // reference. Useful in planning mode.
@@ -63443,7 +63462,7 @@
       const gLng = roundGpsState.greenLng;
       if (gLat == null || gLng == null) { el.textContent = '—'; return; }
       yards = haversineYards(gLat, gLng, lat, lng);
-      prefix = 'From green center';
+      prefix = 'Pin offset from green center';
     }
     el.innerHTML = `<span class="pin-modal-distance-label">${prefix}</span>
                     <span class="pin-modal-distance-value">${Math.round(yards)}<span class="pin-modal-distance-unit">y</span></span>`;
