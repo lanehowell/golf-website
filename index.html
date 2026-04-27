@@ -14222,14 +14222,15 @@
     height: 100%;
     background: #1a1a1a;
   }
-  /* Caption — floats just above the bottom bar, same pill chrome
-     as the info bar so it reads as part of the same family. Hidden
-     when empty (no text → no background). */
+  /* Caption pill — floats above the shot list. Used now for hole-
+     status messages (end-of-hole summary) since the per-shot info
+     moved into the shot list chips. Same pill chrome as the info
+     bar so it reads as part of the same family. Hidden when empty. */
   .round-replay-shot-caption {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(170px + env(safe-area-inset-bottom, 0px));
     z-index: 3;
     font-family: var(--font-body);
     font-size: var(--text-sm);
@@ -14250,6 +14251,90 @@
     text-overflow: ellipsis;
   }
   .round-replay-shot-caption:empty { display: none; }
+
+  /* Scrubbable shot list — horizontal scroller above the bottom bar.
+     Chips are tappable to jump to a shot's state. Active chip gets
+     orange highlight. */
+  .round-replay-shotlist-wrap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    padding: 0 var(--space-3);
+    pointer-events: none; /* let map taps pass through the wrap */
+  }
+  .round-replay-shotlist {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    padding: 4px 0;
+    pointer-events: auto; /* but chips themselves are tappable */
+  }
+  .round-replay-shotlist::-webkit-scrollbar { display: none; }
+  .round-replay-shot-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: #fff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform 100ms ease-out;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+  .round-replay-shot-chip:active { transform: scale(0.96); }
+  .round-replay-shot-chip-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #FFD600;
+    color: #1a1a1a;
+    font-weight: var(--weight-bold);
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(0, 0, 0, 0.4);
+    font-variant-numeric: tabular-nums;
+  }
+  .round-replay-shot-chip-text {
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .round-replay-shot-chip.is-active {
+    background: rgba(232, 93, 4, 0.22);
+    border-color: var(--color-orange);
+    box-shadow:
+      0 2px 12px rgba(232, 93, 4, 0.35),
+      0 0 0 1px var(--color-orange);
+  }
+  .round-replay-shot-chip.is-active .round-replay-shot-chip-text {
+    color: #fff;
+  }
+  .round-replay-shotlist-empty {
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-style: italic;
+  }
 
   /* Bottom controls bar — five buttons centered. Below the caption.
      Same dark gradient backdrop as in-round so the controls fade
@@ -53589,11 +53674,18 @@
         <!-- Map fills the whole panel -->
         <div class="round-replay-map" id="round-replay-map"></div>
 
-        <!-- Caption pill — floats just above the bottom bar with shot
-             info ("Shot 2 · 7-iron · 165y") or hole status. Same visual
-             pill chrome as the info bar so it reads as part of the
-             same family. Hidden when empty. -->
+        <!-- Caption pill — floats just above the shot list with hole-
+             status messages (e.g., "2 putts to finish — 4 (par)").
+             Per-shot info is now shown in the shot list below. -->
         <div class="round-replay-shot-caption" id="round-replay-shot-caption"></div>
+
+        <!-- Scrubbable shot list — horizontal strip of chips, one per
+             GPS-tracked shot. Each shows shot number + club + distance.
+             Active chip = current animation position. Tap chip → jump
+             to that shot's state (instant snap, no animation). -->
+        <div class="round-replay-shotlist-wrap" id="round-replay-shotlist-wrap">
+          <div class="round-replay-shotlist" id="round-replay-shotlist"></div>
+        </div>
 
         <!-- Bottom controls. Five buttons: prev hole / step back /
              play (primary, orange) / step forward / next hole. -->
@@ -53870,16 +53962,44 @@
       center: [0, 0],
       zoom: 1,
       attributionControl: false,
-      // Allow user to pan/zoom — they may want to inspect a shot.
       interactive: true,
       doubleClickZoom: true,
       dragRotate: false,
       pitchWithRotate: false,
     });
-    // Force a resize once style loads — defensive against init
-    // happening with a zero-size container despite the setTimeout.
     map.on('load', () => {
       try { map.resize(); } catch (_) {}
+    });
+    // Tap-on-pin handler — query features within a small box around
+    // the tap point. If any feature has isReplayShotPin=true, the
+    // user wanted to interact with that shot pin → open shot edit.
+    // The 10px hit-box gives finger-tap forgiveness on top of the
+    // 22px visible pin.
+    map.on('click', (e) => {
+      try {
+        const padding = 10;
+        const bbox = [
+          [e.point.x - padding, e.point.y - padding],
+          [e.point.x + padding, e.point.y + padding],
+        ];
+        const features = map.queryRenderedFeatures(bbox);
+        const pinFeature = features.find(f => f.properties && f.properties.isReplayShotPin);
+        if (pinFeature) {
+          const shotIdx = pinFeature.properties.shotIdx;
+          const holeNum = pinFeature.properties.holeNum;
+          if (typeof shotIdx === 'number' && typeof holeNum === 'number') {
+            handleReplayPinTap(holeNum, shotIdx);
+          }
+        }
+      } catch (_) {}
+    });
+    // Pointer cursor over pins on desktop. Mobile ignores this.
+    map.on('mousemove', (e) => {
+      try {
+        const features = map.queryRenderedFeatures(e.point);
+        const overPin = features.some(f => f.properties && f.properties.isReplayShotPin);
+        map.getCanvas().style.cursor = overPin ? 'pointer' : '';
+      } catch (_) {}
     });
     replayState.map = map;
   }
@@ -53914,15 +54034,18 @@
     if (holeData?.greenLat != null && holeData?.greenLng != null) {
       bounds.extend([holeData.greenLng, holeData.greenLat]);
     }
-    // Tee position: prefer the explicit tee pin for the round's
-    // tee, else use the first shot's start as a proxy (which IS
-    // where the user teed off).
+    // Tee position: use the FIRST GPS shot's start as the canonical
+    // tee — that IS where the user actually teed off, and it's where
+    // the shot 1 line originates. The course's pinned tee can be at
+    // a different physical position (different tee box than what was
+    // played), which would leave the rendered tee marker visually
+    // disconnected from where the line starts. We only fall back to
+    // the pinned tee when there are no GPS shots to anchor against.
     let teePos = null;
-    if (typeof getTeePosition === 'function') {
-      teePos = getTeePosition(course, holeNum, replayState.round.teeName);
-    }
-    if (!teePos && shots.length > 0) {
+    if (shots.length > 0) {
       teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
+    } else if (typeof getTeePosition === 'function') {
+      teePos = getTeePosition(course, holeNum, replayState.round.teeName);
     }
     if (teePos) bounds.extend([teePos.lng, teePos.lat]);
     // Compute bearing from tee → green so the map rotates to put
@@ -53974,6 +54097,7 @@
       renderReplayStaticMarkers(holeNum, teePos, holeData);
       // Caption: "Tap play to watch your X shot[s]" — invitation.
       setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
+      renderReplayShotList();
       if (autoPlay) replayPlay();
     }, 900);
   }
@@ -54055,6 +54179,193 @@
     if (el) el.textContent = text || '';
   }
 
+  // Tap-on-pin handler. For now, jumps the replay state to that
+  // shot (so the active chip + drawn lines reflect the user's
+  // intent: "show me this shot's state"). Future: open a popover
+  // with full shot details + an Edit button. Editing requires the
+  // shot edit sheet to be refactored to work on historical rounds
+  // (currently it only mutates the active roundState).
+  function handleReplayPinTap(holeNum, shotIdx) {
+    if (!replayState.open) return;
+    // Verify we're on the right hole — shouldn't be possible to tap
+    // a stale pin, but defensive.
+    const currentHole = replayState.holesPlayed[replayState.currentHoleIndex];
+    if (currentHole !== holeNum) return;
+    // Snap to that shot (instant, no animation) — same as tapping
+    // its chip in the shot list.
+    replayJumpToShot(shotIdx);
+  }
+  window.handleReplayPinTap = handleReplayPinTap;
+
+  // Render the scrubbable shot list for the current hole. Called on
+  // hole load and after each state change that affects which chip is
+  // active (shot advance, step-back, manual jump). Idempotent — safe
+  // to call repeatedly.
+  function renderReplayShotList() {
+    const wrap = document.getElementById('round-replay-shotlist');
+    if (!wrap) return;
+    const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
+    const shots = getReplayShotsForHole(holeNum);
+    if (shots.length === 0) {
+      wrap.innerHTML = `<div class="round-replay-shotlist-empty">No shots tracked on this hole</div>`;
+      return;
+    }
+    // currentShotIndex = "next shot to play". The most recently
+    // completed shot is at currentShotIndex - 1. Highlight that one.
+    const activeChipIndex = replayState.currentShotIndex - 1;
+    const html = shots.map((shot, i) => {
+      const club = shot.club ? formatClubName(shot.club) : '';
+      const yards = (typeof shot.actualYards === 'number')
+        ? `${Math.round(shot.actualYards)}y`
+        : '';
+      const meta = [club, yards].filter(Boolean).join(' · ') || 'Shot';
+      const isActive = (i === activeChipIndex);
+      return `
+        <button class="round-replay-shot-chip${isActive ? ' is-active' : ''}"
+                data-shot-index="${i}"
+                onclick="replayJumpToShot(${i})"
+                aria-label="Jump to shot ${i + 1}${isActive ? ' (current)' : ''}">
+          <span class="round-replay-shot-chip-num">${i + 1}</span>
+          <span class="round-replay-shot-chip-text">${escapeHtml(meta)}</span>
+        </button>`;
+    }).join('');
+    wrap.innerHTML = html;
+    // Scroll active chip into view if it's offscreen.
+    if (activeChipIndex >= 0) {
+      const activeEl = wrap.querySelector('.round-replay-shot-chip.is-active');
+      if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+        try {
+          activeEl.scrollIntoView({
+            behavior: 'smooth',
+            inline: 'center',
+            block: 'nearest',
+          });
+        } catch (_) {}
+      }
+    }
+  }
+
+  // Jump to a specific shot's STATE in the replay. Instant — clears
+  // all currently drawn shot lines/pins, redraws all shots up to and
+  // including the target shot (no animations), updates the active
+  // chip to match. To re-animate that shot, the user can step back
+  // and step forward again. This makes scrubbing fast.
+  function replayJumpToShot(targetIdx) {
+    if (!replayState.open || !replayState.map) return;
+    if (typeof targetIdx !== 'number' || targetIdx < 0) return;
+    // If autoplay is running, pause it first — scrubbing while
+    // autoplaying would cause the autoplay's next-shot to fight
+    // with our jump.
+    if (replayState.playing) {
+      replayState.playing = false;
+      cancelReplayAnimation();
+    }
+    const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
+    const shots = getReplayShotsForHole(holeNum);
+    if (targetIdx >= shots.length) return;
+    // Clear all currently drawn shot lines + pins, then redraw shots
+    // 0..targetIdx instantly (no animation).
+    const map = replayState.map;
+    if (map) {
+      replayState.drawnShotLines.forEach(({ sourceId, layerId }) => {
+        try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+        try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+      });
+      replayState.drawnShotLines = [];
+      if (Array.isArray(replayState.shotEndLayers)) {
+        replayState.shotEndLayers.forEach(({ sourceId, layerIds }) => {
+          (layerIds || []).forEach(lid => {
+            try { if (map.getLayer(lid)) map.removeLayer(lid); } catch (_) {}
+          });
+          try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+        });
+      }
+      replayState.shotEndLayers = [];
+    }
+    // Redraw shots 0..targetIdx (inclusive) instantly. Shot N's line
+    // becomes its FULL bezier curve immediately; shot N's pin gets
+    // dropped at endLat/Lng. We reuse the same line geometry math
+    // as animateReplayShot but skip the per-frame animation.
+    for (let i = 0; i <= targetIdx; i++) {
+      drawReplayShotInstantly(shots[i], i + 1);
+    }
+    replayState.currentShotIndex = targetIdx + 1;
+    // Caption: show the shot's info as if its animation just finished.
+    const lastShot = shots[targetIdx];
+    const club = lastShot.club ? formatClubName(lastShot.club) : '';
+    let caption = `Shot ${targetIdx + 1}`;
+    if (club) caption += ` · ${club}`;
+    if (typeof lastShot.actualYards === 'number') caption += ` · ${Math.round(lastShot.actualYards)}y`;
+    setReplayCaption(caption);
+    renderReplayShotList();
+    updateReplayChrome();
+  }
+  window.replayJumpToShot = replayJumpToShot;
+
+  // Draw a shot's complete line + pin instantly (no animation).
+  // Used by jump-to-shot for fast scrubbing. Mirrors the geometry
+  // logic in animateReplayShot but without the per-frame setData
+  // updates — just sets the full curve in one go.
+  function drawReplayShotInstantly(shot, shotNumber) {
+    const map = replayState.map;
+    if (!map) return;
+    const startPx = map.project([shot.startLng, shot.startLat]);
+    const endPx = map.project([shot.endLng, shot.endLat]);
+    const midPx = { x: (startPx.x + endPx.x) / 2, y: (startPx.y + endPx.y) / 2 };
+    const dx = endPx.x - startPx.x;
+    const dy = endPx.y - startPx.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    let perpX = -dy / (len || 1);
+    let perpY = dx / (len || 1);
+    if (perpY > 0) { perpX = -perpX; perpY = -perpY; }
+    const horizFactor = (len > 0) ? Math.pow(Math.abs(dx) / len, 2) : 0;
+    const archMag = Math.min(90, len * 0.18) * horizFactor;
+    const ctrlPx = {
+      x: midPx.x + perpX * archMag,
+      y: midPx.y + perpY * archMag,
+    };
+    const N = 24;
+    const curvePoints = [];
+    for (let i = 0; i <= N; i++) {
+      if (i === 0) { curvePoints.push([shot.startLng, shot.startLat]); continue; }
+      if (i === N) { curvePoints.push([shot.endLng, shot.endLat]); continue; }
+      const t = i / N;
+      const inv = 1 - t;
+      const px = inv * inv * startPx.x + 2 * inv * t * ctrlPx.x + t * t * endPx.x;
+      const py = inv * inv * startPx.y + 2 * inv * t * ctrlPx.y + t * t * endPx.y;
+      try {
+        const ll = map.unproject([px, py]);
+        curvePoints.push([ll.lng, ll.lat]);
+      } catch (_) {
+        curvePoints.push([shot.endLng, shot.endLat]);
+      }
+    }
+    const lineSourceId = `round-replay-shot-line-${shotNumber}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const lineLayerId = `${lineSourceId}-lyr`;
+    try {
+      map.addSource(lineSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: curvePoints },
+        },
+      });
+      map.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: lineSourceId,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#FFD600',
+          'line-width': 2.75,
+          'line-opacity': 0.95,
+        },
+      });
+      replayState.drawnShotLines.push({ sourceId: lineSourceId, layerId: lineLayerId });
+    } catch (_) {}
+    addReplayShotEndMarker(shot, shotNumber);
+  }
+
   function replayPlay() {
     if (!replayState.open || !replayState.map) return;
     // Already playing — no-op.
@@ -54102,6 +54413,7 @@
       // After this shot finishes, advance and schedule the next.
       if (!replayState.playing) return;
       replayState.currentShotIndex = idx + 1;
+      renderReplayShotList(); // active chip moves forward
       replayState.pauseTimerId = setTimeout(() => {
         replayState.pauseTimerId = null;
         runReplayShotSequence();
@@ -54295,11 +54607,17 @@
     const circleLayerId = `${baseId}-circle`;
     const labelLayerId = `${baseId}-label`;
     try {
+      const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
       map.addSource(sourceId, {
         type: 'geojson',
         data: {
           type: 'Feature',
-          properties: { label: String(shotNumber) },
+          properties: {
+            label: String(shotNumber),
+            shotIdx: shotNumber - 1,
+            holeNum,
+            isReplayShotPin: true,
+          },
           geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
         },
       });
@@ -54450,6 +54768,7 @@
       replayState.currentShotIndex = idx + 1;
       replayState.playing = false;
       updateReplayChrome();
+      renderReplayShotList();
       // If that was the last shot, surface the same end-of-hole
       // summary autoplay would have shown.
       if (replayState.currentShotIndex >= shots.length) {
@@ -54508,6 +54827,7 @@
       setReplayCaption(caption);
     }
     updateReplayChrome();
+    renderReplayShotList();
   }
   window.replayStepBack = replayStepBack;
 
