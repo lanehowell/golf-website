@@ -54260,33 +54260,16 @@
   function addReplayShotEndMarker(shot, shotNumber) {
     const map = replayState.map;
     if (!map) return;
-    // DIAGNOSTIC: drop a magenta circle at shot.endLng/Lat using a
-    // pure Mapbox geometry layer (different render path from DOM
-    // markers and line layers). Lets us visually verify where the
-    // canonical end-coord actually projects to on screen.
+    // Force a repaint + fresh projection sync before placing the
+    // marker. Without this, markers added after line-layer additions
+    // can drift from their geographic position due to (suspected)
+    // Mapbox internal camera-state staleness — the line renders
+    // correctly via WebGL using fresh state, but DOM markers project
+    // pixel positions from a slightly stale camera.
     try {
-      const debugSrcId = `replay-debug-end-${shotNumber}-${Date.now()}`;
-      const debugLayerId = `${debugSrcId}-lyr`;
-      map.addSource(debugSrcId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
-        },
-      });
-      map.addLayer({
-        id: debugLayerId,
-        type: 'circle',
-        source: debugSrcId,
-        paint: {
-          'circle-radius': 5,
-          'circle-color': '#ff00ff',
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#fff',
-        },
-      });
-      // Track for cleanup with the rest of the shot's drawn lines.
-      replayState.drawnShotLines.push({ sourceId: debugSrcId, layerId: debugLayerId });
+      map.triggerRepaint();
+      // Touch project() to ensure the projection matrix is current.
+      map.project([shot.endLng, shot.endLat]);
     } catch (_) {}
 
     const el = document.createElement('div');
