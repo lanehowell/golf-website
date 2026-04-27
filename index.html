@@ -5598,18 +5598,18 @@
     border-radius: 22px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   }
-  /* Content layers — both absolute-positioned inside the chip so they
-     overlay each other. Compact is opaque by default, expanded is
-     hidden; classes on the parent flip these. */
+  /* Content layers — when COLLAPSED: compact is in flow (sizes the
+     chip), expanded is absolutely positioned and hidden. When
+     EXPANDED: compact is absolute (overlays + fades out), expanded
+     is in flow (sizes the chip). This swap is what makes both
+     states drive their own dimensions naturally. */
   .disp-chip-compact-content,
   .disp-chip-expanded-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
     transition: opacity 180ms ease-out;
   }
+  /* Default (collapsed) state: */
   .disp-chip-compact-content {
+    position: relative;  /* in flow — sizes the chip */
     display: flex;
     align-items: stretch;
     height: 100%;
@@ -5617,25 +5617,31 @@
     transition-delay: 140ms; /* fade in AFTER expanded content fades out */
   }
   .disp-chip-expanded-content {
+    position: absolute;  /* out of flow — doesn't push chip height */
+    top: 0;
+    left: 0;
+    right: 0;
     opacity: 0;
     pointer-events: none;
     padding: 14px 16px 16px;
-    /* Don't take part in measuring height while collapsed. */
     visibility: hidden;
     transition-delay: 0ms;
   }
+  /* Expanded state — swap which one is in flow. */
   .disp-chip.is-expanded .disp-chip-compact-content {
+    position: absolute;  /* now overlays + fades out */
+    top: 0;
+    left: 0;
+    right: 0;
     opacity: 0;
     pointer-events: none;
     transition-delay: 0ms;
   }
   .disp-chip.is-expanded .disp-chip-expanded-content {
+    position: relative;  /* now in flow — sizes the chip */
     opacity: 1;
     pointer-events: auto;
     visibility: visible;
-    /* The expanded content itself defines the chip's height when
-       expanded — we set position relative here so the chip wraps it. */
-    position: relative;
     transition-delay: 140ms; /* wait for compact to fade out first */
   }
 
