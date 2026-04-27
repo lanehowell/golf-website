@@ -5281,7 +5281,17 @@
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     -webkit-tap-highlight-color: transparent;
-    transition: background 150ms ease-out, transform 100ms ease-out;
+    /* Smooth fade for show/hide so the button doesn't blink during
+       hole transitions where target state briefly cycles. The scale
+       transition is for tap feedback only (the :active rule below). */
+    opacity: 1;
+    transition: background 150ms ease-out,
+                transform 100ms ease-out,
+                opacity 220ms ease-out;
+  }
+  .round-gps-set-target.is-hidden {
+    opacity: 0;
+    pointer-events: none;
   }
   .round-gps-set-target:active { transform: scale(0.92); }
   .round-gps-set-target[data-state="set"] {
@@ -5332,13 +5342,13 @@
     }
   }
 
-  /* Pin offset button — sits above layers button, same visual style.
-     Active state (offset != 0) tints orange so user sees at-a-glance
-     that distances are adjusted from raw to-center values. */
+  /* Pin button — sits above the set-target button. Stack offsets:
+     recenter (base) → layers (+56) → set-target (+112) → pin (+168).
+     Active state (custom pin placed) tints orange. */
   .round-gps-pin-btn {
     position: absolute;
     left: 16px;
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px + 44px + 8px);
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 168px);
     z-index: 5;
     width: 44px;
     height: 44px;
@@ -5397,16 +5407,226 @@
 
   /* Draggable pin marker on the green — the user drags this to the
      actual flag position. Filter cursor as grab/grabbing for affordance. */
-  .round-gps-pin-marker {
-    cursor: grab;
+  /* ─── Pin placement modal ─────────────────────────────────────
+     Focused, deliberate UI for setting the exact pin position on
+     the green. Replaces the previous on-map drag flow which was
+     imprecise (finger covers pin) and accident-prone (any map
+     interaction during a round could nudge the pin). */
+  #pin-modal-mount {
+    position: fixed;
+    inset: 0;
+    z-index: 9600;  /* above all GPS view content + tools sheet */
+    pointer-events: none;
+  }
+  #pin-modal-mount:empty { display: none; }
+
+  .pin-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+  }
+  .pin-modal-backdrop.opening,
+  .pin-modal-backdrop.closing { opacity: 0; }
+
+  .pin-modal-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 75vh;
+    max-height: 75vh;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
+  }
+  .pin-modal-sheet.opening,
+  .pin-modal-sheet.closing { transform: translateY(100%); }
+
+  .pin-modal-header {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-surface);
+  }
+  .pin-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
     -webkit-tap-highlight-color: transparent;
-    /* Subtle pulsing halo so user notices the new pin and knows it
-       can be dragged. Halo fades after a few pulses to not be annoying. */
-    animation: pinDropPulse 2.4s ease-out 3;
+  }
+  .pin-modal-close:active {
+    background: var(--bg-elevated);
+  }
+  .pin-modal-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    text-align: center;
+  }
+  .pin-modal-set-btn {
+    background: var(--color-orange);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out, transform 80ms ease-out;
+  }
+  .pin-modal-set-btn:active {
+    transform: scale(0.96);
+    background: var(--color-orange-light);
+  }
+
+  .pin-modal-map-wrap {
+    flex: 1;
+    position: relative;
+    background: #000;  /* covers any map-load gap */
+    overflow: hidden;  /* clip pin overlay if for any reason it overflows */
+  }
+  .pin-modal-map {
+    position: absolute;
+    inset: 0;
+  }
+  /* Stationary centered pin overlay. Sits at the dead center of the
+     map wrap, fixed in screen coords. The user pans the map below to
+     position. The SVG pin's base (white circle at coord 7,20 in
+     viewBox; centered horizontally) needs to sit at 50%/50% of the
+     wrap. SVG dimensions 22w × 34h; base pixel position ~(11, 31).
+     So shift the SVG element left by `50% - 11px` to put the pole
+     (SVG center) at the wrap's horizontal center, and up by
+     `50% - 31px` to put the base at vertical center. */
+  .pin-modal-center-pin {
+    position: absolute;
+    top: calc(50% - 31px);
+    left: calc(50% - 11px);
+    width: 22px;
+    height: 39px;
+    pointer-events: none;  /* drag gestures pass through to the map */
+    z-index: 5;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  }
+  /* Hint text — small label at the top of the map prompting the user
+     to pan. Auto-fades after 2.5s so it doesn't stay as permanent
+     clutter once the user understands the gesture. */
+  .pin-modal-hint {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: var(--weight-medium);
+    padding: 6px 14px;
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: 6;
+    white-space: nowrap;
+    animation: pinModalHintFade 2.5s ease-out forwards;
+  }
+  @keyframes pinModalHintFade {
+    0%, 60% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100%    { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  }
+
+  .pin-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-surface);
+  }
+  .pin-modal-distance {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.1;
+  }
+  .pin-modal-distance-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .pin-modal-distance-value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .pin-modal-distance-unit {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-left: 2px;
+    font-weight: var(--weight-normal);
+  }
+  .pin-modal-remove {
+    background: transparent;
+    color: #c14c4c;
+    border: 1px solid rgba(193, 76, 76, 0.5);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .pin-modal-remove:active {
+    background: rgba(193, 76, 76, 0.12);
+  }
+
+  /* Locked pin marker on the main GPS map. Tap-to-edit (re-opens
+     the placement modal) — not draggable. */
+  .round-gps-pin-marker {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    /* IMPORTANT: no transform here — Mapbox uses transform on this
+       element to position it. Animation lives on the inner wrapper. */
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
   }
-  .round-gps-pin-marker:active {
-    cursor: grabbing;
+  .round-gps-pin-marker:active .round-gps-pin-marker-inner {
+    transform: scale(0.92);
+  }
+  .round-gps-pin-marker-inner {
+    /* Subtle pulsing halo so user notices the freshly-set pin. Tap
+       the pin to re-open the placement modal for repositioning.
+       Pulse fades after a few cycles to not be visually annoying. */
+    animation: pinDropPulse 2.4s ease-out 3;
+    transform-origin: 9px 25.7px;  /* pin's "base" in rendered px — match SVG anchor */
+    display: inline-block;
+  }
+  .round-gps-pin-marker:active .round-gps-pin-marker-inner {
     animation: none;
   }
   @keyframes pinDropPulse {
@@ -35216,6 +35436,12 @@
 
   // Reset roundState in memory (does not delete from Firestore).
   function clearRoundState() {
+    // Capture docId BEFORE wiping so we can clean up the persisted
+    // pins for this round. Pins are scoped to the round; once the
+    // round is no longer active (completed, abandoned, disposed),
+    // there's no further use for the stored positions and they'd
+    // just accumulate in localStorage over time.
+    const oldDocId = roundState.docId;
     roundState.docId = null;
     roundState.courseId = null;
     roundState.teeName = null;
@@ -35226,6 +35452,9 @@
     roundState.started = null;
     roundState.dateKey = null;
     roundState.weather = null;
+    if (oldDocId && typeof clearPinsForRound === 'function') {
+      clearPinsForRound(oldDocId);
+    }
   }
 
   // Discard the current round entirely — delete from Firestore + clear local state.
@@ -35234,7 +35463,8 @@
     const docId = roundState.docId;
     clearRoundState();
     // Purge per-round local state — no reason to keep scratchpad or
-    // cursor for a round that no longer exists.
+    // cursor for a round that no longer exists. (Pin positions are
+    // cleared from localStorage by clearRoundState above.)
     clearScoreScratchpad(docId);
     clearSoloRoundCursor(docId);
     if (currentUser && window.fb) {
@@ -37227,6 +37457,11 @@
     await saveMyGroupScoresNow();
     // Scratchpad is now redundant — all data is in Firestore.
     clearScoreScratchpad(groupRoundState.docId);
+    // Wipe persisted pin positions — round is done, pins have no
+    // further use. Pins are scoped to the round's docId.
+    if (typeof clearPinsForRound === 'function') {
+      clearPinsForRound(groupRoundState.docId);
+    }
 
     const endMs = Date.now();
     const totals = computeGroupPlayerTotals(me.scores || {}, course);
@@ -61026,6 +61261,11 @@
 
     roundGpsState.open = true;
     roundGpsState.courseId = ctx.courseId;
+    // Hydrate persisted pins from localStorage. If this round has
+    // saved pins (set in a previous session that was refreshed/closed),
+    // they're restored before the map renders so the locked marker
+    // appears on initial draw.
+    loadPinsForRound();
     document.body.classList.add('round-gps-open');
     acquireScrollLock();
     loadRoundGpsHoleAndRender(ctx.holeIndex);
@@ -61126,9 +61366,20 @@
     if (roundGpsState.advancePromptVisible) {
       hideRoundGpsAdvancePrompt();
     }
+    // Guard: during the hole transition the target gets cleared and
+    // re-created, which would normally toggle the set-target button's
+    // visibility (briefly hiding it then showing again — visible blink).
+    // Set this flag so refreshRoundGpsTargetBtn ignores visibility
+    // changes for the duration of the transition. The button stays at
+    // whatever visibility it had before the transition started; final
+    // refresh happens once the new target is in place.
+    roundGpsState.suppressTargetBtnVisibility = true;
     const map = roundGpsState.map;
     if (!map) {
       loadRoundGpsHoleAndRender(holeIndex);
+      // Defensive: clear the suppression flag if we early-return.
+      roundGpsState.suppressTargetBtnVisibility = false;
+      refreshRoundGpsTargetBtn();
       return;
     }
     const ctx = getCurrentRoundContext();
@@ -61204,6 +61455,9 @@
           .setLngLat([roundGpsState.greenLng, roundGpsState.greenLat])
           .setPopup(new mapboxgl.Popup({ offset: 18 }).setText(`Hole ${hole.number} green`))
           .addTo(map);
+        // If this new hole has a stored custom pin, hide the green
+        // marker — pin is the more meaningful reference.
+        syncGreenMarkerVisibility();
       }
 
       // Replace tee marker at new location.
@@ -61305,6 +61559,11 @@
         // Pin offset is per-hole — refresh the button so the badge
         // reflects the new hole's value (default 0 for unvisited holes).
         refreshRoundGpsPinBtn();
+        // Transition complete — release the target-button visibility
+        // guard and force a final sync so the button reflects the
+        // post-transition state (targetActive is now true).
+        roundGpsState.suppressTargetBtnVisibility = false;
+        refreshRoundGpsTargetBtn();
       };
       map.once('moveend', dropAfterFly);
     }, FADE_OUT_MS);
@@ -61548,11 +61807,15 @@
     if (typeof closeRoundGpsLayersPopup === 'function') {
       try { closeRoundGpsLayersPopup(); } catch (_) {}
     }
-    // Pin positions are session-scoped — pin moves daily so we never
-    // persist them. Reset on close so reopening starts clean. The pin
-    // marker on the map is destroyed by map.remove() upstream.
+    // Pin positions are kept in localStorage scoped to the active
+    // round. Wipe in-memory state on close — next openRoundGpsPanel
+    // call will re-hydrate from localStorage. The pin marker on the
+    // map is destroyed by map.remove() upstream.
     roundGpsState.pinPositions = {};
     roundGpsState.pinMarker = null;
+    // Also close the pin placement modal if it's open — otherwise it
+    // would stay as a zombie sheet over a torn-down GPS panel.
+    if (pinModalState.open) closePinPlacementModal();
     // Dispersion overlay — layers are already gone via map.remove()
     // above. Reset state, hide the floating chip and any open picker
     // so reopening GPS starts clean. Cancel any pending rAF rebuild
@@ -62181,11 +62444,23 @@
   function refreshRoundGpsTargetBtn() {
     const btn = document.getElementById('round-gps-set-target-btn');
     if (!btn) return;
-    if (!roundGpsState.targetActive) {
-      btn.style.display = 'none';
-      return;
+    // During hole transitions the target state cycles false→true
+    // (clearRoundGpsTarget at the start, dropRoundGpsTarget at the
+    // end). Skip the visibility toggle while suppressed so the
+    // button doesn't blink across the transition. State (set/idle)
+    // and aria-label still update — those don't cause visible blink.
+    if (!roundGpsState.suppressTargetBtnVisibility) {
+      // Hide via opacity transition rather than display:none so the
+      // button doesn't visually pop during hole transitions (where the
+      // target is briefly cleared between holes — without a transition,
+      // the button hard-hides for ~800ms then hard-shows). Pointer
+      // events disabled when hidden so it can't be tapped invisibly.
+      if (!roundGpsState.targetActive) {
+        btn.classList.add('is-hidden');
+      } else {
+        btn.classList.remove('is-hidden');
+      }
     }
-    btn.style.display = 'flex';
     btn.dataset.state = roundGpsState.committedTarget ? 'set' : 'idle';
     btn.setAttribute('aria-label', roundGpsState.committedTarget
       ? 'Target set — tap to update or clear'
@@ -62534,6 +62809,7 @@
     if (hn == null) return;
     if (typeof lat !== 'number' || typeof lng !== 'number') return;
     roundGpsState.pinPositions[hn] = { lat, lng };
+    savePinsForRound();
     refreshDistanceReadouts();
   }
 
@@ -62543,13 +62819,99 @@
     const hn = roundGpsState.holeNumber;
     if (hn == null) return;
     delete roundGpsState.pinPositions[hn];
+    savePinsForRound();
     refreshDistanceReadouts();
   }
+
+  // ──────────────────────────────────────────────────────────
+  // Pin persistence — pins survive page refresh / app close, scoped
+  // to the active round. Wiped when the round completes (via
+  // clearPinsForRound called from the round-completion handlers).
+  //
+  // Storage: localStorage, keyed by "roundPins:{roundId}". Per-round
+  // scope means tomorrow's round on the same course starts with
+  // fresh pins (correct: pins move daily). Within a round, all
+  // navigation / refreshes / app sleeps preserve pins.
+  // ──────────────────────────────────────────────────────────
+
+  const PIN_STORAGE_PREFIX = 'roundPins:';
+
+  // Returns the ID of the currently-active round (solo or group), or
+  // null if no round is active. Used as the storage key suffix so
+  // pins are scoped to "this round, not any other."
+  function getCurrentRoundIdForPins() {
+    if (typeof isGroupRoundActive === 'function' && isGroupRoundActive()) {
+      return groupRoundState?.doc?.id || null;
+    }
+    if (roundState && roundState.docId) return roundState.docId;
+    return null;
+  }
+
+  // Save the current in-memory pinPositions to localStorage. Cheap
+  // (small object), called on every pin mutation. No-op if there's
+  // no active round (shouldn't happen during normal use, but guards
+  // against edge cases like pin operations before round start).
+  function savePinsForRound() {
+    const id = getCurrentRoundIdForPins();
+    if (!id) return;
+    try {
+      const positions = roundGpsState.pinPositions || {};
+      // Don't write empty objects — clear the key instead so we don't
+      // accumulate empty entries in localStorage over many rounds.
+      if (Object.keys(positions).length === 0) {
+        localStorage.removeItem(PIN_STORAGE_PREFIX + id);
+      } else {
+        localStorage.setItem(PIN_STORAGE_PREFIX + id, JSON.stringify(positions));
+      }
+    } catch (_) {
+      // localStorage can throw (quota exceeded, private mode, etc.).
+      // Swallow — pins still work in-memory for the rest of the
+      // session, just won't survive refresh.
+    }
+  }
+
+  // Load pins for the active round from localStorage and merge into
+  // roundGpsState.pinPositions. Called from openRoundGpsPanel after
+  // round context is established. Defensive parse — bad data just
+  // becomes "no pins" rather than crashing.
+  function loadPinsForRound() {
+    const id = getCurrentRoundIdForPins();
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem(PIN_STORAGE_PREFIX + id);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      // Validate each entry — must be {lat, lng} numbers. Skip junk.
+      for (const [hn, pos] of Object.entries(parsed)) {
+        if (pos && typeof pos.lat === 'number' && typeof pos.lng === 'number') {
+          roundGpsState.pinPositions[hn] = pos;
+        }
+      }
+    } catch (_) {
+      // Bad JSON or localStorage error — start with no pins. Not worth
+      // surfacing to the user.
+    }
+  }
+
+  // Clear the persisted pins for a round. Called from the round-
+  // completion handlers (completeCurrentRound, saveQuickScoreRound,
+  // completeMyGroupRound) and from clearRoundState (abandoned round).
+  // Pass the round ID explicitly since by the time this runs the
+  // active-round state may have been torn down.
+  function clearPinsForRound(roundId) {
+    if (!roundId) return;
+    try {
+      localStorage.removeItem(PIN_STORAGE_PREFIX + roundId);
+    } catch (_) {}
+  }
+  window.clearPinsForRound = clearPinsForRound;
 
   // Refresh all UI bits that show distances. Used after pin moves
   // so user sees instantly-updated yardages.
   function refreshDistanceReadouts() {
     refreshRoundGpsPinBtn();
+    syncGreenMarkerVisibility();
     updateRoundGpsInfoBar();
     if (roundGpsState.targetActive) {
       updateRoundGpsTargetReadout();
@@ -62560,29 +62922,38 @@
     updateDispersionOverlay();
   }
 
+  // Show/hide the green-center marker based on whether the user has
+  // placed a custom pin. When a custom pin exists, the green-center
+  // marker becomes redundant noise — the user told us exactly where
+  // the hole is, so the center reference is no longer useful.
+  function syncGreenMarkerVisibility() {
+    const marker = roundGpsState.greenMarker;
+    if (!marker) return;
+    const el = marker.getElement();
+    if (!el) return;
+    if (hasCustomPinForCurrentHole()) {
+      el.style.display = 'none';
+    } else {
+      el.style.display = '';
+    }
+  }
+
   // Update the pin button's visual state. When the user has dropped
   // a custom pin, the button shows an orange tint and a small badge
   // indicating the offset from green center (e.g. "20L" or "8B").
   // The label uses tee→green bearing as the reference axis so "left"
   // and "back" are intuitive from the player's perspective.
+  // Update the pin button's visual state. When the user has placed
+  // a custom pin, the button gets the .has-offset class which tints
+  // it orange — the only visual signal needed (we removed the offset
+  // badge as too noisy).
   function refreshRoundGpsPinBtn() {
     const btn = document.getElementById('round-gps-pin-btn');
     if (!btn) return;
     const hasCustom = hasCustomPinForCurrentHole();
     btn.classList.toggle('has-offset', hasCustom);
-    const badge = btn.querySelector('.round-gps-pin-btn-badge');
-    if (badge) {
-      if (!hasCustom) {
-        badge.textContent = '';
-        badge.style.display = 'none';
-      } else {
-        const v = computePinOffsetVector();
-        badge.textContent = formatPinOffsetShort(v);
-        badge.style.display = '';
-      }
-    }
     btn.setAttribute('aria-label', hasCustom
-      ? 'Pin placed — tap to remove'
+      ? 'Pin placed — tap to adjust or remove'
       : 'Drop pin on green');
   }
   window.refreshRoundGpsPinBtn = refreshRoundGpsPinBtn;
@@ -62642,28 +63013,19 @@
     return parts.join(' ');
   }
 
-  // Tap handler for the pin button — toggles between "no pin" and
-  // "pin placed at green center" states. When transitioning to "pin
-  // placed," the marker drops at green center and the user drags
-  // from there to the actual position.
+  // Tap handler for the pin button — opens the pin placement modal.
+  // The modal shows a focused, zoomed view of the green where the
+  // user can drag a pin precisely. Live distance feedback + a Set Pin
+  // commit. Once committed, the main map shows the pin in a locked
+  // (non-draggable) state to prevent accidental moving during play.
   function toggleRoundGpsPinPlacement() {
-    if (hasCustomPinForCurrentHole()) {
-      // Remove existing pin
-      removePinMarker();
-      clearPinForCurrentHole();
-      haptic('light');
-    } else {
-      // Drop pin at green center to start
-      const gLat = roundGpsState.greenLat;
-      const gLng = roundGpsState.greenLng;
-      if (gLat == null || gLng == null) {
-        showToast('Pin the green first', true);
-        return;
-      }
-      placePinAtPosition(gLat, gLng);
-      setPinPositionForCurrentHole(gLat, gLng);
-      haptic('light');
+    const gLat = roundGpsState.greenLat;
+    const gLng = roundGpsState.greenLng;
+    if (gLat == null || gLng == null) {
+      showToast('Pin the green first', true);
+      return;
     }
+    openPinPlacementModal();
   }
   window.toggleRoundGpsPinPlacement = toggleRoundGpsPinPlacement;
 
@@ -62683,38 +63045,34 @@
 
     const el = document.createElement('div');
     el.className = 'round-gps-pin-marker';
-    // Use a small flag SVG so the visual is unmistakably "pin"
+    // Inner wrapper holds the SVG + the pulsing animation. The outer
+    // element MUST NOT have any transform CSS — Mapbox uses transform
+    // to position the marker (translate3d to the lat/lng's pixel
+    // location), so any CSS transform on the outer element clobbers
+    // positioning and the marker ends up at map origin (top-left
+    // corner, off-screen).
     el.innerHTML = `
-      <svg viewBox="0 0 18 22" xmlns="http://www.w3.org/2000/svg" width="22" height="26">
-        <line x1="3" y1="2" x2="3" y2="20" stroke="#fff" stroke-width="1.5"/>
-        <path d="M3 2 L14 6 L3 10 Z" fill="#E85D04" stroke="#fff" stroke-width="1"/>
-        <circle cx="3" cy="20" r="2" fill="#fff"/>
-      </svg>`;
+      <div class="round-gps-pin-marker-inner">
+        <svg viewBox="0 0 14 25" xmlns="http://www.w3.org/2000/svg" width="18" height="32">
+          <line x1="7" y1="0" x2="7" y2="20" stroke="#fff" stroke-width="1.5"/>
+          <path d="M7 0 L13 2.5 L7 5 Z" fill="#E85D04" stroke="#fff" stroke-width="1"/>
+          <circle cx="7" cy="20" r="3.5" fill="#fff"/>
+        </svg>
+      </div>`;
 
     const marker = new mapboxgl.Marker({
       element: el,
-      anchor: 'bottom-left',  // pin's "base" anchors the position
-      draggable: true,
+      anchor: 'bottom',  // pin's base sits at lat/lng, centered horizontally
+      offset: [0, 7],    // y offset to align visual base with line endpoint (compensating for viewBox whitespace below the pin base)
+      draggable: false,  // editing happens in the modal — main-map pin is locked
     }).setLngLat([lng, lat]).addTo(map);
 
-    // Real-time drag update with rAF coalescing
-    marker.on('drag', () => {
-      if (__pinDragRafId != null) return;
-      __pinDragRafId = requestAnimationFrame(() => {
-        __pinDragRafId = null;
-        const ll = marker.getLngLat();
-        setPinPositionForCurrentHole(ll.lat, ll.lng);
-      });
-    });
-    marker.on('dragend', () => {
-      // Final commit + haptic feedback
-      if (__pinDragRafId != null) {
-        cancelAnimationFrame(__pinDragRafId);
-        __pinDragRafId = null;
-      }
-      const ll = marker.getLngLat();
-      setPinPositionForCurrentHole(ll.lat, ll.lng);
-      haptic('light');
+    // Tap-to-edit: clicking the locked pin re-opens the placement
+    // modal so the user can adjust or remove. More obvious than
+    // requiring them to find the toolbar button again.
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPinPlacementModal();
     });
 
     roundGpsState.pinMarker = marker;
@@ -62729,6 +63087,327 @@
       try { roundGpsState.pinMarker.remove(); } catch (_) {}
       roundGpsState.pinMarker = null;
     }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Pin placement modal — focused, deliberate UI for setting the
+  // exact pin position. Replaces the on-map drag flow which was
+  // imprecise (finger covers the pin) and accident-prone (any
+  // map interaction could nudge the pin during play).
+  //
+  // Flow: tap pin button → modal opens at zoom 19 centered on green
+  // → user drags pin to actual flag position → tap "Set Pin" →
+  // modal closes, main map shows pin in locked (non-draggable) state.
+  //
+  // Tap the locked pin on the main map to re-open this modal.
+  // ──────────────────────────────────────────────────────────
+
+  const pinModalState = {
+    open: false,
+    holeNumber: null,           // snapshot at modal open — guards
+                                // against hole-change mid-modal
+    map: null,                  // mapboxgl.Map for the modal's view
+    marker: null,               // mapboxgl.Marker — draggable pin
+    draftLat: null,             // current draft position
+    draftLng: null,
+    rafId: null,                // rAF coalesce id for drag updates
+  };
+
+  // Open the modal. If a custom pin already exists for this hole,
+  // start the marker at that position (so user can adjust). Otherwise
+  // start at green center.
+  function openPinPlacementModal() {
+    const hn = roundGpsState.holeNumber;
+    if (hn == null) return;
+    const gLat = roundGpsState.greenLat;
+    const gLng = roundGpsState.greenLng;
+    if (gLat == null || gLng == null) {
+      showToast('Pin the green first', true);
+      return;
+    }
+    const existing = roundGpsState.pinPositions[hn];
+    const startLat = existing ? existing.lat : gLat;
+    const startLng = existing ? existing.lng : gLng;
+
+    pinModalState.open = true;
+    pinModalState.holeNumber = hn;
+    pinModalState.draftLat = startLat;
+    pinModalState.draftLng = startLng;
+
+    let mount = document.getElementById('pin-modal-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'pin-modal-mount';
+      document.body.appendChild(mount);
+    }
+    mount.innerHTML = renderPinPlacementModal();
+
+    // Force layout, then strip .opening to trigger transition.
+    const backdrop = mount.querySelector('.pin-modal-backdrop');
+    const sheet = mount.querySelector('.pin-modal-sheet');
+    if (sheet) void sheet.offsetHeight;
+    requestAnimationFrame(() => {
+      if (backdrop) backdrop.classList.remove('opening');
+      if (sheet) sheet.classList.remove('opening');
+      // Initialize the Mapbox map after the sheet has started
+      // sliding in. Small delay so the container has measured
+      // dimensions; otherwise Mapbox may misize its canvas.
+      setTimeout(initPinModalMap, 200);
+    });
+  }
+  window.openPinPlacementModal = openPinPlacementModal;
+
+  function renderPinPlacementModal() {
+    const hasExisting = hasCustomPinForCurrentHole();
+    return `
+      <div class="pin-modal-backdrop opening" onclick="closePinPlacementModal()"></div>
+      <div class="pin-modal-sheet opening">
+        <div class="pin-modal-header">
+          <button class="pin-modal-close" onclick="closePinPlacementModal()" aria-label="Cancel">×</button>
+          <div class="pin-modal-title">Place pin</div>
+          <button class="pin-modal-set-btn" onclick="commitPinFromModal()">Set Pin</button>
+        </div>
+        <div class="pin-modal-map-wrap">
+          <div id="pin-modal-map" class="pin-modal-map"></div>
+          <!-- Stationary centered pin overlay. CSS-positioned, fixed
+               at the dead center of the map. The map pans beneath it.
+               pointer-events: none so the user's drag gestures pass
+               through to the map below. -->
+          <div class="pin-modal-center-pin" aria-hidden="true">
+            <svg viewBox="0 0 14 25" xmlns="http://www.w3.org/2000/svg" width="22" height="39">
+              <line x1="7" y1="0" x2="7" y2="20" stroke="#fff" stroke-width="1.5"/>
+              <path d="M7 0 L13 2.5 L7 5 Z" fill="#E85D04" stroke="#fff" stroke-width="1"/>
+              <circle cx="7" cy="20" r="4" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="pin-modal-hint" id="pin-modal-hint">Pan map to position pin</div>
+        </div>
+        <div class="pin-modal-footer">
+          <div class="pin-modal-distance" id="pin-modal-distance">—</div>
+          ${hasExisting ? `
+            <button class="pin-modal-remove" onclick="removePinFromModal()">Remove pin</button>
+          ` : ''}
+        </div>
+      </div>`;
+  }
+
+  // Initialize the modal's Mapbox map. Centered on green, zoomed in
+  // tight (zoom 19) so small pin movements feel meaningful. The
+  // draggable marker drops at draftLat/draftLng (either an existing
+  // pin position or green center).
+  function initPinModalMap() {
+    if (!pinModalState.open) return;
+    if (typeof mapboxgl === 'undefined') return;
+    const container = document.getElementById('pin-modal-map');
+    if (!container) return;
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    // Match the main GPS map's current bearing so the modal's view of
+    // the green has the same orientation. Otherwise the modal loads
+    // north-up which can look "upside down" if the hole runs south.
+    const mainMap = roundGpsState.map;
+    const mainBearing = mainMap ? mainMap.getBearing() : 0;
+    const map = new mapboxgl.Map({
+      container: 'pin-modal-map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [pinModalState.draftLng, pinModalState.draftLat],
+      zoom: 19,
+      bearing: mainBearing,
+      minZoom: 17,
+      maxZoom: 21,
+      attributionControl: false,
+      dragRotate: false,
+      pitchWithRotate: false,
+    });
+    pinModalState.map = map;
+    if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
+
+    // Add a faint reference ring at green center so user has a visual
+    // anchor for "I'm 12 yards back-left of center."
+    const gLat = roundGpsState.greenLat;
+    const gLng = roundGpsState.greenLng;
+    if (gLat != null && gLng != null) {
+      map.once('load', () => {
+        try {
+          map.addSource('pin-modal-green-center', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'Point', coordinates: [gLng, gLat] } },
+          });
+          map.addLayer({
+            id: 'pin-modal-green-center-layer',
+            type: 'circle',
+            source: 'pin-modal-green-center',
+            paint: {
+              'circle-radius': 6,
+              'circle-color': 'transparent',
+              'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+              'circle-stroke-width': 1.5,
+            },
+          });
+        } catch (_) {}
+      });
+    }
+
+    // Stationary pin overlay — the pin sits at the dead center of
+    // the modal map's viewport, fixed in screen coordinates. The
+    // user pans the MAP below to position the pin (instead of
+    // dragging the pin around the map). Matches the modern map-pin
+    // pattern used by Uber pickup, Airbnb location, Apple/Google
+    // Maps pinning, etc. Benefits: finger never covers the pin,
+    // unbounded precision, predictable position.
+    //
+    // Pin is rendered as a CSS overlay on the modal map container,
+    // not as a Mapbox marker. As the map pans, the pin appears to
+    // move because the satellite imagery beneath it shifts — same
+    // visual effect as dragging, with better ergonomics.
+    //
+    // We listen to map 'move' events to track the map's current
+    // center, which IS the draft pin position. On commit, this
+    // becomes the saved pin lat/lng.
+    pinModalState.draftLat = map.getCenter().lat;
+    pinModalState.draftLng = map.getCenter().lng;
+
+    // rAF coalesce — pan events fire faster than 60Hz on some devices
+    map.on('move', () => {
+      if (pinModalState.rafId != null) return;
+      pinModalState.rafId = requestAnimationFrame(() => {
+        pinModalState.rafId = null;
+        const c = map.getCenter();
+        pinModalState.draftLat = c.lat;
+        pinModalState.draftLng = c.lng;
+        updatePinModalDistance();
+      });
+    });
+    map.on('moveend', () => {
+      // Final settle — flush any pending rAF, capture exact center,
+      // small haptic acknowledging the pan stopped.
+      if (pinModalState.rafId != null) {
+        cancelAnimationFrame(pinModalState.rafId);
+        pinModalState.rafId = null;
+      }
+      const c = map.getCenter();
+      pinModalState.draftLat = c.lat;
+      pinModalState.draftLng = c.lng;
+      updatePinModalDistance();
+      haptic('light');
+    });
+
+    // Initial distance render — runs once now so user sees a value
+    // before they pan. updateDistance also re-fires on map move.
+    updatePinModalDistance();
+  }
+
+  // Compute and display the distance from the user's GPS position
+  // (or green center as fallback) to the current draft pin position.
+  // Updates live as the user drags. Shows the rangefinder-comparable
+  // value so user can match it to "my rangefinder said 156."
+  function updatePinModalDistance() {
+    const el = document.getElementById('pin-modal-distance');
+    if (!el) return;
+    const lat = pinModalState.draftLat;
+    const lng = pinModalState.draftLng;
+    if (lat == null || lng == null) {
+      el.textContent = '—';
+      return;
+    }
+    // Prefer user's smoothed GPS position. Falls back to green center
+    // so the modal is still useful when not yet on the course.
+    const userLat = roundGpsState.smoothLat;
+    const userLng = roundGpsState.smoothLng;
+    let yards, prefix;
+    if (userLat != null && userLng != null) {
+      yards = haversineYards(userLat, userLng, lat, lng);
+      prefix = 'From you';
+    } else {
+      // No GPS fix — show distance from green center as next-best
+      // reference. Useful in planning mode.
+      const gLat = roundGpsState.greenLat;
+      const gLng = roundGpsState.greenLng;
+      if (gLat == null || gLng == null) { el.textContent = '—'; return; }
+      yards = haversineYards(gLat, gLng, lat, lng);
+      prefix = 'From green center';
+    }
+    el.innerHTML = `<span class="pin-modal-distance-label">${prefix}</span>
+                    <span class="pin-modal-distance-value">${Math.round(yards)}<span class="pin-modal-distance-unit">y</span></span>`;
+  }
+
+  // Commit the draft position to the actual pin state. Calls the
+  // existing setPinPositionForCurrentHole (updates state + refreshes
+  // distance UI) and placePinAtPosition (drops the locked marker on
+  // the main map). Then closes the modal.
+  function commitPinFromModal() {
+    if (!pinModalState.open) return;
+    const lat = pinModalState.draftLat;
+    const lng = pinModalState.draftLng;
+    const hn = pinModalState.holeNumber;
+    // Sanity check — hole shouldn't have changed mid-modal but defensive.
+    if (hn !== roundGpsState.holeNumber) {
+      showToast('Hole changed — pin not set', true);
+      closePinPlacementModal();
+      return;
+    }
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      closePinPlacementModal();
+      return;
+    }
+    setPinPositionForCurrentHole(lat, lng);
+    placePinAtPosition(lat, lng);
+    haptic('medium');
+    closePinPlacementModal();
+  }
+  window.commitPinFromModal = commitPinFromModal;
+
+  // Remove the pin entirely. Tears down the locked pin marker on the
+  // main map + clears the per-hole state. Closes the modal.
+  function removePinFromModal() {
+    removePinMarker();
+    clearPinForCurrentHole();
+    haptic('light');
+    closePinPlacementModal();
+  }
+  window.removePinFromModal = removePinFromModal;
+
+  // Close the modal — tears down the modal's Mapbox map (memory),
+  // clears state, runs the close transition.
+  function closePinPlacementModal() {
+    const mount = document.getElementById('pin-modal-mount');
+    if (!mount) {
+      pinModalState.open = false;
+      return;
+    }
+    const backdrop = mount.querySelector('.pin-modal-backdrop');
+    const sheet = mount.querySelector('.pin-modal-sheet');
+    if (!sheet) {
+      cleanupPinModal(mount);
+      return;
+    }
+    if (backdrop) backdrop.classList.add('closing');
+    sheet.classList.add('closing');
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      cleanupPinModal(mount);
+    };
+    sheet.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 320);
+  }
+  window.closePinPlacementModal = closePinPlacementModal;
+
+  function cleanupPinModal(mount) {
+    if (pinModalState.rafId != null) {
+      cancelAnimationFrame(pinModalState.rafId);
+      pinModalState.rafId = null;
+    }
+    if (pinModalState.map) {
+      try { pinModalState.map.remove(); } catch (_) {}
+      pinModalState.map = null;
+    }
+    pinModalState.marker = null;
+    pinModalState.open = false;
+    pinModalState.holeNumber = null;
+    pinModalState.draftLat = null;
+    pinModalState.draftLng = null;
+    if (mount) mount.innerHTML = '';
   }
 
   // ──────────────────────────────────────────────────────────
@@ -63963,16 +64642,19 @@
 
     // Yards-to-target (the existing `distance` field semantic): if
     // committed target is set, distance from start to that. Otherwise
-    // distance from start to green (matches the on-screen TO GREEN
-    // reading the user sees in playing mode).
+    // distance from start to the effective pin (custom pin if user
+    // dropped one, else green center). Matches the on-screen TO PIN
+    // reading the user sees in playing mode.
     let yardsToTarget = null;
     if (targetLat != null) {
       yardsToTarget = Math.round(haversineYards(
         startLat, startLng, targetLat, targetLng));
-    } else if (roundGpsState.greenLat != null) {
-      yardsToTarget = Math.round(haversineYards(
-        startLat, startLng,
-        roundGpsState.greenLat, roundGpsState.greenLng));
+    } else {
+      const effectivePin = getEffectivePinLatLng();
+      if (effectivePin) {
+        yardsToTarget = Math.round(haversineYards(
+          startLat, startLng, effectivePin.lat, effectivePin.lng));
+      }
     }
 
     // Infer start lie + intent from prev shot context.
@@ -63991,17 +64673,24 @@
     }
 
     // Apply intent-aware default for target if no committed target.
-    // Approach/chip/par-3-tee → green is sensible. Tee on par 4/5 and
-    // layup → leave null; user must commit a target explicitly. Recovery
+    // Approach/chip/par-3-tee → use the effective pin (custom pin if
+    // dropped, else green center). The pin is a more accurate "intended
+    // aim" than green center for greens with significant pin offset —
+    // e.g. a back-left pin shouldn't show as a 20-yard miss left when
+    // the shot lands at the back-left pin. Tee on par 4/5 and layup
+    // → leave null; user must commit a target explicitly. Recovery
     // → leave null. Putt is excluded above.
-    if (targetLat == null && roundGpsState.greenLat != null) {
-      const isPar3Tee = isFirstShotOfHole && roundGpsState.holePar === 3;
-      const useGreenDefault = (intent === 'approach')
-                           || (intent === 'chip')
-                           || isPar3Tee;
-      if (useGreenDefault) {
-        targetLat = roundGpsState.greenLat;
-        targetLng = roundGpsState.greenLng;
+    if (targetLat == null) {
+      const effectivePin = getEffectivePinLatLng();
+      if (effectivePin) {
+        const isPar3Tee = isFirstShotOfHole && roundGpsState.holePar === 3;
+        const usePinDefault = (intent === 'approach')
+                             || (intent === 'chip')
+                             || isPar3Tee;
+        if (usePinDefault) {
+          targetLat = effectivePin.lat;
+          targetLng = effectivePin.lng;
+        }
       }
     }
 
@@ -65153,11 +65842,10 @@
                - orange when a target is committed (tap = update/clear)
              The visibility + state are managed via JS — see
              refreshRoundGpsTargetBtn. -->
-        <button class="round-gps-set-target"
+        <button class="round-gps-set-target is-hidden"
                 id="round-gps-set-target-btn"
                 onclick="toggleRoundGpsCommittedTarget()"
-                aria-label="Set scope position as target"
-                style="display: none">
+                aria-label="Set scope position as target">
           <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/>
             <circle cx="12" cy="12" r="5"/>
@@ -65179,7 +65867,6 @@
             <path d="M3 2 L14 6 L3 10 Z" fill="currentColor"/>
             <circle cx="3" cy="20" r="1.5" fill="currentColor"/>
           </svg>
-          <span class="round-gps-pin-btn-badge" style="display:none"></span>
         </button>
 
         <!-- Recenter button — bottom-left, floating above the action bar.
@@ -65410,6 +66097,14 @@
     // Initial pin offset button state — sync the badge with whatever
     // offset (likely 0) is set for the current hole.
     refreshRoundGpsPinBtn();
+    // If a pin was loaded from localStorage for this hole, render
+    // its locked marker on the map. (transitionRoundGpsToHole does
+    // this for hole changes; the initial render needs it too.)
+    if (hasCustomPinForCurrentHole()) {
+      const stored = roundGpsState.pinPositions[roundGpsState.holeNumber];
+      placePinAtPosition(stored.lat, stored.lng);
+      syncGreenMarkerVisibility();
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
