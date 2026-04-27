@@ -57726,119 +57726,85 @@
        try {
         const pinLat = pinForHole.lat;
         const pinLng = pinForHole.lng;
-        // Compute the pole's "top" position — slightly NORTH of the
-        // base. The exact offset is in degrees of latitude; we want
-        // it to be a small geographic distance (a few yards) so the
-        // flag stays visually attached to the position. ~1 yard ≈
-        // 0.0000091 degrees latitude. Using ~5 yards = 0.000045.
-        // The flag triangle then extends a few yards EAST of the top.
-        const poleHeightDeg = 0.000060;  // ~6.5y north of base
-        const flagWidthDeg = 0.000060;   // ~6.5y east of pole top
-        const flagHeightDeg = 0.000020;  // small triangle height
+        const sourceId = `replay-flag-${holeNum}`;
+        const layerId = `replay-flag-layer-${holeNum}`;
+        // Use a stable image id — once registered with the map it
+        // persists for the lifetime of the map. We can re-use across
+        // holes; symbol layers reference it by name.
+        const imageId = 'replay-flag-pin-image';
 
-        const poleTopLat = pinLat + poleHeightDeg;
-        const flagTopLat = poleTopLat;
-        const flagBotLat = poleTopLat - flagHeightDeg;
-        const flagTipLng = pinLng + flagWidthDeg;
+        // Defensive cleanup of any lingering layer/source from a
+        // previous hole (rapid switching).
+        try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+        try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
 
-        const baseSourceId = `replay-flag-base-${holeNum}`;
-        const baseLayerId = `replay-flag-base-layer-${holeNum}`;
-        const poleSourceId = `replay-flag-pole-${holeNum}`;
-        const poleLayerId = `replay-flag-pole-layer-${holeNum}`;
-        const flagSourceId = `replay-flag-flag-${holeNum}`;
-        const flagLayerId = `replay-flag-flag-layer-${holeNum}`;
-
-        // Defensive: if for any reason the previous render's layers
-        // are still around (e.g. rapid hole switching), tear down
-        // before re-adding to avoid Mapbox source/layer-already-exists
-        // errors.
-        [baseLayerId, poleLayerId, flagLayerId].forEach(lid => {
-          try { if (map.getLayer(lid)) map.removeLayer(lid); } catch (_) {}
-        });
-        [baseSourceId, poleSourceId, flagSourceId].forEach(sid => {
-          try { if (map.getSource(sid)) map.removeSource(sid); } catch (_) {}
-        });
-
-        // Pole — thin white line from base to top
-        map.addSource(poleSourceId, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: [[pinLng, pinLat], [pinLng, poleTopLat]],
-            },
-          },
-        });
-        map.addLayer({
-          id: poleLayerId,
-          type: 'line',
-          source: poleSourceId,
-          paint: {
-            'line-color': '#ffffff',
-            'line-width': 2,
-            'line-opacity': 0.9,
-          },
-        });
-
-        // Flag — filled triangle pointing right from the pole top
-        map.addSource(flagSourceId, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[
-                [pinLng, flagTopLat],
-                [flagTipLng, flagTopLat - (flagHeightDeg / 2)],
-                [pinLng, flagBotLat],
-                [pinLng, flagTopLat],
-              ]],
-            },
-          },
-        });
-        map.addLayer({
-          id: flagLayerId,
-          type: 'fill',
-          source: flagSourceId,
-          paint: {
-            'fill-color': '#E85D04',
-            'fill-opacity': 0.95,
-          },
-        });
-
-        // Base dot — white circle marking the precise pin lat/lng.
-        // Zoom-interpolated radius so the dot scales smoothly.
-        map.addSource(baseSourceId, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [pinLng, pinLat] },
-          },
-        });
-        map.addLayer({
-          id: baseLayerId,
-          type: 'circle',
-          source: baseSourceId,
-          paint: {
-            'circle-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              14, 3,
-              16, 4,
-              18, 5,
-              20, 7,
-            ],
-            'circle-color': '#ffffff',
-            'circle-stroke-color': '#E85D04',
-            'circle-stroke-width': 1.5,
-          },
-        });
-
-        // Track for cleanup on hole change.
-        replayState.flagPinLayers = {
-          sources: [baseSourceId, poleSourceId, flagSourceId],
-          layers: [flagLayerId, poleLayerId, baseLayerId],
+        // Helper to add the source + symbol layer once the icon is
+        // registered. Called either immediately (icon already registered
+        // from a previous hole's render) or after the image loads.
+        const addSourceAndLayer = () => {
+          try {
+            map.addSource(sourceId, {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [pinLng, pinLat] },
+              },
+            });
+            map.addLayer({
+              id: layerId,
+              type: 'symbol',
+              source: sourceId,
+              layout: {
+                'icon-image': imageId,
+                'icon-size': 0.55,         // SVG natural size scales down a touch
+                'icon-anchor': 'bottom',   // pin's base sits at the lat/lng
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-rotation-alignment': 'viewport',  // keep upright when map rotates
+              },
+            });
+            replayState.flagPinLayers = {
+              sources: [sourceId],
+              layers: [layerId],
+            };
+          } catch (err) {
+            console.warn('Failed to add flag pin source/layer:', err);
+          }
         };
+
+        if (map.hasImage(imageId)) {
+          addSourceAndLayer();
+          return;
+        }
+
+        // Build the SVG string. Same shape as the in-round flag pin
+        // for visual consistency. Larger viewBox + dimensions produce
+        // a higher-resolution raster for crisp display at any zoom.
+        const svgString = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 50" width="56" height="100">
+            <line x1="14" y1="4" x2="14" y2="40" stroke="#ffffff" stroke-width="3"/>
+            <path d="M14 4 L26 9 L14 14 Z" fill="#E85D04" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="14" cy="40" r="6" fill="#ffffff" stroke="#E85D04" stroke-width="2"/>
+          </svg>`;
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image(56, 100);
+        img.onload = () => {
+          try {
+            if (!map.hasImage(imageId)) {
+              map.addImage(imageId, img);
+            }
+            addSourceAndLayer();
+          } catch (err) {
+            console.warn('Failed to add flag pin image:', err);
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
        } catch (err) {
          console.warn('Failed to render replay flag pin:', err);
        }
