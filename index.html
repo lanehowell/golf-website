@@ -30432,15 +30432,22 @@
       for (const shot of sess.shots || []) {
         const name = resolveShotClubName(shot, bagById);
         if (!name) continue;
+        // Distance filter: only clean strikes contribute to carry
+        // averages. Thin/chunk shots are real data for the contact
+        // bucket (they tell you how often you mishit) but they
+        // shouldn't pull "how far do I hit this club" around.
+        const contact = resolveShotContact(shot, 'range');
+        const rawCarry = resolveShotCarry(shot, 'range');
+        const cleanCarry = (contact === 'clean' || contact == null) ? rawCarry : null;
         yield {
           shot,
           source: 'range',
           clubName: name,
           clubKey: makeClubKey(name),
-          carry:     resolveShotCarry(shot, 'range'),
+          carry:     cleanCarry,
           gpsYards:  null, // range shots don't have GPS distance
           direction: resolveShotDirection(shot, 'range'),
-          contact:   resolveShotContact(shot, 'range'),
+          contact,
           swingPct: typeof shot.swingPct === 'number' ? shot.swingPct : null,
           sessionId: sess.id,
           capturedAt: shot.capturedAt || sess.startTime || 0,
@@ -30470,7 +30477,19 @@
               && typeof shot.actualYards === 'number'
               && Number.isFinite(shot.actualYards)
               && shot.actualYards >= 5) {
-            gpsYards = shot.actualYards;
+            // Contact filter: skip distance contribution for non-clean
+            // strikes. mishit values 'thin', 'fat', 'toe', 'heel'
+            // reduce contact quality and thus distance — counting
+            // them would pull the club's average down. 'push'/'pull'
+            // are directional only (ball struck cleanly) so they
+            // pass through. Null/undefined mishit = assume clean,
+            // since users don't tag every shot.
+            const m = shot.mishit;
+            const isContactMishit = m === 'thin' || m === 'fat'
+                                 || m === 'toe' || m === 'heel';
+            if (!isContactMishit) {
+              gpsYards = shot.actualYards;
+            }
           }
           yield {
             shot,
@@ -30478,7 +30497,7 @@
             clubName: name,
             clubKey: makeClubKey(name),
             carry:     null, // round shots store distance-to-target, not carry
-            gpsYards,        // GPS-measured total (start→end) — round only
+            gpsYards,        // GPS-measured total (start→end) — round only, clean strikes only
             direction: resolveShotDirection(shot, 'round'),
             contact:   resolveShotContact(shot, 'round'),
             swingPct: null, // round shots don't track swing %
