@@ -9732,6 +9732,10 @@
   body.round-gps-open .tools-sheet           { z-index: 9460; }
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
+  /* Replay edit — shot edit sheet must sit above the replay panel
+     (z=9300/9400) when invoked via tap-on-pin from replay. */
+  body.round-replay-open .shot-edit-backdrop { z-index: 9470; }
+  body.round-replay-open .shot-edit-sheet    { z-index: 9480; }
   body.round-gps-open .putt-log-backdrop     { z-index: 9485; }
   body.round-gps-open .putt-log-sheet        { z-index: 9495; }
   /* The hole picker can be opened by tapping the HOLE cell in the GPS
@@ -34851,6 +34855,84 @@
     }
   }
 
+  // Historical-round shot-change persistence. Used when the shot
+  // edit sheet was opened in replay-edit mode — the round being
+  // edited is NOT the live active round, so the standard
+  // queueAutoSaveRound path doesn't apply.
+  //
+  // The round was already mutated in place in recentRounds by the
+  // save/delete logic (ensureShotsForHole returned a reference to
+  // the round's shots array). This function writes that mutated
+  // round to Firestore, updates the public profile mirror, and
+  // refreshes the replay UI so the change is reflected without
+  // closing replay.
+  async function persistShotChangesForReplay(roundId) {
+    if (!roundId) return;
+    if (!Array.isArray(recentRounds)) return;
+    const round = recentRounds.find(r => r.id === roundId);
+    if (!round) {
+      console.warn('persistShotChangesForReplay: round not in cache', roundId);
+      return;
+    }
+    // Refresh the replay if it's still open and showing this round.
+    // Re-render shot list + redraw current hole's existing shot pins
+    // / lines so any edits/deletes are visible immediately.
+    if (replayState.open && replayState.roundId === roundId) {
+      replayState.round = round; // ensure the ref is current
+      // Recompute holesPlayed since shots may have been deleted.
+      const shotsMap = round.shots || {};
+      const holesPlayed = [];
+      for (const [holeStr, arr] of Object.entries(shotsMap)) {
+        if (!Array.isArray(arr) || arr.length === 0) continue;
+        const valid = arr.filter(s =>
+          typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+          typeof s.endLat === 'number' && typeof s.endLng === 'number');
+        if (valid.length > 0) holesPlayed.push(parseInt(holeStr, 10));
+      }
+      holesPlayed.sort((a, b) => a - b);
+      // If all shots on the current hole were deleted, the hole may
+      // no longer be in holesPlayed. Snap to the nearest remaining
+      // hole or close gracefully.
+      if (holesPlayed.length === 0) {
+        showToast('No shots remaining', false);
+        closeReplay();
+        return;
+      }
+      replayState.holesPlayed = holesPlayed;
+      // Find current hole's new index, or fall back to nearest.
+      const currentHole = replayState.holesPlayed[replayState.currentHoleIndex];
+      let newIdx = holesPlayed.indexOf(currentHole);
+      if (newIdx === -1) {
+        // Current hole has no GPS shots anymore — pick the nearest
+        // hole still present.
+        newIdx = 0;
+        for (let i = 0; i < holesPlayed.length; i++) {
+          if (holesPlayed[i] >= currentHole) { newIdx = i; break; }
+          newIdx = i;
+        }
+      }
+      // Reload the hole — clears existing line/pin layers and
+      // redraws fresh from the (now-mutated) round data.
+      loadReplayHole(newIdx, { autoPlay: false });
+    }
+    // Persist to Firestore.
+    if (currentUser && window.fb) {
+      try {
+        await window.fb.setDoc(`users/${currentUser.uid}/rounds/${roundId}`, round);
+        // Update public mirror if this round was synced. We don't
+        // know for sure whether it was, so attempt the write but
+        // swallow errors silently — failure here is OK.
+        try {
+          await window.fb.setDoc(`publicProfiles/${currentUser.uid}/rounds/${roundId}`, round);
+        } catch (_) {}
+      } catch (err) {
+        console.error('persistShotChangesForReplay save:', err);
+        showToast('Couldn\'t save changes', true);
+      }
+    }
+  }
+  window.persistShotChangesForReplay = persistShotChangesForReplay;
+
   // Group-round versions of the solo score mutators. Separate from the
   // solo ones because they read/write different state and trigger a
   // debounced Firestore write instead of the solo round's autosave path.
@@ -36743,14 +36825,25 @@
   // in the group round doc (`me.shots`). The accessor abstracts this
   // so higher-level code can just ask for "the current round's shots
   // on hole N" without branching.
-  function getShotsForHole(holeNumber) {
+  function getShotsForHole(holeNumber, roundOverride) {
+    // When roundOverride is provided, read shots from that round
+    // (used by historical-round editing in replay). Otherwise default
+    // to the active live or group round.
+    if (roundOverride) {
+      return roundOverride.shots?.[holeNumber] || [];
+    }
     if (isGroupRoundActive()) {
       const me = getMyGroupRoundPlayer();
       return me?.shots?.[holeNumber] || [];
     }
     return roundState.shots?.[holeNumber] || [];
   }
-  function ensureShotsForHole(holeNumber) {
+  function ensureShotsForHole(holeNumber, roundOverride) {
+    if (roundOverride) {
+      if (!roundOverride.shots) roundOverride.shots = {};
+      if (!roundOverride.shots[holeNumber]) roundOverride.shots[holeNumber] = [];
+      return roundOverride.shots[holeNumber];
+    }
     if (isGroupRoundActive()) {
       const me = getMyGroupRoundPlayer();
       if (!me) return [];
@@ -37570,7 +37663,24 @@
     draft: null,
     editingId: null,
     holeNumber: null,
+    // When set, the sheet edits a HISTORICAL round (looked up from
+    // recentRounds by this id) instead of the active live round.
+    // Used by the round replay feature — tap a shot pin to edit it
+    // post-round. Null/undefined = live-round editing (default).
+    roundId: null,
   };
+
+  // Resolve the round object the edit sheet is currently editing.
+  // Returns null when in default live-round mode (callers should
+  // fall through to the legacy roundState-based path). Returns the
+  // historical round object from recentRounds when in replay-edit
+  // mode. The returned object is the SAME REFERENCE as the cached
+  // round, so direct mutations propagate to the cache.
+  function getEditingRoundOverride() {
+    if (!shotEditState.roundId) return null;
+    if (!Array.isArray(recentRounds)) return null;
+    return recentRounds.find(r => r.id === shotEditState.roundId) || null;
+  }
 
   function renderShotsTool() {
     const ctx = getCurrentRoundContext();
@@ -37710,12 +37820,21 @@
 
   // Open the add/edit sheet. pendingShotId=null means a new shot; otherwise
   // pre-fill from the existing shot. Renders immediately + locks scroll.
-  function openShotEditSheet(holeNumber, pendingShotId) {
-    const shots = getShotsForHole(holeNumber);
+  // opts.roundId — when set, the sheet edits a HISTORICAL round (used by
+  // round replay's tap-to-edit). When null, defaults to live-round editing.
+  function openShotEditSheet(holeNumber, pendingShotId, opts = {}) {
+    // Set roundId BEFORE looking up shots so getEditingRoundOverride
+    // works inside helpers called below.
+    shotEditState.roundId = opts.roundId || null;
+    const overrideRound = getEditingRoundOverride();
+    const shots = getShotsForHole(holeNumber, overrideRound);
     let draft;
     if (pendingShotId) {
       const existing = shots.find(s => s.id === pendingShotId);
-      if (!existing) return;
+      if (!existing) {
+        shotEditState.roundId = null;
+        return;
+      }
       draft = { ...existing };
     } else {
       // Default club: first club in the bag (which is driver/longest
@@ -38028,6 +38147,7 @@
       shotEditState.draft = null;
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
+      shotEditState.roundId = null;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
       if (mount) mount.innerHTML = '';
@@ -38044,6 +38164,7 @@
       shotEditState.draft = null;
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
+      shotEditState.roundId = null;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
       if (mount) mount.innerHTML = '';
@@ -38212,7 +38333,13 @@
         draft.lateralOffset = null;
       }
     }
-    const shots = ensureShotsForHole(holeNumber);
+    // Resolve the round we're editing — historical override (when
+    // editing from replay) or null for live-round mode.
+    const overrideRound = getEditingRoundOverride();
+    const isReplayEdit = !!overrideRound;
+    const replayRoundId = shotEditState.roundId; // capture before close
+
+    const shots = ensureShotsForHole(holeNumber, overrideRound);
     if (editingId) {
       const idx = shots.findIndex(s => s.id === editingId);
       if (idx === -1) {
@@ -38243,9 +38370,13 @@
     if (typeof window.refreshGpsScoreSheetBody === 'function') {
       try { window.refreshGpsScoreSheetBody(); } catch (_) {}
     }
-    // Persist via the unified path — debounced Firestore save plus
-    // scratchpad backup. Same as logShotAtCurrentPosition.
-    persistShotChanges();
+    // Persist via the right path: live round → debounced autosave;
+    // historical round → direct Firestore write at the round's doc.
+    if (isReplayEdit) {
+      persistShotChangesForReplay(replayRoundId);
+    } else {
+      persistShotChanges();
+    }
   }
 
   // Delete flow — confirm then drop from the shots array. Accessible
@@ -38264,7 +38395,10 @@
       destructive: true,
     });
     if (!ok) return;
-    const shots = ensureShotsForHole(holeNumber);
+    const overrideRound = getEditingRoundOverride();
+    const isReplayEdit = !!overrideRound;
+    const replayRoundId = shotEditState.roundId;
+    const shots = ensureShotsForHole(holeNumber, overrideRound);
     const idx = shots.findIndex(s => s.id === editingId);
     if (idx !== -1) shots.splice(idx, 1);
     closeShotEditSheet();
@@ -38287,8 +38421,12 @@
     if (typeof window.refreshGpsScoreSheetBody === 'function') {
       try { window.refreshGpsScoreSheetBody(); } catch (_) {}
     }
-    // Same unified persistence as save/log paths.
-    persistShotChanges();
+    // Persist via the right path.
+    if (isReplayEdit) {
+      persistShotChangesForReplay(replayRoundId);
+    } else {
+      persistShotChanges();
+    }
   }
 
   function renderShotEditSheet() {
@@ -38431,7 +38569,11 @@
     // stats. Tip only — user is free to ignore it.
     let par3TeeHintHtml = '';
     if (draft.startLie === 'tee') {
-      const course = roundState.courseId ? getCourse(roundState.courseId) : null;
+      // Use the right round's courseId — replay-edit mode looks at
+      // the historical round; otherwise the live roundState.
+      const editRound = getEditingRoundOverride();
+      const courseIdForHint = editRound ? editRound.courseId : roundState.courseId;
+      const course = courseIdForHint ? getCourse(courseIdForHint) : null;
       const hole = course?.holes?.find(h => h.number === shotEditState.holeNumber);
       if (hole && hole.par === 3) {
         par3TeeHintHtml = `
@@ -54179,21 +54321,26 @@
     if (el) el.textContent = text || '';
   }
 
-  // Tap-on-pin handler. For now, jumps the replay state to that
-  // shot (so the active chip + drawn lines reflect the user's
-  // intent: "show me this shot's state"). Future: open a popover
-  // with full shot details + an Edit button. Editing requires the
-  // shot edit sheet to be refactored to work on historical rounds
-  // (currently it only mutates the active roundState).
+  // Tap-on-pin handler. Opens the shot edit sheet for that shot in
+  // replay-edit mode (mutates the historical round, persists to its
+  // own Firestore doc, refreshes the replay state on close). Long
+  // press / second behavior could later open a richer popover; for
+  // now, single tap = open edit.
   function handleReplayPinTap(holeNum, shotIdx) {
     if (!replayState.open) return;
-    // Verify we're on the right hole — shouldn't be possible to tap
-    // a stale pin, but defensive.
     const currentHole = replayState.holesPlayed[replayState.currentHoleIndex];
     if (currentHole !== holeNum) return;
-    // Snap to that shot (instant, no animation) — same as tapping
-    // its chip in the shot list.
-    replayJumpToShot(shotIdx);
+    // Look up the shot's id. shotIdx is into the GPS-filtered shot
+    // list; the underlying round.shots array may have additional
+    // entries (e.g., putts without coords), so we can't index round
+    // .shots[holeNum] directly with shotIdx.
+    const filteredShots = getReplayShotsForHole(holeNum);
+    const shot = filteredShots[shotIdx];
+    if (!shot || !shot.id) {
+      showToast('Cannot edit this shot', true);
+      return;
+    }
+    openShotEditSheet(holeNum, shot.id, { roundId: replayState.roundId });
   }
   window.handleReplayPinTap = handleReplayPinTap;
 
