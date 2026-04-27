@@ -5332,6 +5332,88 @@
     }
   }
 
+  /* Pin offset button — sits above layers button, same visual style.
+     Active state (offset != 0) tints orange so user sees at-a-glance
+     that distances are adjusted from raw to-center values. */
+  .round-gps-pin-btn {
+    position: absolute;
+    left: 16px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px + 44px + 8px);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 150ms ease-out, transform 100ms ease-out;
+  }
+  .round-gps-pin-btn:active { transform: scale(0.92); }
+  .round-gps-pin-btn[aria-expanded="true"] {
+    background: rgba(0, 0, 0, 0.85);
+  }
+  /* Active offset state — orange tint on the button background + badge. */
+  .round-gps-pin-btn.has-offset {
+    background: rgba(232, 93, 4, 0.7);
+  }
+  .round-gps-pin-btn.has-offset[aria-expanded="true"] {
+    background: rgba(232, 93, 4, 0.92);
+  }
+  @media (hover: hover) {
+    .round-gps-pin-btn:hover {
+      background: rgba(0, 0, 0, 0.75);
+    }
+    .round-gps-pin-btn.has-offset:hover {
+      background: rgba(232, 93, 4, 0.85);
+    }
+  }
+  /* Badge — small text in bottom-right of the button showing offset. */
+  .round-gps-pin-btn-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -6px;
+    min-width: 26px;
+    height: 18px;
+    padding: 0 5px;
+    background: #E85D04;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(0, 0, 0, 0.55);
+    line-height: 1;
+  }
+
+  /* Draggable pin marker on the green — the user drags this to the
+     actual flag position. Filter cursor as grab/grabbing for affordance. */
+  .round-gps-pin-marker {
+    cursor: grab;
+    -webkit-tap-highlight-color: transparent;
+    /* Subtle pulsing halo so user notices the new pin and knows it
+       can be dragged. Halo fades after a few pulses to not be annoying. */
+    animation: pinDropPulse 2.4s ease-out 3;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  }
+  .round-gps-pin-marker:active {
+    cursor: grabbing;
+    animation: none;
+  }
+  @keyframes pinDropPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.12); }
+  }
+
   /* Layers popup — appears above the layers button when toggled.
      Hidden by default (display: none). Opens by sliding up + fading
      in with a spring-like ease, anchored to bottom-left so it feels
@@ -5529,129 +5611,37 @@
     pointer-events: none;
   }
 
-  /* ─── Dispersion chip — morphing pill that expands to a club picker ───
-     The chip uses a Dynamic Island-style morph: a single surface that
-     grows in place from a compact pill to a rounded card showing a
-     club list. Two content layers inside cross-fade as the surface
-     resizes. The whole thing is one DOM element transitioning size +
-     border-radius — no two separate elements, no sliding sheet. */
-  #disp-chip-mount {
+  /* ─── Dispersion chip — floating control on the GPS map ───────
+     Visible only when the dispersion overlay is active. Sits below
+     the top info-bar pill so it doesn't clash with it on mobile.
+     Centered horizontally to align as a visual extension of the
+     same vertical column as the pill. */
+  #disp-club-chip-mount {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 92px);
     left: 50%;
-    /* translate(-50%) keeps the chip centered horizontally. The
-       transition on transform is 0 — we only animate width/height/
-       border-radius via the chip itself, not the mount. */
     transform: translateX(-50%);
-    z-index: 9420;
-    pointer-events: none;
-    max-width: calc(100vw - 24px);
+    z-index: 9420; /* sits above gps map content but below sheets */
+    pointer-events: none; /* mount itself transparent; chip claims pointer */
+    max-width: calc(100vw - 32px);
   }
-  /* Backdrop dim — only visible when chip is expanded. Tap to collapse. */
-  #disp-chip-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0);
-    pointer-events: none;
-    z-index: 9415; /* below chip mount, above gps content */
-    transition: background-color 240ms ease-out;
-  }
-  #disp-chip-backdrop.is-visible {
-    background: rgba(0, 0, 0, 0.4);
-    pointer-events: auto;
-  }
-  /* The chip itself — the surface that morphs. Compact dimensions are
-     intrinsic (sized to content); expanded uses fixed dimensions. The
-     transition includes width, height, and border-radius so the morph
-     stays rounded throughout. Spring-ish cubic-bezier for the
-     "elastic, alive" feel. */
   .disp-chip {
     pointer-events: auto;
-    position: relative;
-    background: rgba(13, 13, 13, 0.92);
-    border-radius: 999px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    overflow: hidden;
-    /* Compact dimensions: sized to content. The chip's natural width
-       is determined by the .disp-chip-compact-content layout. */
-    width: max-content;
-    height: 50px;
-    max-width: calc(100vw - 24px);
-    transition:
-      width 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
-      height 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
-      border-radius 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
-      box-shadow 240ms ease-out;
-  }
-  /* Expanded state — fixed wider dimensions with bigger height to fit
-     the club list. Border-radius shrinks (still rounded but proportional
-     to the larger box). Content layers swap visibility. */
-  .disp-chip.is-expanded {
-    width: min(360px, calc(100vw - 24px));
-    height: auto;
-    /* Use a custom property that matches the actual content height so
-       the height transition resolves to a real value instead of "auto"
-       (which doesn't transition). We derive this via JS — see
-       expandDispersionChip. */
-    border-radius: 22px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-  }
-  /* Content layers — when COLLAPSED: compact is in flow (sizes the
-     chip), expanded is absolutely positioned and hidden. When
-     EXPANDED: compact is absolute (overlays + fades out), expanded
-     is in flow (sizes the chip). This swap is what makes both
-     states drive their own dimensions naturally. */
-  .disp-chip-compact-content,
-  .disp-chip-expanded-content {
-    transition: opacity 180ms ease-out;
-  }
-  /* Default (collapsed) state: */
-  .disp-chip-compact-content {
-    position: relative;  /* in flow — sizes the chip */
-    display: flex;
+    display: inline-flex;
     align-items: stretch;
-    height: 100%;
-    opacity: 1;
-    transition-delay: 140ms; /* fade in AFTER expanded content fades out */
+    background: rgba(13, 13, 13, 0.85);
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow: hidden;
+    max-width: calc(100vw - 32px);
   }
-  .disp-chip-expanded-content {
-    position: absolute;  /* out of flow — doesn't push chip height */
-    top: 0;
-    left: 0;
-    right: 0;
-    opacity: 0;
-    pointer-events: none;
-    padding: 14px 16px 16px;
-    visibility: hidden;
-    transition-delay: 0ms;
-  }
-  /* Expanded state — swap which one is in flow. */
-  .disp-chip.is-expanded .disp-chip-compact-content {
-    position: absolute;  /* now overlays + fades out */
-    top: 0;
-    left: 0;
-    right: 0;
-    opacity: 0;
-    pointer-events: none;
-    transition-delay: 0ms;
-  }
-  .disp-chip.is-expanded .disp-chip-expanded-content {
-    position: relative;  /* now in flow — sizes the chip */
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-    transition-delay: 140ms; /* wait for compact to fade out first */
-  }
-
-  /* Compact-state inner layout. */
   .disp-chip-main {
-    flex: 1;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 0 8px 0 16px;
+    padding: 8px 12px 8px 14px;
     background: transparent;
     border: none;
     color: #fff;
@@ -5702,7 +5692,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
+    width: 32px;
     background: rgba(255, 255, 255, 0.06);
     border: none;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -5717,67 +5707,113 @@
     background: rgba(255, 255, 255, 0.12);
   }
 
-  /* Expanded-state inner layout — header + scrollable club list. */
-  .disp-chip-expanded-header {
+  /* ─── Dispersion club picker — bottom sheet ──────────────────
+     Modal for picking a club for the overlay. Lists every club
+     in the user's bag with a sample-count badge so user can see
+     which clubs have meaningful data. */
+  #disp-club-picker-mount {
+    position: fixed;
+    inset: 0;
+    z-index: 9450; /* above the chip, below shot-edit sheet */
+    pointer-events: none;
+  }
+  #disp-club-picker-mount:empty {
+    display: none;
+  }
+  .disp-picker-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+  }
+  /* Initial open state — start fully transparent and transition in. */
+  .disp-picker-backdrop.opening {
+    opacity: 0;
+  }
+  /* Closing — fade out via the transition. */
+  .disp-picker-backdrop.closing {
+    opacity: 0;
+  }
+  .disp-picker-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+    pointer-events: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+    transform: translateY(0);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Initial open state — start off-screen and slide up. */
+  .disp-picker-sheet.opening {
+    transform: translateY(100%);
+  }
+  /* Closing — slide back down. */
+  .disp-picker-sheet.closing {
+    transform: translateY(100%);
+  }
+  .disp-picker-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 10px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
   }
-  .disp-chip-expanded-title {
+  .disp-picker-title {
     font-family: var(--font-display);
-    font-size: var(--text-base);
+    font-size: var(--text-lg);
     font-weight: var(--weight-semibold);
-    color: #fff;
+    color: var(--text-primary);
   }
-  .disp-chip-expanded-close {
-    width: 28px;
-    height: 28px;
+  .disp-picker-close {
+    width: 32px;
+    height: 32px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 20px;
+    color: var(--text-muted);
+    font-size: 22px;
     line-height: 1;
     cursor: pointer;
     border-radius: 50%;
-    -webkit-tap-highlight-color: transparent;
   }
-  .disp-chip-expanded-close:active {
-    background: rgba(255, 255, 255, 0.1);
+  .disp-picker-close:active {
+    background: var(--bg-elevated);
   }
   .disp-picker-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-height: min(60vh, 420px);
-    overflow-y: auto;
-    /* Hide scrollbar visually on iOS — content still scrollable. */
-    -webkit-overflow-scrolling: touch;
   }
   .disp-picker-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    color: #fff;
+    padding: var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
     font-family: var(--font-body);
-    font-size: 0.95rem;
+    font-size: var(--text-base);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
   }
   .disp-picker-row:active {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
   }
   .disp-picker-row.is-active {
-    background: rgba(232, 93, 4, 0.18);
-    border-color: rgba(232, 93, 4, 0.5);
+    background: rgba(232, 93, 4, 0.1);
+    border-color: var(--color-orange);
     color: var(--color-orange);
   }
   .disp-picker-name {
@@ -5788,24 +5824,19 @@
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--bg-elevated);
     border-radius: 999px;
     white-space: nowrap;
   }
   .disp-picker-badge-fallback {
-    color: #f0c97c;
-    background: rgba(240, 201, 124, 0.12);
+    color: #c08a3e;
+    background: rgba(192, 138, 62, 0.12);
   }
   .disp-picker-badge-empty {
-    color: rgba(255, 255, 255, 0.35);
-  }
-  .disp-chip-empty-row {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
-    text-align: center;
-    padding: 16px;
+    color: var(--text-muted);
+    opacity: 0.6;
   }
 
   /* ─── Toggle indicator for tools-list rows ────────────────────
@@ -11606,6 +11637,24 @@
     color: var(--text-muted);
     margin-bottom: var(--space-3);
   }
+  /* Format pill in the round card meta line. Visible only for non-
+     standard formats (scramble etc.) so the user can scan history at
+     a glance. Inline with the meta line, slightly raised emphasis to
+     stand out from the rest of the muted text. */
+  .round-card-format-pill {
+    display: inline-block;
+    padding: 1px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #c08a3e;
+    background: rgba(192, 138, 62, 0.14);
+    border-radius: 999px;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
   /* Group round — subtle orange left border to distinguish from solo rounds
      at a glance in the history list. Plus the 👥 badge in the title and the
      "Played with" line below the meta. */
@@ -13318,6 +13367,306 @@
   .round-summary-meta {
     font-size: var(--text-md);
     color: var(--text-muted);
+  }
+
+  /* ─── Strokes Gained block ───────────────────────────────────
+     The headline analytic of the round summary. Header line states
+     overall result, four category bars show the breakdown, single
+     insight line identifies the biggest contributor. */
+  .sg-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .sg-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .sg-header-phrase {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .sg-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* Each bar row: label | track | value, three columns. */
+  .sg-bar-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 50px;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .sg-bar-label {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .sg-bar-track {
+    position: relative;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  /* Center axis line — visual zero anchor for the diverging bars. */
+  .sg-bar-axis {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+  .sg-bar-fill {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    border-radius: 6px;
+    transition: width 280ms ease-out;
+  }
+  .sg-bar-fill-pos {
+    background: linear-gradient(90deg, rgba(232, 93, 4, 0.7), #E85D04);
+  }
+  .sg-bar-fill-neg {
+    background: linear-gradient(270deg, rgba(193, 76, 76, 0.7), #c14c4c);
+  }
+  .sg-bar-value {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: var(--weight-semibold);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .sg-bar-value-pos { color: #E85D04; }
+  .sg-bar-value-neg { color: #c14c4c; }
+
+  /* Insight line — single sentence identifying the headline takeaway. */
+  .sg-insight {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: var(--space-2) 0 0;
+    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-1);
+  }
+  /* Coverage footer — small, muted, transparent about exclusions. */
+  .sg-coverage {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    text-align: right;
+  }
+  /* Empty state for rounds with insufficient data. */
+  .sg-empty-card {
+    background: var(--bg-page);
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .sg-empty-title {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+  .sg-empty-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  /* Format badge in the summary meta line — visible only for non-
+     standard formats (scramble, etc.). Tappable to open the format
+     editor. Visually distinct from the rest of the meta line so the
+     user sees at a glance "this round is a scramble." */
+  .round-summary-format-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-radius: 999px;
+    background: rgba(192, 138, 62, 0.16);
+    color: #c08a3e;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    vertical-align: middle;
+  }
+  .round-summary-format-badge:active {
+    background: rgba(192, 138, 62, 0.28);
+  }
+  /* Small "edit format" link below the meta line. Always visible so
+     user can change the format of any round. Subtle styling — doesn't
+     steal focus. */
+  .round-summary-format-link {
+    display: inline-block;
+    margin-top: var(--space-1);
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .round-summary-format-link:active {
+    color: var(--text-primary);
+  }
+
+  /* ─── Format editor sheet ─────────────────────────────────── */
+  #format-editor-mount {
+    position: fixed;
+    inset: 0;
+    z-index: 9550; /* above the summary panel content, below confirm dialogs */
+    pointer-events: none;
+  }
+  #format-editor-mount:empty {
+    display: none;
+  }
+  .format-editor-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+  }
+  .format-editor-backdrop.opening,
+  .format-editor-backdrop.closing { opacity: 0; }
+  .format-editor-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+    pointer-events: auto;
+    max-height: 80vh;
+    overflow-y: auto;
+    transform: translateY(0);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .format-editor-sheet.opening,
+  .format-editor-sheet.closing { transform: translateY(100%); }
+  .format-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .format-editor-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .format-editor-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .format-editor-close:active {
+    background: var(--bg-elevated);
+  }
+  .format-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .format-row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .format-row:active {
+    background: var(--bg-elevated);
+  }
+  .format-row.is-active {
+    background: rgba(232, 93, 4, 0.1);
+    border-color: var(--color-orange);
+  }
+  .format-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: 2px;
+  }
+  .format-row-name {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .format-row.is-active .format-row-name {
+    color: var(--color-orange);
+  }
+  .format-row-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .format-row-badge-counts {
+    background: rgba(70, 176, 123, 0.14);
+    color: #46b07b;
+  }
+  .format-row-badge-skips {
+    background: rgba(192, 138, 62, 0.14);
+    color: #c08a3e;
+  }
+  .format-row-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.4;
   }
 
   /* Best-round hero badge — larger, more prominent version for the
@@ -16376,6 +16725,38 @@
     font-size: var(--text-sm);
     line-height: 1.5;
     text-align: center;
+  }
+
+  /* ─── Distance histogram (per-club distribution shape) ─────────
+     Used in the Club Data detail page to show the shape of distance
+     distributions — reveals patterns (bimodal, long-tailed, tight)
+     that simple min/median/max can't. */
+  .dist-hist-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    width: 100%;
+    padding: var(--space-2) 0;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-2);
+  }
+  html:not(.dark) .dist-hist-wrap {
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .dist-hist-svg {
+    max-width: 360px;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .dist-hist-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    color: rgba(255, 255, 255, 0.6);
   }
 
   /* ─── Contact bar (4-way: Clean / Thin / Chunk / Other) ─────── */
@@ -30865,8 +31246,11 @@
     // NOTE: Course-practice sessions are deliberately NOT included.
     // Those distances are self-reported estimates during a drill,
     // not measured carries, so mixing them in would muddy the signal.
+    // Non-counting formats (scrambles, etc.) also excluded — those
+    // shots aren't representative of the user's typical play.
     for (const round of recentRounds || []) {
       if (round.status !== 'completed') continue;
+      if (!roundCountsForStats(round)) continue;
       const shotsMap = round.shots || {};
       for (const holeNum of Object.keys(shotsMap)) {
         for (const shot of shotsMap[holeNum] || []) {
@@ -31294,6 +31678,137 @@
       </div>`;
   }
 
+  // Render a histogram of distance values as inline SVG. Used in the
+  // Club Data detail page to show distribution shape (vs the simple
+  // min/median/max stats which hide it). Reveals things like:
+  //   - Bimodal distributions (e.g., full swing at 158 + three-quarter
+  //     swing at 140 — looks like avg 149 in raw stats but is actually
+  //     two distinct piles)
+  //   - Long tails (most shots cluster tight, occasional mishits stretch
+  //     the range)
+  //   - Tight vs wide spreads at a glance
+  //
+  // Inputs:
+  //   distances: array of numbers (in yards)
+  //   opts.unit: 'yd' | 'm' (default yd) for axis labels
+  //   opts.label: header text shown above the chart
+  //   opts.color: bar fill color (default orange)
+  //
+  // Returns HTML string, or empty string if too few data points.
+  function renderDistanceHistogram(distances, opts) {
+    opts = opts || {};
+    const unit = opts.unit || distanceUnit() || 'yd';
+    const color = opts.color || '#E85D04';
+    const valid = (distances || []).filter(d =>
+      typeof d === 'number' && Number.isFinite(d)
+    );
+    // <5 shots — distribution shape is meaningless. Skip.
+    if (valid.length < 5) return '';
+
+    // Compute distribution stats.
+    const sorted = valid.slice().sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const range = max - min;
+    const median = sorted.length % 2 === 1
+      ? sorted[Math.floor(sorted.length / 2)]
+      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+
+    // Bin width — scale with data range so we get ~8-12 bins regardless
+    // of club. 5y is the floor so bins don't get tiny on wedges.
+    // Round to multiples of 5 so bin edges are tidy numbers.
+    let binWidth = Math.max(5, Math.ceil(range / 10 / 5) * 5);
+    // Bin edges — start at floor(min/binWidth)*binWidth so bins align
+    // to round numbers (e.g., 145, 150, 155 not 144, 149, 154).
+    const firstEdge = Math.floor(min / binWidth) * binWidth;
+    const lastEdge = Math.ceil(max / binWidth) * binWidth;
+    // Ensure at least one bin even for ultra-tight data.
+    const numBins = Math.max(1, (lastEdge - firstEdge) / binWidth);
+    const bins = new Array(numBins).fill(0);
+    for (const d of valid) {
+      // Clamp so edge values land in last bin instead of out-of-range.
+      let idx = Math.floor((d - firstEdge) / binWidth);
+      if (idx >= numBins) idx = numBins - 1;
+      if (idx < 0) idx = 0;
+      bins[idx] += 1;
+    }
+    const maxCount = Math.max(...bins);
+
+    // SVG layout. Bars fill the chart area; tick labels along bottom.
+    const W = 320;
+    const H = 140;
+    const padTop = 12;
+    const padBottom = 28;  // space for x-axis labels
+    const padSide = 12;
+    const innerW = W - padSide * 2;
+    const innerH = H - padTop - padBottom;
+    const barGap = 1;
+    const barWidth = (innerW - barGap * (numBins - 1)) / numBins;
+
+    // Render bars. Bar height is proportional to count / maxCount.
+    const barsHtml = bins.map((count, i) => {
+      if (count === 0) return '';
+      const barH = (count / maxCount) * innerH;
+      const x = padSide + i * (barWidth + barGap);
+      const y = padTop + innerH - barH;
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}"
+                    width="${barWidth.toFixed(1)}" height="${barH.toFixed(1)}"
+                    fill="${color}" fill-opacity="0.7"
+                    rx="1.5" ry="1.5"/>`;
+    }).join('');
+
+    // Median marker — vertical orange line through the histogram.
+    // Provides visual anchor for "where most shots sit."
+    const medianX = padSide + ((median - firstEdge) / (lastEdge - firstEdge)) * innerW;
+    const medianLine = `
+      <line x1="${medianX.toFixed(1)}" y1="${padTop}"
+            x2="${medianX.toFixed(1)}" y2="${padTop + innerH}"
+            stroke="#fff" stroke-width="1.5"
+            stroke-dasharray="2 3" opacity="0.7"/>
+      <text x="${medianX.toFixed(1)}" y="${padTop - 2}"
+            text-anchor="middle"
+            font-family="var(--font-mono)" font-size="9"
+            fill="rgba(255,255,255,0.85)">
+        median ${Math.round(median)}
+      </text>`;
+
+    // X-axis labels — first edge, last edge, middle. Three labels
+    // is enough for orientation without crowding.
+    const midEdge = (firstEdge + lastEdge) / 2;
+    const xLabels = `
+      <text x="${padSide}" y="${H - 8}" text-anchor="start"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        ${firstEdge}${unit}
+      </text>
+      <text x="${W / 2}" y="${H - 8}" text-anchor="middle"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        ${midEdge}${unit}
+      </text>
+      <text x="${W - padSide}" y="${H - 8}" text-anchor="end"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        ${lastEdge}${unit}
+      </text>`;
+
+    const headerLine = opts.label
+      ? `<div class="dist-hist-label">${escapeHtml(opts.label)}</div>`
+      : '';
+
+    return `
+      <div class="dist-hist-wrap">
+        ${headerLine}
+        <svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+             class="dist-hist-svg" role="img"
+             aria-label="Distance distribution: ${valid.length} shots, median ${Math.round(median)} ${unit}, range ${Math.round(min)} to ${Math.round(max)} ${unit}">
+          <!-- bounding rect for the chart area -->
+          <rect x="${padSide}" y="${padTop}" width="${innerW}" height="${innerH}"
+                fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          ${barsHtml}
+          ${medianLine}
+          ${xLabels}
+        </svg>
+      </div>`;
+  }
+
   function renderDispersionBar(disp, opts) {
     opts = opts || {};
     const compact = !!opts.compact;
@@ -31541,6 +32056,7 @@
           </div>
         </div>`).join('');
 
+      const carryHist = renderDistanceHistogram(distances, { unit });
       carryBlock = `
         <div class="range-detail-section-label">Carry <span class="section-sublabel">Range only</span></div>
         <div class="club-detail-totals">
@@ -31557,6 +32073,7 @@
             <div class="club-detail-total-label">Range</div>
           </div>
         </div>
+        ${carryHist}
         ${swingGroups.length > 0 ? `
           <div class="range-detail-section-label range-detail-subsection-label">By Swing %</div>
           <div class="club-detail-swing-list">${swingHtml}</div>
@@ -31587,6 +32104,7 @@
       const min = Math.round(distances[0]);
       const max = Math.round(distances[total - 1]);
 
+      const gpsHist = renderDistanceHistogram(distances, { unit });
       gpsBlock = `
         <div class="range-detail-section-label">On-course total <span class="section-sublabel">GPS · incl. roll</span></div>
         <div class="club-detail-totals">
@@ -31602,7 +32120,8 @@
             <div class="club-detail-total-value">${min}–${max}<span>${unit}</span></div>
             <div class="club-detail-total-label">Range</div>
           </div>
-        </div>`;
+        </div>
+        ${gpsHist}`;
     }
 
     // Dispersion + Contact (range + round combined)
@@ -32129,6 +32648,7 @@
       courseId:   round.courseId,
       courseName: round.courseName,
       teeName:    round.teeName,
+      format:     round.format || 'standard',
       startTime:  round.startTime,
       dateKey:    round.dateKey,
       status:     round.status,
@@ -33538,6 +34058,7 @@
       courseId: roundState.courseId,
       courseName: course.name,
       teeName: roundState.teeName,
+      format: roundState.format || 'standard',
       startTime: roundState.started,
       endTime: null,
       dateKey: roundState.dateKey,
@@ -33593,13 +34114,17 @@
     const result = { globalBestId: null, courseBestIds: new Set() };
     if (!Array.isArray(rounds) || rounds.length === 0) return result;
 
-    // Filter to completed 18-hole rounds
+    // Filter to completed 18-hole rounds. Also filter out non-counting
+    // formats (scrambles, casuals, etc.) — those rounds persist for
+    // memories but should never qualify as a "best" personal round
+    // since they don't represent your actual ability.
     const eligible = rounds.filter(r =>
       r
       && r.status === 'completed'
       && (r.totals?.holesPlayed || 0) >= 18
       && typeof r.totals?.vsPar === 'number'
       && typeof r.id === 'string'
+      && roundCountsForStats(r)
     );
     if (eligible.length === 0) return result;
 
@@ -33660,6 +34185,9 @@
     if (round.status !== 'completed') return null;
     if ((round.totals?.holesPlayed || 0) < 18) return null;
     if (typeof round.totals?.vsPar !== 'number') return null;
+    // Non-counting formats (scrambles, etc.) never qualify as a best
+    // round. The shot wasn't really yours alone — ignore.
+    if (!roundCountsForStats(round)) return null;
 
     const bests = computeMyBestRounds(allRounds || []);
     if (round.id === bests.globalBestId) return 'global';
@@ -34359,12 +34887,90 @@
     docId: null,
     courseId: null,
     teeName: null,
+    format: 'standard',     // ROUND_FORMATS key — defaults to standard
     holeIndex: 0,           // 0-based for arrays; display as +1
     scores: {},             // { holeNumber: { strokes, putts } }
     shots: {},              // { holeNumber: [ { id, club, distance, startLie, mishit } ] }
     started: null,
     dateKey: null
   };
+
+  // ─── Round format catalog ────────────────────────────────────
+  // A round can be played in different formats. "Standard" is your
+  // normal stroke-play round and counts toward all personal stats.
+  // Other formats (scramble, best ball, etc.) are kept on the user's
+  // account so memories aren't lost — but they're filtered out of:
+  //   - best round badges
+  //   - club distance averages (Club Data, My Bag)
+  //   - dispersion analysis (per-club tendencies)
+  //   - Strokes Gained (when implemented)
+  //   - Trends and historical averages
+  //
+  // The reasoning: in a scramble you hit the team's best shot, so
+  // your shots are biased high (you only commit to the good one).
+  // In a best-ball you swap mistakes for partner's better outcomes.
+  // Mixing these into "your typical performance" misrepresents your
+  // actual game.
+  //
+  // Adding a new format: append to ROUND_FORMATS, set countsForStats
+  // appropriately. roundCountsForStats() reads from this catalog so
+  // any new format slots in automatically.
+  const ROUND_FORMATS = {
+    standard: {
+      label: 'Standard',
+      description: 'Stroke play — counts toward stats',
+      countsForStats: true,
+    },
+    scramble: {
+      label: 'Scramble',
+      description: 'Team plays best shot — kept for memories, excluded from stats',
+      countsForStats: false,
+    },
+    bestBall: {
+      label: 'Best Ball',
+      description: 'Each plays own ball; team takes best — excluded from stats',
+      countsForStats: false,
+    },
+    altShot: {
+      label: 'Alt Shot',
+      description: 'Partners alternate strokes — excluded from stats',
+      countsForStats: false,
+    },
+    casual: {
+      label: 'Casual',
+      description: 'Just messing around — excluded from stats',
+      countsForStats: false,
+    },
+  };
+  // Order for any UI that lists formats (start-round picker, edit sheet).
+  // Standard first so it's the default focus; others in rough commonality
+  // order.
+  const ROUND_FORMAT_ORDER = ['standard', 'scramble', 'bestBall', 'altShot', 'casual'];
+
+  // Resolve a round's format, treating missing/unknown as 'standard'.
+  // Back-compat for rounds saved before the format field existed.
+  function getRoundFormat(round) {
+    if (!round) return 'standard';
+    const f = round.format;
+    if (f && ROUND_FORMATS[f]) return f;
+    return 'standard';
+  }
+
+  // The predicate every stats consumer should use. Single source of
+  // truth — if you find yourself writing `if (round.format !== 'scramble')`
+  // somewhere, use this instead so we stay consistent.
+  function roundCountsForStats(round) {
+    const fmt = getRoundFormat(round);
+    return ROUND_FORMATS[fmt].countsForStats !== false;
+  }
+
+  // Display label for a round's format. Returns the label from the
+  // catalog ('Standard', 'Scramble', etc.). Used in history cards,
+  // round summary headers, etc.
+  function getRoundFormatLabel(round) {
+    const fmt = getRoundFormat(round);
+    return ROUND_FORMATS[fmt].label;
+  }
 
   // Group round state — mirrors roundState but tracks a shared multi-player
   // round. When active, the user is in a group round instead of (never in
@@ -34550,6 +35156,11 @@
     roundState.docId = newRoundId(courseId, startMs);
     roundState.courseId = courseId;
     roundState.teeName = teeName;
+    // Reset format to standard at every round start. State is module-
+    // scoped and persists between rounds, so without this a scramble
+    // followed by a fresh round would start tagged as scramble.
+    // User can change to scramble/etc via the round summary edit.
+    roundState.format = 'standard';
     // Starting hole — user's pick from the course detail page stepper.
     // Defaults to 0 (hole 1) when they haven't touched it. This is the
     // hole they land on first; saveAndNext handles wrap-around to play
@@ -34588,6 +35199,9 @@
     roundState.shots = roundDoc.shots || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
+    // Restore round format. Defaults to 'standard' for legacy rounds
+    // saved before the field existed.
+    roundState.format = roundDoc.format || 'standard';
     // Restore weather snapshot from the doc, if present. Don't try
     // to fetch fresh on resume — current weather isn't representative
     // for a round that was started hours ago. If weather is missing,
@@ -34605,6 +35219,7 @@
     roundState.docId = null;
     roundState.courseId = null;
     roundState.teeName = null;
+    roundState.format = 'standard';
     roundState.holeIndex = 0;
     roundState.scores = {};
     roundState.shots = {};
@@ -36639,6 +37254,10 @@
       courseId: gr.courseId,
       courseName: course.name,
       teeName: me.tee,
+      // Carry format from the group round to the personal record. Group
+      // rounds default to 'standard' (each player plays own ball, stroke
+      // play). User can change retroactively from round summary.
+      format: gr.format || 'standard',
       startTime: gr.startTime,
       endTime: endMs,
       dateKey: gr.dateKey,
@@ -37566,6 +38185,7 @@
       courseId: roundState.courseId,
       courseName: course.name,
       teeName: roundState.teeName,
+      format: roundState.format || 'standard',
       startTime: roundState.started,
       endTime: endMs,
       dateKey: roundState.dateKey,
@@ -37675,6 +38295,162 @@
       }
     }
   }
+
+  // ─── Round format editor ────────────────────────────────────
+  // Bottom sheet for changing a round's format (standard / scramble /
+  // best ball / etc.). Persists to Firestore + cached recentRounds,
+  // re-computes best-round badges since changing format may displace
+  // or reinstate them, and re-renders open surfaces.
+  //
+  // Edits work for any completed round (round summary opens this for
+  // any round in history). Live in-progress rounds set format at start
+  // via roundState.format and don't typically need this editor — but
+  // the function tolerates that case too if invoked.
+
+  // Mount the editor sheet body-level. Same pattern as other pickers.
+  function openFormatEditor(roundId) {
+    const round = (recentRounds || []).find(r => r.id === roundId);
+    if (!round) {
+      showToast('Round not found', true);
+      return;
+    }
+    let mount = document.getElementById('format-editor-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'format-editor-mount';
+      document.body.appendChild(mount);
+    }
+    const currentFormat = getRoundFormat(round);
+    const rows = ROUND_FORMAT_ORDER.map(key => {
+      const fmt = ROUND_FORMATS[key];
+      const isActive = currentFormat === key;
+      const countsBadge = fmt.countsForStats
+        ? `<span class="format-row-badge format-row-badge-counts">Counts</span>`
+        : `<span class="format-row-badge format-row-badge-skips">Excluded from stats</span>`;
+      return `
+        <button class="format-row${isActive ? ' is-active' : ''}"
+                onclick="setRoundFormatAndClose('${escapeHtml(roundId)}', '${escapeHtml(key)}')">
+          <div class="format-row-head">
+            <span class="format-row-name">${escapeHtml(fmt.label)}</span>
+            ${countsBadge}
+          </div>
+          <div class="format-row-desc">${escapeHtml(fmt.description)}</div>
+        </button>`;
+    }).join('');
+    // Render with .opening class on backdrop+sheet so they start in
+    // off-state, then strip on next frame to trigger the slide up.
+    mount.innerHTML = `
+      <div class="format-editor-backdrop opening" onclick="closeFormatEditor()"></div>
+      <div class="format-editor-sheet opening">
+        <div class="format-editor-header">
+          <div class="format-editor-title">Round format</div>
+          <button class="format-editor-close" onclick="closeFormatEditor()" aria-label="Close">×</button>
+        </div>
+        <div class="format-editor-list">${rows}</div>
+      </div>`;
+    const backdrop = mount.querySelector('.format-editor-backdrop');
+    const sheet = mount.querySelector('.format-editor-sheet');
+    if (sheet) void sheet.offsetHeight;
+    requestAnimationFrame(() => {
+      if (backdrop) backdrop.classList.remove('opening');
+      if (sheet) sheet.classList.remove('opening');
+    });
+  }
+
+  function closeFormatEditor(onDone) {
+    const mount = document.getElementById('format-editor-mount');
+    if (!mount) { if (onDone) onDone(); return; }
+    const backdrop = mount.querySelector('.format-editor-backdrop');
+    const sheet = mount.querySelector('.format-editor-sheet');
+    if (!sheet) { mount.innerHTML = ''; if (onDone) onDone(); return; }
+    if (backdrop) backdrop.classList.add('closing');
+    sheet.classList.add('closing');
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      mount.innerHTML = '';
+      if (onDone) onDone();
+    };
+    sheet.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 320);
+  }
+
+  // Apply a format change to a round. Handles persistence, best-round
+  // recomputation, and UI refresh. Async because it writes to Firestore.
+  async function setRoundFormatAndClose(roundId, newFormat) {
+    if (!ROUND_FORMATS[newFormat]) return;
+    const round = (recentRounds || []).find(r => r.id === roundId);
+    if (!round) {
+      closeFormatEditor();
+      return;
+    }
+    const oldFormat = getRoundFormat(round);
+    if (oldFormat === newFormat) {
+      closeFormatEditor();
+      return;
+    }
+
+    // Update local cache first for immediate UI feedback. Firestore
+    // write below will reconcile any error case.
+    round.format = newFormat;
+
+    // Recompute best-round badge for this round against full history.
+    // If the round was previously a best (standard) and is now
+    // non-counting (scramble), bestType becomes null and the displaced
+    // round (if any) earns the badge. If it was non-counting and now
+    // counts, it might earn or pass through unchanged.
+    const newBestType = computeBestTypeForRound(round, recentRounds || []);
+    const oldBestType = round.bestType || null;
+    round.bestType = newBestType;
+
+    // Find displaced rounds — those that need their bestType cleared
+    // because this round's transition changed who holds the title.
+    // Compute against the AS-OF-AFTER state, since round.format and
+    // round.bestType are already mutated.
+    const displaced = findDisplacedBestRounds(round, recentRounds || []);
+
+    // Persist the round itself + reconcile displaced rounds.
+    if (currentUser && window.fb) {
+      try {
+        const path = `users/${currentUser.uid}/rounds/${roundId}`;
+        await window.fb.setDoc(path, { ...round });
+      } catch (err) {
+        console.warn('Failed to persist format change:', err);
+        showToast('Could not save format change', true);
+        // Revert local change so user can try again.
+        round.format = oldFormat;
+        round.bestType = oldBestType;
+        closeFormatEditor();
+        return;
+      }
+      // Reconcile displaced bests (clears stale badges).
+      try { await reconcileDisplacedBestRounds(displaced); } catch (_) {}
+      // Mirror to public profile if visibility allows. syncRoundToPublic
+      // checks visibility itself; safe to call unconditionally.
+      try { await syncRoundToPublic(round); } catch (_) {}
+    }
+
+    closeFormatEditor(() => {
+      // Re-render the round summary so the format badge updates.
+      if (currentPanelId === 'round-summary') renderRoundSummary();
+      // Re-render Play landing if visible — best-round badges + avg
+      // score may have shifted.
+      if (currentPanelId === 'play') {
+        renderPlayStats?.();
+        renderRecentRounds?.();
+      }
+      // Re-render history if visible — round card badges may have
+      // shifted.
+      if (currentPanelId === 'rounds') renderHistoryFull?.();
+    });
+    showToast(`Marked as ${ROUND_FORMATS[newFormat].label}`, false);
+  }
+
+  // Expose for inline onclick handlers.
+  window.openFormatEditor = openFormatEditor;
+  window.closeFormatEditor = closeFormatEditor;
+  window.setRoundFormatAndClose = setRoundFormatAndClose;
 
   function renderRound() {
     const mount = document.getElementById('round-mount');
@@ -47704,6 +48480,7 @@
         courseId:   course.id,
         courseName: course.name,
         teeName:    quickScoreState.teeName,
+        format:     quickScoreState.format || existingRound?.format || 'standard',
         startTime:  startMs,
         endTime:    endMs,
         dateKey:    quickScoreState.dateKey,
@@ -47735,6 +48512,7 @@
         courseId:   course.id,
         courseName: course.name,
         teeName:    quickScoreState.teeName,
+        format:     quickScoreState.format || existingRound?.format || 'standard',
         startTime:  startMs,
         endTime:    endMs,
         dateKey:    quickScoreState.dateKey,
@@ -47859,6 +48637,10 @@
   function computeRoundDifferential(round) {
     if (!round || round.status !== 'completed') return null;
     if ((round.totals?.holesPlayed || 0) < 18) return null;   // 9-hole handling skipped
+    // Non-counting formats (scrambles, etc.) excluded from handicap.
+    // A 54 in a scramble would drop your handicap to a negative number
+    // and represent nothing about your real game.
+    if (!roundCountsForStats(round)) return null;
     const course = getCourse(round.courseId);
     if (!course) return null;
     const tee = (course.tees || []).find(t => t.name === round.teeName);
@@ -47943,9 +48725,15 @@
     let avgScore = '—';
     let bestRound = '—';
     if (roundsPlayed > 0) {
-      // Only count full 18s for "best round" so a 9-hole "ended early" round
-      // doesn't beat your best 18 with strokes alone.
-      const fullRounds = completed.filter(r => (r.totals?.holesPlayed || 0) >= 18);
+      // Performance stats (avg + best) are scoped to rounds that count
+      // toward stats — scrambles persist in your account but a 54 in
+      // a scramble shouldn't pull your "avg score" down 12 strokes.
+      // Rounds Played still includes everything since you DID play them.
+      // Only count full 18s so a 9-hole "ended early" doesn't beat
+      // your best 18 with strokes alone.
+      const fullRounds = completed.filter(r =>
+        (r.totals?.holesPlayed || 0) >= 18 && roundCountsForStats(r)
+      );
       if (fullRounds.length > 0) {
         const totalStrokes = fullRounds.reduce((s, r) => s + (r.totals?.strokes || 0), 0);
         avgScore = Math.round(totalStrokes / fullRounds.length);
@@ -48127,6 +48915,580 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // STROKES GAINED — the truth-teller stat
+  // ─────────────────────────────────────────────────────────────
+  // For each shot: SG = ExpectedStrokes(before) - ExpectedStrokes(after) - 1
+  // Sum across all shots, bucketed into four categories:
+  //   - SG: Off the Tee     (tee shots on par 4/5)
+  //   - SG: Approach        (non-tee, > 30 yds, not green; incl par 3 tees)
+  //   - SG: Around the Green(≤ 30 yds, not on green)
+  //   - SG: Putting         (on the green)
+  //
+  // Positive SG = better than the PGA Tour baseline; negative = worse.
+  // The baseline is "average tour pro" not "average amateur," so most
+  // amateurs will see negative numbers across the board. What matters
+  // is which categories are MOST negative — that's where strokes are
+  // bleeding from your scorecard, and that's what to practice.
+
+  // Broadie baselines — expected strokes to hole out from a given
+  // (lie, distance) state, derived from PGA Tour ShotLink data. These
+  // are sampled at common yardages; the lookup interpolates linearly
+  // between points and clamps to the nearest endpoint outside the range.
+  //
+  // Source: Mark Broadie's "Every Shot Counts" + USGA SG references.
+  // Numbers are approximations of the published tables, smoothed for
+  // monotonicity. Tournament-specific figures differ by ~0.05 strokes
+  // year to year — irrelevant for personal SG analysis.
+  const SG_BASELINE_TEE = [   // tee box (par 4 / par 5), distance = hole length
+    { d: 100, e: 2.92 }, { d: 150, e: 3.15 }, { d: 200, e: 3.30 },
+    { d: 250, e: 3.45 }, { d: 300, e: 3.71 }, { d: 350, e: 3.97 },
+    { d: 400, e: 4.18 }, { d: 450, e: 4.40 }, { d: 500, e: 4.60 },
+    { d: 550, e: 4.78 }, { d: 600, e: 4.97 },
+  ];
+  const SG_BASELINE_FAIRWAY = [
+    { d:  10, e: 2.18 }, { d:  20, e: 2.40 }, { d:  30, e: 2.52 },
+    { d:  40, e: 2.60 }, { d:  60, e: 2.70 }, { d:  80, e: 2.75 },
+    { d: 100, e: 2.80 }, { d: 120, e: 2.85 }, { d: 140, e: 2.91 },
+    { d: 160, e: 2.98 }, { d: 180, e: 3.08 }, { d: 200, e: 3.19 },
+    { d: 220, e: 3.32 }, { d: 240, e: 3.45 }, { d: 260, e: 3.58 },
+    { d: 280, e: 3.69 }, { d: 300, e: 3.78 },
+  ];
+  const SG_BASELINE_ROUGH = [
+    { d:  10, e: 2.34 }, { d:  20, e: 2.59 }, { d:  30, e: 2.70 },
+    { d:  40, e: 2.78 }, { d:  60, e: 2.88 }, { d:  80, e: 2.93 },
+    { d: 100, e: 2.98 }, { d: 120, e: 3.05 }, { d: 140, e: 3.13 },
+    { d: 160, e: 3.21 }, { d: 180, e: 3.32 }, { d: 200, e: 3.43 },
+    { d: 220, e: 3.55 }, { d: 240, e: 3.68 }, { d: 260, e: 3.81 },
+    { d: 280, e: 3.92 }, { d: 300, e: 4.02 },
+  ];
+  const SG_BASELINE_SAND = [
+    { d:  10, e: 2.43 }, { d:  20, e: 2.53 }, { d:  30, e: 2.66 },
+    { d:  40, e: 2.82 }, { d:  60, e: 3.00 }, { d:  80, e: 3.06 },
+    { d: 100, e: 3.10 }, { d: 120, e: 3.18 }, { d: 140, e: 3.27 },
+    { d: 160, e: 3.40 }, { d: 180, e: 3.55 }, { d: 200, e: 3.70 },
+    { d: 220, e: 3.83 }, { d: 240, e: 3.95 }, { d: 260, e: 4.07 },
+    { d: 280, e: 4.18 }, { d: 300, e: 4.28 },
+  ];
+  const SG_BASELINE_RECOVERY = [   // trees, deep brush, etc.
+    { d:  10, e: 3.45 }, { d:  20, e: 3.55 }, { d:  30, e: 3.62 },
+    { d:  40, e: 3.65 }, { d:  60, e: 3.71 }, { d:  80, e: 3.79 },
+    { d: 100, e: 3.86 }, { d: 120, e: 3.92 }, { d: 140, e: 3.99 },
+    { d: 160, e: 4.07 }, { d: 180, e: 4.15 }, { d: 200, e: 4.23 },
+    { d: 220, e: 4.32 }, { d: 240, e: 4.42 }, { d: 260, e: 4.51 },
+    { d: 280, e: 4.60 }, { d: 300, e: 4.68 },
+  ];
+  const SG_BASELINE_GREEN = [   // putting; distance in FEET, not yards
+    { d:  1, e: 1.001 }, { d:  2, e: 1.009 }, { d:  3, e: 1.053 },
+    { d:  4, e: 1.147 }, { d:  5, e: 1.256 }, { d:  6, e: 1.353 },
+    { d:  7, e: 1.442 }, { d:  8, e: 1.519 }, { d: 10, e: 1.646 },
+    { d: 12, e: 1.737 }, { d: 15, e: 1.835 }, { d: 20, e: 1.946 },
+    { d: 25, e: 2.020 }, { d: 30, e: 2.066 }, { d: 40, e: 2.135 },
+    { d: 50, e: 2.187 }, { d: 60, e: 2.231 }, { d: 90, e: 2.308 },
+  ];
+
+  // Linear interpolation lookup over a sorted baseline array.
+  // Clamps to first/last value if distance falls outside the range
+  // (extrapolation would be unreliable — better to flatten than to
+  // produce nonsense values for 700-yard tee shots).
+  function interpolateBaseline(table, distance) {
+    if (!Array.isArray(table) || table.length === 0) return null;
+    if (typeof distance !== 'number' || !Number.isFinite(distance)) return null;
+    if (distance <= table[0].d) return table[0].e;
+    if (distance >= table[table.length - 1].d) return table[table.length - 1].e;
+    // Find the bracketing pair via linear scan (table is small, ~17 entries).
+    for (let i = 0; i < table.length - 1; i++) {
+      const a = table[i];
+      const b = table[i + 1];
+      if (distance >= a.d && distance <= b.d) {
+        const t = (distance - a.d) / (b.d - a.d);
+        return a.e + t * (b.e - a.e);
+      }
+    }
+    return table[table.length - 1].e; // shouldn't reach here, defensive
+  }
+
+  // Expected strokes from a given (lie, distance) state. Distance is
+  // in yards for everything except 'green' which uses feet. Returns
+  // null if the lie is unknown or distance is invalid — caller should
+  // treat null as "can't compute SG for this shot."
+  //
+  // Lie aliases: 'fringe' is treated as fairway (close-cut grass off
+  // the green). 'recovery' has its own curve. Anything we don't
+  // recognize falls back to fairway as a conservative guess.
+  function expectedStrokes(lie, distanceYards) {
+    if (lie === 'green') {
+      // Caller used wrong API — green expects feet.
+      return interpolateBaseline(SG_BASELINE_GREEN, distanceYards * 3);
+    }
+    let table;
+    switch (lie) {
+      case 'tee':      table = SG_BASELINE_TEE; break;
+      case 'fairway':  table = SG_BASELINE_FAIRWAY; break;
+      case 'fringe':   table = SG_BASELINE_FAIRWAY; break;
+      case 'rough':    table = SG_BASELINE_ROUGH; break;
+      case 'sand':     table = SG_BASELINE_SAND; break;
+      case 'bunker':   table = SG_BASELINE_SAND; break;
+      case 'recovery': table = SG_BASELINE_RECOVERY; break;
+      default:         table = SG_BASELINE_FAIRWAY; break;
+    }
+    return interpolateBaseline(table, distanceYards);
+  }
+
+  // Putting-specific lookup. Distance in feet.
+  function expectedStrokesPutt(distanceFeet) {
+    return interpolateBaseline(SG_BASELINE_GREEN, distanceFeet);
+  }
+
+  // Categorize a shot for SG purposes per Broadie's standard scheme:
+  //   tee      = first shot on par 4 / par 5
+  //   approach = > 30 yds from pin (incl par 3 tees), not on green
+  //   around   = ≤ 30 yds from pin, not on green
+  //   putt     = on the green
+  //
+  // distFromPin is the distance from the SHOT'S START to the pin
+  // (in yards). Required for the 30-yard threshold.
+  function categorizeShotForSG(opts) {
+    const { startLie, isFirstShotOnHole, holePar, distFromPin } = opts;
+    if (startLie === 'green') return 'putt';
+    if (isFirstShotOnHole && (holePar === 4 || holePar === 5)) return 'tee';
+    // Par 3 tee shot OR any non-tee shot. 30-yard threshold splits
+    // approach from around-the-green.
+    if (typeof distFromPin === 'number' && distFromPin <= 30) return 'around';
+    return 'approach';
+  }
+
+  // Compute SG for one shot.
+  //   beforeES : expected strokes from start state
+  //   afterES  : expected strokes from end state (0 if holed)
+  // SG = before - after - 1
+  // Returns null if either ES couldn't be computed.
+  function computeShotSGFromStates(beforeES, afterES) {
+    if (typeof beforeES !== 'number' || !Number.isFinite(beforeES)) return null;
+    if (typeof afterES !== 'number' || !Number.isFinite(afterES)) return null;
+    return beforeES - afterES - 1;
+  }
+
+  // ─── Round-level SG aggregation ────────────────────────────
+  // Walks the round's shots hole by hole, computing SG for each shot
+  // and summing into the four categories. Returns:
+  //   {
+  //     totals:    { tee, approach, around, putt, total },
+  //     perShot:   [{ holeNumber, shotIndex, category, sg, beforeES, afterES, ... }],
+  //     coverage:  { holesAnalyzed, holesTotal, excludedHoles: [{holeNumber, reason}] },
+  //   }
+  // OR null if the round has no shot tracking at all.
+  function computeRoundSG(round, course) {
+    if (!round || !course) return null;
+    const shotsMap = round.shots || {};
+    if (Object.keys(shotsMap).length === 0) return null;
+
+    const totals = { tee: 0, approach: 0, around: 0, putt: 0, total: 0 };
+    const perShot = [];
+    const excludedHoles = [];
+    let holesAnalyzed = 0;
+    const holesTotal = (course.holes || []).length;
+
+    for (const hole of course.holes || []) {
+      const hn = hole.number;
+      const par = hole.par;
+      const greenLat = hole.greenLat;
+      const greenLng = hole.greenLng;
+      const shotsForHole = shotsMap[hn] || [];
+      const scoreEntry = (round.scores && round.scores[hn]) || {};
+      const puttList = Array.isArray(scoreEntry.puttList) ? scoreEntry.puttList : [];
+      const reportedStrokes = scoreEntry.strokes;
+
+      // Skip holes with no green coordinates — can't compute distance
+      // to pin. Most courses in the app should have green coords; if
+      // we hit this often, it's a course data issue.
+      if (greenLat == null || greenLng == null) {
+        excludedHoles.push({ holeNumber: hn, reason: 'no-green-coord' });
+        continue;
+      }
+      // Skip holes with no shot data AND no putt list — nothing to
+      // analyze. Usually means user didn't track this hole.
+      if (shotsForHole.length === 0 && puttList.length === 0) {
+        excludedHoles.push({ holeNumber: hn, reason: 'no-shot-data' });
+        continue;
+      }
+      // Skip holes where reported strokes don't match what we have.
+      // Without a clean shot count we can't know which shot was the
+      // hole-out, so SG would be unreliable. v2 could try harder
+      // (e.g., infer missing putts from shotcount-vs-strokes gap).
+      const trackedCount = shotsForHole.length + puttList.length;
+      if (typeof reportedStrokes === 'number' && reportedStrokes > 0
+          && trackedCount > 0 && trackedCount !== reportedStrokes) {
+        excludedHoles.push({ holeNumber: hn, reason: 'stroke-mismatch' });
+        continue;
+      }
+
+      // Walk the shots in order. For each, derive:
+      //   - startLie (from shot.startLie)
+      //   - distFromPin at start (from shot.startLat/Lng → green)
+      //   - distFromPin at end OR holed
+      //   - endLie (next shot's startLie OR 'green' if next is putt OR null if holed)
+      let holeShotsValid = true;
+      const holeContributions = [];
+
+      for (let i = 0; i < shotsForHole.length; i++) {
+        const shot = shotsForHole[i];
+        const isFirst = i === 0;
+        const isLastShot = i === shotsForHole.length - 1;
+
+        const startLie = shot.startLie;
+        if (!startLie) { holeShotsValid = false; break; }
+
+        // Distance from start of shot to pin (proxy: green center).
+        let startDistYds = null;
+        if (typeof shot.startLat === 'number' && typeof shot.startLng === 'number') {
+          startDistYds = haversineYards(shot.startLat, shot.startLng, greenLat, greenLng);
+        } else if (isFirst && hole.yards != null) {
+          // Tee shot fallback: use the hole's tee-to-green yardage.
+          startDistYds = hole.yards;
+        }
+        if (startDistYds == null) { holeShotsValid = false; break; }
+
+        // Compute beforeES.
+        const beforeES = expectedStrokes(startLie, startDistYds);
+        if (beforeES == null) { holeShotsValid = false; break; }
+
+        // Determine afterES — from where the ball ended up.
+        let afterES;
+        if (isLastShot && puttList.length === 0) {
+          // Hole was finished without a separately-tracked putt list.
+          // The last shot must have ended in the cup (chip-in or
+          // putt-in counted in shots). afterES = 0.
+          afterES = 0;
+        } else {
+          // Need shot's end position. Two routes:
+          //   1. Next shot's startLat/Lng (most reliable)
+          //   2. shot.endLat/Lng if explicitly stored (less common)
+          let endLat = null, endLng = null;
+          let endLie = null;
+          if (i < shotsForHole.length - 1) {
+            const next = shotsForHole[i + 1];
+            endLat = (typeof next.startLat === 'number') ? next.startLat : null;
+            endLng = (typeof next.startLng === 'number') ? next.startLng : null;
+            endLie = next.startLie || null;
+          }
+          // Fallback: use this shot's own endLat/Lng if recorded.
+          if (endLat == null && typeof shot.endLat === 'number') {
+            endLat = shot.endLat;
+            endLng = shot.endLng;
+            // endLie unknown without next shot's lie; assume the shot's
+            // recorded result if available, else fairway as default.
+            endLie = shot.result || null;
+          }
+          // If this is the last shot AND there's a putt list, the ball
+          // ended on the green — distance should match the first putt.
+          if (isLastShot && puttList.length > 0) {
+            // Use the first putt's distance to compute afterES.
+            // This is more accurate than haversine to green center.
+            const firstPuttDistFt = puttList[0].distanceFt;
+            if (typeof firstPuttDistFt === 'number' && Number.isFinite(firstPuttDistFt)) {
+              afterES = expectedStrokesPutt(firstPuttDistFt);
+            } else {
+              afterES = expectedStrokes('green', 0);
+            }
+          } else if (endLat != null && endLng != null) {
+            const endDistYds = haversineYards(endLat, endLng, greenLat, greenLng);
+            // If end position is on the green, use putting baseline.
+            // Heuristic: ≤ 10 yds from green center is "on the green."
+            // This is rough — green sizes vary 15-40 yds wide — but
+            // it's a reasonable first approximation. v2: detect via
+            // explicit endLie field.
+            if ((endLie === 'green') || (endLie == null && endDistYds <= 10)) {
+              afterES = expectedStrokesPutt(endDistYds * 3); // yds → ft
+            } else {
+              const lieToUse = endLie || 'fairway'; // unknown → fairway as default
+              afterES = expectedStrokes(lieToUse, endDistYds);
+            }
+          } else {
+            // No end position info — can't compute SG for this shot.
+            holeShotsValid = false;
+            break;
+          }
+        }
+
+        const sg = computeShotSGFromStates(beforeES, afterES);
+        if (sg == null) { holeShotsValid = false; break; }
+
+        const category = categorizeShotForSG({
+          startLie, isFirstShotOnHole: isFirst, holePar: par, distFromPin: startDistYds,
+        });
+        holeContributions.push({
+          holeNumber: hn, shotIndex: i, category, sg,
+          beforeES, afterES, startLie, distFromPin: startDistYds,
+        });
+      }
+
+      if (!holeShotsValid) {
+        excludedHoles.push({ holeNumber: hn, reason: 'shot-data-incomplete' });
+        continue;
+      }
+
+      // Now process the putt list. Each putt becomes a synthetic shot
+      // with startLie='green', distance = puttList[i].distanceFt.
+      // The afterES for putt N is the expectedStrokes from the start
+      // of putt N+1 (or 0 if N is the last putt OR if it was made).
+      for (let i = 0; i < puttList.length; i++) {
+        const putt = puttList[i];
+        const beforeFt = putt.distanceFt;
+        if (typeof beforeFt !== 'number' || !Number.isFinite(beforeFt)) {
+          holeShotsValid = false;
+          break;
+        }
+        const beforeES = expectedStrokesPutt(beforeFt);
+        let afterES;
+        if (i === puttList.length - 1) {
+          // Last putt — should have ended in cup (or scored hole).
+          afterES = 0;
+        } else {
+          const nextPutt = puttList[i + 1];
+          const nextFt = nextPutt.distanceFt;
+          if (typeof nextFt === 'number' && Number.isFinite(nextFt)) {
+            afterES = expectedStrokesPutt(nextFt);
+          } else {
+            // Missing next-putt distance — fall back to "missed inside
+            // 3 ft" assumption.
+            afterES = expectedStrokesPutt(3);
+          }
+        }
+        const sg = computeShotSGFromStates(beforeES, afterES);
+        if (sg == null) { holeShotsValid = false; break; }
+        holeContributions.push({
+          holeNumber: hn,
+          shotIndex: shotsForHole.length + i,
+          category: 'putt',
+          sg, beforeES, afterES,
+          startLie: 'green',
+          distFromPin: beforeFt / 3,  // store in yards for consistency
+        });
+      }
+
+      if (!holeShotsValid) {
+        excludedHoles.push({ holeNumber: hn, reason: 'putt-data-incomplete' });
+        continue;
+      }
+
+      // Commit hole contributions.
+      for (const c of holeContributions) {
+        totals[c.category] += c.sg;
+        totals.total += c.sg;
+        perShot.push(c);
+      }
+      holesAnalyzed += 1;
+    }
+
+    return {
+      totals,
+      perShot,
+      coverage: {
+        holesAnalyzed,
+        holesTotal,
+        excludedHoles,
+      },
+    };
+  }
+
+  // Aggregate SG across multiple rounds. Used by the Stats page to
+  // show per-category averages over a time window. Only rounds with
+  // valid SG data contribute. Returns:
+  //   {
+  //     avgPerRound: { tee, approach, around, putt, total },
+  //     totalsAcrossRounds: { tee, approach, around, putt, total },
+  //     roundsWithSG: number,
+  //     roundsTotal: number,  // including ones we couldn't analyze
+  //   }
+  function computeAggregateSG(rounds) {
+    const sums = { tee: 0, approach: 0, around: 0, putt: 0, total: 0 };
+    let roundsWithSG = 0;
+    const roundsTotal = (rounds || []).length;
+    for (const round of rounds || []) {
+      const course = getCourse(round.courseId);
+      if (!course) continue;
+      const sg = computeRoundSG(round, course);
+      if (!sg) continue;
+      // Only count rounds where we analyzed enough holes to be meaningful.
+      // 9-hole minimum since SG is volatile at small samples.
+      if (sg.coverage.holesAnalyzed < 9) continue;
+      sums.tee += sg.totals.tee;
+      sums.approach += sg.totals.approach;
+      sums.around += sg.totals.around;
+      sums.putt += sg.totals.putt;
+      sums.total += sg.totals.total;
+      roundsWithSG += 1;
+    }
+    if (roundsWithSG === 0) {
+      return {
+        avgPerRound: null,
+        totalsAcrossRounds: sums,
+        roundsWithSG: 0,
+        roundsTotal,
+      };
+    }
+    return {
+      avgPerRound: {
+        tee:      sums.tee / roundsWithSG,
+        approach: sums.approach / roundsWithSG,
+        around:   sums.around / roundsWithSG,
+        putt:     sums.putt / roundsWithSG,
+        total:    sums.total / roundsWithSG,
+      },
+      totalsAcrossRounds: sums,
+      roundsWithSG,
+      roundsTotal,
+    };
+  }
+
+  // Format an SG value for display: "+1.2" or "-0.4" with one decimal.
+  // Zero shows as "0.0" (not "+0.0") for visual cleanness.
+  function formatSGValue(v) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+    const rounded = Math.round(v * 10) / 10;
+    if (rounded === 0) return '0.0';
+    return rounded > 0 ? `+${rounded.toFixed(1)}` : rounded.toFixed(1);
+  }
+
+  // Identify the most extreme negative category — the user's weakest
+  // area. Returns { category, value } or null if everything is positive
+  // (no weakness to highlight). Used for the round summary insight line.
+  function findWorstSGCategory(totals) {
+    if (!totals) return null;
+    const cats = [
+      { key: 'tee',      label: 'off the tee' },
+      { key: 'approach', label: 'on approaches' },
+      { key: 'around',   label: 'around the green' },
+      { key: 'putt',     label: 'on the green' },
+    ];
+    let worst = null;
+    for (const c of cats) {
+      const v = totals[c.key];
+      if (typeof v !== 'number') continue;
+      if (worst == null || v < worst.value) {
+        worst = { category: c.key, label: c.label, value: v };
+      }
+    }
+    if (worst && worst.value < 0) return worst;
+    return null;
+  }
+
+  // Same but for "best category" — most positive, used when round was
+  // strong overall. Returns null if everything is negative.
+  function findBestSGCategory(totals) {
+    if (!totals) return null;
+    const cats = [
+      { key: 'tee',      label: 'off the tee' },
+      { key: 'approach', label: 'on approaches' },
+      { key: 'around',   label: 'around the green' },
+      { key: 'putt',     label: 'on the green' },
+    ];
+    let best = null;
+    for (const c of cats) {
+      const v = totals[c.key];
+      if (typeof v !== 'number') continue;
+      if (best == null || v > best.value) {
+        best = { category: c.key, label: c.label, value: v };
+      }
+    }
+    if (best && best.value > 0) return best;
+    return null;
+  }
+
+  // Render the SG block for a round summary. Inputs the result of
+  // computeRoundSG. Returns HTML string.
+  function renderSGBlock(sg) {
+    if (!sg) return '';
+    const t = sg.totals;
+    // Header line: total SG with a contextual phrase.
+    const totalRounded = Math.round(t.total * 10) / 10;
+    let headerPhrase;
+    if (totalRounded > 0) {
+      headerPhrase = `Gained ${totalRounded.toFixed(1)} strokes vs Tour`;
+    } else if (totalRounded < 0) {
+      headerPhrase = `Lost ${Math.abs(totalRounded).toFixed(1)} strokes vs Tour`;
+    } else {
+      headerPhrase = 'Even with Tour today';
+    }
+
+    // Find the global max abs value for the x-axis scale. Min 1.0 so
+    // a tiny round still has a sensible scale.
+    const maxAbs = Math.max(
+      1.0,
+      Math.abs(t.tee), Math.abs(t.approach),
+      Math.abs(t.around), Math.abs(t.putt)
+    );
+
+    // Bar rows. Each is centered on zero; positive grows right, negative
+    // grows left. Width as percentage of the half-axis.
+    const cats = [
+      { key: 'tee',      label: 'Off the Tee' },
+      { key: 'approach', label: 'Approach' },
+      { key: 'around',   label: 'Around Green' },
+      { key: 'putt',     label: 'Putting' },
+    ];
+    const rowsHtml = cats.map(c => {
+      const v = t[c.key];
+      const pct = (Math.abs(v) / maxAbs) * 50;  // 0-50% of total bar width
+      const isPositive = v >= 0;
+      const valueClass = isPositive ? 'sg-bar-value-pos' : 'sg-bar-value-neg';
+      const fillClass = isPositive ? 'sg-bar-fill-pos' : 'sg-bar-fill-neg';
+      // Position the fill: positive starts at center going right;
+      // negative starts at center going left.
+      const fillStyle = isPositive
+        ? `left: 50%; width: ${pct.toFixed(2)}%;`
+        : `right: 50%; width: ${pct.toFixed(2)}%;`;
+      return `
+        <div class="sg-bar-row">
+          <div class="sg-bar-label">${escapeHtml(c.label)}</div>
+          <div class="sg-bar-track">
+            <div class="sg-bar-axis"></div>
+            <div class="sg-bar-fill ${fillClass}" style="${fillStyle}"></div>
+          </div>
+          <div class="sg-bar-value ${valueClass}">${formatSGValue(v)}</div>
+        </div>`;
+    }).join('');
+
+    // Insight line — identifies weakest area for negative rounds, or
+    // strongest area for positive rounds. Helps the user know where
+    // to focus practice (or, for positive rounds, what's working).
+    let insightLine = '';
+    const worst = findWorstSGCategory(t);
+    const best = findBestSGCategory(t);
+    if (totalRounded < 0 && worst) {
+      const lostHere = Math.abs(worst.value);
+      insightLine = `<div class="sg-insight">
+        Damage was ${escapeHtml(worst.label)} — ${lostHere.toFixed(1)} strokes lost there alone.
+      </div>`;
+    } else if (totalRounded > 0 && best) {
+      insightLine = `<div class="sg-insight">
+        Strongest area was ${escapeHtml(best.label)} — gained ${best.value.toFixed(1)} strokes there.
+      </div>`;
+    }
+
+    // Coverage footer — transparency about what was analyzed.
+    const cov = sg.coverage;
+    let coverageLine = '';
+    if (cov.excludedHoles.length > 0) {
+      coverageLine = `<div class="sg-coverage">
+        ${cov.holesAnalyzed} of ${cov.holesTotal} holes analyzed
+      </div>`;
+    }
+
+    return `
+      <div class="round-summary-section-label">Strokes Gained</div>
+      <div class="sg-card">
+        <div class="sg-header">
+          <div class="sg-header-phrase">${escapeHtml(headerPhrase)}</div>
+        </div>
+        <div class="sg-bars">${rowsHtml}</div>
+        ${insightLine}
+        ${coverageLine}
+      </div>
+    `;
+  }
+
   // Compute the rolling-average baseline for a course, excluding the
   // specified round (so a round's baseline doesn't include itself).
   // Uses the last INSIGHT_BASELINE_WINDOW completed rounds. Returns
@@ -48134,6 +49496,7 @@
   function computeRoundBaselines(courseId, excludingRoundId) {
     const candidates = (recentRounds || [])
       .filter(r => r.status === 'completed')
+      .filter(r => roundCountsForStats(r))  // skip scrambles, etc.
       .filter(r => r.courseId === courseId)
       .filter(r => r.id !== excludingRoundId)
       // Only count rounds with complete-enough data — skip tiny partials
@@ -48474,7 +49837,9 @@
       // baseline calc still excludes the current round, but we don't
       // surface that distinction to the user.
       const totalAtCourse = (recentRounds || [])
-        .filter(r => r.status === 'completed' && r.courseId === round.courseId)
+        .filter(r => r.status === 'completed'
+                  && r.courseId === round.courseId
+                  && roundCountsForStats(r))
         .length;
       const needed = Math.max(0, INSIGHT_MIN_ROUNDS - totalAtCourse);
       return `
@@ -52154,7 +53519,13 @@
     const mount = document.getElementById('my-stats-mount');
     if (!mount) return;
 
-    const allCompleted = (recentRounds || []).filter(r => r.status === 'completed');
+    // Filter to completed rounds that count toward stats. Non-counting
+    // formats (scrambles, etc.) are kept on the user's account but
+    // excluded from stats aggregation since they don't represent
+    // typical play.
+    const allCompleted = (recentRounds || []).filter(r =>
+      r.status === 'completed' && roundCountsForStats(r)
+    );
 
     if (allCompleted.length === 0) {
       mount.innerHTML = `
@@ -53311,6 +54682,14 @@
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
 
+    // Format pill — visible for non-standard formats so the user can
+    // scan history and see at a glance which rounds were scrambles
+    // etc. Standard rounds get nothing (default — clean UI).
+    const fmt = getRoundFormat(r);
+    const formatPill = fmt !== 'standard'
+      ? ` · <span class="round-card-format-pill">${escapeHtml(getRoundFormatLabel(r))}</span>`
+      : '';
+
     // Live badge for group rounds that are still active. Renders as
     // an empty slot initially, then patched in by
     // patchVisibleRoundCardsForGroup once the async status fetch
@@ -53346,7 +54725,7 @@
           <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span>${liveSlotHtml}</div>
           <div class="round-card-arrow">→</div>
         </div>
-        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
+        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}${formatPill}</div>
         ${groupLine}
         ${bestBadge}
         <div class="round-card-score-row">
@@ -53414,13 +54793,19 @@
     } else if (r.bestType === 'course') {
       bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Best at this course">★ Course Best</span>';
     }
+    // Format pill — visible for non-standard formats. Read from the
+    // public mirror which carries format through (see buildPublicRoundDoc).
+    const fmt = getRoundFormat(r);
+    const formatPill = fmt !== 'standard'
+      ? ` · <span class="round-card-format-pill">${escapeHtml(getRoundFormatLabel(r))}</span>`
+      : '';
     return `
       <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}" onclick="openPublicRound('${escapeHtml(authorUid)}', '${escapeHtml(r.id)}')">
         <div class="round-card-head">
           <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span></div>
           <div class="round-card-arrow">→</div>
         </div>
-        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
+        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}${formatPill}</div>
         ${groupLine}
         ${bestBadge}
         <div class="round-card-score-row">
@@ -53816,6 +55201,9 @@
     for (const otherRound of recentRounds || []) {
       if (otherRound.id === round.id) continue;
       if (otherRound.status !== 'completed') continue;
+      // Don't compare against non-counting rounds — scramble shots
+      // aren't representative of "your typical pattern."
+      if (!roundCountsForStats(otherRound)) continue;
       const otherShotsMap = otherRound.shots || {};
       const otherCourse = COURSES.find(c => c.id === otherRound.courseId);
       for (const hnStr of Object.keys(otherShotsMap)) {
@@ -54416,6 +55804,22 @@
     // truly solo round — even one technically tagged as a group —
     // falls through to solo display.
     const isGroupLinked = !!round.groupRoundId;
+    // Format badge — visible only for non-standard formats. Tappable
+    // to open the format editor. Standard rounds get a small "Edit
+    // format" link below the meta line so the user can mark a round
+    // retroactively (e.g., "this should have been a scramble").
+    const fmt = getRoundFormat(round);
+    const fmtLabel = getRoundFormatLabel(round);
+    const isStandardFormat = fmt === 'standard';
+    const formatBadge = !isStandardFormat
+      ? `<button class="round-summary-format-badge" onclick="openFormatEditor('${escapeHtml(round.id)}')" aria-label="Change round format">
+           ${escapeHtml(fmtLabel)}
+         </button>`
+      : '';
+    const formatEditLink = `
+      <button class="round-summary-format-link" onclick="openFormatEditor('${escapeHtml(round.id)}')" aria-label="Change round format">
+        ${isStandardFormat ? 'Mark as scramble or other format' : 'Change format'}
+      </button>`;
     mount.innerHTML = `
       <div class="round-summary-head">
         ${bestHeroBadge}
@@ -54423,7 +55827,8 @@
           ${isGroupLinked ? '<span class="round-summary-group-badge rs-group-hidden">👥 Group Round</span> · ' : ''}${isQuickScore ? 'Quick Score' : (holesPlayed >= 18 ? 'Round Complete' : `${holesPlayed}-Hole Round`)}
         </div>
         <h2 class="round-summary-title">${escapeHtml(round.courseName || 'Round')}</h2>
-        <div class="round-summary-meta">${escapeHtml(dateStr)} · ${escapeHtml(round.teeName || '')}</div>
+        <div class="round-summary-meta">${escapeHtml(dateStr)} · ${escapeHtml(round.teeName || '')}${formatBadge ? ` · ${formatBadge}` : ''}</div>
+        ${formatEditLink}
         ${renderGroupPlayersLine(round)}
       </div>
 
@@ -54463,6 +55868,30 @@
           ${backTableHtml}
         </div>
       ` : ''}
+
+      ${(() => {
+        // Strokes Gained block — empirical PGA Tour comparison. Most
+        // useful and prescriptive single metric in the app. Only render
+        // if we have enough shot data to compute it meaningfully.
+        const sg = computeRoundSG(round, course);
+        if (!sg) return '';
+        // Need at least 9 holes analyzed for the per-category numbers
+        // to be trustworthy. Below that, individual holes dominate the
+        // signal too much to be useful.
+        if (sg.coverage.holesAnalyzed < 9) {
+          return `
+            <div class="round-summary-section-label">Strokes Gained</div>
+            <div class="sg-empty-card">
+              <div class="sg-empty-title">Not enough tracked holes yet</div>
+              <div class="sg-empty-text">
+                Track shots on more holes to unlock your Strokes Gained breakdown.
+                ${sg.coverage.holesAnalyzed} of ${sg.coverage.holesTotal} holes had
+                enough data this round; we need at least 9.
+              </div>
+            </div>`;
+        }
+        return renderSGBlock(sg);
+      })()}
 
       ${(() => {
         // Round Replay entry — only show if the round has GPS-tracked
@@ -59551,6 +60980,15 @@
     // this object plus the popup markup. Reset to defaults on
     // closeRoundGpsPanel.
     layers: { trail: true },
+    // Per-hole pin offsets in yards. Positive = back pin (further from
+    // Per-hole user-placed pin position. When the user drops the pin
+    // marker on the green at a non-center spot, it's stored here so
+    // distance readouts use the actual pin location instead of the
+    // green-center coords from the course data. Per hole, session-
+    // scoped (pin moves daily — never persisted to Firestore).
+    // Shape: { [holeNumber]: { lat, lng } }
+    pinPositions: {},
+    pinMarker: null,           // mapboxgl.Marker — the draggable pin on the green
     // Dispersion overlay — toggleable map overlay showing the user's
     // historical shot dispersion as an ellipse. Anchored to target
     // (if set) or green center (if not). Sized by historical
@@ -59745,6 +61183,15 @@
       // updates here too — playing mode will continue to refresh on
       // each position tick.
       updateRoundGpsInfoBar();
+      // Pin marker is per-hole — clean up the old hole's marker and
+      // re-place if the new hole has a custom pin position stored.
+      // The button refresh updates the badge to reflect new state.
+      removePinMarker();
+      if (hasCustomPinForCurrentHole()) {
+        const stored = roundGpsState.pinPositions[roundGpsState.holeNumber];
+        placePinAtPosition(stored.lat, stored.lng);
+      }
+      refreshRoundGpsPinBtn();
 
       // Replace green marker at new location.
       if (roundGpsState.greenMarker) {
@@ -59855,6 +61302,9 @@
         // of which just changed. Re-run the update (no-op if overlay
         // isn't active).
         updateDispersionOverlay();
+        // Pin offset is per-hole — refresh the button so the badge
+        // reflects the new hole's value (default 0 for unvisited holes).
+        refreshRoundGpsPinBtn();
       };
       map.once('moveend', dropAfterFly);
     }, FADE_OUT_MS);
@@ -60098,6 +61548,11 @@
     if (typeof closeRoundGpsLayersPopup === 'function') {
       try { closeRoundGpsLayersPopup(); } catch (_) {}
     }
+    // Pin positions are session-scoped — pin moves daily so we never
+    // persist them. Reset on close so reopening starts clean. The pin
+    // marker on the map is destroyed by map.remove() upstream.
+    roundGpsState.pinPositions = {};
+    roundGpsState.pinMarker = null;
     // Dispersion overlay — layers are already gone via map.remove()
     // above. Reset state, hide the floating chip and any open picker
     // so reopening GPS starts clean. Cancel any pending rAF rebuild
@@ -60112,7 +61567,7 @@
       fillSourceId: null, fillLayerId: null, outlineLayerId: null,
     };
     hideDispersionClubChip();
-    collapseDispersionChip();
+    closeDispersionClubPicker();
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -60787,17 +62242,23 @@
         }
         // target → green (the remaining line). Start 17px away from
         // the target on the target→green direction so the line
-        // meets the reticle's outer ring on this end.
+        // meets the reticle's outer ring on this end. If the user has
+        // dropped a custom pin, draw to that pin instead of green
+        // center — keeps the line + the distance label visually
+        // consistent.
+        const pinForLine = getEffectivePinLatLng() || {
+          lat: roundGpsState.greenLat, lng: roundGpsState.greenLng
+        };
         const greenStart = shortenLineEnd(
           map,
-          roundGpsState.greenLng, roundGpsState.greenLat,
+          pinForLine.lng, pinForLine.lat,
           roundGpsState.targetLng, roundGpsState.targetLat,
           TARGET_RETICLE_PAD_PX);
         map.addSource(greenSourceId, {
           type: 'geojson',
           data: lineFeature(
             greenStart.lng, greenStart.lat,
-            roundGpsState.greenLng, roundGpsState.greenLat),
+            pinForLine.lng, pinForLine.lat),
         });
         map.addLayer({
           id: greenLayerId,
@@ -61021,6 +62482,256 @@
   }
 
   // ──────────────────────────────────────────────────────────
+  // Pin offset — per-hole adjustment to displayed distances.
+  // Useful for "the pin is back today, add 8y" without having to
+  // re-pin the green coordinate. Session-scoped, per hole. Reset
+  // on hole change (handled in the hole-change flow) and on GPS
+  // panel close.
+  //
+  // The offset is a number of yards added to "to green center"
+  // distances. Positive = back pin (further). Negative = front pin
+  // (closer). Underlying green coords aren't modified — only the
+  // numbers shown to the user.
+  // ──────────────────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────────────────
+  // Pin position handling — the user can drop a pin marker on the
+  // green to indicate the actual flag position. All distance readouts
+  // use this position instead of the green center when set. Per hole,
+  // session-scoped (not persisted — pin moves daily). Stored as
+  // { lat, lng } per hole number.
+  // ──────────────────────────────────────────────────────────
+
+  // Read the effective pin position for the current hole. Returns
+  // { lat, lng } — either the user's dragged position or the green
+  // center as fallback. Returns null only if the hole has no green
+  // coords at all (rare — most courses have greens pinned).
+  function getEffectivePinLatLng() {
+    const hn = roundGpsState.holeNumber;
+    if (hn != null) {
+      const stored = roundGpsState.pinPositions[hn];
+      if (stored && typeof stored.lat === 'number' && typeof stored.lng === 'number') {
+        return { lat: stored.lat, lng: stored.lng };
+      }
+    }
+    if (roundGpsState.greenLat != null && roundGpsState.greenLng != null) {
+      return { lat: roundGpsState.greenLat, lng: roundGpsState.greenLng };
+    }
+    return null;
+  }
+
+  // Has the user explicitly placed a pin on the current hole?
+  function hasCustomPinForCurrentHole() {
+    const hn = roundGpsState.holeNumber;
+    if (hn == null) return false;
+    const v = roundGpsState.pinPositions[hn];
+    return !!(v && typeof v.lat === 'number' && typeof v.lng === 'number');
+  }
+
+  // Set the dragged pin position for the current hole.
+  function setPinPositionForCurrentHole(lat, lng) {
+    const hn = roundGpsState.holeNumber;
+    if (hn == null) return;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return;
+    roundGpsState.pinPositions[hn] = { lat, lng };
+    refreshDistanceReadouts();
+  }
+
+  // Clear the custom pin for the current hole — distances revert to
+  // green-center based.
+  function clearPinForCurrentHole() {
+    const hn = roundGpsState.holeNumber;
+    if (hn == null) return;
+    delete roundGpsState.pinPositions[hn];
+    refreshDistanceReadouts();
+  }
+
+  // Refresh all UI bits that show distances. Used after pin moves
+  // so user sees instantly-updated yardages.
+  function refreshDistanceReadouts() {
+    refreshRoundGpsPinBtn();
+    updateRoundGpsInfoBar();
+    if (roundGpsState.targetActive) {
+      updateRoundGpsTargetReadout();
+      updateRoundGpsTargetLines();
+    }
+    // Dispersion overlay may anchor to the pin position when no
+    // target is set — keep it in sync as the pin moves.
+    updateDispersionOverlay();
+  }
+
+  // Update the pin button's visual state. When the user has dropped
+  // a custom pin, the button shows an orange tint and a small badge
+  // indicating the offset from green center (e.g. "20L" or "8B").
+  // The label uses tee→green bearing as the reference axis so "left"
+  // and "back" are intuitive from the player's perspective.
+  function refreshRoundGpsPinBtn() {
+    const btn = document.getElementById('round-gps-pin-btn');
+    if (!btn) return;
+    const hasCustom = hasCustomPinForCurrentHole();
+    btn.classList.toggle('has-offset', hasCustom);
+    const badge = btn.querySelector('.round-gps-pin-btn-badge');
+    if (badge) {
+      if (!hasCustom) {
+        badge.textContent = '';
+        badge.style.display = 'none';
+      } else {
+        const v = computePinOffsetVector();
+        badge.textContent = formatPinOffsetShort(v);
+        badge.style.display = '';
+      }
+    }
+    btn.setAttribute('aria-label', hasCustom
+      ? 'Pin placed — tap to remove'
+      : 'Drop pin on green');
+  }
+  window.refreshRoundGpsPinBtn = refreshRoundGpsPinBtn;
+
+  // Decompose the current pin's offset from green center into
+  // (along, cross) yards relative to the tee→green axis. Returns
+  // { along, cross, total } where:
+  //   along  = + back (further from tee), - front (closer to tee)
+  //   cross  = + right (player POV), - left
+  // If no custom pin or no tee, returns { along: 0, cross: 0, total: 0 }.
+  function computePinOffsetVector() {
+    const zero = { along: 0, cross: 0, total: 0 };
+    const hn = roundGpsState.holeNumber;
+    if (hn == null) return zero;
+    const stored = roundGpsState.pinPositions[hn];
+    if (!stored) return zero;
+    const gLat = roundGpsState.greenLat;
+    const gLng = roundGpsState.greenLng;
+    if (gLat == null || gLng == null) return zero;
+    // Determine the tee→green bearing as our reference axis. If we
+    // have a tee position, use that; otherwise fall back to north.
+    let teeBearing = 0;
+    if (roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+      teeBearing = bearingDegrees(roundGpsState.teeLat, roundGpsState.teeLng, gLat, gLng);
+    }
+    // Bearing + distance from green center to pin.
+    const totalYards = haversineYards(gLat, gLng, stored.lat, stored.lng);
+    if (totalYards < 0.5) return zero;  // basically at center
+    const pinBearing = bearingDegrees(gLat, gLng, stored.lat, stored.lng);
+    // Angle of pin offset relative to tee→green axis. 0° = along the
+    // axis (back of green from tee). 90° = right of axis. -90° = left.
+    let relAngle = ((pinBearing - teeBearing + 540) % 360) - 180; // -180..180
+    const relRad = relAngle * Math.PI / 180;
+    const along = totalYards * Math.cos(relRad);  // + = back
+    const cross = totalYards * Math.sin(relRad);  // + = right
+    return { along, cross, total: totalYards };
+  }
+
+  // Compact label for the button badge — combines along and cross
+  // into a 2-3 char string like "20L", "8B", "12L 5B". Picks the
+  // dominant component if both are small.
+  function formatPinOffsetShort(v) {
+    const along = Math.round(v.along);
+    const cross = Math.round(v.cross);
+    const alongAbs = Math.abs(along);
+    const crossAbs = Math.abs(cross);
+    // If both small (< 3y), show single dominant value
+    const parts = [];
+    if (crossAbs >= 3) parts.push(`${crossAbs}${cross >= 0 ? 'R' : 'L'}`);
+    if (alongAbs >= 3) parts.push(`${alongAbs}${along >= 0 ? 'B' : 'F'}`);
+    if (parts.length === 0) {
+      // Pin is essentially at center but technically off — show total
+      const total = Math.round(v.total);
+      if (total === 0) return '';
+      return `${total}y`;
+    }
+    return parts.join(' ');
+  }
+
+  // Tap handler for the pin button — toggles between "no pin" and
+  // "pin placed at green center" states. When transitioning to "pin
+  // placed," the marker drops at green center and the user drags
+  // from there to the actual position.
+  function toggleRoundGpsPinPlacement() {
+    if (hasCustomPinForCurrentHole()) {
+      // Remove existing pin
+      removePinMarker();
+      clearPinForCurrentHole();
+      haptic('light');
+    } else {
+      // Drop pin at green center to start
+      const gLat = roundGpsState.greenLat;
+      const gLng = roundGpsState.greenLng;
+      if (gLat == null || gLng == null) {
+        showToast('Pin the green first', true);
+        return;
+      }
+      placePinAtPosition(gLat, gLng);
+      setPinPositionForCurrentHole(gLat, gLng);
+      haptic('light');
+    }
+  }
+  window.toggleRoundGpsPinPlacement = toggleRoundGpsPinPlacement;
+
+  // Module-level rAF coalesce id for pin drag updates. Same trick as
+  // the dispersion overlay — drag events fire faster than 60Hz on
+  // some devices; we coalesce to one update per frame.
+  let __pinDragRafId = null;
+
+  // Create a draggable Mapbox marker for the user's pin. The pin is
+  // visually distinct from the target reticle: smaller, flag-like.
+  // Drag handler updates state + redraws distance UI in real time.
+  function placePinAtPosition(lat, lng) {
+    const map = roundGpsState.map;
+    if (!map) return;
+    // Tear down existing marker first if present
+    removePinMarker();
+
+    const el = document.createElement('div');
+    el.className = 'round-gps-pin-marker';
+    // Use a small flag SVG so the visual is unmistakably "pin"
+    el.innerHTML = `
+      <svg viewBox="0 0 18 22" xmlns="http://www.w3.org/2000/svg" width="22" height="26">
+        <line x1="3" y1="2" x2="3" y2="20" stroke="#fff" stroke-width="1.5"/>
+        <path d="M3 2 L14 6 L3 10 Z" fill="#E85D04" stroke="#fff" stroke-width="1"/>
+        <circle cx="3" cy="20" r="2" fill="#fff"/>
+      </svg>`;
+
+    const marker = new mapboxgl.Marker({
+      element: el,
+      anchor: 'bottom-left',  // pin's "base" anchors the position
+      draggable: true,
+    }).setLngLat([lng, lat]).addTo(map);
+
+    // Real-time drag update with rAF coalescing
+    marker.on('drag', () => {
+      if (__pinDragRafId != null) return;
+      __pinDragRafId = requestAnimationFrame(() => {
+        __pinDragRafId = null;
+        const ll = marker.getLngLat();
+        setPinPositionForCurrentHole(ll.lat, ll.lng);
+      });
+    });
+    marker.on('dragend', () => {
+      // Final commit + haptic feedback
+      if (__pinDragRafId != null) {
+        cancelAnimationFrame(__pinDragRafId);
+        __pinDragRafId = null;
+      }
+      const ll = marker.getLngLat();
+      setPinPositionForCurrentHole(ll.lat, ll.lng);
+      haptic('light');
+    });
+
+    roundGpsState.pinMarker = marker;
+  }
+
+  function removePinMarker() {
+    if (__pinDragRafId != null) {
+      cancelAnimationFrame(__pinDragRafId);
+      __pinDragRafId = null;
+    }
+    if (roundGpsState.pinMarker) {
+      try { roundGpsState.pinMarker.remove(); } catch (_) {}
+      roundGpsState.pinMarker = null;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
   // Wind overlay — small compass in the bottom-right corner of
   // the GPS view showing current wind speed + direction relative
   // to the user's view of the hole. Reuses the weatherCache that
@@ -61220,15 +62931,21 @@
     } else if (roundGpsState.targetActive && roundGpsState.targetLat != null) {
       anchorLat = roundGpsState.targetLat;
       anchorLng = roundGpsState.targetLng;
-    } else if (roundGpsState.greenLat != null) {
-      anchorLat = roundGpsState.greenLat;
-      anchorLng = roundGpsState.greenLng;
-    } else if (roundGpsState.map) {
-      const c = roundGpsState.map.getCenter();
-      anchorLat = c.lat;
-      anchorLng = c.lng;
     } else {
-      return null;
+      // Prefer the user's dropped pin over green center if set —
+      // a back-left pin is a more meaningful aim reference than the
+      // geographic center of the green.
+      const pin = getEffectivePinLatLng();
+      if (pin) {
+        anchorLat = pin.lat;
+        anchorLng = pin.lng;
+      } else if (roundGpsState.map) {
+        const c = roundGpsState.map.getCenter();
+        anchorLat = c.lat;
+        anchorLng = c.lng;
+      } else {
+        return null;
+      }
     }
     // Resolve start point for bearing.
     let startLat = null, startLng = null;
@@ -61467,37 +63184,22 @@
   // ──────────────────────────────────────────────────────────
 
   function showDispersionClubChip() {
-    let mount = document.getElementById('disp-chip-mount');
+    let mount = document.getElementById('disp-club-chip-mount');
     if (!mount) {
       mount = document.createElement('div');
-      mount.id = 'disp-chip-mount';
+      mount.id = 'disp-club-chip-mount';
       document.body.appendChild(mount);
-    }
-    let backdrop = document.getElementById('disp-chip-backdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'disp-chip-backdrop';
-      backdrop.addEventListener('click', () => collapseDispersionChip());
-      document.body.appendChild(backdrop);
     }
     renderDispersionClubChip();
   }
 
   function hideDispersionClubChip() {
-    const mount = document.getElementById('disp-chip-mount');
+    const mount = document.getElementById('disp-club-chip-mount');
     if (mount) mount.innerHTML = '';
-    const backdrop = document.getElementById('disp-chip-backdrop');
-    if (backdrop) backdrop.classList.remove('is-visible');
   }
 
-  // Build both content layers — compact (the chip face) and expanded
-  // (the club list). Both are always present in the DOM; CSS opacity
-  // shows whichever matches the current state. This is what enables
-  // the Dynamic-Island-style morph: a single surface that grows in
-  // place while its inner content cross-fades, rather than two
-  // separate elements appearing/disappearing.
   function renderDispersionClubChip() {
-    const mount = document.getElementById('disp-chip-mount');
+    const mount = document.getElementById('disp-club-chip-mount');
     if (!mount) return;
     const ov = roundGpsState.dispersionOverlay;
     if (!ov || !ov.active) {
@@ -61516,109 +63218,107 @@
     } else {
       statusLine = `<div class="disp-chip-status">${disp.sampleCount} shots</div>`;
     }
-
-    // Expanded content — club list. Built once on render; selecting
-    // a row triggers setDispersionClub which collapses + re-renders.
-    const activeKey = ov.clubKey;
-    const rows = bag.length === 0
-      ? `<div class="disp-chip-empty-row">No clubs in your bag yet</div>`
-      : bag.map(c => {
-          const key = makeClubKey(c.name);
-          const isActive = key === activeKey;
-          const d = getDispersionForClub(key);
-          const badge = d
-            ? (d.fallbackUsed
-                ? `<span class="disp-picker-badge disp-picker-badge-fallback">bag avg</span>`
-                : `<span class="disp-picker-badge">${d.sampleCount} shots</span>`)
-            : `<span class="disp-picker-badge disp-picker-badge-empty">no data</span>`;
-          return `
-            <button class="disp-picker-row${isActive ? ' is-active' : ''}"
-                    onclick="setDispersionClub('${escapeHtml(key)}')">
-              <span class="disp-picker-name">${escapeHtml(c.name)}</span>
-              ${badge}
-            </button>`;
-        }).join('');
-
-    // Note: only one .disp-chip element. Two content layers inside.
-    // The wrapping element also holds the close × in compact state;
-    // expanded state uses tap-outside-to-dismiss instead.
     mount.innerHTML = `
-      <div class="disp-chip" id="disp-chip">
-        <!-- Compact-state content: visible when not expanded. -->
-        <div class="disp-chip-compact-content">
-          <button class="disp-chip-main" onclick="expandDispersionChip()" aria-label="Change club for dispersion overlay">
-            <span class="disp-chip-icon" aria-hidden="true">⭕</span>
-            <span class="disp-chip-body">
-              <span class="disp-chip-label">${escapeHtml(activeLabel)}</span>
-              ${statusLine}
-            </span>
-            <span class="disp-chip-chev" aria-hidden="true">▾</span>
-          </button>
-          <button class="disp-chip-close" onclick="toggleDispersionOverlay()" aria-label="Hide dispersion overlay">×</button>
-        </div>
-        <!-- Expanded-state content: visible when .is-expanded. -->
-        <div class="disp-chip-expanded-content">
-          <div class="disp-chip-expanded-header">
-            <div class="disp-chip-expanded-title">Dispersion club</div>
-            <button class="disp-chip-expanded-close" onclick="collapseDispersionChip()" aria-label="Close">×</button>
-          </div>
-          <div class="disp-picker-list">${rows}</div>
-        </div>
+      <div class="disp-chip">
+        <button class="disp-chip-main" onclick="openDispersionClubPicker()" aria-label="Change club for dispersion overlay">
+          <span class="disp-chip-icon" aria-hidden="true">⭕</span>
+          <span class="disp-chip-body">
+            <span class="disp-chip-label">${escapeHtml(activeLabel)}</span>
+            ${statusLine}
+          </span>
+          <span class="disp-chip-chev" aria-hidden="true">▾</span>
+        </button>
+        <button class="disp-chip-close" onclick="toggleDispersionOverlay()" aria-label="Hide dispersion overlay">×</button>
       </div>`;
   }
 
-  // Expand the chip to show the club picker. The morph animation is
-  // CSS-driven for width/border-radius, but height needs JS to resolve
-  // 'auto' to a pixel value (CSS can't transition between auto and a
-  // fixed height). We measure the expanded content's natural height
-  // and apply it inline; transitionend clears the inline style if we
-  // want auto sizing afterward (we don't here — the inline px value
-  // is fine for the duration of expansion).
-  function expandDispersionChip() {
-    const chip = document.getElementById('disp-chip');
-    const backdrop = document.getElementById('disp-chip-backdrop');
-    if (!chip) return;
-    const expandedContent = chip.querySelector('.disp-chip-expanded-content');
-    if (!expandedContent) return;
-    // Temporarily make the expanded content measurable. It's normally
-    // visibility:hidden + opacity:0 but the visibility hidden prevents
-    // it from contributing to layout. We flip it to visible (still
-    // opacity:0) just long enough to read scrollHeight, then immediately
-    // commit the .is-expanded class which will animate properly.
-    const prevVisibility = expandedContent.style.visibility;
-    const prevPosition = expandedContent.style.position;
-    expandedContent.style.visibility = 'visible';
-    expandedContent.style.position = 'relative';
-    expandedContent.style.opacity = '0';
-    // Force layout to read scrollHeight.
-    const targetHeight = expandedContent.scrollHeight + 30; // padding allowance
-    expandedContent.style.visibility = prevVisibility;
-    expandedContent.style.position = prevPosition;
-    expandedContent.style.opacity = '';
-    // Apply target height inline so the CSS transition resolves it.
-    chip.style.height = targetHeight + 'px';
-    chip.classList.add('is-expanded');
-    if (backdrop) backdrop.classList.add('is-visible');
-  }
-
-  // Collapse back to the compact pill. Reverse of expand — class
-  // removal triggers the CSS transition. Inline height needs to be
-  // cleared so the compact dimensions (50px from CSS) apply.
-  function collapseDispersionChip() {
-    const chip = document.getElementById('disp-chip');
-    const backdrop = document.getElementById('disp-chip-backdrop');
-    if (!chip) return;
-    chip.classList.remove('is-expanded');
-    // Clear the inline height so CSS's 50px takes over and animates.
-    chip.style.height = '';
-    if (backdrop) backdrop.classList.remove('is-visible');
-  }
-
-  // Re-render the chip when the chip's status info changes. Now no
-  // longer used on the hot drag path (drag doesn't change club), but
-  // kept for explicit triggering on club changes.
+  // Re-render the chip on club changes. No longer on the hot drag
+  // path — drag doesn't change the club, so this only fires when
+  // the user explicitly picks a new one or toggles the overlay.
   function updateDispersionClubChipState() {
     renderDispersionClubChip();
+  }
+
+  // Club picker — bottom sheet listing the user's bag. Uses the same
+  // sliding-up sheet pattern as other pickers in the app.
+  function openDispersionClubPicker() {
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    if (bag.length === 0) {
+      showToast('No clubs in your bag yet — add clubs in Profile > My Bag', false);
+      return;
+    }
+    const ov = roundGpsState.dispersionOverlay;
+    const activeKey = ov ? ov.clubKey : null;
+    let mount = document.getElementById('disp-club-picker-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'disp-club-picker-mount';
+      document.body.appendChild(mount);
+    }
+    const rows = bag.map(c => {
+      const key = makeClubKey(c.name);
+      const isActive = key === activeKey;
+      const d = getDispersionForClub(key);
+      const badge = d
+        ? (d.fallbackUsed
+            ? `<span class="disp-picker-badge disp-picker-badge-fallback">bag avg</span>`
+            : `<span class="disp-picker-badge">${d.sampleCount} shots</span>`)
+        : `<span class="disp-picker-badge disp-picker-badge-empty">no data</span>`;
+      return `
+        <button class="disp-picker-row${isActive ? ' is-active' : ''}"
+                onclick="setDispersionClub('${escapeHtml(key)}')">
+          <span class="disp-picker-name">${escapeHtml(c.name)}</span>
+          ${badge}
+        </button>`;
+    }).join('');
+    // Mount with .opening class on backdrop and sheet so they start
+    // at their off-state (backdrop opacity 0, sheet translateY 100%).
+    // We then strip .opening on the next frame to trigger the
+    // transition into the on-state.
+    mount.innerHTML = `
+      <div class="disp-picker-backdrop opening" onclick="closeDispersionClubPicker()"></div>
+      <div class="disp-picker-sheet opening">
+        <div class="disp-picker-header">
+          <div class="disp-picker-title">Dispersion club</div>
+          <button class="disp-picker-close" onclick="closeDispersionClubPicker()" aria-label="Close">×</button>
+        </div>
+        <div class="disp-picker-list">${rows}</div>
+      </div>`;
+    // Force layout, then strip .opening so the transition runs.
+    const backdrop = mount.querySelector('.disp-picker-backdrop');
+    const sheet = mount.querySelector('.disp-picker-sheet');
+    if (sheet) void sheet.offsetHeight;
+    requestAnimationFrame(() => {
+      if (backdrop) backdrop.classList.remove('opening');
+      if (sheet) sheet.classList.remove('opening');
+    });
+  }
+
+  // Close with exit transition. Adds .closing → sheet slides down +
+  // backdrop fades out → transitionend triggers innerHTML clear.
+  // Optional onDone callback runs after cleanup, used by
+  // setDispersionClub to delay the chip re-render until the sheet
+  // is fully gone (avoids visible content swap during the slide).
+  function closeDispersionClubPicker(onDone) {
+    const mount = document.getElementById('disp-club-picker-mount');
+    if (!mount) { if (onDone) onDone(); return; }
+    const backdrop = mount.querySelector('.disp-picker-backdrop');
+    const sheet = mount.querySelector('.disp-picker-sheet');
+    if (!sheet) { mount.innerHTML = ''; if (onDone) onDone(); return; }
+    if (backdrop) backdrop.classList.add('closing');
+    sheet.classList.add('closing');
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      mount.innerHTML = '';
+      if (onDone) onDone();
+    };
+    // Wait for the sheet's transform transition (the longer of the
+    // two animations); transitionend fires on completion. Fallback
+    // timeout matches the CSS 280ms with a small buffer.
+    sheet.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 320);
   }
 
   function setDispersionClub(clubKey) {
@@ -61627,21 +63327,17 @@
     if (!ov) return;
     ov.clubKey = clubKey;
     invalidateDispersionCache();
-    // Collapse first so the user sees the morph back to chip; then
-    // after the CSS transition finishes, re-render the chip's content
-    // with the new active club. Doing it in this order means the
-    // selected row stays visible (and orange-active) during the morph,
-    // which feels more correlated than abruptly swapping content.
-    collapseDispersionChip();
-    setTimeout(() => {
+    // Close with the exit animation; once the sheet is gone, refresh
+    // the chip + overlay so the changes appear after the close.
+    closeDispersionClubPicker(() => {
       renderDispersionClubChip();
       updateDispersionOverlay();
-    }, 320); // matches CSS transition duration
+    });
   }
   // Expose to onclick handlers.
   window.toggleDispersionOverlay = toggleDispersionOverlay;
-  window.expandDispersionChip = expandDispersionChip;
-  window.collapseDispersionChip = collapseDispersionChip;
+  window.openDispersionClubPicker = openDispersionClubPicker;
+  window.closeDispersionClubPicker = closeDispersionClubPicker;
   window.setDispersionClub = setDispersionClub;
 
   // ──────────────────────────────────────────────────────────
@@ -62926,14 +64622,20 @@
           fromEnd.lng, fromEnd.lat));
       }
       if (map.getSource(greenSourceId)) {
+        // Use the effective pin position (custom pin or green center).
+        // Keeps the line endpoint visually consistent with the
+        // distance label, which also reads to the pin.
+        const pinForLine = getEffectivePinLatLng() || {
+          lat: roundGpsState.greenLat, lng: roundGpsState.greenLng
+        };
         const greenStart = shortenLineEnd(
           map,
-          roundGpsState.greenLng, roundGpsState.greenLat,
+          pinForLine.lng, pinForLine.lat,
           roundGpsState.targetLng, roundGpsState.targetLat,
           TARGET_RETICLE_PAD_PX);
         map.getSource(greenSourceId).setData(lineFeature(
           greenStart.lng, greenStart.lat,
-          roundGpsState.greenLng, roundGpsState.greenLat));
+          pinForLine.lng, pinForLine.lat));
       }
     } catch (err) {
       // Swallow — drag fires every frame; a transient failure
@@ -63011,16 +64713,21 @@
         roundGpsState.greenLng, roundGpsState.greenLat,
         midLng, midLat,
         -ROUND_GPS_LABEL_OFFSET_PX);  // negative = other side
+      // Use effective pin position (user's dragged pin OR green center)
+      // so back/left pin shifts are reflected in the displayed distance.
+      const pin = getEffectivePinLatLng();
+      const pinLat = pin ? pin.lat : roundGpsState.greenLat;
+      const pinLng = pin ? pin.lng : roundGpsState.greenLng;
       const yards = haversineYards(
         roundGpsState.targetLat, roundGpsState.targetLng,
-        roundGpsState.greenLat, roundGpsState.greenLng);
+        pinLat, pinLng);
       const text = `${Math.round(yards)}y`;
-      // Plays-like for the hypothetical "next shot" from target → green.
+      // Plays-like for the hypothetical "next shot" from target → pin.
       // Useful for layup planning — "if I lay up here, my approach
       // plays Xy."
       const plays = getRoundGpsPlaysLikeAdjustments(
         roundGpsState.targetLat, roundGpsState.targetLng,
-        roundGpsState.greenLat, roundGpsState.greenLng,
+        pinLat, pinLng,
         yards);
       if (!labels.greenLabel) {
         const el = buildRoundGpsLabelEl(text);
@@ -63175,11 +64882,17 @@
     if (roundGpsState.mode === 'playing'
         && userPos
         && roundGpsState.greenLat != null) {
-      const yards = haversineYards(
-        userPos.lat, userPos.lng,
-        roundGpsState.greenLat, roundGpsState.greenLng);
+      // Use the effective pin position — user's dragged pin if set,
+      // otherwise green center. This handles both "pin is back" and
+      // "pin is left/right" cases that a single offset value can't
+      // represent.
+      const pin = getEffectivePinLatLng();
+      const yards = pin
+        ? haversineYards(userPos.lat, userPos.lng, pin.lat, pin.lng)
+        : haversineYards(userPos.lat, userPos.lng,
+            roundGpsState.greenLat, roundGpsState.greenLng);
       if (distValueEl) distValueEl.textContent = Math.round(yards);
-      // Compute and display plays-like distance for TO GREEN. Hidden
+      // Compute and display plays-like distance for TO PIN. Hidden
       // when a target is active — in that case plays-like belongs to
       // the CARRY readout in the bottom bar (the user's primary
       // target during planning is the dropped reticle, not the green).
@@ -63187,9 +64900,14 @@
         if (roundGpsState.targetActive) {
           playsEl.classList.add('is-hidden');
         } else {
+          // Plays-like uses geographic from/to for its elevation +
+          // wind components. Pass the effective pin position so
+          // elevation is sampled at the actual pin location.
+          const pinLat = pin ? pin.lat : roundGpsState.greenLat;
+          const pinLng = pin ? pin.lng : roundGpsState.greenLng;
           const adj = getRoundGpsPlaysLikeAdjustments(
             userPos.lat, userPos.lng,
-            roundGpsState.greenLat, roundGpsState.greenLng,
+            pinLat, pinLng,
             yards);
           if (adj) {
             if (playsValueEl) playsValueEl.textContent = adj.plays;
@@ -63201,10 +64919,21 @@
         }
       }
     } else {
-      // Planning mode (or no fix yet) — show hole yardage.
+      // Planning mode (or no fix yet) — show hole yardage. If a
+      // custom pin is set AND we have a tee position, compute the
+      // tee→pin distance via haversine for accuracy. Otherwise fall
+      // back to the stored hole yardage (tee→green-center).
       if (distValueEl) {
-        distValueEl.textContent = roundGpsState.holeYards != null
-          ? roundGpsState.holeYards
+        const pin = getEffectivePinLatLng();
+        let displayYards = roundGpsState.holeYards;
+        if (hasCustomPinForCurrentHole() && pin
+            && roundGpsState.teeLat != null && roundGpsState.teeLng != null) {
+          displayYards = haversineYards(
+            roundGpsState.teeLat, roundGpsState.teeLng,
+            pin.lat, pin.lng);
+        }
+        distValueEl.textContent = displayYards != null
+          ? Math.round(displayYards)
           : '—';
       }
       // Hide plays-like in planning mode — depends on a user position.
@@ -63221,9 +64950,15 @@
     const sub = document.getElementById('round-gps-distance-sub');
     const eyebrow = document.getElementById('round-gps-distance-eyebrow');
 
+    // "Remaining" is target → pin. Use the effective pin position
+    // (user's dragged pin OR green center) so back/left pin shifts
+    // are reflected.
+    const pin = getEffectivePinLatLng();
+    const pinLat = pin ? pin.lat : roundGpsState.greenLat;
+    const pinLng = pin ? pin.lng : roundGpsState.greenLng;
     const remainingYards = haversineYards(
       roundGpsState.targetLat, roundGpsState.targetLng,
-      roundGpsState.greenLat, roundGpsState.greenLng);
+      pinLat, pinLng);
 
     const userPos = getRoundGpsUserPos();
     if (roundGpsState.mode === 'playing' && userPos) {
@@ -63428,6 +65163,23 @@
             <circle cx="12" cy="12" r="5"/>
             <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
           </svg>
+        </button>
+
+        <!-- Pin button — sits above the layers button. Tap to drop
+             a draggable pin on the green at center. User then drags
+             it to the actual flag position. Tap again to remove the
+             pin (distances revert to green-center). The badge shows
+             the offset from center as e.g. "20L 5B" (20 left, 5 back). -->
+        <button class="round-gps-pin-btn"
+                id="round-gps-pin-btn"
+                onclick="toggleRoundGpsPinPlacement()"
+                aria-label="Drop pin on green">
+          <svg viewBox="0 0 18 22" width="18" height="22" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="2" x2="3" y2="20"/>
+            <path d="M3 2 L14 6 L3 10 Z" fill="currentColor"/>
+            <circle cx="3" cy="20" r="1.5" fill="currentColor"/>
+          </svg>
+          <span class="round-gps-pin-btn-badge" style="display:none"></span>
         </button>
 
         <!-- Recenter button — bottom-left, floating above the action bar.
@@ -63655,6 +65407,9 @@
         }
       );
     }
+    // Initial pin offset button state — sync the badge with whatever
+    // offset (likely 0) is set for the current hole.
+    refreshRoundGpsPinBtn();
   }
 
   // ─────────────────────────────────────────────────────────────
