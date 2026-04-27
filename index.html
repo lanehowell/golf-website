@@ -8203,20 +8203,18 @@
   .shot-edit-map-section {
     margin-bottom: var(--space-4);
   }
-  /* Shot edit map pins — draggable Mapbox markers. Common base styles
-     plus per-pin variants. Uses ::before pseudo for the touch hitbox
-     so the parent's bounding box stays exactly the visual size. This
-     is critical because Mapbox computes the anchor from the parent's
-     getBoundingClientRect() — if the box is bigger than the visual
-     (e.g., from a real DOM child with negative inset), the anchor
-     centroid drifts away from the visual centroid as the map zooms. */
+  /* Shot edit map pins — draggable Mapbox markers. Wrapper-based
+     structure: outer .shot-edit-pin has rock-solid fixed dimensions
+     (no border, no padding, no inflating children) so Mapbox's
+     anchor: 'center' translate(-50%, -50%) lands the visual centroid
+     exactly on the lat/lng. The visible circle is an inner element
+     positioned absolutely-centered inside the wrapper. The hitbox
+     is a ::before pseudo on the wrapper. */
   .shot-edit-pin {
-    border-radius: 50%;
     cursor: grab;
     position: relative;
     -webkit-tap-highlight-color: transparent;
-    /* Box must contain ONLY the visual size — no padding/margin/
-       hitbox-children allowed here. Touch hitbox lives in ::before. */
+    /* Fixed sizes per variant below. NO border/padding here. */
   }
   .shot-edit-pin::before {
     content: '';
@@ -8225,13 +8223,30 @@
     border-radius: 50%;
   }
   .shot-edit-pin:active { cursor: grabbing; }
+  /* The inner visual — absolutely-centered in the wrapper. Border,
+     shadow, etc. live here so they don't affect the wrapper's box. */
+  .shot-edit-pin-visual {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none; /* hitbox handled by wrapper */
+  }
+  /* Variant sizes — wrapper is exactly the visible diameter. */
   .shot-edit-pin-start {
+    width: 18px; height: 18px;
+  }
+  .shot-edit-pin-start .shot-edit-pin-visual {
     width: 14px; height: 14px;
     background: #fefefe;
     border: 2px solid rgba(0, 0, 0, 0.6);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   }
   .shot-edit-pin-end {
+    width: 22px; height: 22px;
+  }
+  .shot-edit-pin-end .shot-edit-pin-visual {
     width: 18px; height: 18px;
     background: var(--color-orange, #E85D04);
     border: 2px solid #fff;
@@ -8239,7 +8254,10 @@
   }
   .shot-edit-pin-target {
     width: 20px; height: 20px;
-    border-radius: 0; /* the SVG handles the visual circle */
+  }
+  .shot-edit-pin-target .shot-edit-pin-visual {
+    width: 20px; height: 20px;
+    /* SVG handles the visual circle; just position the SVG container. */
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
   }
   .shot-edit-pin-target::before {
@@ -18247,13 +18265,29 @@
       left: 0;
       right: 0;
       bottom: 0;
-      transform: none;
+      transform: translateY(0);
       width: 100%;
       max-width: 100%;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      animation: confirmSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      /* Use transition + .opening/.closing classes for slide in/out.
+         Mirrors the shot edit sheet pattern so close animates back
+         down instead of snapping. JS adds .opening on creation,
+         removes it next frame to slide up. On close, adds .closing
+         and waits for transitionend before removing the .open class. */
+      transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+      animation: none; /* override desktop scaleIn animation */
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
+    .confirm-dialog.opening,
+    .confirm-dialog.closing { transform: translateY(100%); }
+    /* Backdrop fade-out on close. Same fade-in default keeps the
+       fadeIn keyframe-driven open animation; closing class triggers
+       a transition-driven fade out so the timing matches the dialog's
+       slide-out (260ms). */
+    .confirm-backdrop {
+      transition: opacity 220ms ease;
+    }
+    .confirm-backdrop.closing { opacity: 0; }
     /* Tighten internal padding on mobile — the sheet's bottom edge
        already gets safe-area padding via the outer dialog; we don't
        need additional space-6 below the action buttons. */
@@ -18263,10 +18297,6 @@
     .confirm-dialog-actions {
       padding: var(--space-2) var(--space-5) var(--space-4);
       flex-direction: column-reverse; /* Confirm on top on mobile for thumb reach */
-    }
-    @keyframes confirmSlideUp {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
     }
     .confirm-btn { padding: var(--space-4) var(--space-5); font-size: var(--text-base); }
   }
@@ -31695,9 +31725,45 @@
     const { resolve, previousFocus, keyHandler } = __confirmDialogCurrent;
     __confirmDialogCurrent = null;
     const wrap = document.getElementById('confirm-dialog-wrap');
-    if (wrap) wrap.classList.remove('open');
     const backdrop = document.getElementById('confirm-dialog');
-    if (backdrop) backdrop.classList.remove('open');
+    const dialog = document.querySelector('.confirm-dialog');
+    // Animate close: add .closing (translateY(100%) on dialog,
+    // opacity:0 on backdrop), wait for transitionend, then remove
+    // .open from the wrap to fully hide. Without the wait, removing
+    // .open immediately sets display:none and the transition is
+    // skipped — the dialog snaps off-screen.
+    const finishClose = () => {
+      if (wrap) wrap.classList.remove('open');
+      if (backdrop) {
+        backdrop.classList.remove('open');
+        backdrop.classList.remove('closing');
+      }
+      if (dialog) dialog.classList.remove('closing');
+    };
+    if (dialog) {
+      dialog.classList.add('closing');
+      if (backdrop) backdrop.classList.add('closing');
+      let done = false;
+      const onEnd = (e) => {
+        if (e.propertyName !== 'transform') return;
+        if (done) return;
+        done = true;
+        dialog.removeEventListener('transitionend', onEnd);
+        finishClose();
+      };
+      dialog.addEventListener('transitionend', onEnd);
+      // Fallback in case transitionend doesn't fire (e.g., desktop
+      // where the dialog uses scaleIn animation, not slide). 280ms =
+      // animation duration (260ms) + a small buffer.
+      setTimeout(() => {
+        if (done) return;
+        done = true;
+        dialog.removeEventListener('transitionend', onEnd);
+        finishClose();
+      }, 280);
+    } else {
+      finishClose();
+    }
     // Pair with acquireScrollLock used in confirmDialog() above.
     releaseScrollLock();
     document.removeEventListener('keydown', keyHandler, true);
@@ -31767,6 +31833,29 @@
       const wrap = document.getElementById('confirm-dialog-wrap');
       if (wrap) wrap.classList.add('open');
       backdrop.classList.add('open');
+      // Set .opening on the dialog so it starts off-screen below the
+      // viewport (transform: translateY(100%)). Then remove .opening
+      // next frame so the transition animates it back up to its
+      // default (translateY(0)). Mirrors the shot edit sheet's open
+      // pattern; close uses .closing similarly.
+      // Note: id 'confirm-dialog' is the BACKDROP element (confusing
+      // naming in the markup); the actual dialog matches .confirm-dialog.
+      const dialog = document.querySelector('.confirm-dialog');
+      if (dialog) {
+        // Clear any leftover .closing class from a previous dismiss
+        // that hasn't fully finished animating out.
+        dialog.classList.remove('closing');
+        dialog.classList.add('opening');
+        requestAnimationFrame(() => {
+          // Force a reflow so the browser commits the .opening state
+          // before we remove it. Without this the transition can be
+          // skipped (browser optimizes away "set then immediately unset").
+          void dialog.offsetHeight;
+          dialog.classList.remove('opening');
+        });
+      }
+      // Same defensive clear for backdrop's .closing state.
+      if (backdrop) backdrop.classList.remove('closing');
       // Use acquireScrollLock instead of lockBodyScroll — the latter's
       // position:fixed approach causes visible body re-anchoring on
       // iOS, while acquireScrollLock just disables overflow on html.
@@ -38419,12 +38508,14 @@
     // exactly at the lat/lng. This is the key bit — earlier versions
     // used padding/margin which shifted the bounding box and caused
     // the visual to drift away from line endpoints.
-    // Start marker — small white circle, draggable. Touch hitbox
-    // is a CSS ::before pseudo-element on the marker class, which
-    // doesn't affect the parent's bounding box (so Mapbox's anchor
-    // math computes the visual centroid correctly across zoom).
+    // Start marker — small white circle, draggable. Wrapper-based:
+    // outer has fixed dimensions (no border/shadow that would inflate
+    // the box), inner visual is absolutely-centered. This keeps the
+    // wrapper's bounding box rock-solid so Mapbox's anchor:'center'
+    // math produces the correct visual centroid at every zoom level.
     const startEl = document.createElement('div');
     startEl.className = 'shot-edit-pin shot-edit-pin-start';
+    startEl.innerHTML = `<div class="shot-edit-pin-visual"></div>`;
     const startMarker = new mapboxgl.Marker({
       element: startEl, anchor: 'center', draggable: true,
     })
@@ -38445,6 +38536,7 @@
     // End marker — orange filled circle, draggable.
     const endEl = document.createElement('div');
     endEl.className = 'shot-edit-pin shot-edit-pin-end';
+    endEl.innerHTML = `<div class="shot-edit-pin-visual"></div>`;
     const endMarker = new mapboxgl.Marker({
       element: endEl, anchor: 'center', draggable: true,
     })
@@ -38467,11 +38559,13 @@
       const tgtEl = document.createElement('div');
       tgtEl.className = 'shot-edit-pin shot-edit-pin-target';
       tgtEl.innerHTML = `
-        <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" fill="#ff8a3d"
-                  stroke="#fff" stroke-width="2" opacity="0.9"/>
-          <circle cx="12" cy="12" r="2.5" fill="#fff"/>
-        </svg>`;
+        <div class="shot-edit-pin-visual">
+          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" fill="#ff8a3d"
+                    stroke="#fff" stroke-width="2" opacity="0.9"/>
+            <circle cx="12" cy="12" r="2.5" fill="#fff"/>
+          </svg>
+        </div>`;
       const tgtMarker = new mapboxgl.Marker({
         element: tgtEl, anchor: 'center', draggable: true,
       })
