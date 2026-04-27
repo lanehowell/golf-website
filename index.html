@@ -9797,10 +9797,18 @@
      score sheet occluding the picker. */
   body.round-gps-open .miss-modal-backdrop   { z-index: 9510; }
   body.round-gps-open .miss-modal            { z-index: 9520; }
-  /* Confirm dialog must sit ABOVE everything else so finish-round and
-     other confirmation prompts triggered from the score sheet (or
-     anywhere) remain interactive. Highest in the GPS-open stack. */
+  /* Confirm dialog must sit ABOVE everything else so finish-round
+     and shot-delete confirmations remain visible AND interactive.
+     Highest in the GPS-open stack. Both backdrop and dialog need
+     bumping — without bumping the dialog itself, it would sit at
+     z-index 9001 (default), behind the shot edit sheet at 9480. */
   body.round-gps-open .confirm-backdrop      { z-index: 9590; }
+  body.round-gps-open .confirm-dialog        { z-index: 9600; }
+  /* Same treatment when the round replay panel is open. The replay's
+     shot-edit sheet sits at 9470/9480; confirm dialog needs to sit
+     above that to be visible+interactive. */
+  body.round-replay-open .confirm-backdrop   { z-index: 9590; }
+  body.round-replay-open .confirm-dialog     { z-index: 9600; }
 
   .tools-sheet {
     position: fixed;
