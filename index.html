@@ -16006,6 +16006,73 @@
     padding: 0 4px;
   }
 
+  /* ─── Dispersion scatter chart (2D shot pattern) ──────────────── */
+  /* Container holding the SVG, optional caption, and legend. The
+     SVG is allowed to fill its container width up to a max so it
+     scales nicely on phones and stays sensibly-sized on tablets. */
+  .disp-scatter-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-2) 0;
+  }
+  .disp-scatter-wrap-compact {
+    padding: var(--space-1) 0;
+  }
+  .disp-scatter-svg {
+    max-width: 360px;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .disp-scatter-meta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .disp-scatter-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2) var(--space-3);
+    margin-top: var(--space-1);
+    max-width: 360px;
+  }
+  .disp-scatter-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .disp-scatter-legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+  }
+  .disp-scatter-legend-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .disp-scatter-empty {
+    padding: var(--space-3);
+    background: var(--bg-page);
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    text-align: center;
+  }
+
   /* ─── Contact bar (4-way: Clean / Thin / Chunk / Other) ─────── */
   .contact-bar {
     display: flex;
@@ -30659,6 +30726,192 @@
   // Render a mini 3-segment horizontal bar showing L/S/R distribution.
   // Each segment's width is proportional to its count; empty segments
   // get a minimal placeholder width so the bar always renders.
+  // Render a 2D dispersion scatter chart as inline SVG. Each shot
+  // is plotted at (lateralOffset, alongShot) relative to its target:
+  //   x-axis: negative = left of target, positive = right
+  //   y-axis: negative = short, positive = long (rendered with
+  //           short at the BOTTOM since visually the user is looking
+  //           "down range" — long is up, short is down)
+  // Origin (0,0) = target = where the user aimed.
+  //
+  // Inputs:
+  //   shots: [{ lateralOffset, alongShot, club, ... }] — only shots
+  //          with both offsets defined are plotted. Caller filters
+  //          upstream (this function doesn't validate per-shot).
+  //   opts.compact: tighter layout for use inside cards
+  //   opts.unit: 'yd' | 'm' (default yd) for axis labels
+  //
+  // Returns HTML string with embedded SVG. Empty-state when no
+  // shots have offset data.
+  function renderDispersionScatter(shots, opts) {
+    opts = opts || {};
+    const compact = !!opts.compact;
+    const unit = opts.unit || distanceUnit() || 'yd';
+    const valid = (shots || []).filter(s =>
+      typeof s.lateralOffset === 'number' &&
+      typeof s.alongShot === 'number' &&
+      Number.isFinite(s.lateralOffset) &&
+      Number.isFinite(s.alongShot)
+    );
+    if (valid.length === 0) {
+      return `<div class="disp-scatter-empty">
+        No targeted shots logged yet — set a target when logging shots
+        to see your dispersion pattern.
+      </div>`;
+    }
+
+    // Compute axis bounds. Use 95th percentile of |offset| in each
+    // axis to clip outliers from setting the scale (a single shanked
+    // shot 80y right shouldn't make every other dot cluster in 5%
+    // of the chart). Floor at 15y so very tight shooters still have
+    // a sensible window.
+    const lats = valid.map(s => Math.abs(s.lateralOffset)).sort((a, b) => a - b);
+    const longs = valid.map(s => Math.abs(s.alongShot)).sort((a, b) => a - b);
+    const p95 = (arr) => arr[Math.floor(arr.length * 0.95)] || arr[arr.length - 1] || 0;
+    const xBound = Math.max(15, Math.ceil(p95(lats) / 5) * 5 + 5);
+    const yBound = Math.max(15, Math.ceil(p95(longs) / 5) * 5 + 5);
+
+    // SVG viewport. The chart drawing area uses a coordinate system
+    // where (0,0) is the center (target). We map data coordinates
+    // (yards offset) to SVG coordinates via simple linear scaling.
+    const W = compact ? 280 : 320;
+    const H = compact ? 280 : 320;
+    const padding = compact ? 28 : 36;
+    const innerW = W - padding * 2;
+    const innerH = H - padding * 2;
+    const cx = W / 2;
+    const cy = H / 2;
+    // X scale: 1 yard = innerW / (2 * xBound) px. Same idea for Y
+    // but inverted (positive alongShot = long = UP visually).
+    const xScale = (innerW / 2) / xBound;
+    const yScale = (innerH / 2) / yBound;
+    const projectX = (yards) => cx + yards * xScale;
+    const projectY = (yards) => cy - yards * yScale; // negate for screen Y
+
+    // Color palette per club. Stable ordering — same club always
+    // gets the same color across renders. For a single-club chart
+    // (Club Data detail page), all dots share one color.
+    const PALETTE = [
+      '#E85D04', // orange (driver-ish — primary)
+      '#5BA3D9', // blue
+      '#9C7BC4', // purple
+      '#46B07B', // green
+      '#D9A23E', // gold
+      '#D45D5D', // red
+      '#6CA1A8', // teal
+      '#B07F4E', // brown
+      '#8B8B96', // grey
+    ];
+    const clubsSeen = [];
+    const clubColor = new Map();
+    for (const s of valid) {
+      const club = s.club || 'Unknown';
+      if (!clubColor.has(club)) {
+        clubColor.set(club, PALETTE[clubsSeen.length % PALETTE.length]);
+        clubsSeen.push(club);
+      }
+    }
+    const useLegend = clubsSeen.length > 1;
+
+    // Dispersion ellipse — covers ~70% of shots (approximating
+    // 1-sigma for a roughly Gaussian distribution). Shows visually
+    // "where you land most of the time." Computed as 70th-percentile
+    // |offset| in each axis. Skip for tiny samples.
+    let ellipseHtml = '';
+    if (valid.length >= 5) {
+      const p70 = (arr) => arr[Math.floor(arr.length * 0.70)] || arr[arr.length - 1] || 0;
+      const xRad = p70(lats) * xScale;
+      const yRad = p70(longs) * yScale;
+      ellipseHtml = `
+        <ellipse cx="${cx}" cy="${cy}" rx="${xRad.toFixed(1)}" ry="${yRad.toFixed(1)}"
+                 fill="rgba(232,93,4,0.08)" stroke="rgba(232,93,4,0.35)"
+                 stroke-width="1" stroke-dasharray="3 3"/>`;
+    }
+
+    // Axis lines (crosshairs through origin) + bounds box.
+    const dotRadius = compact ? 3 : 4;
+    const dotsHtml = valid.map((s, i) => {
+      const x = projectX(s.lateralOffset);
+      const y = projectY(s.alongShot);
+      const color = clubColor.get(s.club || 'Unknown');
+      // Clip dots that fall outside the chart area (extreme outliers).
+      const inBounds = x >= padding - 2 && x <= W - padding + 2
+                    && y >= padding - 2 && y <= H - padding + 2;
+      if (!inBounds) {
+        // Edge marker — small triangle pointing in the outlier's
+        // direction. Keeps the user aware of the outlier's existence
+        // without skewing the scale.
+        const clampedX = Math.max(padding, Math.min(W - padding, x));
+        const clampedY = Math.max(padding, Math.min(H - padding, y));
+        return `<circle cx="${clampedX.toFixed(1)}" cy="${clampedY.toFixed(1)}"
+                        r="${(dotRadius - 1).toFixed(1)}"
+                        fill="${color}" fill-opacity="0.4"
+                        stroke="${color}" stroke-width="1"/>`;
+      }
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}"
+                      r="${dotRadius}" fill="${color}" fill-opacity="0.7"
+                      stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>`;
+    }).join('');
+
+    // Axis labels — tick marks and yardage at axis ends.
+    const axisLabels = `
+      <text x="${cx}" y="${padding - 8}" text-anchor="middle"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        long ${yBound}${unit}
+      </text>
+      <text x="${cx}" y="${H - padding + 16}" text-anchor="middle"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        short ${yBound}${unit}
+      </text>
+      <text x="${padding - 6}" y="${cy + 3}" text-anchor="end"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        L ${xBound}
+      </text>
+      <text x="${W - padding + 6}" y="${cy + 3}" text-anchor="start"
+            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+        R ${xBound}
+      </text>`;
+
+    const svg = `
+      <svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+           class="disp-scatter-svg" role="img" aria-label="Dispersion pattern: ${valid.length} shots">
+        <!-- bounding box -->
+        <rect x="${padding}" y="${padding}" width="${innerW}" height="${innerH}"
+              fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <!-- crosshairs through origin (target) -->
+        <line x1="${padding}" y1="${cy}" x2="${W - padding}" y2="${cy}"
+              stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+        <line x1="${cx}" y1="${padding}" x2="${cx}" y2="${H - padding}"
+              stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+        <!-- target marker at origin -->
+        <circle cx="${cx}" cy="${cy}" r="3" fill="none"
+                stroke="rgba(232,93,4,0.6)" stroke-width="1.5"/>
+        <circle cx="${cx}" cy="${cy}" r="1" fill="rgba(232,93,4,0.8)"/>
+        ${ellipseHtml}
+        ${dotsHtml}
+        ${axisLabels}
+      </svg>`;
+
+    const legendHtml = !useLegend ? '' : `
+      <div class="disp-scatter-legend">
+        ${clubsSeen.map(club => `
+          <div class="disp-scatter-legend-item">
+            <span class="disp-scatter-legend-dot" style="background:${clubColor.get(club)}"></span>
+            <span class="disp-scatter-legend-label">${escapeHtml(club)}</span>
+          </div>
+        `).join('')}
+      </div>`;
+
+    return `
+      <div class="disp-scatter-wrap${compact ? ' disp-scatter-wrap-compact' : ''}">
+        ${svg}
+        <div class="disp-scatter-meta">
+          ${valid.length} shot${valid.length === 1 ? '' : 's'} with target set
+        </div>
+        ${legendHtml}
+      </div>`;
+  }
+
   function renderDispersionBar(disp, opts) {
     opts = opts || {};
     const compact = !!opts.compact;
@@ -30978,6 +31231,23 @@
       if (e.contact)   { contact[e.contact] += 1; contact.total += 1; }
     }
 
+    // Shot pattern (2D dispersion scatter) — pulls round shots with
+    // lateralOffset/alongShot data (set when the user logged a target
+    // for the shot). Range shots don't have geometric offsets, so
+    // this view is round-data only. Empty state if no targeted shots.
+    const targetedShots = entries
+      .filter(e => e.source === 'round')
+      .map(e => ({
+        lateralOffset: e.shot?.lateralOffset,
+        alongShot: e.shot?.alongShot,
+        club: clubLabel || e.clubName,
+      }))
+      .filter(s => typeof s.lateralOffset === 'number' && typeof s.alongShot === 'number');
+    const scatterBlock = targetedShots.length === 0 ? '' : `
+      <div class="range-detail-section-label">Shot pattern <span class="section-sublabel">${targetedShots.length} targeted shot${targetedShots.length === 1 ? '' : 's'}</span></div>
+      ${renderDispersionScatter(targetedShots)}
+    `;
+
     const dispBlock = disp.total === 0 ? `
       <div class="range-detail-section-label">Dispersion</div>
       <div class="club-detail-emptybox">No direction data logged with this club yet.</div>
@@ -31033,6 +31303,7 @@
       ${head}
       ${carryBlock}
       ${gpsBlock}
+      ${scatterBlock}
       ${dispBlock}
       ${contactBlock}
       <div class="range-detail-section-label">Recent Shots</div>
@@ -53072,12 +53343,38 @@
         </div>`;
     }
 
+    // Shot pattern (2D dispersion scatter for this round). Pulls all
+    // shots across all holes that have target+offsets logged. Shows
+    // the SHAPE of this specific round — distinct from the Club Data
+    // chart which shows tendency over all time. Colored by club so
+    // multi-club rounds visually separate (e.g., approach 8-iron vs
+    // wedge dispersion). Skipped if no targeted shots — we don't want
+    // an empty placeholder on every round.
+    const targetedRoundShots = [];
+    for (const arr of Object.values(shotsMap)) {
+      if (!Array.isArray(arr)) continue;
+      for (const s of arr) {
+        if (typeof s.lateralOffset === 'number' && typeof s.alongShot === 'number') {
+          targetedRoundShots.push({
+            lateralOffset: s.lateralOffset,
+            alongShot: s.alongShot,
+            club: s.club || 'Unknown',
+          });
+        }
+      }
+    }
+    const scatterBlock = targetedRoundShots.length === 0 ? '' : `
+      <div class="round-summary-section-label">Shot pattern</div>
+      ${renderDispersionScatter(targetedRoundShots)}
+    `;
+
     return `
       <div class="shot-cat-grid">
         ${drivingCard}
         ${approachCard}
         ${shortCard}
       </div>
+      ${scatterBlock}
     `;
   }
 
