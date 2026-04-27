@@ -33,6 +33,43 @@
   --color-orange-pale:  #FFF0E6; /* tinted background fills */
   --color-orange-glow:  rgba(232,93,4,.18); /* shadow / glow */
 
+  /* — Status Colors ———————————————————————————————————————————
+     Used for success/error/warning indicators across the app.
+     Each follows the same family pattern as orange: base + light
+     (hover/highlight) + dark (pressed/text-on-pale) + pale
+     (tinted background fills). */
+  --color-success:      #2D6E34;   /* base green — "good" / under par / clean contact */
+  --color-success-light: #7FC088;  /* lighter — dark-mode text / accents */
+  --color-success-dark: #1F4E25;   /* darker — pressed / strong emphasis */
+  --color-success-pale: #EFF8F0;   /* tinted background fills */
+  --color-success-glow: rgba(45,110,52,.18);
+
+  --color-danger:       #C74A1F;   /* base red — over par / mishit / errors */
+  --color-danger-light: #E8744A;   /* lighter — dark-mode text */
+  --color-danger-dark:  #8F3010;   /* darker — pressed / strong emphasis */
+  --color-danger-pale:  #FEF0EC;   /* tinted background fills */
+  --color-danger-glow:  rgba(199,74,31,.18);
+
+  --color-warning:      #D4A01F;   /* base gold — caution / mid mishit */
+  --color-warning-light: #E8C879;  /* lighter — dark-mode text */
+  --color-warning-dark: #8B6508;   /* darker — pressed / strong emphasis */
+  --color-warning-pale: #FFF7E6;   /* tinted background fills */
+  --color-warning-glow: rgba(212,160,31,.18);
+
+  --color-info:         #1F72D4;   /* base blue — neutral data / "right" miss */
+  --color-info-light:   #5C9EE8;   /* lighter — dark-mode text */
+  --color-info-dark:    #155BA0;   /* darker — pressed / strong emphasis */
+  --color-info-pale:    #EAF2FB;   /* tinted background fills */
+  --color-info-glow:    rgba(31,114,212,.18);
+
+  /* — Functional accent ————————————————————————————————————
+     Pure chrome yellow used for "this is YOU" markers on satellite
+     maps. Needs to be visually distinct from warning gold (more
+     muted) and from orange (the primary accent). Stands out against
+     greens / browns / fairways. */
+  --color-player-you:    #FFD600;
+  --color-player-you-dark: #1a1a1a;  /* text on player-you bg */
+
   --color-white:      #FFFFFF;
 
   /* — Semantic Aliases ————————————————————————————————————— */
@@ -41,19 +78,30 @@
   --bg-elevated:      var(--color-white);
   --bg-accent-tint:   var(--color-orange-pale);
 
-  /* Hero card surface — the dramatic dark card used as the "today's
-     primary action" signature across Play, Train, etc. Deliberately
-     warm (deep espresso, not pure black) so it lives in the same
-     tonal family as the creams and orange rather than reading as a
-     foreign digital black. Paired with --text-inverse for body copy. */
-  --bg-hero:          #1F1714;
-
   --text-primary:     var(--color-black);
   --text-secondary:   var(--color-black-80);
   --text-muted:       var(--color-black-60);
   --text-inverse:     var(--color-cream-50);
   --text-accent:      var(--color-orange);
   --text-on-accent:   var(--color-white);
+
+  /* Status semantic aliases — text colors on neutral backgrounds.
+     For text on tinted backgrounds (e.g. .alert-success), use the
+     -dark variants which have enough contrast. */
+  --text-success:     var(--color-success-dark);
+  --text-danger:      var(--color-danger-dark);
+  --text-warning:     var(--color-warning-dark);
+  --text-info:        var(--color-info-dark);
+
+  --bg-success-tint:  var(--color-success-pale);
+  --bg-danger-tint:   var(--color-danger-pale);
+  --bg-warning-tint:  var(--color-warning-pale);
+  --bg-info-tint:     var(--color-info-pale);
+
+  --border-success:   var(--color-success);
+  --border-danger:    var(--color-danger);
+  --border-warning:   var(--color-warning);
+  --border-info:      var(--color-info);
 
   --border-light:     var(--color-cream-300);
   --border-medium:    var(--color-cream-400);
@@ -65,6 +113,8 @@
   --font-body:        'DM Sans', system-ui, sans-serif;
   --font-mono:        'DM Mono', 'Courier New', monospace;
 
+  --text-3xs:  0.5rem;     /* 8px — micro-labels, footnotes */
+  --text-2xs:  0.625rem;   /* 10px — captions, badges, metadata */
   --text-xs:   0.75rem;    /* 12px */
   --text-sm:   0.875rem;   /* 14px */
   --text-base: 1rem;       /* 16px */
@@ -124,6 +174,7 @@
   --shadow-lg:  0 8px 32px rgba(13,13,13,.14);
   --shadow-xl:  0 16px 48px rgba(13,13,13,.16);
   --shadow-accent: 0 6px 24px var(--color-orange-glow);
+  --shadow-sheet: 0 -12px 40px rgba(13,13,13,.28), 0 -2px 8px rgba(13,13,13,.12);  /* bottom-sheet uplight */
 
   /* — Transitions —————————————————————————————————————————— */
   --transition-fast:   150ms ease;
@@ -642,8 +693,8 @@ a.link:hover, .prose a:hover {
 }
 .alert-info    { background: var(--color-cream-200); border-color: var(--border-medium); color: var(--text-secondary); }
 .alert-accent  { background: var(--color-orange-pale); border-color: rgba(232,93,4,.3); color: var(--color-orange-dark); }
-.alert-success { background: #EFF8F0; border-color: #B7DDB9; color: #2D6E34; }
-.alert-error   { background: #FEF0EC; border-color: rgba(200,50,0,.25); color: var(--color-orange-dark); }
+.alert-success { background: var(--bg-success-tint); border-color: var(--color-success-light); color: var(--text-success); }
+.alert-error   { background: var(--bg-danger-tint);  border-color: var(--color-danger-light);  color: var(--text-danger); }
 
 
 /* ── Tooltip ──────────────────────────────────────────────── */
