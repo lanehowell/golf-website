@@ -14383,6 +14383,87 @@
     font-style: italic;
   }
 
+  /* Wind indicator — read-only display of historical wind during
+     the round. Same visual chrome as the in-round wind pill but
+     positioned bottom-right of the map. Hidden until data lands. */
+  .round-replay-wind {
+    position: absolute;
+    right: 16px;
+    bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    font: inherit;
+    padding: 0;
+  }
+  .round-replay-wind.is-hidden { display: none; }
+  .round-replay-wind-arrow {
+    width: 18px;
+    height: 18px;
+    transition: transform 400ms ease-out;
+  }
+  .round-replay-wind-speed {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+  .round-replay-wind-unit {
+    font-size: 7px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: -1px;
+  }
+
+  /* Recenter button — floating bottom-left of the map area. Tap to
+     reframe camera on the current hole's bounds. Same visual chrome
+     as in-round GPS view's recenter. Positioned above the shot list
+     + bottom bar stack (~96px shotlist + ~80px bar = ~176px lift). */
+  .round-replay-recenter {
+    position: absolute;
+    left: 16px;
+    bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast),
+                transform 100ms ease-out;
+  }
+  .round-replay-recenter:active {
+    background: rgba(0, 0, 0, 0.75);
+    transform: scale(0.92);
+  }
+  @media (hover: hover) {
+    .round-replay-recenter:hover { background: rgba(0, 0, 0, 0.75); }
+  }
+
   /* Bottom controls bar — five buttons centered. Below the caption.
      Same dark gradient backdrop as in-round so the controls fade
      into the map behind them. */
@@ -34976,6 +35057,105 @@
   }
   window.persistShotChangesForReplay = persistShotChangesForReplay;
 
+  // Fetch historical wind for a round from Open-Meteo's archive API.
+  // Stores the result on round.weather and persists it back to the
+  // round doc so subsequent replays don't re-fetch. Returns the
+  // weather object or null on failure.
+  //
+  // Strategy: fetch hourly wind for the round's date, average over
+  // the typical playing window (round start hour + 4 following
+  // hours), and store {speedMph, directionDeg, fetchedAt}.
+  // Direction stored in degrees (where wind is coming FROM, per
+  // Open-Meteo convention).
+  async function fetchHistoricalWindForRound(round) {
+    if (!round) return null;
+    // Already have weather → no fetch needed.
+    if (round.weather && typeof round.weather.speedMph === 'number') {
+      return round.weather;
+    }
+    const course = getCourse(round.courseId);
+    if (!course || typeof course.lat !== 'number' || typeof course.lng !== 'number') {
+      return null;
+    }
+    // Resolve the round's date. dateKey is "YYYY-MM-DD" — preferred.
+    // Fallback to deriving from startTime.
+    let dateKey = round.dateKey;
+    if (!dateKey && round.startTime) {
+      const d = new Date(round.startTime);
+      dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    if (!dateKey) return null;
+    // Resolve start hour (local) — used to pick which hourly samples
+    // to average. If startTime is missing, average all daylight hours.
+    let startHour = 8; // sensible morning default
+    if (round.startTime) {
+      const d = new Date(round.startTime);
+      startHour = d.getHours();
+    }
+    try {
+      const url = `https://archive-api.open-meteo.com/v1/archive`
+        + `?latitude=${course.lat}&longitude=${course.lng}`
+        + `&start_date=${dateKey}&end_date=${dateKey}`
+        + `&hourly=wind_speed_10m,wind_direction_10m`
+        + `&wind_speed_unit=mph`
+        + `&timezone=auto`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const speeds = data?.hourly?.wind_speed_10m;
+      const dirs = data?.hourly?.wind_direction_10m;
+      if (!Array.isArray(speeds) || !Array.isArray(dirs)) {
+        return null;
+      }
+      // Average over the playing window: startHour through startHour+4.
+      // Clamp to array bounds.
+      const fromIdx = Math.max(0, Math.min(speeds.length - 1, startHour));
+      const toIdx = Math.max(fromIdx, Math.min(speeds.length - 1, startHour + 4));
+      let speedSum = 0, speedCount = 0;
+      // Direction averaging: use vector mean (sin/cos) — naive
+      // arithmetic mean of degrees fails across the 0/360 boundary.
+      let sinSum = 0, cosSum = 0, dirCount = 0;
+      for (let i = fromIdx; i <= toIdx; i++) {
+        const s = speeds[i];
+        const d = dirs[i];
+        if (typeof s === 'number') { speedSum += s; speedCount++; }
+        if (typeof d === 'number') {
+          const rad = d * Math.PI / 180;
+          sinSum += Math.sin(rad);
+          cosSum += Math.cos(rad);
+          dirCount++;
+        }
+      }
+      if (speedCount === 0 || dirCount === 0) return null;
+      const speedMph = Math.round(speedSum / speedCount);
+      let directionDeg = Math.round(Math.atan2(sinSum / dirCount, cosSum / dirCount) * 180 / Math.PI);
+      if (directionDeg < 0) directionDeg += 360;
+      const weather = {
+        speedMph,
+        directionDeg,
+        fetchedAt: Date.now(),
+      };
+      // Persist to the round doc so we don't fetch again next time.
+      round.weather = weather;
+      if (currentUser && window.fb && round.id) {
+        try {
+          await window.fb.setDoc(`users/${currentUser.uid}/rounds/${round.id}`, round);
+          // Update public mirror too (silent on failure).
+          try {
+            await window.fb.setDoc(`publicProfiles/${currentUser.uid}/rounds/${round.id}`, round);
+          } catch (_) {}
+        } catch (err) {
+          console.warn('fetchHistoricalWindForRound persist failed:', err);
+        }
+      }
+      return weather;
+    } catch (err) {
+      console.warn('fetchHistoricalWindForRound:', err.message);
+      return null;
+    }
+  }
+  window.fetchHistoricalWindForRound = fetchHistoricalWindForRound;
+
   // Group-round versions of the solo score mutators. Separate from the
   // solo ones because they read/write different state and trigger a
   // debounced Firestore write instead of the solo round's autosave path.
@@ -53754,8 +53934,38 @@
       initReplayMap();
       loadReplayHole(0, { autoPlay: false });
     }, 50);
+    // Kick off historical wind fetch in the background — non-blocking.
+    // Updates the wind pill once data lands (or stays hidden if the
+    // fetch fails or the round has no resolvable date/location).
+    fetchHistoricalWindForRound(round).then(weather => {
+      if (weather && replayState.open && replayState.roundId === roundId) {
+        applyReplayWindDisplay(weather);
+      }
+    }).catch(() => {});
   }
   window.openReplay = openReplay;
+
+  // Update the wind pill UI from a weather object. Reveals the pill
+  // (removes is-hidden), sets the speed number, and rotates the
+  // arrow based on direction. Direction is "wind FROM" per Open-
+  // Meteo convention — arrow points in the direction the wind is
+  // BLOWING TOWARD (i.e., 180 degrees opposite). Matches the
+  // in-round wind pill's arrow convention.
+  function applyReplayWindDisplay(weather) {
+    if (!weather || typeof weather.speedMph !== 'number') return;
+    const pill = document.getElementById('round-replay-wind');
+    const speedEl = document.getElementById('round-replay-wind-speed-value');
+    const arrowEl = document.getElementById('round-replay-wind-arrow');
+    if (pill) pill.classList.remove('is-hidden');
+    if (speedEl) speedEl.textContent = String(weather.speedMph);
+    if (arrowEl && typeof weather.directionDeg === 'number') {
+      // Arrow's default points up. Wind direction is FROM, so we
+      // rotate arrow by directionDeg + 180 to show "blowing toward".
+      const rot = (weather.directionDeg + 180) % 360;
+      arrowEl.style.transform = `rotate(${rot}deg)`;
+    }
+  }
+  window.applyReplayWindDisplay = applyReplayWindDisplay;
 
   function closeReplay() {
     if (!replayState.open) return;
@@ -53828,6 +54038,41 @@
         <!-- Map fills the whole panel -->
         <div class="round-replay-map" id="round-replay-map"></div>
 
+        <!-- Wind indicator — bottom-right of the map. Read-only.
+             Shows the historical wind during this round (fetched
+             from Open-Meteo archive on first replay open, cached
+             on the round doc). Hidden until data lands. -->
+        <div class="round-replay-wind is-hidden"
+             id="round-replay-wind"
+             aria-label="Wind during round"
+             role="img">
+          <svg class="round-replay-wind-arrow" id="round-replay-wind-arrow"
+               viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.4"
+               stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6 9 12 3 18 9"/>
+          </svg>
+          <div class="round-replay-wind-speed">
+            <span id="round-replay-wind-speed-value">—</span>
+          </div>
+          <div class="round-replay-wind-unit">mph</div>
+        </div>
+
+        <!-- Recenter button — floating bottom-left of the map.
+             Reframes the camera on the current hole. Useful after
+             the user has manually panned/zoomed to inspect a shot. -->
+        <button class="round-replay-recenter"
+                id="round-replay-recenter-btn"
+                onclick="replayRecenterToHole()"
+                aria-label="Recenter on hole">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2 L12 5 M12 19 L12 22 M2 12 L5 12 M19 12 L22 12"/>
+          </svg>
+        </button>
+
         <!-- Caption pill — floats just above the shot list with hole-
              status messages (e.g., "2 putts to finish — 4 (par)").
              Per-shot info is now shown in the shot list below. -->
@@ -53891,6 +54136,13 @@
       if (panel) panel.classList.remove('opening');
     });
     updateReplayChrome();
+    // If the round already has cached weather, show it immediately.
+    // (openReplay's fetch path will also call this once data lands —
+    // doing it here avoids a flash of "no wind" on rounds we've
+    // already fetched for.)
+    if (replayState.round?.weather) {
+      applyReplayWindDisplay(replayState.round.weather);
+    }
   }
 
   // Update the parts of the shell that depend on state (hole, play
@@ -54163,6 +54415,92 @@
     replayState.map = map;
   }
 
+  // Compute the camera framing (center + zoom + bearing) for a
+  // given hole. Returns null if the data is insufficient. Pulled
+  // out of loadReplayHole so the recenter button can reuse the
+  // same framing logic without duplicating all the bounds/bearing
+  // math.
+  function computeReplayHoleFraming(holeNum) {
+    const map = replayState.map;
+    const course = replayState.course;
+    if (!map || !course) return null;
+    const shots = getReplayShotsForHole(holeNum);
+    const bounds = new mapboxgl.LngLatBounds();
+    shots.forEach(s => {
+      bounds.extend([s.startLng, s.startLat]);
+      bounds.extend([s.endLng, s.endLat]);
+    });
+    const holeData = course.holes.find(h => h.number === holeNum);
+    if (holeData?.greenLat != null && holeData?.greenLng != null) {
+      bounds.extend([holeData.greenLng, holeData.greenLat]);
+    }
+    let teePos = null;
+    if (shots.length > 0) {
+      teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
+    } else if (typeof getTeePosition === 'function') {
+      teePos = getTeePosition(course, holeNum, replayState.round?.teeName);
+    }
+    if (teePos) bounds.extend([teePos.lng, teePos.lat]);
+    let bearing = 0;
+    if (teePos && holeData?.greenLat != null && holeData?.greenLng != null) {
+      bearing = bearingDegrees(
+        teePos.lat, teePos.lng,
+        holeData.greenLat, holeData.greenLng);
+    } else if (shots.length >= 2) {
+      const first = shots[0];
+      const last = shots[shots.length - 1];
+      bearing = bearingDegrees(
+        first.startLat, first.startLng,
+        last.endLat, last.endLng);
+    }
+    if (bounds.isEmpty()) return null;
+    return { bounds, bearing, teePos, holeData, shots };
+  }
+
+  // Apply hole framing — flyTo so tee→green is vertical and the
+  // whole shot trail fits. Used by both loadReplayHole on hole
+  // change and replayRecenterToHole on user tap.
+  function applyReplayHoleFraming(holeNum, { duration = 800 } = {}) {
+    const map = replayState.map;
+    if (!map) return null;
+    const framing = computeReplayHoleFraming(holeNum);
+    if (!framing) return null;
+    const cam = map.cameraForBounds(framing.bounds, {
+      padding: { top: 60, bottom: 140, left: 50, right: 50 },
+      bearing: framing.bearing,
+      maxZoom: 17,
+    });
+    if (cam) {
+      map.flyTo({
+        center: cam.center,
+        zoom: cam.zoom,
+        bearing: cam.bearing,
+        duration,
+        essential: true,
+      });
+    } else {
+      map.fitBounds(framing.bounds, {
+        padding: { top: 60, right: 50, bottom: 140, left: 50 },
+        duration,
+        maxZoom: 17,
+        bearing: framing.bearing,
+      });
+    }
+    return framing;
+  }
+
+  // Public handler for the recenter button. Reframes the current
+  // hole — useful after the user has manually panned/zoomed to
+  // inspect a specific shot. Shorter duration than initial load
+  // since the user wants quick visual feedback.
+  function replayRecenterToHole() {
+    if (!replayState.open || !replayState.map) return;
+    const holeNum = replayState.holesPlayed[replayState.currentHoleIndex];
+    if (holeNum == null) return;
+    applyReplayHoleFraming(holeNum, { duration: 600 });
+  }
+  window.replayRecenterToHole = replayRecenterToHole;
+
   function loadReplayHole(idx, { autoPlay = false } = {}) {
     cancelReplayAnimation();
     replayState.currentHoleIndex = idx;
@@ -54181,79 +54519,11 @@
       setReplayCaption('No shots tracked on this hole');
       return;
     }
-    // Compute bounds: include all shot start/end points + tee/green
-    // pins if available so the framing tells the story of the hole.
-    const bounds = new mapboxgl.LngLatBounds();
-    shots.forEach(s => {
-      bounds.extend([s.startLng, s.startLat]);
-      bounds.extend([s.endLng, s.endLat]);
-    });
-    const course = replayState.course;
-    const holeData = course.holes.find(h => h.number === holeNum);
-    if (holeData?.greenLat != null && holeData?.greenLng != null) {
-      bounds.extend([holeData.greenLng, holeData.greenLat]);
-    }
-    // Tee position: use the FIRST GPS shot's start as the canonical
-    // tee — that IS where the user actually teed off, and it's where
-    // the shot 1 line originates. The course's pinned tee can be at
-    // a different physical position (different tee box than what was
-    // played), which would leave the rendered tee marker visually
-    // disconnected from where the line starts. We only fall back to
-    // the pinned tee when there are no GPS shots to anchor against.
-    let teePos = null;
-    if (shots.length > 0) {
-      teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
-    } else if (typeof getTeePosition === 'function') {
-      teePos = getTeePosition(course, holeNum, replayState.round.teeName);
-    }
-    if (teePos) bounds.extend([teePos.lng, teePos.lat]);
-    // Compute bearing from tee → green so the map rotates to put
-    // the tee at the bottom and green at the top — matches the
-    // in-round GPS view's framing convention. Falls back to bearing
-    // 0 (north up) if either pin is missing.
-    let bearing = 0;
-    if (teePos && holeData?.greenLat != null && holeData?.greenLng != null) {
-      bearing = bearingDegrees(
-        teePos.lat, teePos.lng,
-        holeData.greenLat, holeData.greenLng);
-    } else if (shots.length >= 2) {
-      // Both pins missing — derive bearing from shot 1 start to
-      // last shot end. Approximates "playing direction."
-      const first = shots[0];
-      const last = shots[shots.length - 1];
-      bearing = bearingDegrees(
-        first.startLat, first.startLng,
-        last.endLat, last.endLng);
-    }
-    // Use cameraForBounds + flyTo so bearing + zoom + center are
-    // all computed together (same pattern as roundGpsRecenter).
-    // Asymmetric padding (more on bottom) leaves room for the
-    // bottom bar + caption.
-    const cam = map.cameraForBounds(bounds, {
-      padding: { top: 60, bottom: 140, left: 50, right: 50 },
-      bearing,
-      maxZoom: 17,
-    });
-    if (cam) {
-      map.flyTo({
-        center: cam.center,
-        zoom: cam.zoom,
-        bearing: cam.bearing,
-        duration: 800,
-        essential: true,
-      });
-    } else {
-      // Fallback if cameraForBounds fails for some reason.
-      map.fitBounds(bounds, {
-        padding: { top: 60, right: 50, bottom: 140, left: 50 },
-        duration: 800,
-        maxZoom: 17,
-        bearing,
-      });
-    }
+    // Frame the hole — flyTo with the tee→green bearing rotation.
+    const framing = applyReplayHoleFraming(holeNum, { duration: 800 });
     // After the camera settles, render markers + caption + (optionally) auto-play.
     setTimeout(() => {
-      renderReplayStaticMarkers(holeNum, teePos, holeData);
+      renderReplayStaticMarkers(holeNum, framing?.teePos, framing?.holeData);
       // Caption: "Tap play to watch your X shot[s]" — invitation.
       setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
       renderReplayShotList();
