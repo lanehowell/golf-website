@@ -5528,6 +5528,305 @@
     max-width: calc(100% - 32px);
     pointer-events: none;
   }
+
+  /* ─── Dispersion chip — morphing pill that expands to a club picker ───
+     The chip uses a Dynamic Island-style morph: a single surface that
+     grows in place from a compact pill to a rounded card showing a
+     club list. Two content layers inside cross-fade as the surface
+     resizes. The whole thing is one DOM element transitioning size +
+     border-radius — no two separate elements, no sliding sheet. */
+  #disp-chip-mount {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 92px);
+    left: 50%;
+    /* translate(-50%) keeps the chip centered horizontally. The
+       transition on transform is 0 — we only animate width/height/
+       border-radius via the chip itself, not the mount. */
+    transform: translateX(-50%);
+    z-index: 9420;
+    pointer-events: none;
+    max-width: calc(100vw - 24px);
+  }
+  /* Backdrop dim — only visible when chip is expanded. Tap to collapse. */
+  #disp-chip-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    pointer-events: none;
+    z-index: 9415; /* below chip mount, above gps content */
+    transition: background-color 240ms ease-out;
+  }
+  #disp-chip-backdrop.is-visible {
+    background: rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+  }
+  /* The chip itself — the surface that morphs. Compact dimensions are
+     intrinsic (sized to content); expanded uses fixed dimensions. The
+     transition includes width, height, and border-radius so the morph
+     stays rounded throughout. Spring-ish cubic-bezier for the
+     "elastic, alive" feel. */
+  .disp-chip {
+    pointer-events: auto;
+    position: relative;
+    background: rgba(13, 13, 13, 0.92);
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+    /* Compact dimensions: sized to content. The chip's natural width
+       is determined by the .disp-chip-compact-content layout. */
+    width: max-content;
+    height: 50px;
+    max-width: calc(100vw - 24px);
+    transition:
+      width 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
+      height 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
+      border-radius 320ms cubic-bezier(0.32, 1.4, 0.4, 1),
+      box-shadow 240ms ease-out;
+  }
+  /* Expanded state — fixed wider dimensions with bigger height to fit
+     the club list. Border-radius shrinks (still rounded but proportional
+     to the larger box). Content layers swap visibility. */
+  .disp-chip.is-expanded {
+    width: min(360px, calc(100vw - 24px));
+    height: auto;
+    /* Use a custom property that matches the actual content height so
+       the height transition resolves to a real value instead of "auto"
+       (which doesn't transition). We derive this via JS — see
+       expandDispersionChip. */
+    border-radius: 22px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  }
+  /* Content layers — both absolute-positioned inside the chip so they
+     overlay each other. Compact is opaque by default, expanded is
+     hidden; classes on the parent flip these. */
+  .disp-chip-compact-content,
+  .disp-chip-expanded-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: opacity 180ms ease-out;
+  }
+  .disp-chip-compact-content {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    opacity: 1;
+    transition-delay: 140ms; /* fade in AFTER expanded content fades out */
+  }
+  .disp-chip-expanded-content {
+    opacity: 0;
+    pointer-events: none;
+    padding: 14px 16px 16px;
+    /* Don't take part in measuring height while collapsed. */
+    visibility: hidden;
+    transition-delay: 0ms;
+  }
+  .disp-chip.is-expanded .disp-chip-compact-content {
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0ms;
+  }
+  .disp-chip.is-expanded .disp-chip-expanded-content {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    /* The expanded content itself defines the chip's height when
+       expanded — we set position relative here so the chip wraps it. */
+    position: relative;
+    transition-delay: 140ms; /* wait for compact to fade out first */
+  }
+
+  /* Compact-state inner layout. */
+  .disp-chip-main {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 16px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    min-width: 0;
+  }
+  .disp-chip-icon {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+  .disp-chip-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    line-height: 1.2;
+    min-width: 0;
+  }
+  .disp-chip-label {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: var(--weight-semibold);
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+  .disp-chip-status {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+  }
+  .disp-chip-chev {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 2px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .disp-chip-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .disp-chip-close:active {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Expanded-state inner layout — header + scrollable club list. */
+  .disp-chip-expanded-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .disp-chip-expanded-title {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: #fff;
+  }
+  .disp-chip-expanded-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .disp-chip-expanded-close:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .disp-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+    /* Hide scrollbar visually on iOS — content still scrollable. */
+    -webkit-overflow-scrolling: touch;
+  }
+  .disp-picker-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+  }
+  .disp-picker-row:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .disp-picker-row.is-active {
+    background: rgba(232, 93, 4, 0.18);
+    border-color: rgba(232, 93, 4, 0.5);
+    color: var(--color-orange);
+  }
+  .disp-picker-name {
+    font-weight: var(--weight-semibold);
+  }
+  .disp-picker-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .disp-picker-badge-fallback {
+    color: #f0c97c;
+    background: rgba(240, 201, 124, 0.12);
+  }
+  .disp-picker-badge-empty {
+    color: rgba(255, 255, 255, 0.35);
+  }
+  .disp-chip-empty-row {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 16px;
+  }
+
+  /* ─── Toggle indicator for tools-list rows ────────────────────
+     Toggle-style tools (like dispersion) show ON/OFF instead of an
+     arrow. Active state turns the indicator orange and accents
+     the row. */
+  .tools-list-row-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.05em;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+  }
+  .tools-list-row-toggle.is-on {
+    background: rgba(232, 93, 4, 0.16);
+    color: var(--color-orange);
+  }
+  .tools-list-row.is-toggle-active .tools-list-row-icon {
+    filter: drop-shadow(0 0 4px rgba(232, 93, 4, 0.5));
+  }
   .round-gps-advance-prompt.is-visible {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
@@ -30786,6 +31085,17 @@
       Number.isFinite(s.lateralOffset) &&
       Number.isFinite(s.alongShot)
     );
+    // Historical comparison shots — same shape, used only to render
+    // a faint background ellipse representing the user's typical
+    // dispersion. Doesn't add dots, doesn't show in legend, but DOES
+    // contribute to axis bounds calculation so the historical ellipse
+    // doesn't get clipped off the chart edge.
+    const historical = (opts.historicalShots || []).filter(s =>
+      typeof s.lateralOffset === 'number' &&
+      typeof s.alongShot === 'number' &&
+      Number.isFinite(s.lateralOffset) &&
+      Number.isFinite(s.alongShot)
+    );
     if (valid.length === 0) {
       return `<div class="disp-scatter-empty">
         No targeted shots logged yet — set a target when logging shots
@@ -30797,12 +31107,14 @@
     // axis to clip outliers from setting the scale (a single shanked
     // shot 80y right shouldn't make every other dot cluster in 5%
     // of the chart). Floor at 15y so very tight shooters still have
-    // a sensible window.
-    const lats = valid.map(s => Math.abs(s.lateralOffset)).sort((a, b) => a - b);
-    const longs = valid.map(s => Math.abs(s.alongShot)).sort((a, b) => a - b);
+    // a sensible window. Historical data folded in so the comparison
+    // ellipse fits inside the chart even if the user's typical
+    // dispersion is wider than this round's.
+    const allLats = [...valid, ...historical].map(s => Math.abs(s.lateralOffset)).sort((a, b) => a - b);
+    const allLongs = [...valid, ...historical].map(s => Math.abs(s.alongShot)).sort((a, b) => a - b);
     const p95 = (arr) => arr[Math.floor(arr.length * 0.95)] || arr[arr.length - 1] || 0;
-    const xBound = Math.max(15, Math.ceil(p95(lats) / 5) * 5 + 5);
-    const yBound = Math.max(15, Math.ceil(p95(longs) / 5) * 5 + 5);
+    const xBound = Math.max(15, Math.ceil(p95(allLats) / 5) * 5 + 5);
+    const yBound = Math.max(15, Math.ceil(p95(allLongs) / 5) * 5 + 5);
 
     // SVG viewport. The chart drawing area uses a coordinate system
     // where (0,0) is the center (target). We map data coordinates
@@ -30850,12 +31162,35 @@
     // 1-sigma for a roughly Gaussian distribution). Shows visually
     // "where you land most of the time." Computed as 70th-percentile
     // |offset| in each axis. Skip for tiny samples.
+    //
+    // If historical comparison data was provided, ALSO render a
+    // faint background ellipse showing the user's typical pattern.
+    // Renders BEFORE the live ellipse so live sits on top (the
+    // current round's pattern visually dominates; historical is
+    // context). Different style (grey, no fill, thinner stroke) so
+    // the eye reads the live one first.
+    const p70 = (arr) => arr[Math.floor(arr.length * 0.70)] || arr[arr.length - 1] || 0;
     let ellipseHtml = '';
+    // Historical ellipse — only if we have enough data to be
+    // meaningful (10+ shots — fewer would be unreliable as a
+    // "typical pattern" reference).
+    if (historical.length >= 10) {
+      const histLats = historical.map(s => Math.abs(s.lateralOffset)).sort((a, b) => a - b);
+      const histLongs = historical.map(s => Math.abs(s.alongShot)).sort((a, b) => a - b);
+      const xRad = p70(histLats) * xScale;
+      const yRad = p70(histLongs) * yScale;
+      ellipseHtml += `
+        <ellipse cx="${cx}" cy="${cy}" rx="${xRad.toFixed(1)}" ry="${yRad.toFixed(1)}"
+                 fill="none" stroke="rgba(255,255,255,0.22)"
+                 stroke-width="1" stroke-dasharray="2 4"/>`;
+    }
+    // Live ellipse — for THIS round's data.
     if (valid.length >= 5) {
-      const p70 = (arr) => arr[Math.floor(arr.length * 0.70)] || arr[arr.length - 1] || 0;
-      const xRad = p70(lats) * xScale;
-      const yRad = p70(longs) * yScale;
-      ellipseHtml = `
+      const liveLats = valid.map(s => Math.abs(s.lateralOffset)).sort((a, b) => a - b);
+      const liveLongs = valid.map(s => Math.abs(s.alongShot)).sort((a, b) => a - b);
+      const xRad = p70(liveLats) * xScale;
+      const yRad = p70(liveLongs) * yScale;
+      ellipseHtml += `
         <ellipse cx="${cx}" cy="${cy}" rx="${xRad.toFixed(1)}" ry="${yRad.toFixed(1)}"
                  fill="rgba(232,93,4,0.08)" stroke="rgba(232,93,4,0.35)"
                  stroke-width="1" stroke-dasharray="3 3"/>`;
@@ -30935,11 +31270,19 @@
         `).join('')}
       </div>`;
 
+    // Meta caption — call out historical comparison when present so
+    // user understands what the dashed grey ellipse represents
+    // without needing a separate legend item.
+    const hasHistoricalEllipse = historical.length >= 10;
+    const metaText = hasHistoricalEllipse
+      ? `${valid.length} shot${valid.length === 1 ? '' : 's'} with target · grey ring = your typical pattern`
+      : `${valid.length} shot${valid.length === 1 ? '' : 's'} with target set`;
+
     return `
       <div class="disp-scatter-wrap${compact ? ' disp-scatter-wrap-compact' : ''}">
         ${svg}
         <div class="disp-scatter-meta">
-          ${valid.length} shot${valid.length === 1 ? '' : 's'} with target set
+          ${metaText}
         </div>
         ${legendHtml}
       </div>`;
@@ -37582,13 +37925,17 @@
   // Registry of available tools. Adding a new tool = adding an entry here
   // and a render function. The dock UI iterates this list.
   const DOCK_TOOLS = [
-    { id: 'scorecard', label: 'Scorecard',   icon: '📋' },
-    { id: 'shots',     label: 'Track Shots', icon: '📍' },
-    { id: 'gps',       label: 'GPS',         icon: '🗺️' },
-    { id: 'weather',   label: 'Weather',     icon: '🌤️' },
-    { id: 'preshot',   label: 'Pre-Shot',    icon: '🎯' },
-    { id: 'caddie',    label: 'Club Caddie', icon: '🏌️' },
-    { id: 'bag',       label: 'My Bag',      icon: '⛳' },
+    { id: 'scorecard',  label: 'Scorecard',   icon: '📋' },
+    { id: 'shots',      label: 'Track Shots', icon: '📍' },
+    { id: 'gps',        label: 'GPS',         icon: '🗺️' },
+    { id: 'weather',    label: 'Weather',     icon: '🌤️' },
+    { id: 'preshot',    label: 'Pre-Shot',    icon: '🎯' },
+    { id: 'caddie',     label: 'Club Caddie', icon: '🏌️' },
+    { id: 'bag',        label: 'My Bag',      icon: '⛳' },
+    // Dispersion overlay — toggleable map overlay rather than an
+    // inline tool surface. Only meaningful while the GPS view is
+    // active; renderToolsList filters it out when GPS is closed.
+    { id: 'dispersion', label: 'Dispersion',  icon: '⭕', gpsOnly: true, isToggle: true },
   ];
 
   // Compute the tools list the user actually sees in the sheet, applying
@@ -37960,6 +38307,19 @@
       } else {
         openRoundGpsPanel();
       }
+      return;
+    }
+    // Dispersion is a toggle-style tool. Tapping closes the dock
+    // and flips the overlay on/off on the GPS map. Only meaningful
+    // while GPS is open (renderToolsList hides it otherwise, but
+    // we double-check here for safety).
+    if (toolId === 'dispersion') {
+      if (!(roundGpsState && roundGpsState.open)) {
+        closeToolsSheet();
+        return;
+      }
+      closeToolsSheet();
+      toggleDispersionOverlay();
       return;
     }
     animateSheetHeightChange(() => {
@@ -38530,40 +38890,62 @@
   function renderToolsList() {
     // Short descriptions help discoverability. Kept to one line each.
     const DESCRIPTIONS = {
-      scorecard: 'See your running scorecard',
-      shots:     'Log each shot and club used',
-      gps:       'Distance to green, satellite view',
-      weather:   'Conditions at the course',
-      preshot:   'Situation-based shot reminders',
-      caddie:    'Get a club suggestion',
-      bag:       'Reference your club distances',
+      scorecard:  'See your running scorecard',
+      shots:      'Log each shot and club used',
+      gps:        'Distance to green, satellite view',
+      weather:    'Conditions at the course',
+      preshot:    'Situation-based shot reminders',
+      caddie:     'Get a club suggestion',
+      bag:        'Reference your club distances',
+      dispersion: 'Show your shot dispersion on the map',
     };
     // While GPS is open, the GPS row pivots to its inverse — tapping it
     // exits GPS back to the simple hole-card view. Same row, opposite
     // semantic. Keeps the user's mental map of "Tools is where I switch
     // between modes" without needing a separate toggle elsewhere.
     const gpsIsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
-    const rows = getEffectiveDockTools().map(tool => {
-      let label = tool.label;
-      let icon = tool.icon;
-      let desc = DESCRIPTIONS[tool.id] || '';
-      if (tool.id === 'gps' && gpsIsOpen) {
-        label = 'Simple View';
-        icon = '📋';
-        desc = 'Back to the hole card';
-      }
-      return `
-        <button class="tools-list-row" onclick="selectTool('${tool.id}')">
-          <span class="tools-list-row-icon" aria-hidden="true">${icon}</span>
-          <span class="tools-list-row-body">
-            <span class="tools-list-row-label">${escapeHtml(label)}</span>
-            <span class="tools-list-row-desc">${escapeHtml(desc)}</span>
-          </span>
-          <span class="tools-list-row-arrow" aria-hidden="true">→</span>
-        </button>
-      `;
-    }).join('');
+    const rows = getEffectiveDockTools()
+      // GPS-only tools are hidden from the list when GPS isn't open.
+      // They wouldn't do anything useful in that mode.
+      .filter(tool => !tool.gpsOnly || gpsIsOpen)
+      .map(tool => {
+        let label = tool.label;
+        let icon = tool.icon;
+        let desc = DESCRIPTIONS[tool.id] || '';
+        if (tool.id === 'gps' && gpsIsOpen) {
+          label = 'Simple View';
+          icon = '📋';
+          desc = 'Back to the hole card';
+        }
+        // Toggle tools show ON/OFF state instead of an arrow.
+        // Active state styled distinctly so user sees it's currently on.
+        const isToggle = !!tool.isToggle;
+        const isActive = isToggle && getToggleToolActiveState(tool.id);
+        const indicator = isToggle
+          ? `<span class="tools-list-row-toggle ${isActive ? 'is-on' : ''}" aria-hidden="true">${isActive ? 'ON' : 'OFF'}</span>`
+          : `<span class="tools-list-row-arrow" aria-hidden="true">→</span>`;
+        return `
+          <button class="tools-list-row${isActive ? ' is-toggle-active' : ''}" onclick="selectTool('${tool.id}')">
+            <span class="tools-list-row-icon" aria-hidden="true">${icon}</span>
+            <span class="tools-list-row-body">
+              <span class="tools-list-row-label">${escapeHtml(label)}</span>
+              <span class="tools-list-row-desc">${escapeHtml(desc)}</span>
+            </span>
+            ${indicator}
+          </button>
+        `;
+      }).join('');
     return `<div class="tools-list">${rows}</div>`;
+  }
+
+  // For toggle-style dock tools, return whether the tool is currently
+  // active. Used by renderToolsList to render ON/OFF + styling.
+  // Each toggle tool reads from its own state location.
+  function getToggleToolActiveState(toolId) {
+    if (toolId === 'dispersion') {
+      return !!(roundGpsState && roundGpsState.dispersionOverlay && roundGpsState.dispersionOverlay.active);
+    }
+    return false;
   }
 
   // Dispatch for individual tool content inside the sheet.
@@ -53415,6 +53797,41 @@
     for (const s of targetedRoundShots) {
       if (catCounts[s.category] != null) catCounts[s.category] += 1;
     }
+
+    // Historical comparison shots — pull targeted shots from ALL the
+    // user's other completed rounds. Lets the scatter render a faint
+    // background ellipse showing the user's typical pattern, so today
+    // can be visually compared against history. Uses recentRounds
+    // (in-memory cache); excludes this round so we're not comparing
+    // it to itself. Tagged with category so the toggle filters work
+    // on history too — clicking "Approach" should compare today's
+    // approaches to your typical approach pattern, not to driver shots.
+    const historicalRoundShots = [];
+    for (const otherRound of recentRounds || []) {
+      if (otherRound.id === round.id) continue;
+      if (otherRound.status !== 'completed') continue;
+      const otherShotsMap = otherRound.shots || {};
+      const otherCourse = COURSES.find(c => c.id === otherRound.courseId);
+      for (const hnStr of Object.keys(otherShotsMap)) {
+        const arr = otherShotsMap[hnStr];
+        if (!Array.isArray(arr)) continue;
+        const hn = Number(hnStr);
+        const hd = otherCourse?.holes?.find(h => h.number === hn);
+        const par = hd?.par;
+        for (const s of arr) {
+          if (typeof s.lateralOffset === 'number' && typeof s.alongShot === 'number') {
+            const cat = classifyRoundShot(s, par);
+            const tagCat = cat === 'putt' ? 'short' : cat;
+            historicalRoundShots.push({
+              lateralOffset: s.lateralOffset,
+              alongShot: s.alongShot,
+              category: tagCat,
+            });
+          }
+        }
+      }
+    }
+
     const scatterBlock = targetedRoundShots.length === 0 ? '' : `
       <div class="round-summary-section-label">Shot pattern</div>
       <div class="scatter-toggle-wrap">
@@ -53428,11 +53845,12 @@
       <div id="round-summary-scatter-mount">${renderRoundSummaryScatterFor(targetedRoundShots)}</div>
     `;
 
-    // Stash the dataset on a state object so the toggle handler can
+    // Stash the datasets on a state object so the toggle handler can
     // refilter without re-collecting from round.shots. Keyed by round
     // id so a stale dataset doesn't bleed across rounds — defense in
     // depth on top of the openRoundSummary reset.
     roundSummaryState.scatterAllShots = targetedRoundShots;
+    roundSummaryState.scatterHistoricalShots = historicalRoundShots;
     roundSummaryState.scatterRoundId = round.id;
 
     return `
@@ -53467,7 +53885,14 @@
         No targeted shots in this category.
       </div>`;
     }
-    return renderDispersionScatter(filtered);
+    // Pull historical shots filtered to the same category — comparing
+    // today's approaches to your typical approach pattern is more
+    // meaningful than comparing them to your typical driver pattern.
+    const allHistorical = roundSummaryState.scatterHistoricalShots || [];
+    const filteredHistorical = cat === 'all'
+      ? allHistorical
+      : allHistorical.filter(s => s.category === cat);
+    return renderDispersionScatter(filtered, { historicalShots: filteredHistorical });
   }
 
   // Toggle the scatter category and re-render JUST the chart. Avoids
@@ -59120,6 +59545,20 @@
     // this object plus the popup markup. Reset to defaults on
     // closeRoundGpsPanel.
     layers: { trail: true },
+    // Dispersion overlay — toggleable map overlay showing the user's
+    // historical shot dispersion as an ellipse. Anchored to target
+    // (if set) or green center (if not). Sized by historical
+    // lateralOffset/alongShot for the selected club. Activated via
+    // the dock tool; visible until toggled off or GPS panel closes.
+    dispersionOverlay: {
+      active: false,           // toggle state
+      clubKey: null,           // selected club key (matches makeClubKey output)
+      // Mapbox artifacts — all null until first show; tracked so
+      // we can remove them precisely on toggle-off and on GPS close.
+      fillSourceId: null,      // geojson source id (the polygon)
+      fillLayerId: null,       // fill layer (translucent inner)
+      outlineLayerId: null,    // line layer (dashed outline)
+    },
   };
 
   // Threshold for switching between planning and playing modes.
@@ -59406,6 +59845,10 @@
           renderRoundGpsShotMarkers();
         }
         refreshRoundGpsActionButton();
+        // Dispersion overlay anchor depends on green/target/tee — all
+        // of which just changed. Re-run the update (no-op if overlay
+        // isn't active).
+        updateDispersionOverlay();
       };
       map.once('moveend', dropAfterFly);
     }, FADE_OUT_MS);
@@ -59649,6 +60092,21 @@
     if (typeof closeRoundGpsLayersPopup === 'function') {
       try { closeRoundGpsLayersPopup(); } catch (_) {}
     }
+    // Dispersion overlay — layers are already gone via map.remove()
+    // above. Reset state, hide the floating chip and any open picker
+    // so reopening GPS starts clean. Cancel any pending rAF rebuild
+    // so it doesn't fire after the map is gone.
+    if (__dispersionRafId != null) {
+      cancelAnimationFrame(__dispersionRafId);
+      __dispersionRafId = null;
+    }
+    invalidateDispersionCache();
+    roundGpsState.dispersionOverlay = {
+      active: false, clubKey: null,
+      fillSourceId: null, fillLayerId: null, outlineLayerId: null,
+    };
+    hideDispersionClubChip();
+    collapseDispersionChip();
     releaseScrollLock();
     const mount = document.getElementById('round-gps-mount');
     if (mount) mount.innerHTML = '';
@@ -60050,6 +60508,10 @@
       // The fixed Set-target button's state may flip — orange "set"
       // when reticle is back at the committed target, default when not.
       refreshRoundGpsTargetBtn();
+      // Move the dispersion ellipse with the target so the user sees
+      // it slide across the map as they drag — visually shows whether
+      // the new aim point keeps the distribution clear of trouble.
+      updateDispersionOverlay();
     });
     marker.on('dragend', () => {
       el.style.cursor = 'grab';
@@ -60169,6 +60631,9 @@
       haptic('light');
     }
     refreshRoundGpsTargetBtn();
+    // Committed target affects dispersion anchor priority (committed
+    // > reticle > green) — re-anchor the ellipse to reflect.
+    updateDispersionOverlay();
   }
   window.toggleRoundGpsCommittedTarget = toggleRoundGpsCommittedTarget;
 
@@ -60614,6 +61079,564 @@
       arrowEl.style.transform = `rotate(${arrowRotation}deg)`;
     }
   }
+
+  // ──────────────────────────────────────────────────────────
+  // Dispersion overlay — toggleable visualization showing the
+  // user's typical shot pattern as an ellipse on the map. Helps
+  // with course management decisions: drag a target around and
+  // see whether your distribution overlaps trouble.
+  //
+  // Math: for each shot of the selected club, we have lateralOffset
+  // (perp to shot line) and alongShot (along shot line) in yards.
+  // 70th-percentile of |offset| in each axis = ellipse radii. We
+  // anchor the ellipse to the target (or green, or map center if
+  // no target/green) and orient it along start→target bearing
+  // (or hole bearing as fallback).
+  // ──────────────────────────────────────────────────────────
+
+  // Minimum sample count for a club-specific dispersion to be shown.
+  // Below this, we fall back to bag-wide aggregate. Below 10 shots
+  // total even bag-wide, the overlay hides — anything would be
+  // unreliable noise.
+  const DISP_MIN_SHOTS_PER_CLUB = 10;
+  const DISP_MIN_SHOTS_BAG_WIDE = 10;
+
+  // Toggle the dispersion overlay on/off. Called from the dock tool.
+  // First-time activation picks a default club; subsequent activations
+  // remember the previous selection so user doesn't lose context.
+  function toggleDispersionOverlay() {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov) return;
+    if (ov.active) {
+      // Toggle off — remove layers, clear active flag.
+      removeDispersionOverlayLayers();
+      ov.active = false;
+      hideDispersionClubChip();
+      return;
+    }
+    // Toggle on — pick default club if none set yet. Invalidate any
+    // stale cache from a previous session — shot data may have
+    // changed between sessions (new range entries, completed rounds).
+    if (!ov.clubKey) {
+      ov.clubKey = pickDefaultDispersionClub();
+    }
+    invalidateDispersionCache();
+    ov.active = true;
+    addDispersionOverlayLayers();
+    showDispersionClubChip();
+    updateDispersionOverlay();
+  }
+
+  // Pick a sensible default club for the overlay. Heuristic:
+  // - If user is near the tee for the current hole → driver
+  // - Otherwise → first club in the bag (usually driver too)
+  // Could be smarter (e.g., distance-based club caddie suggestion)
+  // but the user can switch easily so this is good enough as a
+  // starting point.
+  function pickDefaultDispersionClub() {
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    if (bag.length === 0) return null;
+    // Try to find driver — by name match first since "Driver" is
+    // the conventional bag name. Falls back to longest club.
+    const driver = bag.find(c => /driver/i.test(c.name || ''));
+    if (driver) return makeClubKey(driver.name);
+    // Longest club by distance as a fallback proxy for driver.
+    const sorted = bag.slice().sort((a, b) => (b.distance || 0) - (a.distance || 0));
+    return makeClubKey(sorted[0].name);
+  }
+
+  // Pull the dispersion data for a club. Aggregates lateralOffset and
+  // alongShot from ALL the user's tracked shots (round + range, where
+  // available). Returns 70th-percentile |offset| in each axis (in
+  // yards) plus sample count. Falls back to bag-wide aggregate if the
+  // selected club has too few shots. Returns null if even the bag-wide
+  // aggregate is too sparse to be meaningful.
+  function getDispersionForClub(clubKey) {
+    if (!clubKey) return null;
+    // Collect offsets per club and bag-wide simultaneously.
+    const clubLats = [], clubLongs = [];
+    const allLats = [], allLongs = [];
+    for (const entry of iterateTrackedShots()) {
+      const s = entry.shot;
+      if (!s) continue;
+      const lat = s.lateralOffset, lng = s.alongShot;
+      if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      allLats.push(Math.abs(lat));
+      allLongs.push(Math.abs(lng));
+      if (entry.clubKey === clubKey) {
+        clubLats.push(Math.abs(lat));
+        clubLongs.push(Math.abs(lng));
+      }
+    }
+    const p70 = (arr) => {
+      if (arr.length === 0) return 0;
+      const sorted = arr.slice().sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length * 0.70)] || sorted[sorted.length - 1] || 0;
+    };
+    if (clubLats.length >= DISP_MIN_SHOTS_PER_CLUB) {
+      return {
+        xRad: p70(clubLats),
+        yRad: p70(clubLongs),
+        sampleCount: clubLats.length,
+        fallbackUsed: false,
+      };
+    }
+    if (allLats.length >= DISP_MIN_SHOTS_BAG_WIDE) {
+      return {
+        xRad: p70(allLats),
+        yRad: p70(allLongs),
+        sampleCount: allLats.length,
+        fallbackUsed: true,
+      };
+    }
+    return null;
+  }
+
+  // Figure out where to center the ellipse and what bearing to orient
+  // it along. Priority for anchor:
+  //   1. Committed target (orange pin set via "Set as target")
+  //   2. Reticle target (white reticle being dragged)
+  //   3. Green center
+  //   4. Map center (last-resort fallback)
+  // Bearing represents the shot line (start→anchor). Used to rotate
+  // the ellipse so its long axis lies along the shot direction.
+  // Priority for "start" reference:
+  //   1. lastShotEnd (where the next shot would be hit from)
+  //   2. user's smoothed GPS position (where they are)
+  //   3. tee position
+  //   4. north (0°) — a fallback that's at least deterministic
+  function getDispersionAnchor() {
+    let anchorLat = null, anchorLng = null;
+    if (roundGpsState.committedTarget) {
+      anchorLat = roundGpsState.committedTarget.lat;
+      anchorLng = roundGpsState.committedTarget.lng;
+    } else if (roundGpsState.targetActive && roundGpsState.targetLat != null) {
+      anchorLat = roundGpsState.targetLat;
+      anchorLng = roundGpsState.targetLng;
+    } else if (roundGpsState.greenLat != null) {
+      anchorLat = roundGpsState.greenLat;
+      anchorLng = roundGpsState.greenLng;
+    } else if (roundGpsState.map) {
+      const c = roundGpsState.map.getCenter();
+      anchorLat = c.lat;
+      anchorLng = c.lng;
+    } else {
+      return null;
+    }
+    // Resolve start point for bearing.
+    let startLat = null, startLng = null;
+    if (roundGpsState.lastShotEnd) {
+      startLat = roundGpsState.lastShotEnd.lat;
+      startLng = roundGpsState.lastShotEnd.lng;
+    } else if (roundGpsState.smoothLat != null) {
+      startLat = roundGpsState.smoothLat;
+      startLng = roundGpsState.smoothLng;
+    } else if (roundGpsState.teeLat != null) {
+      startLat = roundGpsState.teeLat;
+      startLng = roundGpsState.teeLng;
+    }
+    // Bearing — start→anchor. If we have no start, default to 0° (N).
+    const bearing = (startLat != null && startLng != null)
+      ? bearingDegrees(startLat, startLng, anchorLat, anchorLng)
+      : 0;
+    return { lat: anchorLat, lng: anchorLng, bearing };
+  }
+
+  // Build a geojson polygon for the dispersion ellipse. Sampled at
+  // 64 vertices around the ellipse perimeter. Each vertex is computed
+  // in shot-local coordinates (lateral, along) then rotated by the
+  // shot bearing into geographic coordinates via destinationPoint.
+  // Returns a Polygon feature ready for setData.
+  function buildDispersionPolygon(anchor, xRadYards, yRadYards) {
+    const N = 64;
+    const coords = [];
+    for (let i = 0; i <= N; i++) {
+      const θ = (i / N) * 2 * Math.PI;
+      // Local ellipse point: lateral = xRad·cos(θ), along = yRad·sin(θ)
+      const lateral = xRadYards * Math.cos(θ);
+      const along = yRadYards * Math.sin(θ);
+      // Combined offset distance from anchor + bearing of that offset
+      // in shot frame. We want to rotate this offset by the shot
+      // bearing to project it onto geographic axes.
+      const offsetDist = Math.sqrt(lateral * lateral + along * along);
+      // Angle of (lateral, along) in shot frame:
+      //   atan2(lateral, along) gives angle from "along" axis
+      //   (0° = directly forward along shot line; +90° = right)
+      const localAngle = Math.atan2(lateral, along) * 180 / Math.PI;
+      // Geographic bearing: shot bearing + local angle.
+      const geoBearing = (anchor.bearing + localAngle + 360) % 360;
+      // Project onto map.
+      if (offsetDist === 0) {
+        coords.push([anchor.lng, anchor.lat]);
+      } else {
+        const pt = destinationPoint(anchor.lat, anchor.lng, geoBearing, offsetDist);
+        coords.push([pt.lng, pt.lat]);
+      }
+    }
+    return {
+      type: 'Feature',
+      geometry: { type: 'Polygon', coordinates: [coords] },
+    };
+  }
+
+  // Top-level update — recompute everything and push to the source.
+  // Called on toggle-on, target moves, club changes, hole changes.
+  // Idempotent — safe to call repeatedly.
+  // Cache for the per-club dispersion radii. Computing these involves
+  // walking every tracked shot and sorting offsets — too expensive for
+  // a target-drag hot path that fires every frame. Cache is keyed by
+  // club; invalidates when ov.clubKey changes (handled via clearing
+  // when setDispersionClub is called). Shot history changes are not
+  // tracked here — within a single GPS session the shot dataset is
+  // effectively immutable from the overlay's perspective.
+  let __dispersionCache = { key: null, data: null };
+
+  function getCachedDispersionForClub(clubKey) {
+    if (__dispersionCache.key === clubKey && __dispersionCache.data !== undefined) {
+      return __dispersionCache.data;
+    }
+    const data = getDispersionForClub(clubKey);
+    __dispersionCache = { key: clubKey, data };
+    return data;
+  }
+
+  function invalidateDispersionCache() {
+    __dispersionCache = { key: null, data: null };
+  }
+
+  // rAF coalescing — multiple updateDispersionOverlay calls within
+  // the same frame collapse to one polygon rebuild. Critical for
+  // smooth drag: pointer events fire faster than 60Hz on some
+  // devices, and rebuilding a 64-vertex polygon (each calling
+  // destinationPoint with trig) per event causes the visible lag.
+  let __dispersionRafId = null;
+
+  function updateDispersionOverlay() {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov || !ov.active) return;
+    if (__dispersionRafId != null) return; // already scheduled this frame
+    __dispersionRafId = requestAnimationFrame(() => {
+      __dispersionRafId = null;
+      doUpdateDispersionOverlay();
+    });
+  }
+
+  function doUpdateDispersionOverlay() {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov || !ov.active) return;
+    const map = roundGpsState.map;
+    if (!map) return;
+    const disp = getCachedDispersionForClub(ov.clubKey);
+    if (!disp) {
+      // No usable data — hide layers but keep ov.active flag so we
+      // don't lose state. User toggling clubs might land on one with
+      // data, in which case we re-show.
+      setDispersionLayerVisibility(false);
+      return;
+    }
+    const anchor = getDispersionAnchor();
+    if (!anchor) {
+      setDispersionLayerVisibility(false);
+      return;
+    }
+    const polygon = buildDispersionPolygon(anchor, disp.xRad, disp.yRad);
+    try {
+      const src = ov.fillSourceId && map.getSource(ov.fillSourceId);
+      if (src) {
+        src.setData(polygon);
+        setDispersionLayerVisibility(true);
+      }
+    } catch (_) { /* swallow — race with layer removal */ }
+  }
+
+  // Add the dispersion overlay layers to the map. Idempotent — checks
+  // for existing source/layer ids first. Layers ordered so the fill
+  // sits below pin markers (uses 'shot-line' or first symbol layer
+  // as a beforeId reference if available).
+  function addDispersionOverlayLayers() {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov) return;
+    const map = roundGpsState.map;
+    if (!map) return;
+    // Already added? Skip.
+    if (ov.fillSourceId && map.getSource(ov.fillSourceId)) return;
+    const sourceId = 'disp-overlay-source';
+    const fillLayerId = 'disp-overlay-fill';
+    const outlineLayerId = 'disp-overlay-outline';
+    try {
+      // Initial empty polygon — updateDispersionOverlay will populate.
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[]] } },
+      });
+      // Fill layer — translucent orange. Subtle so it doesn't
+      // overwhelm the satellite imagery underneath.
+      map.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': '#E85D04',
+          'fill-opacity': 0.10,
+        },
+      });
+      // Outline — dashed white. Reads cleanly over green/dark imagery.
+      map.addLayer({
+        id: outlineLayerId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 1.5,
+          'line-opacity': 0.7,
+          'line-dasharray': [3, 3],
+        },
+      });
+      ov.fillSourceId = sourceId;
+      ov.fillLayerId = fillLayerId;
+      ov.outlineLayerId = outlineLayerId;
+    } catch (e) {
+      // Map may not be fully loaded — try once more after load.
+      // Idempotent guard above prevents duplicate adds.
+      if (!map.loaded()) {
+        map.once('load', () => {
+          if (ov.active) addDispersionOverlayLayers();
+        });
+      }
+    }
+  }
+
+  // Remove the dispersion overlay layers. Used on toggle-off and on
+  // GPS panel close. Tolerant of partial state (some layers may not
+  // exist if add failed midway).
+  function removeDispersionOverlayLayers() {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov) return;
+    const map = roundGpsState.map;
+    if (!map) {
+      ov.fillSourceId = ov.fillLayerId = ov.outlineLayerId = null;
+      return;
+    }
+    try {
+      if (ov.outlineLayerId && map.getLayer(ov.outlineLayerId)) {
+        map.removeLayer(ov.outlineLayerId);
+      }
+      if (ov.fillLayerId && map.getLayer(ov.fillLayerId)) {
+        map.removeLayer(ov.fillLayerId);
+      }
+      if (ov.fillSourceId && map.getSource(ov.fillSourceId)) {
+        map.removeSource(ov.fillSourceId);
+      }
+    } catch (_) { /* swallow — defensive */ }
+    ov.fillSourceId = ov.fillLayerId = ov.outlineLayerId = null;
+  }
+
+  // Toggle layer visibility without removing them. Used when we have
+  // the layers in place but no usable data right now (e.g., user
+  // switched to a club with no shots logged yet).
+  function setDispersionLayerVisibility(visible) {
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov) return;
+    const map = roundGpsState.map;
+    if (!map) return;
+    const value = visible ? 'visible' : 'none';
+    try {
+      if (ov.fillLayerId && map.getLayer(ov.fillLayerId)) {
+        map.setLayoutProperty(ov.fillLayerId, 'visibility', value);
+      }
+      if (ov.outlineLayerId && map.getLayer(ov.outlineLayerId)) {
+        map.setLayoutProperty(ov.outlineLayerId, 'visibility', value);
+      }
+    } catch (_) {}
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Dispersion club chip — small floating control on the GPS map
+  // that shows the active club for the dispersion overlay and
+  // lets the user switch clubs. Only visible when overlay is
+  // active. Renders into a body-level mount so it can sit above
+  // the map without being clipped by panel containers.
+  // ──────────────────────────────────────────────────────────
+
+  function showDispersionClubChip() {
+    let mount = document.getElementById('disp-chip-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'disp-chip-mount';
+      document.body.appendChild(mount);
+    }
+    let backdrop = document.getElementById('disp-chip-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'disp-chip-backdrop';
+      backdrop.addEventListener('click', () => collapseDispersionChip());
+      document.body.appendChild(backdrop);
+    }
+    renderDispersionClubChip();
+  }
+
+  function hideDispersionClubChip() {
+    const mount = document.getElementById('disp-chip-mount');
+    if (mount) mount.innerHTML = '';
+    const backdrop = document.getElementById('disp-chip-backdrop');
+    if (backdrop) backdrop.classList.remove('is-visible');
+  }
+
+  // Build both content layers — compact (the chip face) and expanded
+  // (the club list). Both are always present in the DOM; CSS opacity
+  // shows whichever matches the current state. This is what enables
+  // the Dynamic-Island-style morph: a single surface that grows in
+  // place while its inner content cross-fades, rather than two
+  // separate elements appearing/disappearing.
+  function renderDispersionClubChip() {
+    const mount = document.getElementById('disp-chip-mount');
+    if (!mount) return;
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov || !ov.active) {
+      mount.innerHTML = '';
+      return;
+    }
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    const activeClub = bag.find(c => makeClubKey(c.name) === ov.clubKey);
+    const activeLabel = activeClub ? activeClub.name : 'Pick a club';
+    const disp = getDispersionForClub(ov.clubKey);
+    let statusLine = '';
+    if (!disp) {
+      statusLine = `<div class="disp-chip-status">Not enough data</div>`;
+    } else if (disp.fallbackUsed) {
+      statusLine = `<div class="disp-chip-status">Bag avg · ${disp.sampleCount} shots</div>`;
+    } else {
+      statusLine = `<div class="disp-chip-status">${disp.sampleCount} shots</div>`;
+    }
+
+    // Expanded content — club list. Built once on render; selecting
+    // a row triggers setDispersionClub which collapses + re-renders.
+    const activeKey = ov.clubKey;
+    const rows = bag.length === 0
+      ? `<div class="disp-chip-empty-row">No clubs in your bag yet</div>`
+      : bag.map(c => {
+          const key = makeClubKey(c.name);
+          const isActive = key === activeKey;
+          const d = getDispersionForClub(key);
+          const badge = d
+            ? (d.fallbackUsed
+                ? `<span class="disp-picker-badge disp-picker-badge-fallback">bag avg</span>`
+                : `<span class="disp-picker-badge">${d.sampleCount} shots</span>`)
+            : `<span class="disp-picker-badge disp-picker-badge-empty">no data</span>`;
+          return `
+            <button class="disp-picker-row${isActive ? ' is-active' : ''}"
+                    onclick="setDispersionClub('${escapeHtml(key)}')">
+              <span class="disp-picker-name">${escapeHtml(c.name)}</span>
+              ${badge}
+            </button>`;
+        }).join('');
+
+    // Note: only one .disp-chip element. Two content layers inside.
+    // The wrapping element also holds the close × in compact state;
+    // expanded state uses tap-outside-to-dismiss instead.
+    mount.innerHTML = `
+      <div class="disp-chip" id="disp-chip">
+        <!-- Compact-state content: visible when not expanded. -->
+        <div class="disp-chip-compact-content">
+          <button class="disp-chip-main" onclick="expandDispersionChip()" aria-label="Change club for dispersion overlay">
+            <span class="disp-chip-icon" aria-hidden="true">⭕</span>
+            <span class="disp-chip-body">
+              <span class="disp-chip-label">${escapeHtml(activeLabel)}</span>
+              ${statusLine}
+            </span>
+            <span class="disp-chip-chev" aria-hidden="true">▾</span>
+          </button>
+          <button class="disp-chip-close" onclick="toggleDispersionOverlay()" aria-label="Hide dispersion overlay">×</button>
+        </div>
+        <!-- Expanded-state content: visible when .is-expanded. -->
+        <div class="disp-chip-expanded-content">
+          <div class="disp-chip-expanded-header">
+            <div class="disp-chip-expanded-title">Dispersion club</div>
+            <button class="disp-chip-expanded-close" onclick="collapseDispersionChip()" aria-label="Close">×</button>
+          </div>
+          <div class="disp-picker-list">${rows}</div>
+        </div>
+      </div>`;
+  }
+
+  // Expand the chip to show the club picker. The morph animation is
+  // CSS-driven for width/border-radius, but height needs JS to resolve
+  // 'auto' to a pixel value (CSS can't transition between auto and a
+  // fixed height). We measure the expanded content's natural height
+  // and apply it inline; transitionend clears the inline style if we
+  // want auto sizing afterward (we don't here — the inline px value
+  // is fine for the duration of expansion).
+  function expandDispersionChip() {
+    const chip = document.getElementById('disp-chip');
+    const backdrop = document.getElementById('disp-chip-backdrop');
+    if (!chip) return;
+    const expandedContent = chip.querySelector('.disp-chip-expanded-content');
+    if (!expandedContent) return;
+    // Temporarily make the expanded content measurable. It's normally
+    // visibility:hidden + opacity:0 but the visibility hidden prevents
+    // it from contributing to layout. We flip it to visible (still
+    // opacity:0) just long enough to read scrollHeight, then immediately
+    // commit the .is-expanded class which will animate properly.
+    const prevVisibility = expandedContent.style.visibility;
+    const prevPosition = expandedContent.style.position;
+    expandedContent.style.visibility = 'visible';
+    expandedContent.style.position = 'relative';
+    expandedContent.style.opacity = '0';
+    // Force layout to read scrollHeight.
+    const targetHeight = expandedContent.scrollHeight + 30; // padding allowance
+    expandedContent.style.visibility = prevVisibility;
+    expandedContent.style.position = prevPosition;
+    expandedContent.style.opacity = '';
+    // Apply target height inline so the CSS transition resolves it.
+    chip.style.height = targetHeight + 'px';
+    chip.classList.add('is-expanded');
+    if (backdrop) backdrop.classList.add('is-visible');
+  }
+
+  // Collapse back to the compact pill. Reverse of expand — class
+  // removal triggers the CSS transition. Inline height needs to be
+  // cleared so the compact dimensions (50px from CSS) apply.
+  function collapseDispersionChip() {
+    const chip = document.getElementById('disp-chip');
+    const backdrop = document.getElementById('disp-chip-backdrop');
+    if (!chip) return;
+    chip.classList.remove('is-expanded');
+    // Clear the inline height so CSS's 50px takes over and animates.
+    chip.style.height = '';
+    if (backdrop) backdrop.classList.remove('is-visible');
+  }
+
+  // Re-render the chip when the chip's status info changes. Now no
+  // longer used on the hot drag path (drag doesn't change club), but
+  // kept for explicit triggering on club changes.
+  function updateDispersionClubChipState() {
+    renderDispersionClubChip();
+  }
+
+  function setDispersionClub(clubKey) {
+    if (!clubKey) return;
+    const ov = roundGpsState.dispersionOverlay;
+    if (!ov) return;
+    ov.clubKey = clubKey;
+    invalidateDispersionCache();
+    // Collapse first so the user sees the morph back to chip; then
+    // after the CSS transition finishes, re-render the chip's content
+    // with the new active club. Doing it in this order means the
+    // selected row stays visible (and orange-active) during the morph,
+    // which feels more correlated than abruptly swapping content.
+    collapseDispersionChip();
+    setTimeout(() => {
+      renderDispersionClubChip();
+      updateDispersionOverlay();
+    }, 320); // matches CSS transition duration
+  }
+  // Expose to onclick handlers.
+  window.toggleDispersionOverlay = toggleDispersionOverlay;
+  window.expandDispersionChip = expandDispersionChip;
+  window.collapseDispersionChip = collapseDispersionChip;
+  window.setDispersionClub = setDispersionClub;
 
   // ──────────────────────────────────────────────────────────
   // Auto-advance hole detection — when the user is detected
