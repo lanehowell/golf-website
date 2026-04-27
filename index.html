@@ -54223,6 +54223,17 @@
         },
       });
       replayState.drawnShotLines.push({ sourceId: lineSourceId, layerId: lineLayerId });
+      // Lift any existing shot pins to the top so subsequent line
+      // draws don't render over them. Mapbox layer order = draw
+      // order (later = on top), so without this reordering, lines
+      // added after a pin would visually clip the pin's number.
+      if (Array.isArray(replayState.shotEndLayers)) {
+        replayState.shotEndLayers.forEach(({ layerIds }) => {
+          (layerIds || []).forEach(lid => {
+            try { if (map.getLayer(lid)) map.moveLayer(lid); } catch (_) {}
+          });
+        });
+      }
     } catch (_) {}
 
     // Animate. Easing: ease-out cubic — line draws fast at start,
@@ -54329,6 +54340,12 @@
         sourceId,
         layerIds: [circleLayerId, labelLayerId],
       });
+      // Move both layers to the top of the stack so they render
+      // above any line layers (current OR future).
+      try {
+        map.moveLayer(circleLayerId);
+        map.moveLayer(labelLayerId);
+      } catch (_) {}
     } catch (e) {
       // Layer add can fail if style isn't loaded — fall back to a
       // simple DOM marker so the user still sees pins.
