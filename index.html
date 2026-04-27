@@ -31636,26 +31636,47 @@
   // ─────────────────────────────────────────────────────────────
   let __bodyLockCount = 0;
   let __bodyLockScrollY = 0;
+  // Tracks whether THIS lock-system actually applied position:fixed
+  // styles to the body. When a sheet has already locked via the
+  // html.scroll-locked class (acquireScrollLock), we skip applying
+  // our own styles to avoid the body visually shifting from the
+  // overlay of two locking systems.
+  let __bodyLockStylesApplied = false;
   function lockBodyScroll() {
     __bodyLockCount++;
     if (__bodyLockCount > 1) return; // already locked
+    // If another lock system has already locked the page (sheet/
+    // dock with html.scroll-locked), defer to it. Setting our own
+    // position:fixed would cause a visible shift since it changes
+    // the body's anchoring.
+    if (document.documentElement.classList.contains('scroll-locked')) {
+      __bodyLockStylesApplied = false;
+      return;
+    }
     __bodyLockScrollY = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${__bodyLockScrollY}px`;
     document.body.style.left = '0';
     document.body.style.right = '0';
     document.body.style.width = '100%';
+    __bodyLockStylesApplied = true;
   }
   function unlockBodyScroll() {
     if (__bodyLockCount > 0) __bodyLockCount--;
     if (__bodyLockCount > 0) return; // other modals still open
-    const y = __bodyLockScrollY;
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.left = '';
-    document.body.style.right = '';
-    document.body.style.width = '';
-    window.scrollTo(0, y);
+    // Only un-apply styles if we actually applied them. When the
+    // page was already locked by another system, we never set
+    // position:fixed and don't need to scroll-restore.
+    if (__bodyLockStylesApplied) {
+      const y = __bodyLockScrollY;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, y);
+    }
+    __bodyLockStylesApplied = false;
   }
 
   // ─────────────────────────────────────────────────────────────
