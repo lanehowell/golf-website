@@ -8203,66 +8203,23 @@
   .shot-edit-map-section {
     margin-bottom: var(--space-4);
   }
-  /* Shot edit map pins — draggable Mapbox markers. Wrapper-based
-     structure: outer .shot-edit-pin has rock-solid fixed dimensions
-     (no border, no padding, no inflating children) so Mapbox's
-     anchor: 'center' translate(-50%, -50%) lands the visual centroid
-     exactly on the lat/lng. The visible circle is an inner element
-     positioned absolutely-centered inside the wrapper. The hitbox
-     is a ::before pseudo on the wrapper. */
+  /* Shot edit map pins — INVISIBLE drag handles. The actual visual
+     pins are rendered as Mapbox circle layers (pure WebGL, locked
+     to lat/lng with no drift on zoom/rotate). DOM markers are just
+     transparent finger-sized hit areas on top of those circles for
+     drag interaction. Even if the DOM marker drifts a few pixels on
+     zoom/rotate, the visual stays locked — and the hit area is big
+     enough that drag still works. */
   .shot-edit-pin {
+    width: 36px;
+    height: 36px;
     cursor: grab;
-    position: relative;
     -webkit-tap-highlight-color: transparent;
-    /* Fixed sizes per variant below. NO border/padding here. */
-  }
-  .shot-edit-pin::before {
-    content: '';
-    position: absolute;
-    top: -10px; left: -10px; right: -10px; bottom: -10px;
-    border-radius: 50%;
+    /* Fully transparent — visual handled by circle layer. */
+    background: transparent;
+    border: none;
   }
   .shot-edit-pin:active { cursor: grabbing; }
-  /* The inner visual — absolutely-centered in the wrapper. Border,
-     shadow, etc. live here so they don't affect the wrapper's box. */
-  .shot-edit-pin-visual {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    pointer-events: none; /* hitbox handled by wrapper */
-  }
-  /* Variant sizes — wrapper is exactly the visible diameter. */
-  .shot-edit-pin-start {
-    width: 18px; height: 18px;
-  }
-  .shot-edit-pin-start .shot-edit-pin-visual {
-    width: 14px; height: 14px;
-    background: #fefefe;
-    border: 2px solid rgba(0, 0, 0, 0.6);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  }
-  .shot-edit-pin-end {
-    width: 22px; height: 22px;
-  }
-  .shot-edit-pin-end .shot-edit-pin-visual {
-    width: 18px; height: 18px;
-    background: var(--color-orange, #E85D04);
-    border: 2px solid #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  }
-  .shot-edit-pin-target {
-    width: 20px; height: 20px;
-  }
-  .shot-edit-pin-target .shot-edit-pin-visual {
-    width: 20px; height: 20px;
-    /* SVG handles the visual circle; just position the SVG container. */
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-  }
-  .shot-edit-pin-target::before {
-    border-radius: 50%;
-  }
 
   .shot-edit-map {
     width: 100%;
@@ -38498,24 +38455,80 @@
             },
           });
         }
+
+        // Pin visuals — circle LAYERS (pure WebGL, no drift on zoom
+        // or rotate). DOM markers handle drag interaction; these
+        // circles handle the visual. Drag updates both via
+        // updateShotEditPinLayers.
+        // Start pin: small white circle, dark border.
+        map.addSource('shot-edit-pin-start', {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: { type: 'Point', coordinates: [shot.startLng, shot.startLat] } },
+        });
+        map.addLayer({
+          id: 'shot-edit-pin-start-layer',
+          type: 'circle',
+          source: 'shot-edit-pin-start',
+          paint: {
+            'circle-radius': 7,
+            'circle-color': '#fefefe',
+            'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
+            'circle-stroke-width': 2,
+          },
+        });
+        // End pin: orange circle, white border.
+        map.addSource('shot-edit-pin-end', {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] } },
+        });
+        map.addLayer({
+          id: 'shot-edit-pin-end-layer',
+          type: 'circle',
+          source: 'shot-edit-pin-end',
+          paint: {
+            'circle-radius': 9,
+            'circle-color': '#E85D04',
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+          },
+        });
+        // Target pin: concentric circles (orange outer, white inner).
+        if (hasShotEditTarget()) {
+          map.addSource('shot-edit-pin-target', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'Point', coordinates: [shot.targetLng, shot.targetLat] } },
+          });
+          map.addLayer({
+            id: 'shot-edit-pin-target-outer',
+            type: 'circle',
+            source: 'shot-edit-pin-target',
+            paint: {
+              'circle-radius': 9,
+              'circle-color': '#ff8a3d',
+              'circle-stroke-color': '#ffffff',
+              'circle-stroke-width': 2,
+              'circle-opacity': 0.9,
+            },
+          });
+          map.addLayer({
+            id: 'shot-edit-pin-target-inner',
+            type: 'circle',
+            source: 'shot-edit-pin-target',
+            paint: {
+              'circle-radius': 2.5,
+              'circle-color': '#ffffff',
+            },
+          });
+        }
       } catch (_) {}
     });
 
-    // Helper: append a transparent absolute-positioned hitbox child
-    // to a marker so the touchable area is bigger than the visual.
-    // Doesn't change the parent's bounding box (the parent is sized
-    // to the visual), so Mapbox's anchor calculation puts the visual
-    // exactly at the lat/lng. This is the key bit — earlier versions
-    // used padding/margin which shifted the bounding box and caused
-    // the visual to drift away from line endpoints.
-    // Start marker — small white circle, draggable. Wrapper-based:
-    // outer has fixed dimensions (no border/shadow that would inflate
-    // the box), inner visual is absolutely-centered. This keeps the
-    // wrapper's bounding box rock-solid so Mapbox's anchor:'center'
-    // math produces the correct visual centroid at every zoom level.
+    // Start marker — INVISIBLE drag handle. Visual is the circle
+    // layer added in map.on('load'). DOM marker just needs to be
+    // big enough to grab; even if it drifts a few pixels on zoom,
+    // the visual stays locked to the lat/lng via layer geometry.
     const startEl = document.createElement('div');
-    startEl.className = 'shot-edit-pin shot-edit-pin-start';
-    startEl.innerHTML = `<div class="shot-edit-pin-visual"></div>`;
+    startEl.className = 'shot-edit-pin';
     const startMarker = new mapboxgl.Marker({
       element: startEl, anchor: 'center', draggable: true,
     })
@@ -38527,16 +38540,18 @@
         shotEditState.draft.startLat = ll.lat;
         shotEditState.draft.startLng = ll.lng;
       }
+      // Update circle layer to follow drag — visual moves with the
+      // handle in real time.
+      updateShotEditPinLayer('shot-edit-pin-start', ll.lng, ll.lat);
       // Both lines depend on start — redraw both.
       updateShotEditFlightLine();
       updateShotEditIntentLine();
     });
     shotEditState.startMarker = startMarker;
 
-    // End marker — orange filled circle, draggable.
+    // End marker — INVISIBLE drag handle.
     const endEl = document.createElement('div');
-    endEl.className = 'shot-edit-pin shot-edit-pin-end';
-    endEl.innerHTML = `<div class="shot-edit-pin-visual"></div>`;
+    endEl.className = 'shot-edit-pin';
     const endMarker = new mapboxgl.Marker({
       element: endEl, anchor: 'center', draggable: true,
     })
@@ -38548,24 +38563,17 @@
         shotEditState.draft.endLat = ll.lat;
         shotEditState.draft.endLng = ll.lng;
       }
+      updateShotEditPinLayer('shot-edit-pin-end', ll.lng, ll.lat);
       // Only flight line depends on end; intent line is start→target,
       // unaffected by end position.
       updateShotEditFlightLine();
     });
     shotEditState.endMarker = endMarker;
 
-    // Target marker (if any) — concentric circles, draggable.
+    // Target marker (if any) — INVISIBLE drag handle.
     if (shot.targetLat != null && shot.targetLng != null) {
       const tgtEl = document.createElement('div');
-      tgtEl.className = 'shot-edit-pin shot-edit-pin-target';
-      tgtEl.innerHTML = `
-        <div class="shot-edit-pin-visual">
-          <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="9" fill="#ff8a3d"
-                    stroke="#fff" stroke-width="2" opacity="0.9"/>
-            <circle cx="12" cy="12" r="2.5" fill="#fff"/>
-          </svg>
-        </div>`;
+      tgtEl.className = 'shot-edit-pin';
       const tgtMarker = new mapboxgl.Marker({
         element: tgtEl, anchor: 'center', draggable: true,
       })
@@ -38577,6 +38585,7 @@
           shotEditState.draft.targetLat = ll.lat;
           shotEditState.draft.targetLng = ll.lng;
         }
+        updateShotEditPinLayer('shot-edit-pin-target', ll.lng, ll.lat);
         // Only intent line depends on target; flight is unaffected.
         updateShotEditIntentLine();
       });
@@ -38641,6 +38650,24 @@
     try {
       const src = map.getSource('shot-edit-flight');
       if (src) src.setData(buildShotEditFlightFeature());
+    } catch (_) {}
+  }
+
+  // Update a pin's circle-layer source to follow drag. lng/lat are
+  // the new geographic position. Used by start/end/target drag
+  // handlers since the DOM marker is invisible and the visible pin
+  // is rendered by a circle layer.
+  function updateShotEditPinLayer(sourceId, lng, lat) {
+    const map = shotEditState.map;
+    if (!map) return;
+    try {
+      const src = map.getSource(sourceId);
+      if (src) {
+        src.setData({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+        });
+      }
     } catch (_) {}
   }
 
