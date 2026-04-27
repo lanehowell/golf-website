@@ -14412,7 +14412,10 @@
   .round-replay-wind-arrow {
     width: 18px;
     height: 18px;
-    transition: transform 400ms ease-out;
+    /* No CSS transition — the arrow updates per-frame from map's
+       rotate event during flyTo + manual rotation. A CSS transition
+       would fight per-frame updates and make the arrow visibly lag
+       behind the actual map bearing. */
   }
   .round-replay-wind-speed {
     font-family: var(--font-mono);
@@ -32685,8 +32688,14 @@
       currentHoleIndex: roundState.holeIndex,
       scores: roundState.scores,
       shots: roundState.shots,
-      totals
+      totals,
     };
+    // Weather snapshot — captured at round start by attachLiveWeather
+    // ToRound. Optional; only included if it's been fetched. Persisted
+    // on every save thereafter so the snapshot rides with the round.
+    if (roundState.weather) {
+      payload.weather = roundState.weather;
+    }
     syncBeginSave();
     try {
       const path = `users/${currentUser.uid}/rounds/${roundState.docId}`;
@@ -33697,6 +33706,10 @@
     saveSoloRoundCursor();
     // Initial save so an in-progress doc exists for resume detection
     await autoSaveRound();
+    // Snapshot weather to the round — non-blocking. Captures wind +
+    // temp + conditions at round-start so we have rich data for
+    // post-round insights ("you scored 3 worse in 15+ mph wind").
+    captureWeatherForLiveRound();
     showPanel('round', null);
   }
 
@@ -33718,6 +33731,11 @@
     roundState.shots = roundDoc.shots || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
+    // Restore weather snapshot from the doc, if present. Don't try
+    // to fetch fresh on resume — current weather isn't representative
+    // for a round that was started hours ago. If weather is missing,
+    // historical fetch (via replay open) can backfill later.
+    roundState.weather = roundDoc.weather || null;
     // Merge any in-progress mid-hole edits from the scratchpad back
     // into local state. If the user was mid-stroke-entry when they
     // closed the app, this restores those taps as if they never left.
@@ -33735,6 +33753,7 @@
     roundState.shots = {};
     roundState.started = null;
     roundState.dateKey = null;
+    roundState.weather = null;
   }
 
   // Discard the current round entirely — delete from Firestore + clear local state.
@@ -33894,6 +33913,10 @@
       __groupRoundInvitesSent.clear();
       updateRoundBanner();
       showPanel('group-lobby', null);
+      // Snapshot weather for the group round — non-blocking. Lobby
+      // is typically created close in time to actual play, so current
+      // conditions are representative. Persists to groupRounds/{id}.
+      captureWeatherForGroupRound(id, courseId);
     } catch (err) {
       console.error('Failed to create group round:', err);
       showToast('Could not create group round', true);
@@ -35096,14 +35119,17 @@
       const url = `https://archive-api.open-meteo.com/v1/archive`
         + `?latitude=${course.lat}&longitude=${course.lng}`
         + `&start_date=${dateKey}&end_date=${dateKey}`
-        + `&hourly=wind_speed_10m,wind_direction_10m`
+        + `&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,weather_code`
         + `&wind_speed_unit=mph`
+        + `&temperature_unit=fahrenheit`
         + `&timezone=auto`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const speeds = data?.hourly?.wind_speed_10m;
       const dirs = data?.hourly?.wind_direction_10m;
+      const temps = data?.hourly?.temperature_2m;
+      const codes = data?.hourly?.weather_code;
       if (!Array.isArray(speeds) || !Array.isArray(dirs)) {
         return null;
       }
@@ -35115,6 +35141,11 @@
       // Direction averaging: use vector mean (sin/cos) — naive
       // arithmetic mean of degrees fails across the 0/360 boundary.
       let sinSum = 0, cosSum = 0, dirCount = 0;
+      let tempSum = 0, tempCount = 0;
+      // For weather_code, just take the value at start hour — the
+      // most representative single sample, vs averaging codes which
+      // is meaningless (codes are categorical, not continuous).
+      let representativeCode = null;
       for (let i = fromIdx; i <= toIdx; i++) {
         const s = speeds[i];
         const d = dirs[i];
@@ -35125,6 +35156,13 @@
           cosSum += Math.cos(rad);
           dirCount++;
         }
+        if (Array.isArray(temps) && typeof temps[i] === 'number') {
+          tempSum += temps[i]; tempCount++;
+        }
+        if (representativeCode == null
+            && Array.isArray(codes) && typeof codes[i] === 'number') {
+          representativeCode = codes[i];
+        }
       }
       if (speedCount === 0 || dirCount === 0) return null;
       const speedMph = Math.round(speedSum / speedCount);
@@ -35133,6 +35171,8 @@
       const weather = {
         speedMph,
         directionDeg,
+        tempF: tempCount > 0 ? Math.round(tempSum / tempCount) : null,
+        weatherCode: representativeCode,
         fetchedAt: Date.now(),
       };
       // Persist to the round doc so we don't fetch again next time.
@@ -35155,6 +35195,163 @@
     }
   }
   window.fetchHistoricalWindForRound = fetchHistoricalWindForRound;
+
+  // Snapshot current weather onto a round at start time. Uses the
+  // forecast endpoint we already cache (fetchWeather) so this is
+  // free if weather was just queried for the course landing page.
+  // Non-blocking: writes to round.weather + Firestore in background.
+  // If the fetch fails, weather stays unset and the historical
+  // fetch path (replay open) will backfill later.
+  //
+  // Stored schema:
+  //   round.weather = {
+  //     speedMph,       // wind speed at 10m
+  //     directionDeg,   // wind FROM direction (0=N, 90=E, ...)
+  //     tempF,          // temperature
+  //     weatherCode,    // WMO weather code (0=clear, 51-67=rain, etc.)
+  //     fetchedAt,      // ms timestamp of when this was captured
+  //   }
+  //
+  // pathHint controls where the round is written when persisting —
+  // either 'solo' (users/{uid}/rounds/{id}) or 'group' (a group
+  // round path; not yet wired). Solo writes mirror to publicProfiles.
+  async function attachLiveWeatherToRound(round, { pathHint = 'solo' } = {}) {
+    if (!round) return;
+    if (round.weather && typeof round.weather.speedMph === 'number') {
+      // Already has weather — don't overwrite.
+      return;
+    }
+    const course = getCourse(round.courseId);
+    if (!course || typeof course.lat !== 'number' || typeof course.lng !== 'number') {
+      return;
+    }
+    try {
+      const result = await fetchWeather(course.lat, course.lng);
+      if (!result || result.status !== 'ok' || !result.data?.current) return;
+      const cur = result.data.current;
+      const speedMph = (typeof cur.wind_speed_10m === 'number')
+        ? Math.round(cur.wind_speed_10m) : null;
+      const directionDeg = (typeof cur.wind_direction_10m === 'number')
+        ? Math.round(cur.wind_direction_10m) : null;
+      const tempF = (typeof cur.temperature_2m === 'number')
+        ? Math.round(cur.temperature_2m) : null;
+      const weatherCode = (typeof cur.weather_code === 'number')
+        ? cur.weather_code : null;
+      // Need at least wind speed for the snapshot to be useful.
+      if (speedMph == null) return;
+      round.weather = {
+        speedMph,
+        directionDeg,
+        tempF,
+        weatherCode,
+        fetchedAt: Date.now(),
+      };
+      // Persist to Firestore.
+      if (currentUser && window.fb && round.id && pathHint === 'solo') {
+        try {
+          await window.fb.setDoc(`users/${currentUser.uid}/rounds/${round.id}`, round);
+          // Public mirror — silent on failure (might not be synced yet).
+          try {
+            await window.fb.setDoc(`publicProfiles/${currentUser.uid}/rounds/${round.id}`, round);
+          } catch (_) {}
+        } catch (err) {
+          console.warn('attachLiveWeatherToRound persist failed:', err);
+        }
+      }
+    } catch (err) {
+      console.warn('attachLiveWeatherToRound:', err.message);
+    }
+  }
+  window.attachLiveWeatherToRound = attachLiveWeatherToRound;
+
+  // Fetch current weather and write to roundState.weather so the
+  // next autosave persists it. Used at solo round start. Non-
+  // blocking: kicked off as fire-and-forget so round start UI
+  // isn't delayed.
+  async function captureWeatherForLiveRound() {
+    if (!roundState.courseId) return;
+    if (roundState.weather) return; // already snapshotted
+    const course = getCourse(roundState.courseId);
+    if (!course || typeof course.lat !== 'number' || typeof course.lng !== 'number') {
+      return;
+    }
+    try {
+      const result = await fetchWeather(course.lat, course.lng);
+      if (!result || result.status !== 'ok' || !result.data?.current) return;
+      const cur = result.data.current;
+      const speedMph = (typeof cur.wind_speed_10m === 'number')
+        ? Math.round(cur.wind_speed_10m) : null;
+      if (speedMph == null) return;
+      roundState.weather = {
+        speedMph,
+        directionDeg: (typeof cur.wind_direction_10m === 'number')
+          ? Math.round(cur.wind_direction_10m) : null,
+        tempF: (typeof cur.temperature_2m === 'number')
+          ? Math.round(cur.temperature_2m) : null,
+        weatherCode: (typeof cur.weather_code === 'number')
+          ? cur.weather_code : null,
+        fetchedAt: Date.now(),
+      };
+      // Trigger an autosave so the weather lands in Firestore.
+      // queueAutoSaveRound is debounced — if this is called during
+      // an active round, it'll merge with any pending save.
+      if (typeof queueAutoSaveRound === 'function') {
+        queueAutoSaveRound();
+      }
+    } catch (err) {
+      console.warn('captureWeatherForLiveRound:', err.message);
+    }
+  }
+  window.captureWeatherForLiveRound = captureWeatherForLiveRound;
+
+  // Snapshot current weather onto a group round at lobby create.
+  // Writes to groupRounds/{id} via updateGroupRoundFields. Uses
+  // forecast endpoint (same as solo) — lobby is typically created
+  // close in time to actual play, so current conditions are
+  // representative.
+  async function captureWeatherForGroupRound(groupRoundId, courseId) {
+    if (!groupRoundId || !courseId) return;
+    if (!window.fb) return;
+    const course = getCourse(courseId);
+    if (!course || typeof course.lat !== 'number' || typeof course.lng !== 'number') {
+      return;
+    }
+    try {
+      const result = await fetchWeather(course.lat, course.lng);
+      if (!result || result.status !== 'ok' || !result.data?.current) return;
+      const cur = result.data.current;
+      const speedMph = (typeof cur.wind_speed_10m === 'number')
+        ? Math.round(cur.wind_speed_10m) : null;
+      if (speedMph == null) return;
+      const weather = {
+        speedMph,
+        directionDeg: (typeof cur.wind_direction_10m === 'number')
+          ? Math.round(cur.wind_direction_10m) : null,
+        tempF: (typeof cur.temperature_2m === 'number')
+          ? Math.round(cur.temperature_2m) : null,
+        weatherCode: (typeof cur.weather_code === 'number')
+          ? cur.weather_code : null,
+        fetchedAt: Date.now(),
+      };
+      try {
+        await window.fb.updateGroupRoundFields(groupRoundId, { weather });
+      } catch (err) {
+        console.warn('captureWeatherForGroupRound persist failed:', err);
+        return;
+      }
+      // Update local cache too.
+      if (groupRoundState.docId === groupRoundId && groupRoundState.doc) {
+        groupRoundState.doc.weather = weather;
+      }
+      const idx = (myGroupRounds || []).findIndex(gr => gr.id === groupRoundId);
+      if (idx >= 0) {
+        myGroupRounds[idx] = { ...myGroupRounds[idx], weather };
+      }
+    } catch (err) {
+      console.warn('captureWeatherForGroupRound:', err.message);
+    }
+  }
+  window.captureWeatherForGroupRound = captureWeatherForGroupRound;
 
   // Group-round versions of the solo score mutators. Separate from the
   // solo ones because they read/write different state and trigger a
@@ -35604,6 +35801,14 @@
       groupPlayerUids: gr.playerUids || [],
       groupOthers: otherPlayers
     };
+    // Carry weather snapshot from the group round doc onto each
+    // player's personal snapshot. The group round captured it at
+    // lobby create; replicating it here means all post-round
+    // surfaces (replay, history filters, future stats) work the
+    // same way regardless of round flavor.
+    if (gr.weather) {
+      personalPayload.weather = gr.weather;
+    }
 
     // Compute bestType for this group round against full history.
     // Same logic as solo completion — friends on the shared feed rely
@@ -36516,8 +36721,13 @@
       // the prior auto-save (which includes shots) with a shots-free doc,
       // wiping the user's shot tracking data the instant they finish.
       shots: roundState.shots || {},
-      totals
+      totals,
     };
+    // Preserve the weather snapshot if one was captured at round
+    // start. Carries forward to the completed-round doc + history.
+    if (roundState.weather) {
+      basePayload.weather = roundState.weather;
+    }
 
     // Compute bestType for this round against the user's full history
     // (including this round itself). Writing this denormalized onto the
@@ -46601,6 +46811,15 @@
     showToast(isEditing ? 'Round updated' : 'Round saved');
     resetQuickScoreState();
     openRoundSummary(docId);
+    // Fire historical weather fetch in the background — quick-score
+    // rounds have an arbitrary date so we use the archive endpoint
+    // (current weather is irrelevant for a round logged 3 days ago).
+    // Non-blocking; weather will land on the round doc within a few
+    // seconds. Skips if the round already has weather (edit case).
+    const cached = (recentRounds || []).find(r => r.id === docId);
+    if (cached) {
+      fetchHistoricalWindForRound(cached).catch(() => {});
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -53945,27 +54164,46 @@
   }
   window.openReplay = openReplay;
 
-  // Update the wind pill UI from a weather object. Reveals the pill
-  // (removes is-hidden), sets the speed number, and rotates the
-  // arrow based on direction. Direction is "wind FROM" per Open-
-  // Meteo convention — arrow points in the direction the wind is
-  // BLOWING TOWARD (i.e., 180 degrees opposite). Matches the
-  // in-round wind pill's arrow convention.
+  // Update the wind pill UI from a weather object. Reveals the pill,
+  // sets the speed number, stores the weather on replayState so the
+  // rotate listener can read it, and triggers an initial arrow update.
   function applyReplayWindDisplay(weather) {
     if (!weather || typeof weather.speedMph !== 'number') return;
     const pill = document.getElementById('round-replay-wind');
     const speedEl = document.getElementById('round-replay-wind-speed-value');
-    const arrowEl = document.getElementById('round-replay-wind-arrow');
     if (pill) pill.classList.remove('is-hidden');
     if (speedEl) speedEl.textContent = String(weather.speedMph);
-    if (arrowEl && typeof weather.directionDeg === 'number') {
-      // Arrow's default points up. Wind direction is FROM, so we
-      // rotate arrow by directionDeg + 180 to show "blowing toward".
-      const rot = (weather.directionDeg + 180) % 360;
-      arrowEl.style.transform = `rotate(${rot}deg)`;
-    }
+    // Cache the weather on replayState so updateReplayWindArrow can
+    // re-read direction whenever the map bearing changes (e.g., user
+    // rotates the map, or flyTo bearing transitions on hole change).
+    replayState.weather = weather;
+    updateReplayWindArrow();
   }
   window.applyReplayWindDisplay = applyReplayWindDisplay;
+
+  // Update just the arrow's rotation. Reads the cached weather +
+  // current map bearing. Called once on initial weather application,
+  // then re-fired on every map rotate event so the arrow stays
+  // pointing in true compass direction regardless of map orientation.
+  // Direction is "wind FROM" (Open-Meteo convention); arrow points
+  // in the direction the wind is BLOWING TOWARD (+180), then we
+  // subtract map bearing so the arrow's screen-frame rotation
+  // compensates for the map's world-frame rotation.
+  function updateReplayWindArrow() {
+    const arrowEl = document.getElementById('round-replay-wind-arrow');
+    if (!arrowEl) return;
+    const weather = replayState.weather;
+    if (!weather || typeof weather.directionDeg !== 'number') return;
+    const mapBearing = replayState.map ? replayState.map.getBearing() : 0;
+    // Wind direction is FROM (compass degrees, 0=N CW). Arrow points
+    // in BLOWING-TOWARD direction, so +180. Subtract map bearing so
+    // the arrow's screen rotation tracks true compass direction
+    // regardless of camera rotation. Normalize to [0, 360) for sanity.
+    let rot = (weather.directionDeg + 180 - mapBearing) % 360;
+    if (rot < 0) rot += 360;
+    arrowEl.style.transform = `rotate(${rot}deg)`;
+  }
+  window.updateReplayWindArrow = updateReplayWindArrow;
 
   function closeReplay() {
     if (!replayState.open) return;
@@ -54412,6 +54650,12 @@
         map.getCanvas().style.cursor = overPin ? 'pointer' : '';
       } catch (_) {}
     });
+    // Wind arrow stays oriented to true compass direction. Re-rotate
+    // it whenever the map's bearing changes — covers both user pinch-
+    // rotate and flyTo bearing transitions on hole navigation (each
+    // hole reframes to put its tee→green vertical, which changes the
+    // map bearing).
+    map.on('rotate', updateReplayWindArrow);
     replayState.map = map;
   }
 
