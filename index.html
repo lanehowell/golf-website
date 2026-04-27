@@ -53528,6 +53528,7 @@
     replayState.teeMarker = null;
     replayState.greenMarker = null;
     replayState.shotEndMarkers = [];
+    replayState.shotEndLayers = [];
     replayState.drawnShotLines = [];
     replayState.open = false;
     replayState.round = null;
@@ -53996,12 +53997,23 @@
       replayState.greenMarker = null;
     }
     // Clear all numbered shot-end markers from the previous hole.
+    // Two storage paths: legacy DOM markers (fallback) + new Mapbox
+    // layer pins. Both need to be torn down.
     if (Array.isArray(replayState.shotEndMarkers)) {
       replayState.shotEndMarkers.forEach(m => {
         try { m.remove(); } catch (_) {}
       });
     }
     replayState.shotEndMarkers = [];
+    if (map && Array.isArray(replayState.shotEndLayers)) {
+      replayState.shotEndLayers.forEach(({ sourceId, layerIds }) => {
+        (layerIds || []).forEach(lid => {
+          try { if (map.getLayer(lid)) map.removeLayer(lid); } catch (_) {}
+        });
+        try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+      });
+    }
+    replayState.shotEndLayers = [];
     if (map) {
       replayState.drawnShotLines.forEach(({ sourceId, layerId }) => {
         try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
@@ -54257,32 +54269,80 @@
   // Same visual language as in-round shot pins (round-gps-shot-marker).
   // Tracked in replayState.shotEndMarkers so clearReplayMapOverlays
   // can tear them down on hole nav.
+  // Drops a yellow numbered pin at the shot's end position. Uses
+  // Mapbox circle + symbol LAYERS rather than a DOM marker — keeps
+  // everything (pin + line + dot) in the same WebGL projection
+  // pipeline, so they stay locked to the same lat/lng across zoom
+  // and pan. DOM markers were drifting relative to the map at
+  // different zoom levels because Mapbox's anchor: 'center' math
+  // didn't match the actual visual centroid.
   function addReplayShotEndMarker(shot, shotNumber) {
     const map = replayState.map;
     if (!map) return;
-    // Force a repaint + fresh projection sync before placing the
-    // marker. Without this, markers added after line-layer additions
-    // can drift from their geographic position due to (suspected)
-    // Mapbox internal camera-state staleness — the line renders
-    // correctly via WebGL using fresh state, but DOM markers project
-    // pixel positions from a slightly stale camera.
+    const baseId = `replay-pin-${shotNumber}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const sourceId = `${baseId}-src`;
+    const circleLayerId = `${baseId}-circle`;
+    const labelLayerId = `${baseId}-label`;
     try {
-      map.triggerRepaint();
-      // Touch project() to ensure the projection matrix is current.
-      map.project([shot.endLng, shot.endLat]);
-    } catch (_) {}
-
-    const el = document.createElement('div');
-    el.className = 'round-gps-shot-marker'; // reuse existing styling
-    el.textContent = String(shotNumber);
-    el.title = `Shot ${shotNumber}`;
-    try {
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([shot.endLng, shot.endLat])
-        .addTo(map);
-      if (!replayState.shotEndMarkers) replayState.shotEndMarkers = [];
-      replayState.shotEndMarkers.push(marker);
-    } catch (_) {}
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: { label: String(shotNumber) },
+          geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
+        },
+      });
+      // Circle: filled yellow with dark stroke. Sized to roughly
+      // match the old DOM marker (22px diameter visual).
+      map.addLayer({
+        id: circleLayerId,
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': 11,
+          'circle-color': '#FFD600',
+          'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
+          'circle-stroke-width': 2,
+        },
+      });
+      // Label: shot number, dark text, centered on the circle.
+      map.addLayer({
+        id: labelLayerId,
+        type: 'symbol',
+        source: sourceId,
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 12,
+          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+          'text-anchor': 'center',
+        },
+        paint: {
+          'text-color': '#1a1a1a',
+          'text-halo-color': 'rgba(255, 214, 0, 0.6)',
+          'text-halo-width': 0.5,
+        },
+      });
+      if (!replayState.shotEndLayers) replayState.shotEndLayers = [];
+      replayState.shotEndLayers.push({
+        sourceId,
+        layerIds: [circleLayerId, labelLayerId],
+      });
+    } catch (e) {
+      // Layer add can fail if style isn't loaded — fall back to a
+      // simple DOM marker so the user still sees pins.
+      try {
+        const el = document.createElement('div');
+        el.className = 'round-gps-shot-marker';
+        el.textContent = String(shotNumber);
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([shot.endLng, shot.endLat])
+          .addTo(map);
+        if (!replayState.shotEndMarkers) replayState.shotEndMarkers = [];
+        replayState.shotEndMarkers.push(marker);
+      } catch (_) {}
+    }
   }
 
   function onReplayHoleAnimationComplete(holeNum) {
@@ -54397,8 +54457,19 @@
       try { if (map.getLayer(lastLine.layerId)) map.removeLayer(lastLine.layerId); } catch (_) {}
       try { if (map.getSource(lastLine.sourceId)) map.removeSource(lastLine.sourceId); } catch (_) {}
     }
-    // Pop the last numbered marker.
-    if (Array.isArray(replayState.shotEndMarkers)) {
+    // Pop the last numbered marker. Two storage paths: legacy DOM
+    // markers (fallback) + new Mapbox layer pins. Pop from whichever
+    // had the most recent entry (only one of them actually has the
+    // pin for this shot since we use one path per shot).
+    if (Array.isArray(replayState.shotEndLayers) && replayState.shotEndLayers.length > 0) {
+      const lastEntry = replayState.shotEndLayers.pop();
+      if (lastEntry && map) {
+        (lastEntry.layerIds || []).forEach(lid => {
+          try { if (map.getLayer(lid)) map.removeLayer(lid); } catch (_) {}
+        });
+        try { if (map.getSource(lastEntry.sourceId)) map.removeSource(lastEntry.sourceId); } catch (_) {}
+      }
+    } else if (Array.isArray(replayState.shotEndMarkers)) {
       const lastMarker = replayState.shotEndMarkers.pop();
       if (lastMarker) {
         try { lastMarker.remove(); } catch (_) {}
