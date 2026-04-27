@@ -5618,6 +5618,20 @@
   .round-gps-pin-marker:active .round-gps-pin-marker-inner {
     transform: scale(0.92);
   }
+
+  /* Flag pin in round replay — shows the user-placed pin position
+     from when the round was played, if persisted on the round doc.
+     Slightly muted (lower opacity) so numbered shot pins remain
+     the primary visual focus. */
+  .replay-flag-pin-marker {
+    pointer-events: none;
+    /* IMPORTANT: no transform here — Mapbox owns the transform. */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    opacity: 0.85;
+  }
+  .replay-flag-pin-marker-inner {
+    display: inline-block;
+  }
   .round-gps-pin-marker-inner {
     /* Subtle pulsing halo so user notices the freshly-set pin. Tap
        the pin to re-open the placement modal for repositioning.
@@ -34294,6 +34308,16 @@
     if (roundState.weather) {
       payload.weather = roundState.weather;
     }
+    // Pins — snapshot from localStorage so they ride with the round
+    // doc. Enables pin display in replays + protects against data
+    // loss if user uninstalls before completion. Skip the field when
+    // empty to keep the doc clean.
+    if (typeof readPinsForRoundId === 'function') {
+      const pins = readPinsForRoundId(roundState.docId);
+      if (pins && Object.keys(pins).length > 0) {
+        payload.pins = pins;
+      }
+    }
     syncBeginSave();
     try {
       const path = `users/${currentUser.uid}/rounds/${roundState.docId}`;
@@ -37457,6 +37481,11 @@
     await saveMyGroupScoresNow();
     // Scratchpad is now redundant — all data is in Firestore.
     clearScoreScratchpad(groupRoundState.docId);
+    // Snapshot pins BEFORE clearing localStorage so we can attach
+    // them to the personal payload below.
+    const pinsForSnapshot = (typeof readPinsForRoundId === 'function')
+      ? readPinsForRoundId(groupRoundState.docId)
+      : {};
     // Wipe persisted pin positions — round is done, pins have no
     // further use. Pins are scoped to the round's docId.
     if (typeof clearPinsForRound === 'function') {
@@ -37519,6 +37548,11 @@
     // same way regardless of round flavor.
     if (gr.weather) {
       personalPayload.weather = gr.weather;
+    }
+    // Pin positions captured above (before localStorage wipe). Same
+    // shape as solo: { holeNumber: {lat, lng} }. Used by replays.
+    if (pinsForSnapshot && Object.keys(pinsForSnapshot).length > 0) {
+      personalPayload.pins = pinsForSnapshot;
     }
 
     // Compute bestType for this group round against full history.
@@ -38439,6 +38473,16 @@
     // start. Carries forward to the completed-round doc + history.
     if (roundState.weather) {
       basePayload.weather = roundState.weather;
+    }
+    // Snapshot pin positions onto the completed round doc. Pins live
+    // in localStorage during the round but get cleared when the round
+    // completes (via clearRoundState). Capture here so they ride with
+    // the round forever — used by replays.
+    if (typeof readPinsForRoundId === 'function') {
+      const pins = readPinsForRoundId(roundState.docId);
+      if (pins && Object.keys(pins).length > 0) {
+        basePayload.pins = pins;
+      }
     }
 
     // Compute bestType for this round against the user's full history
@@ -57595,6 +57639,12 @@
       try { replayState.greenMarker.remove(); } catch (_) {}
       replayState.greenMarker = null;
     }
+    // Tear down the flag pin marker (user-placed pin position from
+    // the round, if persisted on the round doc).
+    if (replayState.flagPinMarker) {
+      try { replayState.flagPinMarker.remove(); } catch (_) {}
+      replayState.flagPinMarker = null;
+    }
     // Clear all numbered shot-end markers from the previous hole.
     // Two storage paths: legacy DOM markers (fallback) + new Mapbox
     // layer pins. Both need to be torn down.
@@ -57636,9 +57686,47 @@
         replayState.teeMarker = teeMarker;
       } catch (_) {}
     }
+    // Flag pin — if the round was played with a user-placed pin on
+    // this hole, show it. The pin position was snapshotted onto the
+    // round doc at completion (round.pins map). Falls through silently
+    // for older rounds that pre-date the pin feature.
+    const roundPins = replayState.round?.pins;
+    const pinForHole = roundPins
+      ? (roundPins[holeNum] || roundPins[String(holeNum)])
+      : null;
+    const hasFlagPin = pinForHole
+      && typeof pinForHole.lat === 'number'
+      && typeof pinForHole.lng === 'number';
+    if (hasFlagPin) {
+      try {
+        const pinEl = document.createElement('div');
+        pinEl.className = 'replay-flag-pin-marker';
+        // Same SVG shape as the in-round flag pin so the visual is
+        // immediately recognizable. Slightly muted color so the
+        // numbered shot pins remain primary.
+        pinEl.innerHTML = `
+          <div class="replay-flag-pin-marker-inner">
+            <svg viewBox="0 0 14 25" xmlns="http://www.w3.org/2000/svg" width="16" height="29">
+              <line x1="7" y1="0" x2="7" y2="20" stroke="#fff" stroke-width="1.5"/>
+              <path d="M7 0 L13 2.5 L7 5 Z" fill="#E85D04" stroke="#fff" stroke-width="1"/>
+              <circle cx="7" cy="20" r="3" fill="#fff"/>
+            </svg>
+          </div>`;
+        const flagPin = new mapboxgl.Marker({
+          element: pinEl,
+          anchor: 'bottom',
+          offset: [0, 6],  // align visual base with lat/lng (matches live pin)
+        }).setLngLat([pinForHole.lng, pinForHole.lat]).addTo(map);
+        replayState.flagPinMarker = flagPin;
+      } catch (_) {}
+    }
     // Green marker — reuse the in-round white-radial-halo marker.
+    // Hide if a custom flag pin is shown (same noise-reduction
+    // logic as the live GPS view: pin is the more meaningful
+    // reference, green-center marker becomes redundant).
     if (holeData?.greenLat != null && holeData?.greenLng != null
-        && typeof buildGreenMarkerEl === 'function') {
+        && typeof buildGreenMarkerEl === 'function'
+        && !hasFlagPin) {
       try {
         const greenEl = buildGreenMarkerEl();
         const greenMarker = new mapboxgl.Marker({ element: greenEl, anchor: 'center' })
@@ -62867,6 +62955,37 @@
       // localStorage can throw (quota exceeded, private mode, etc.).
       // Swallow — pins still work in-memory for the rest of the
       // session, just won't survive refresh.
+    }
+    // Also kick off an in-progress save to Firestore so pins ride
+    // with the round doc. Persists even if user uninstalls the app
+    // before round completion. autoSaveRound has its own debouncing
+    // / scheduling so calling it directly is fine.
+    if (typeof autoSaveRound === 'function') {
+      try { autoSaveRound(); } catch (_) {}
+    }
+  }
+
+  // Read the persisted pin map for an arbitrary round ID. Used by
+  // save flows that need to snapshot pins onto the round doc when
+  // the active-round state may not be available. Returns {} if no
+  // pins stored or the JSON is malformed.
+  function readPinsForRoundId(roundId) {
+    if (!roundId) return {};
+    try {
+      const raw = localStorage.getItem(PIN_STORAGE_PREFIX + roundId);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return {};
+      // Filter to only valid {lat, lng} entries.
+      const out = {};
+      for (const [hn, pos] of Object.entries(parsed)) {
+        if (pos && typeof pos.lat === 'number' && typeof pos.lng === 'number') {
+          out[hn] = pos;
+        }
+      }
+      return out;
+    } catch (_) {
+      return {};
     }
   }
 
