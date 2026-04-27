@@ -23180,6 +23180,39 @@
     box-shadow: var(--shadow-sm);
   }
 
+  /* Wrapper for the Shot Pattern category toggle — centered above
+     the scatter chart on the round summary. */
+  .scatter-toggle-wrap {
+    display: flex;
+    justify-content: center;
+    margin: var(--space-2) 0 var(--space-3);
+  }
+  .scatter-toggle button {
+    padding: var(--space-2) var(--space-3);
+  }
+  /* Small count badge inside each toggle pill. Subdued vs the label
+     so the category name reads first. */
+  .scatter-toggle-count {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 5px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    line-height: 14px;
+    min-width: 14px;
+    text-align: center;
+  }
+  html.dark .scatter-toggle-count {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .seg-control button.active .scatter-toggle-count {
+    background: rgba(232, 93, 4, 0.15);
+    color: var(--color-orange);
+  }
+
   /* Account row inside settings — shows email + sign out */
   .settings-account-card {
     display: flex;
@@ -41913,6 +41946,11 @@
   // to the courseDetail pattern, since the panel itself is data-driven.
   const roundSummaryState = {
     roundId: null,
+    // Shot pattern scatter filter — which category of shot to show.
+    // 'all' shows every targeted shot in the round; the other values
+    // filter to one classification. Persists across re-renders so
+    // toggling between categories doesn't reset.
+    scatterCategory: 'all',
     // Leaderboard hydration state. Keyed by groupRoundId so switching
     // between summary cards doesn't let a stale fetch result bleed
     // into the wrong summary if the user backs out and into another.
@@ -41941,6 +41979,8 @@
     roundSummaryState.leaderboardLoading = false;
     roundSummaryState.lbLiveDoc = null;
     roundSummaryState.lbLiveResults = null;
+    // Reset the Shot Pattern scatter filter — each round opens fresh.
+    roundSummaryState.scatterCategory = 'all';
     showPanel('round-summary', null);
   }
 
@@ -53344,29 +53384,56 @@
     }
 
     // Shot pattern (2D dispersion scatter for this round). Pulls all
-    // shots across all holes that have target+offsets logged. Shows
-    // the SHAPE of this specific round — distinct from the Club Data
-    // chart which shows tendency over all time. Colored by club so
-    // multi-club rounds visually separate (e.g., approach 8-iron vs
-    // wedge dispersion). Skipped if no targeted shots — we don't want
-    // an empty placeholder on every round.
+    // shots across all holes that have target+offsets logged, tagged
+    // by category (driving/approach/short). User can toggle between
+    // categories — driver dispersion happens at a much different
+    // scale than wedge dispersion, so plotting them together makes
+    // both hard to read. Skipped if no targeted shots.
     const targetedRoundShots = [];
-    for (const arr of Object.values(shotsMap)) {
+    for (const hnStr of Object.keys(shotsMap)) {
+      const arr = shotsMap[hnStr];
       if (!Array.isArray(arr)) continue;
+      const hn = Number(hnStr);
+      const hd = course?.holes?.find(h => h.number === hn);
+      const par = hd?.par;
       for (const s of arr) {
         if (typeof s.lateralOffset === 'number' && typeof s.alongShot === 'number') {
+          const cat = classifyRoundShot(s, par);
+          // Collapse 'putt' into 'short' (matches existing UI grouping).
+          const tagCat = cat === 'putt' ? 'short' : cat;
           targetedRoundShots.push({
             lateralOffset: s.lateralOffset,
             alongShot: s.alongShot,
             club: s.club || 'Unknown',
+            category: tagCat,
           });
         }
       }
     }
+    // Per-category counts drive which toggle pills appear.
+    const catCounts = { all: targetedRoundShots.length, driving: 0, approach: 0, short: 0 };
+    for (const s of targetedRoundShots) {
+      if (catCounts[s.category] != null) catCounts[s.category] += 1;
+    }
     const scatterBlock = targetedRoundShots.length === 0 ? '' : `
       <div class="round-summary-section-label">Shot pattern</div>
-      ${renderDispersionScatter(targetedRoundShots)}
+      <div class="scatter-toggle-wrap">
+        <div class="seg-control scatter-toggle">
+          ${renderScatterTogglePill('all', 'All', catCounts.all)}
+          ${catCounts.driving > 0 ? renderScatterTogglePill('driving', 'Drive', catCounts.driving) : ''}
+          ${catCounts.approach > 0 ? renderScatterTogglePill('approach', 'Approach', catCounts.approach) : ''}
+          ${catCounts.short > 0 ? renderScatterTogglePill('short', 'Short', catCounts.short) : ''}
+        </div>
+      </div>
+      <div id="round-summary-scatter-mount">${renderRoundSummaryScatterFor(targetedRoundShots)}</div>
     `;
+
+    // Stash the dataset on a state object so the toggle handler can
+    // refilter without re-collecting from round.shots. Keyed by round
+    // id so a stale dataset doesn't bleed across rounds — defense in
+    // depth on top of the openRoundSummary reset.
+    roundSummaryState.scatterAllShots = targetedRoundShots;
+    roundSummaryState.scatterRoundId = round.id;
 
     return `
       <div class="shot-cat-grid">
@@ -53376,6 +53443,70 @@
       </div>
       ${scatterBlock}
     `;
+  }
+
+  // Render a single pill in the scatter category toggle. Active pill
+  // gets the .active class (matching .seg-control's existing styles).
+  function renderScatterTogglePill(cat, label, count) {
+    const active = (roundSummaryState.scatterCategory || 'all') === cat;
+    return `<button class="${active ? 'active' : ''}"
+                    onclick="setScatterCategory('${cat}')"
+                    aria-pressed="${active}">
+      ${label} <span class="scatter-toggle-count">${count}</span>
+    </button>`;
+  }
+
+  // Filter helper used by both initial render and toggle clicks.
+  // Pulls the active filter from state, returns the scatter HTML
+  // for that subset.
+  function renderRoundSummaryScatterFor(allShots) {
+    const cat = roundSummaryState.scatterCategory || 'all';
+    const filtered = cat === 'all' ? allShots : allShots.filter(s => s.category === cat);
+    if (filtered.length === 0) {
+      return `<div class="disp-scatter-empty">
+        No targeted shots in this category.
+      </div>`;
+    }
+    return renderDispersionScatter(filtered);
+  }
+
+  // Toggle the scatter category and re-render JUST the chart. Avoids
+  // rebuilding the whole round summary on every click, which would
+  // tear down listeners, scroll position, etc.
+  function setScatterCategory(cat) {
+    if (!['all', 'driving', 'approach', 'short'].includes(cat)) return;
+    if (roundSummaryState.scatterCategory === cat) return;
+    roundSummaryState.scatterCategory = cat;
+    // Re-render the chart container with the new filter.
+    const mount = document.getElementById('round-summary-scatter-mount');
+    if (mount && Array.isArray(roundSummaryState.scatterAllShots)) {
+      mount.innerHTML = renderRoundSummaryScatterFor(roundSummaryState.scatterAllShots);
+    }
+    // Also update the toggle pills' active state so the highlighted
+    // pill matches. Find the toggle and rebuild its inner HTML —
+    // small enough that surgical class flipping isn't worth it.
+    const toggleEl = document.querySelector('.scatter-toggle');
+    if (toggleEl) {
+      // Reuse the same counts that were embedded in the existing
+      // pills' textContent — parse them out so we don't have to
+      // re-traverse round data.
+      const oldPills = toggleEl.querySelectorAll('button');
+      // Map of cat → count from existing DOM, so we don't recompute.
+      const counts = {};
+      oldPills.forEach(p => {
+        const oc = p.getAttribute('onclick') || '';
+        const m = oc.match(/setScatterCategory\('([^']+)'\)/);
+        if (!m) return;
+        const c = p.querySelector('.scatter-toggle-count');
+        counts[m[1]] = c ? parseInt(c.textContent, 10) || 0 : 0;
+      });
+      toggleEl.innerHTML = `
+        ${renderScatterTogglePill('all', 'All', counts.all || 0)}
+        ${counts.driving ? renderScatterTogglePill('driving', 'Drive', counts.driving) : ''}
+        ${counts.approach ? renderScatterTogglePill('approach', 'Approach', counts.approach) : ''}
+        ${counts.short ? renderScatterTogglePill('short', 'Short', counts.short) : ''}
+      `;
+    }
   }
 
   // Called when a category card is tapped on the summary screen.
