@@ -8203,6 +8203,49 @@
   .shot-edit-map-section {
     margin-bottom: var(--space-4);
   }
+  /* Shot edit map pins — draggable Mapbox markers. Common base styles
+     plus per-pin variants. Uses ::before pseudo for the touch hitbox
+     so the parent's bounding box stays exactly the visual size. This
+     is critical because Mapbox computes the anchor from the parent's
+     getBoundingClientRect() — if the box is bigger than the visual
+     (e.g., from a real DOM child with negative inset), the anchor
+     centroid drifts away from the visual centroid as the map zooms. */
+  .shot-edit-pin {
+    border-radius: 50%;
+    cursor: grab;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    /* Box must contain ONLY the visual size — no padding/margin/
+       hitbox-children allowed here. Touch hitbox lives in ::before. */
+  }
+  .shot-edit-pin::before {
+    content: '';
+    position: absolute;
+    top: -10px; left: -10px; right: -10px; bottom: -10px;
+    border-radius: 50%;
+  }
+  .shot-edit-pin:active { cursor: grabbing; }
+  .shot-edit-pin-start {
+    width: 14px; height: 14px;
+    background: #fefefe;
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .shot-edit-pin-end {
+    width: 18px; height: 18px;
+    background: var(--color-orange, #E85D04);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .shot-edit-pin-target {
+    width: 20px; height: 20px;
+    border-radius: 0; /* the SVG handles the visual circle */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  }
+  .shot-edit-pin-target::before {
+    border-radius: 50%;
+  }
+
   .shot-edit-map {
     width: 100%;
     /* Square aspect ratio — gives much more vertical room for precise
@@ -37952,28 +37995,12 @@
     // exactly at the lat/lng. This is the key bit — earlier versions
     // used padding/margin which shifted the bounding box and caused
     // the visual to drift away from line endpoints.
-    const addHitbox = (parentEl) => {
-      const hb = document.createElement('div');
-      hb.style.cssText = `
-        position: absolute;
-        top: -10px; left: -10px; right: -10px; bottom: -10px;
-        border-radius: 50%;`;
-      parentEl.appendChild(hb);
-    };
-
-    // Start marker — small white circle, draggable. The element
-    // itself IS the visual; size matches the rendered circle exactly.
+    // Start marker — small white circle, draggable. Touch hitbox
+    // is a CSS ::before pseudo-element on the marker class, which
+    // doesn't affect the parent's bounding box (so Mapbox's anchor
+    // math computes the visual centroid correctly across zoom).
     const startEl = document.createElement('div');
-    startEl.style.cssText = `
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      background: #fefefe;
-      border: 2px solid rgba(0,0,0,0.6);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      cursor: grab;
-      position: relative;
-      -webkit-tap-highlight-color: transparent;`;
-    addHitbox(startEl);
+    startEl.className = 'shot-edit-pin shot-edit-pin-start';
     const startMarker = new mapboxgl.Marker({
       element: startEl, anchor: 'center', draggable: true,
     })
@@ -37993,16 +38020,7 @@
 
     // End marker — orange filled circle, draggable.
     const endEl = document.createElement('div');
-    endEl.style.cssText = `
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      background: var(--color-orange, #E85D04);
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      cursor: grab;
-      position: relative;
-      -webkit-tap-highlight-color: transparent;`;
-    addHitbox(endEl);
+    endEl.className = 'shot-edit-pin shot-edit-pin-end';
     const endMarker = new mapboxgl.Marker({
       element: endEl, anchor: 'center', draggable: true,
     })
@@ -38023,19 +38041,13 @@
     // Target marker (if any) — concentric circles, draggable.
     if (shot.targetLat != null && shot.targetLng != null) {
       const tgtEl = document.createElement('div');
+      tgtEl.className = 'shot-edit-pin shot-edit-pin-target';
       tgtEl.innerHTML = `
         <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" fill="#ff8a3d"
                   stroke="#fff" stroke-width="2" opacity="0.9"/>
           <circle cx="12" cy="12" r="2.5" fill="#fff"/>
         </svg>`;
-      tgtEl.style.cssText = `
-        width: 20px; height: 20px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-        cursor: grab;
-        position: relative;
-        -webkit-tap-highlight-color: transparent;`;
-      addHitbox(tgtEl);
       const tgtMarker = new mapboxgl.Marker({
         element: tgtEl, anchor: 'center', draggable: true,
       })
@@ -54102,7 +54114,12 @@
       container,
       style: 'mapbox://styles/mapbox/satellite-v9',
       center: [0, 0],
-      zoom: 1,
+      zoom: 15,
+      // Match the in-round GPS view's minZoom — prevents the user
+      // from zooming out into the gray/desaturated low-zoom tier
+      // where satellite tiles look discolored. No maxZoom cap so
+      // users can zoom in close to inspect individual shots.
+      minZoom: 15,
       attributionControl: false,
       interactive: true,
       doubleClickZoom: true,
