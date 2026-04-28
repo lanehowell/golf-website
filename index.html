@@ -6052,6 +6052,459 @@
     cursor: pointer;
   }
 
+  /* ── Static shell variant (no map) — loading, picker, name stage ── */
+  .gps-range-shell-static {
+    background: var(--bg-page);
+    color: var(--text-primary);
+  }
+  .gps-range-shell-static .gps-range-topbar {
+    background: var(--bg-page);
+    backdrop-filter: none;
+    color: var(--text-primary);
+  }
+  .gps-range-shell-static .gps-range-close {
+    color: var(--text-primary);
+  }
+  .gps-range-shell-static .gps-range-topbar-title {
+    color: var(--text-primary);
+  }
+  .gps-range-static-body {
+    position: absolute;
+    inset: 60px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-6);
+  }
+  .gps-range-static-msg {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-muted);
+  }
+
+  /* ── Picker stage — list of saved ranges ── */
+  .gps-range-picker-body {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-5) calc(env(safe-area-inset-bottom, 0px) + var(--space-6));
+  }
+  .gps-range-picker-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .gps-range-picker-title {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: var(--space-1) 0 var(--space-2);
+    letter-spacing: var(--tracking-tight);
+  }
+  .gps-range-picker-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-6);
+    line-height: 1.4;
+  }
+  .gps-range-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .gps-range-pick-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color var(--transition-fast), transform var(--transition-spring);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-range-pick-card:hover,
+  .gps-range-pick-card:active {
+    border-color: var(--color-accent);
+    transform: translateY(-1px);
+  }
+  .gps-range-pick-card-add {
+    background: var(--color-accent-pale);
+    border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border-style: dashed;
+  }
+  .gps-range-pick-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .gps-range-pick-card-name {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .gps-range-pick-card-add .gps-range-pick-card-name {
+    color: var(--color-accent);
+  }
+  html.dark .gps-range-pick-card-add .gps-range-pick-card-name {
+    color: var(--color-accent);
+  }
+  .gps-range-pick-card-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: var(--tracking-wide);
+  }
+  .gps-range-pick-card-chev {
+    font-size: var(--text-lg);
+    color: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  /* ── Setup name stage — input + actions ── */
+  .gps-range-setup-body {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-5) calc(env(safe-area-inset-bottom, 0px) + var(--space-6));
+    display: flex;
+    flex-direction: column;
+  }
+  .gps-range-setup-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .gps-range-setup-title {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: var(--space-1) 0 var(--space-2);
+    letter-spacing: var(--tracking-tight);
+  }
+  .gps-range-setup-desc {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-6);
+    line-height: 1.4;
+  }
+  .gps-range-setup-input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-primary);
+    -webkit-appearance: none;
+  }
+  .gps-range-setup-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-pale);
+  }
+  .gps-range-setup-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: auto;
+    padding-top: var(--space-6);
+  }
+  .gps-range-setup-back {
+    flex: 0 0 auto;
+    padding: var(--space-3) var(--space-5);
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .gps-range-setup-next {
+    flex: 1;
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    box-shadow: var(--shadow-accent);
+  }
+  .gps-range-setup-next:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ── Setup tee/targets stages — overlay UI on top of map ── */
+  .gps-range-setup-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 3;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+  }
+  .gps-range-setup-hint {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 70px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.78);
+    color: var(--color-cream-50);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  /* Targets panel — bottom sheet showing list + add input */
+  .gps-range-setup-targets-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    color: var(--color-cream-50);
+    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+  }
+  .gps-range-target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: var(--space-3);
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+  .gps-range-target-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+  }
+  .gps-range-target-row-distance {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent-light);
+    min-width: 56px;
+  }
+  .gps-range-target-row-label {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--color-cream-50);
+  }
+  .gps-range-target-row-remove {
+    background: transparent;
+    border: none;
+    color: var(--color-cream-50);
+    font-size: var(--text-xl);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .gps-range-target-row-remove:active {
+    background: rgba(255, 255, 255, 0.12);
+    opacity: 1;
+  }
+  .gps-range-setup-target-add {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .gps-range-setup-target-input {
+    flex: 1;
+    padding: var(--space-2) var(--space-3);
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: var(--color-cream-50);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    -webkit-appearance: none;
+  }
+  .gps-range-setup-target-input::placeholder {
+    color: rgba(245, 237, 216, 0.5);
+  }
+  .gps-range-setup-target-add-btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+  }
+  .gps-range-setup-pending-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-accent-pale);
+    color: var(--color-accent-dark);
+    border-radius: var(--radius-md);
+  }
+  html.dark .gps-range-setup-pending-row {
+    color: var(--color-accent);
+  }
+  .gps-range-setup-pending-text {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
+  .gps-range-setup-pending-cancel {
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+    border-radius: var(--radius-pill);
+    padding: 4px var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+  }
+
+  /* ── Bottom-sheet pickers (target/club) on top of session map ── */
+  .gps-range-picker-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 5;
+  }
+  .gps-range-picker-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    padding: var(--space-2) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+    box-shadow: var(--shadow-sheet);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .gps-range-picker-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--color-cream-300);
+    border-radius: 2px;
+    margin: var(--space-2) auto var(--space-3);
+  }
+  .gps-range-picker-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: var(--space-3);
+  }
+  .gps-range-picker-rows {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .gps-range-picker-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3) var(--space-3);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-range-picker-row:active {
+    background: var(--color-cream-100);
+  }
+  html.dark .gps-range-picker-row:active {
+    background: var(--bg-surface);
+  }
+  .gps-range-picker-row.is-current {
+    background: var(--color-accent-pale);
+  }
+  .gps-range-picker-row-distance {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+    min-width: 56px;
+  }
+  .gps-range-picker-row-label {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-primary);
+  }
+  .gps-range-picker-row-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .gps-range-picker-row-check {
+    color: var(--color-accent);
+    font-weight: var(--weight-bold);
+  }
+
   /* Wind compass — bottom-right floating button. Mirrors the recenter
      button on the bottom-left for visual symmetry. The compass arrow
      rotates to show wind direction relative to the map's current
@@ -64343,55 +64796,672 @@
   // - Mapbox distinguishes tap from drag/pinch natively, so map
   //   navigation still works
   //
-  // V1 scaffold: hardcoded placeholder range (Dallas area) + in-memory
-  // shot list only. Range entity + persistence land next session.
+  // ──────────────────────────────────────────────────────────
+  // GPS Range Session — full-screen satellite view for tap-to-log
+  // range shots against pre-pinned targets. Same body-level overlay
+  // pattern as the round GPS view + replay.
+  //
+  // Multi-stage flow:
+  //   loading  → fetch user's ranges from Firestore
+  //   picker   → show list of ranges + "Add range"
+  //   setup    → name/tee/targets sub-flow to create a new range
+  //   session  → live tap-to-log shot flow (the original scaffold)
+  //
+  // Range entity (users/{uid}/ranges/{id}):
+  //   { id, name, tee:{lat,lng},
+  //     targets:[{id, distance, label, lat, lng}],
+  //     createdAt, lastUsedAt }
+  //
+  // Range session (users/{uid}/rangeSessions/{id}):
+  //   { id, rangeId, rangeName, startedAt, endedAt,
+  //     shots:[{id, club, targetId, targetDistance, lat, lng,
+  //             lateralOffset, alongShot, loggedAt}],
+  //     summary:{totalShots, byClub:{...}} }
+  //
+  // Session shots only live in memory until Finish; if the user closes
+  // the session without finishing, shots are discarded.
   // ──────────────────────────────────────────────────────────
 
   const gpsRangeSessionState = {
     open: false,
     map: null,
-    range: null,           // hydrated range entity (placeholder for now)
-    currentClub: '7i',     // default to most common range club
-    currentTargetId: null, // selected target id; defaults to first target on open
-    shots: [],             // [{ id, club, targetId, lat, lng, lateralOffset, alongShot, loggedAt }]
+    // Stage machine — controls which screen renders. See header comment.
+    stage: 'loading',          // 'loading' | 'picker' | 'setup' | 'session'
+    setupStage: null,          // 'name' | 'tee' | 'targets' — only when stage='setup'
+    // User's saved ranges, populated from Firestore on open.
+    ranges: [],
+    // Range currently selected for a session OR being constructed in setup.
+    range: null,
+    // Live session state (only meaningful when stage='session')
+    currentClub: null,
+    currentTargetId: null,
+    shots: [],                 // accumulated this session
     startedAt: null,
-    // Map artifacts for cleanup
+    // Setup state — staged values during the 'setup' flow.
+    setupDraft: null,          // { name, tee, targets, pendingTargetDistance }
+    // Map artifacts (cleaned up on transitions and on close)
     teeMarker: null,
-    targetMarkers: {},     // by target id
-    shotPinMarkers: [],    // array of marker handles for cleanup
-    pillRafId: null,       // throttle pill updates after rapid logs
-  };
-
-  // Placeholder range — used until the real range entity / setup flow
-  // exists. Roughly approximates a North Texas range layout so the math
-  // produces sensible numbers during scaffold testing. Throw away once
-  // the range entity model lands.
-  const PLACEHOLDER_RANGE = {
-    id: 'placeholder-range',
-    name: 'Test Range',
-    tee: { lat: 32.7767, lng: -96.7970 },  // generic Dallas anchor
-    targets: [
-      // Roughly N-NW from tee at 100/150/175y. Lat increment of ~0.000914
-      // per yard; here we shift mostly north (positive lat) with slight
-      // azimuth variation so the targets aren't perfectly in a line.
-      { id: 't1', distance: 100, label: '100y', lat: 32.7767 + 0.000914 * 100, lng: -96.7970 - 0.000200 },
-      { id: 't2', distance: 150, label: '150y green', lat: 32.7767 + 0.000914 * 150, lng: -96.7970 - 0.000050 },
-      { id: 't3', distance: 175, label: '175y back', lat: 32.7767 + 0.000914 * 175, lng: -96.7970 + 0.000180 },
-    ],
+    targetMarkers: {},
+    shotPinMarkers: [],
+    setupHelperLayers: [],     // [{ sourceId, layerId }] — distance ring etc.
+    pillRafId: null,
   };
 
   // ──────────────────────────────────────────────────────────
   // Entry / exit
   // ──────────────────────────────────────────────────────────
 
-  function openGpsRangeSession() {
+  async function openGpsRangeSession() {
     if (gpsRangeSessionState.open) return;
     const mount = document.getElementById('gps-range-session-mount');
     if (!mount) return;
 
-    // Pick a sensible default club from the user's bag. Prefer a 7-iron
-    // (most common range club), fall back to first iron, fall back to
-    // first club, fall back to a placeholder if the bag is empty.
+    gpsRangeSessionState.open = true;
+    gpsRangeSessionState.stage = 'loading';
+    gpsRangeSessionState.ranges = [];
+    gpsRangeSessionState.range = null;
+    gpsRangeSessionState.shots = [];
+    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.targetMarkers = {};
+    gpsRangeSessionState.teeMarker = null;
+    gpsRangeSessionState.setupHelperLayers = [];
+    gpsRangeSessionState.setupDraft = null;
+    gpsRangeSessionState.setupStage = null;
+
+    document.body.classList.add('round-gps-open');
+    renderGpsRangeStage();  // shows loading
+
+    // Load ranges. Anonymous / signed-out users get empty list and go
+    // straight to setup (won't be able to save, but can play around).
+    try {
+      if (currentUser && window.fb) {
+        const ranges = await window.fb.listDocs(
+          `users/${currentUser.uid}/ranges`,
+          { orderBy: 'lastUsedAt', orderDir: 'desc' }
+        );
+        gpsRangeSessionState.ranges = Array.isArray(ranges) ? ranges : [];
+      }
+    } catch (err) {
+      console.warn('Failed to load ranges:', err);
+      gpsRangeSessionState.ranges = [];
+    }
+
+    // Branch based on what we found:
+    //   - no ranges  → go straight to setup (first-time UX)
+    //   - has ranges → show picker
+    if (gpsRangeSessionState.ranges.length === 0) {
+      enterRangeSetup();
+    } else {
+      gpsRangeSessionState.stage = 'picker';
+      renderGpsRangeStage();
+    }
+  }
+  window.openGpsRangeSession = openGpsRangeSession;
+
+  function closeGpsRangeSession() {
+    if (!gpsRangeSessionState.open) return;
+    cleanupGpsRangeSession();
+  }
+  window.closeGpsRangeSession = closeGpsRangeSession;
+
+  // Tear down everything. Called on close OR on transitions between
+  // stages that need a fresh map.
+  function cleanupGpsRangeMap() {
+    if (gpsRangeSessionState.pillRafId != null) {
+      cancelAnimationFrame(gpsRangeSessionState.pillRafId);
+      gpsRangeSessionState.pillRafId = null;
+    }
+    (gpsRangeSessionState.shotPinMarkers || []).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    if (gpsRangeSessionState.teeMarker) {
+      try { gpsRangeSessionState.teeMarker.remove(); } catch (_) {}
+    }
+    Object.values(gpsRangeSessionState.targetMarkers || {}).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    if (gpsRangeSessionState.map) {
+      try { gpsRangeSessionState.map.remove(); } catch (_) {}
+    }
+    gpsRangeSessionState.map = null;
+    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.targetMarkers = {};
+    gpsRangeSessionState.teeMarker = null;
+    gpsRangeSessionState.setupHelperLayers = [];
+  }
+
+  function cleanupGpsRangeSession() {
+    cleanupGpsRangeMap();
+    const mount = document.getElementById('gps-range-session-mount');
+    gpsRangeSessionState.open = false;
+    gpsRangeSessionState.stage = 'loading';
+    gpsRangeSessionState.setupStage = null;
+    gpsRangeSessionState.range = null;
+    gpsRangeSessionState.ranges = [];
+    gpsRangeSessionState.currentTargetId = null;
+    gpsRangeSessionState.shots = [];
+    gpsRangeSessionState.startedAt = null;
+    gpsRangeSessionState.setupDraft = null;
+    document.body.classList.remove('round-gps-open');
+    if (mount) mount.innerHTML = '';
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Stage router — picks which screen to render based on state.
+  // ──────────────────────────────────────────────────────────
+
+  function renderGpsRangeStage() {
+    const mount = document.getElementById('gps-range-session-mount');
+    if (!mount) return;
+    // Always tear down map before re-rendering shell — different stages
+    // mount different map containers, so leftover map instances need
+    // disposal.
+    cleanupGpsRangeMap();
+
+    switch (gpsRangeSessionState.stage) {
+      case 'loading':
+        mount.innerHTML = renderGpsRangeLoading();
+        return;
+      case 'picker':
+        mount.innerHTML = renderGpsRangePicker();
+        return;
+      case 'setup':
+        mount.innerHTML = renderGpsRangeSetup();
+        // Setup needs a map for tee + target stages; map init happens
+        // after the DOM commits, same as session.
+        if (gpsRangeSessionState.setupStage === 'tee' ||
+            gpsRangeSessionState.setupStage === 'targets') {
+          requestAnimationFrame(() => initGpsRangeSetupMap());
+        }
+        return;
+      case 'session':
+        mount.innerHTML = renderGpsRangeSession();
+        requestAnimationFrame(() => initGpsRangeSessionMap());
+        return;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Stage: loading
+  // ──────────────────────────────────────────────────────────
+
+  function renderGpsRangeLoading() {
+    return `
+      <div class="gps-range-shell gps-range-shell-static">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="closeGpsRangeSession()" aria-label="Close">×</button>
+          <div class="gps-range-topbar-title">RANGE SESSION</div>
+          <div></div>
+        </div>
+        <div class="gps-range-static-body">
+          <div class="spinner"></div>
+          <div class="gps-range-static-msg">Loading your ranges…</div>
+        </div>
+      </div>`;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Stage: picker — list of saved ranges + Add range
+  // ──────────────────────────────────────────────────────────
+
+  function renderGpsRangePicker() {
+    const ranges = gpsRangeSessionState.ranges || [];
+    const rangesList = ranges.map(r => {
+      const targetCount = (r.targets || []).length;
+      const lastUsed = r.lastUsedAt ? formatTimeAgo(r.lastUsedAt) : 'Never used';
+      return `
+        <button class="gps-range-pick-card" onclick="pickRangeForSession('${escapeHtml(r.id)}')">
+          <div class="gps-range-pick-card-body">
+            <div class="gps-range-pick-card-name">${escapeHtml(r.name || 'Untitled range')}</div>
+            <div class="gps-range-pick-card-meta">${targetCount} target${targetCount === 1 ? '' : 's'} · ${escapeHtml(lastUsed)}</div>
+          </div>
+          <span class="gps-range-pick-card-chev">→</span>
+        </button>`;
+    }).join('');
+
+    return `
+      <div class="gps-range-shell gps-range-shell-static">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="closeGpsRangeSession()" aria-label="Close">×</button>
+          <div class="gps-range-topbar-title">RANGE SESSION</div>
+          <div></div>
+        </div>
+        <div class="gps-range-picker-body">
+          <div class="gps-range-picker-eyebrow">My Ranges</div>
+          <h2 class="gps-range-picker-title">Pick a range</h2>
+          <p class="gps-range-picker-desc">Tap a range to start a session, or add a new one.</p>
+          <div class="gps-range-pick-list">
+            ${rangesList}
+            <button class="gps-range-pick-card gps-range-pick-card-add" onclick="enterRangeSetup()">
+              <div class="gps-range-pick-card-body">
+                <div class="gps-range-pick-card-name">+ Add a range</div>
+                <div class="gps-range-pick-card-meta">Pin the tee + your target distances</div>
+              </div>
+              <span class="gps-range-pick-card-chev">→</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function pickRangeForSession(rangeId) {
+    const r = gpsRangeSessionState.ranges.find(x => x.id === rangeId);
+    if (!r) return;
+    enterLiveSession(r);
+  }
+  window.pickRangeForSession = pickRangeForSession;
+
+  // ──────────────────────────────────────────────────────────
+  // Stage: setup — create a new range. Sub-stages name → tee → targets.
+  // ──────────────────────────────────────────────────────────
+
+  function enterRangeSetup() {
+    gpsRangeSessionState.stage = 'setup';
+    gpsRangeSessionState.setupStage = 'name';
+    gpsRangeSessionState.setupDraft = {
+      name: '',
+      tee: null,
+      targets: [],
+      pendingTargetDistance: null,
+    };
+    renderGpsRangeStage();
+  }
+  window.enterRangeSetup = enterRangeSetup;
+
+  function renderGpsRangeSetup() {
+    const stage = gpsRangeSessionState.setupStage;
+    if (stage === 'name') return renderGpsRangeSetupName();
+    if (stage === 'tee') return renderGpsRangeSetupTee();
+    if (stage === 'targets') return renderGpsRangeSetupTargets();
+    return renderGpsRangeLoading();  // shouldn't happen
+  }
+
+  // Substage 1: name. Simple form, no map yet.
+  function renderGpsRangeSetupName() {
+    const draft = gpsRangeSessionState.setupDraft;
+    return `
+      <div class="gps-range-shell gps-range-shell-static">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="cancelRangeSetup()" aria-label="Cancel">×</button>
+          <div class="gps-range-topbar-title">NEW RANGE · STEP 1 / 3</div>
+          <div></div>
+        </div>
+        <div class="gps-range-setup-body">
+          <div class="gps-range-setup-eyebrow">Step 1 of 3</div>
+          <h2 class="gps-range-setup-title">Name your range</h2>
+          <p class="gps-range-setup-desc">A short name you'll recognize. e.g. "Mesquite", "Top Golf Plano".</p>
+          <input
+            type="text"
+            class="gps-range-setup-input"
+            id="gps-range-setup-name-input"
+            placeholder="Range name"
+            value="${escapeHtml(draft.name || '')}"
+            oninput="updateRangeSetupName(this.value)"
+            maxlength="40"
+            autofocus
+          />
+          <div class="gps-range-setup-actions">
+            <button class="gps-range-setup-back" onclick="cancelRangeSetup()">Cancel</button>
+            <button class="gps-range-setup-next" id="gps-range-setup-next-btn"
+              ${(draft.name || '').trim().length === 0 ? 'disabled' : ''}
+              onclick="advanceRangeSetupToTee()">Next: Pin tee →</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function updateRangeSetupName(value) {
+    if (!gpsRangeSessionState.setupDraft) return;
+    gpsRangeSessionState.setupDraft.name = value || '';
+    const btn = document.getElementById('gps-range-setup-next-btn');
+    if (btn) btn.disabled = (value || '').trim().length === 0;
+  }
+  window.updateRangeSetupName = updateRangeSetupName;
+
+  function advanceRangeSetupToTee() {
+    const draft = gpsRangeSessionState.setupDraft;
+    if (!draft || !(draft.name || '').trim()) return;
+    gpsRangeSessionState.setupStage = 'tee';
+    renderGpsRangeStage();
+  }
+  window.advanceRangeSetupToTee = advanceRangeSetupToTee;
+
+  function cancelRangeSetup() {
+    // If the user has saved ranges, return to picker. Otherwise close.
+    if ((gpsRangeSessionState.ranges || []).length > 0) {
+      gpsRangeSessionState.stage = 'picker';
+      gpsRangeSessionState.setupStage = null;
+      gpsRangeSessionState.setupDraft = null;
+      renderGpsRangeStage();
+    } else {
+      closeGpsRangeSession();
+    }
+  }
+  window.cancelRangeSetup = cancelRangeSetup;
+
+  // Substage 2: tee. Map view with a centered crosshair. User pans
+  // the map until the crosshair is over their tee location, then taps
+  // "Set tee here". Same metaphor as pin placement modal.
+  function renderGpsRangeSetupTee() {
+    const draft = gpsRangeSessionState.setupDraft;
+    return `
+      <div class="gps-range-shell">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="cancelRangeSetup()" aria-label="Cancel">×</button>
+          <div class="gps-range-topbar-title">NEW RANGE · STEP 2 / 3</div>
+          <button class="gps-range-finish" onclick="commitRangeSetupTee()">Set tee</button>
+        </div>
+        <div id="gps-range-setup-map" class="gps-range-map"></div>
+        <div class="gps-range-setup-crosshair" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="40" height="40">
+            <circle cx="20" cy="20" r="14" fill="none" stroke="#fff" stroke-width="2"/>
+            <line x1="20" y1="2" x2="20" y2="14" stroke="#fff" stroke-width="2"/>
+            <line x1="20" y1="26" x2="20" y2="38" stroke="#fff" stroke-width="2"/>
+            <line x1="2" y1="20" x2="14" y2="20" stroke="#fff" stroke-width="2"/>
+            <line x1="26" y1="20" x2="38" y2="20" stroke="#fff" stroke-width="2"/>
+            <circle cx="20" cy="20" r="2" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="gps-range-setup-hint">
+          ${escapeHtml(draft.name)} · Pan the map so the crosshair sits over your tee, then tap "Set tee".
+        </div>
+      </div>`;
+  }
+
+  function commitRangeSetupTee() {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    const center = map.getCenter();
+    if (!center) return;
+    gpsRangeSessionState.setupDraft.tee = { lat: center.lat, lng: center.lng };
+    gpsRangeSessionState.setupStage = 'targets';
+    renderGpsRangeStage();
+  }
+  window.commitRangeSetupTee = commitRangeSetupTee;
+
+  // Substage 3: targets. Combined ring-based pinning + list of added
+  // targets. Flow: type distance → ring appears at that radius from
+  // tee → user pans the map and taps the ring → app snaps to nearest
+  // point on the ring. Repeat for each target. Finish at any time
+  // (must have ≥1 target).
+  function renderGpsRangeSetupTargets() {
+    const draft = gpsRangeSessionState.setupDraft;
+    const targets = draft.targets || [];
+    const pending = draft.pendingTargetDistance;
+    const targetsList = targets.map((t, i) => `
+      <div class="gps-range-target-row">
+        <div class="gps-range-target-row-distance">${t.distance}y</div>
+        <div class="gps-range-target-row-label">${escapeHtml(t.label || 'Target ' + (i + 1))}</div>
+        <button class="gps-range-target-row-remove" onclick="removeRangeSetupTarget('${escapeHtml(t.id)}')" aria-label="Remove">×</button>
+      </div>
+    `).join('');
+
+    return `
+      <div class="gps-range-shell">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="cancelRangeSetup()" aria-label="Cancel">×</button>
+          <div class="gps-range-topbar-title">NEW RANGE · STEP 3 / 3</div>
+          <button class="gps-range-finish" id="gps-range-finish-setup-btn"
+            ${targets.length === 0 ? 'disabled' : ''}
+            onclick="finishRangeSetup()">Save</button>
+        </div>
+        <div id="gps-range-setup-map" class="gps-range-map"></div>
+        ${pending != null ? `
+          <div class="gps-range-setup-hint">
+            Tap on the ring at the direction of your ${pending}y target.
+          </div>
+        ` : `
+          <div class="gps-range-setup-hint">
+            Add target distances. The ring will help you place each pin.
+          </div>
+        `}
+        <div class="gps-range-setup-targets-panel">
+          ${targets.length > 0 ? `
+            <div class="gps-range-target-list">${targetsList}</div>
+          ` : ''}
+          ${pending == null ? `
+            <div class="gps-range-setup-target-add">
+              <input type="number" min="20" max="400" inputmode="numeric"
+                class="gps-range-setup-target-input"
+                id="gps-range-setup-target-input"
+                placeholder="Target distance (yards)"/>
+              <button class="gps-range-setup-target-add-btn"
+                onclick="startPendingTarget()">Add</button>
+            </div>
+          ` : `
+            <div class="gps-range-setup-pending-row">
+              <div class="gps-range-setup-pending-text">Placing ${pending}y target…</div>
+              <button class="gps-range-setup-pending-cancel" onclick="cancelPendingTarget()">Cancel</button>
+            </div>
+          `}
+        </div>
+      </div>`;
+  }
+
+  function startPendingTarget() {
+    const input = document.getElementById('gps-range-setup-target-input');
+    if (!input) return;
+    const dist = parseInt(input.value, 10);
+    if (!dist || dist < 20 || dist > 400) {
+      showToast('Enter a distance between 20 and 400 yards', true);
+      return;
+    }
+    gpsRangeSessionState.setupDraft.pendingTargetDistance = dist;
+    renderGpsRangeStage();
+  }
+  window.startPendingTarget = startPendingTarget;
+
+  function cancelPendingTarget() {
+    gpsRangeSessionState.setupDraft.pendingTargetDistance = null;
+    renderGpsRangeStage();
+  }
+  window.cancelPendingTarget = cancelPendingTarget;
+
+  function removeRangeSetupTarget(targetId) {
+    const draft = gpsRangeSessionState.setupDraft;
+    draft.targets = (draft.targets || []).filter(t => t.id !== targetId);
+    renderGpsRangeStage();
+  }
+  window.removeRangeSetupTarget = removeRangeSetupTarget;
+
+  // Setup map init — used in both 'tee' and 'targets' substages.
+  // Centers on tee if defined, otherwise on user's location (best
+  // effort, falls back to a generic Dallas anchor).
+  function initGpsRangeSetupMap() {
+    if (typeof mapboxgl === 'undefined') return;
+    const container = document.getElementById('gps-range-setup-map');
+    if (!container) return;
+    const draft = gpsRangeSessionState.setupDraft || {};
+    const center = draft.tee
+      ? [draft.tee.lng, draft.tee.lat]
+      : [-96.7970, 32.7767];  // Dallas fallback if no tee yet
+
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'gps-range-setup-map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center,
+      zoom: draft.tee ? 18 : 14,
+      bearingSnap: 0,
+      attributionControl: false,
+    });
+    gpsRangeSessionState.map = map;
+    if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
+
+    map.on('load', () => {
+      // If we already have a tee, drop the marker
+      if (draft.tee) {
+        addSetupTeeMarker(draft.tee);
+      }
+      // If targets stage and there's a pending target distance, draw
+      // the distance ring around the tee.
+      if (gpsRangeSessionState.setupStage === 'targets' && draft.tee) {
+        drawAllSetupTargetMarkers();
+        if (draft.pendingTargetDistance != null) {
+          drawSetupDistanceRing(draft.tee, draft.pendingTargetDistance);
+        }
+      }
+    });
+
+    // Tap behavior depends on substage.
+    map.on('click', (e) => handleSetupMapTap(e.lngLat.lat, e.lngLat.lng));
+  }
+
+  function handleSetupMapTap(lat, lng) {
+    const stage = gpsRangeSessionState.setupStage;
+    const draft = gpsRangeSessionState.setupDraft;
+    if (!draft) return;
+    // Tee stage: tap-to-place is a fallback; primary UX is the
+    // crosshair + Set Tee button. We don't use map taps for tee.
+    if (stage === 'tee') return;
+    // Targets stage: only matters when a pending target is in flight.
+    // Snap the user's tap to the nearest point on the distance ring,
+    // then drop the target there.
+    if (stage === 'targets' && draft.pendingTargetDistance != null && draft.tee) {
+      const snapped = snapToRing(draft.tee, lat, lng, draft.pendingTargetDistance);
+      const newTarget = {
+        id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        distance: draft.pendingTargetDistance,
+        label: `${draft.pendingTargetDistance}y`,
+        lat: snapped.lat,
+        lng: snapped.lng,
+      };
+      draft.targets = [...(draft.targets || []), newTarget];
+      draft.pendingTargetDistance = null;
+      renderGpsRangeStage();
+    }
+  }
+
+  // Snap a tapped lat/lng to the nearest point on a circle of radius
+  // `distanceYards` centered at tee. Distance guaranteed correct,
+  // direction is the user's bearing of choice.
+  function snapToRing(tee, tapLat, tapLng, distanceYards) {
+    const YARDS_PER_DEG_LAT = 121764;
+    const yardsPerDegLng = YARDS_PER_DEG_LAT * Math.cos(tee.lat * Math.PI / 180);
+    const dx = (tapLng - tee.lng) * yardsPerDegLng;
+    const dy = (tapLat - tee.lat) * YARDS_PER_DEG_LAT;
+    const tapDist = Math.sqrt(dx * dx + dy * dy);
+    if (tapDist < 0.01) {
+      // User tapped almost directly on tee — pick north arbitrarily
+      return {
+        lat: tee.lat + distanceYards / YARDS_PER_DEG_LAT,
+        lng: tee.lng,
+      };
+    }
+    const ux = dx / tapDist;
+    const uy = dy / tapDist;
+    const snappedX = ux * distanceYards;
+    const snappedY = uy * distanceYards;
+    return {
+      lat: tee.lat + snappedY / YARDS_PER_DEG_LAT,
+      lng: tee.lng + snappedX / yardsPerDegLng,
+    };
+  }
+
+  // Draw a circular ring at distanceYards from tee. Mapbox can't draw
+  // a true geodesic circle natively, so we approximate with a polygon
+  // of 64 vertices.
+  function drawSetupDistanceRing(tee, distanceYards) {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    const segments = 64;
+    const YARDS_PER_DEG_LAT = 121764;
+    const yardsPerDegLng = YARDS_PER_DEG_LAT * Math.cos(tee.lat * Math.PI / 180);
+    const coords = [];
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const dx = Math.cos(angle) * distanceYards;
+      const dy = Math.sin(angle) * distanceYards;
+      coords.push([
+        tee.lng + dx / yardsPerDegLng,
+        tee.lat + dy / YARDS_PER_DEG_LAT,
+      ]);
+    }
+    const sourceId = 'gps-range-setup-ring';
+    const layerId = 'gps-range-setup-ring-layer';
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(sourceId)) map.removeSource(sourceId);
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+      },
+    });
+    map.addLayer({
+      id: layerId,
+      type: 'line',
+      source: sourceId,
+      paint: {
+        'line-color': activeAccentColor(),
+        'line-width': 3,
+        'line-dasharray': [3, 2],
+      },
+    });
+    gpsRangeSessionState.setupHelperLayers.push({ sourceId, layerId });
+  }
+
+  function addSetupTeeMarker(tee) {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    const el = document.createElement('div');
+    el.className = 'gps-range-tee-marker';
+    el.title = 'Tee';
+    gpsRangeSessionState.teeMarker = new mapboxgl.Marker({
+      element: el,
+      anchor: 'center',
+    }).setLngLat([tee.lng, tee.lat]).addTo(map);
+  }
+
+  function drawAllSetupTargetMarkers() {
+    const map = gpsRangeSessionState.map;
+    const draft = gpsRangeSessionState.setupDraft;
+    if (!map || !draft) return;
+    (draft.targets || []).forEach(target => {
+      const el = document.createElement('div');
+      el.className = 'gps-range-target-marker is-selected';
+      el.title = target.label || `${target.distance}y`;
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      }).setLngLat([target.lng, target.lat]).addTo(map);
+      gpsRangeSessionState.targetMarkers[target.id] = marker;
+    });
+  }
+
+  async function finishRangeSetup() {
+    const draft = gpsRangeSessionState.setupDraft;
+    if (!draft || !draft.tee || !draft.targets || draft.targets.length === 0) return;
+    if (!currentUser || !window.fb) {
+      showToast('Sign in to save ranges', true);
+      return;
+    }
+    const id = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const range = {
+      id,
+      name: draft.name.trim(),
+      tee: draft.tee,
+      targets: draft.targets,
+      createdAt: Date.now(),
+      lastUsedAt: Date.now(),
+    };
+    try {
+      await window.fb.setDoc(`users/${currentUser.uid}/ranges/${id}`, range);
+      gpsRangeSessionState.ranges = [range, ...gpsRangeSessionState.ranges];
+      enterLiveSession(range);
+    } catch (err) {
+      console.error('Failed to save range:', err);
+      showToast('Could not save range — check connection', true);
+    }
+  }
+  window.finishRangeSetup = finishRangeSetup;
+
+  // ──────────────────────────────────────────────────────────
+  // Stage: session — live tap-to-log flow.
+  // ──────────────────────────────────────────────────────────
+
+  function enterLiveSession(range) {
+    // Pick a default club from the user's bag.
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     let defaultClub = '7-iron';
     if (bag.length > 0) {
@@ -64400,67 +65470,24 @@
       const chosen = sevenIron || firstIron || bag[0];
       defaultClub = makeClubKey(chosen.name);
     }
-
-    // Hydrate state for a fresh session
-    gpsRangeSessionState.open = true;
-    gpsRangeSessionState.range = PLACEHOLDER_RANGE;  // TODO: pick range via setup flow
+    gpsRangeSessionState.range = range;
     gpsRangeSessionState.currentClub = defaultClub;
-    gpsRangeSessionState.currentTargetId = PLACEHOLDER_RANGE.targets[0]?.id || null;
+    gpsRangeSessionState.currentTargetId = range.targets[0]?.id || null;
     gpsRangeSessionState.shots = [];
     gpsRangeSessionState.startedAt = Date.now();
-    gpsRangeSessionState.shotPinMarkers = [];
-    gpsRangeSessionState.targetMarkers = {};
-    gpsRangeSessionState.teeMarker = null;
-
-    // Body scroll lock (same pattern as GPS view / replay)
-    document.body.classList.add('round-gps-open');
-
-    mount.innerHTML = renderGpsRangeSession();
-    // Map init must happen AFTER the container is in the DOM
-    requestAnimationFrame(() => initGpsRangeSessionMap());
-  }
-  window.openGpsRangeSession = openGpsRangeSession;
-
-  function closeGpsRangeSession() {
-    if (!gpsRangeSessionState.open) return;
-    const mount = document.getElementById('gps-range-session-mount');
-    cleanupGpsRangeSession(mount);
-  }
-  window.closeGpsRangeSession = closeGpsRangeSession;
-
-  function cleanupGpsRangeSession(mount) {
-    if (gpsRangeSessionState.pillRafId != null) {
-      cancelAnimationFrame(gpsRangeSessionState.pillRafId);
-      gpsRangeSessionState.pillRafId = null;
+    gpsRangeSessionState.stage = 'session';
+    gpsRangeSessionState.setupStage = null;
+    gpsRangeSessionState.setupDraft = null;
+    // Bump lastUsedAt fire-and-forget — non-critical, don't block on it.
+    if (currentUser && window.fb) {
+      window.fb.setDoc(`users/${currentUser.uid}/ranges/${range.id}`, {
+        ...range,
+        lastUsedAt: Date.now(),
+      }).catch(err => console.warn('Failed to bump lastUsedAt:', err));
     }
-    // Remove all shot pin markers
-    (gpsRangeSessionState.shotPinMarkers || []).forEach(m => {
-      try { m.remove(); } catch (_) {}
-    });
-    // Remove tee + target markers
-    if (gpsRangeSessionState.teeMarker) {
-      try { gpsRangeSessionState.teeMarker.remove(); } catch (_) {}
-    }
-    Object.values(gpsRangeSessionState.targetMarkers || {}).forEach(m => {
-      try { m.remove(); } catch (_) {}
-    });
-    // Tear down map
-    if (gpsRangeSessionState.map) {
-      try { gpsRangeSessionState.map.remove(); } catch (_) {}
-    }
-    // Reset state
-    gpsRangeSessionState.open = false;
-    gpsRangeSessionState.map = null;
-    gpsRangeSessionState.range = null;
-    gpsRangeSessionState.currentTargetId = null;
-    gpsRangeSessionState.shots = [];
-    gpsRangeSessionState.startedAt = null;
-    gpsRangeSessionState.shotPinMarkers = [];
-    gpsRangeSessionState.targetMarkers = {};
-    gpsRangeSessionState.teeMarker = null;
-    document.body.classList.remove('round-gps-open');
-    if (mount) mount.innerHTML = '';
+    renderGpsRangeStage();
   }
+
 
   // ──────────────────────────────────────────────────────────
   // Render
@@ -64756,54 +65783,179 @@
   }
 
   // ──────────────────────────────────────────────────────────
-  // Pickers (placeholder — functional but barebones)
+  // Pickers — bottom-sheet style with backdrop. Tap a row to
+  // select + auto-dismiss; tap backdrop to dismiss without change.
   // ──────────────────────────────────────────────────────────
 
-  // Cycle through targets. Replace with a proper bottom-sheet picker
-  // in a follow-up — for v1 scaffold, tap-to-cycle gets us moving.
   function openGpsRangeTargetPicker() {
     const targets = gpsRangeSessionState.range?.targets || [];
     if (targets.length === 0) return;
-    const idx = targets.findIndex(t => t.id === gpsRangeSessionState.currentTargetId);
-    const next = targets[(idx + 1) % targets.length];
-    selectGpsRangeTarget(next.id);
+    const currentId = gpsRangeSessionState.currentTargetId;
+    const rows = targets.map(t => `
+      <button class="gps-range-picker-row ${t.id === currentId ? 'is-current' : ''}"
+        onclick="selectFromTargetPicker('${escapeHtml(t.id)}')">
+        <div class="gps-range-picker-row-distance">${t.distance}y</div>
+        <div class="gps-range-picker-row-label">${escapeHtml(t.label || `${t.distance}y`)}</div>
+        ${t.id === currentId ? '<span class="gps-range-picker-row-check">✓</span>' : ''}
+      </button>`).join('');
+    showGpsRangePicker('Target', rows);
   }
   window.openGpsRangeTargetPicker = openGpsRangeTargetPicker;
 
-  // Cycle through bag clubs. Same temporary v1 affordance as targets;
-  // proper picker is a follow-up.
+  function selectFromTargetPicker(targetId) {
+    selectGpsRangeTarget(targetId);
+    hideGpsRangePicker();
+  }
+  window.selectFromTargetPicker = selectFromTargetPicker;
+
   function openGpsRangeClubPicker() {
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
-    if (!bag || bag.length === 0) return;
-    const keys = bag.map(c => makeClubKey(c.name));
-    const idx = keys.indexOf(gpsRangeSessionState.currentClub);
-    const next = keys[(idx + 1) % keys.length];
-    gpsRangeSessionState.currentClub = next;
-    refreshGpsRangeChips();
-    refreshGpsRangePill();
+    if (!bag || bag.length === 0) {
+      showToast('Add clubs to your bag in Profile first', true);
+      return;
+    }
+    const currentKey = gpsRangeSessionState.currentClub;
+    const rows = bag.map(c => {
+      const key = makeClubKey(c.name);
+      const isCurrent = key === currentKey;
+      return `
+        <button class="gps-range-picker-row ${isCurrent ? 'is-current' : ''}"
+          onclick="selectFromClubPicker('${escapeHtml(key)}')">
+          <div class="gps-range-picker-row-swatch" style="background:${colorForClubKey(key)}"></div>
+          <div class="gps-range-picker-row-label">${escapeHtml(c.name)}</div>
+          ${isCurrent ? '<span class="gps-range-picker-row-check">✓</span>' : ''}
+        </button>`;
+    }).join('');
+    showGpsRangePicker('Club', rows);
   }
   window.openGpsRangeClubPicker = openGpsRangeClubPicker;
+
+  function selectFromClubPicker(clubKey) {
+    gpsRangeSessionState.currentClub = clubKey;
+    refreshGpsRangeChips();
+    refreshGpsRangePill();
+    hideGpsRangePicker();
+  }
+  window.selectFromClubPicker = selectFromClubPicker;
+
+  // Sheet rendering — appended to the shell as an absolute overlay.
+  // Uses inline IDs so we can tear it down without leaving artifacts.
+  function showGpsRangePicker(title, rowsHtml) {
+    const shell = document.querySelector('.gps-range-shell');
+    if (!shell) return;
+    // If a picker is already open, replace its body in place.
+    let existing = document.getElementById('gps-range-picker-mount');
+    if (existing) existing.remove();
+    const mount = document.createElement('div');
+    mount.id = 'gps-range-picker-mount';
+    mount.innerHTML = `
+      <div class="gps-range-picker-backdrop" onclick="hideGpsRangePicker()"></div>
+      <div class="gps-range-picker-sheet">
+        <div class="gps-range-picker-handle" aria-hidden="true"></div>
+        <div class="gps-range-picker-title">${escapeHtml(title)}</div>
+        <div class="gps-range-picker-rows">${rowsHtml}</div>
+      </div>`;
+    shell.appendChild(mount);
+  }
+
+  function hideGpsRangePicker() {
+    const mount = document.getElementById('gps-range-picker-mount');
+    if (mount) mount.remove();
+  }
+  window.hideGpsRangePicker = hideGpsRangePicker;
+
 
   // ──────────────────────────────────────────────────────────
   // Finish
   // ──────────────────────────────────────────────────────────
 
-  // Discard for now (no save until we have the range entity model).
-  // Wraps in confirm if shots > 0 so accidental taps don't lose data.
+  // End the live session. If shots were logged, prompt to save (default
+  // action) or discard. Save writes the session to Firestore under
+  // users/{uid}/rangeSessions/{id} with shots inline + a summary block
+  // so list views don't need to re-aggregate.
   async function finishGpsRangeSession() {
-    if (gpsRangeSessionState.shots.length > 0) {
-      const ok = await confirmDialog({
-        title: 'End session?',
-        message: `${gpsRangeSessionState.shots.length} shot${gpsRangeSessionState.shots.length === 1 ? '' : 's'} logged. The save flow isn't built yet, so these will be discarded.`,
-        confirmText: 'End & discard',
-        cancelText: 'Keep going',
+    const shots = gpsRangeSessionState.shots || [];
+    if (shots.length === 0) {
+      closeGpsRangeSession();
+      return;
+    }
+    const ok = await confirmDialog({
+      title: 'Save session?',
+      message: `${shots.length} shot${shots.length === 1 ? '' : 's'} logged. Save this session?`,
+      confirmText: 'Save',
+      cancelText: 'Discard',
+      destructive: false,
+    });
+    if (!ok) {
+      // User chose Discard — confirm before throwing data away
+      const reallyDiscard = await confirmDialog({
+        title: 'Discard session?',
+        message: 'These shots will be lost.',
+        confirmText: 'Discard',
+        cancelText: 'Keep editing',
         destructive: true,
       });
-      if (!ok) return;
+      if (!reallyDiscard) return;
+      closeGpsRangeSession();
+      return;
     }
-    closeGpsRangeSession();
+    // Save path
+    if (!currentUser || !window.fb) {
+      showToast('Sign in to save sessions', true);
+      return;
+    }
+    const range = gpsRangeSessionState.range;
+    const id = 'rs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const session = {
+      id,
+      rangeId: range.id,
+      rangeName: range.name,
+      startedAt: gpsRangeSessionState.startedAt,
+      endedAt: Date.now(),
+      shots,
+      summary: buildRangeSessionSummary(shots, range),
+    };
+    try {
+      await window.fb.setDoc(`users/${currentUser.uid}/rangeSessions/${id}`, session);
+      showToast(`Session saved · ${shots.length} shots`, false);
+      closeGpsRangeSession();
+    } catch (err) {
+      console.error('Failed to save range session:', err);
+      showToast('Save failed — check connection', true);
+    }
   }
   window.finishGpsRangeSession = finishGpsRangeSession;
+
+  // Pre-aggregate per-club stats so list views can show "5 shots, 3 clubs"
+  // without re-running the math. Computed once at save time.
+  function buildRangeSessionSummary(shots, range) {
+    const byClub = {};
+    for (const shot of shots) {
+      const k = shot.club || 'unknown';
+      if (!byClub[k]) {
+        byClub[k] = { count: 0, totalAlong: 0, totalLateralAbs: 0 };
+      }
+      const target = (range.targets || []).find(t => t.id === shot.targetId);
+      const targetDist = target ? target.distance : 0;
+      byClub[k].count += 1;
+      byClub[k].totalAlong += (targetDist + (shot.alongShot || 0));
+      byClub[k].totalLateralAbs += Math.abs(shot.lateralOffset || 0);
+    }
+    // Convert to averages for serialization
+    const clubSummary = {};
+    for (const [k, v] of Object.entries(byClub)) {
+      clubSummary[k] = {
+        count: v.count,
+        avgDistance: Math.round(v.totalAlong / v.count),
+        avgLateralAbs: Math.round(v.totalLateralAbs / v.count),
+      };
+    }
+    return {
+      totalShots: shots.length,
+      byClub: clubSummary,
+    };
+  }
+
 
 
   // ──────────────────────────────────────────────────────────
