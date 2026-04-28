@@ -33,6 +33,48 @@
   --color-orange-pale:  #FFF0E6; /* tinted background fills */
   --color-orange-glow:  rgba(232,93,4,.18); /* shadow / glow */
 
+  /* — Theme Accent ——————————————————————————————————————————
+     The "active accent" — what most accent-colored UI elements
+     pull from. Defaults to orange (the original brand color).
+     Theme overrides at [data-theme="..."] swap these to other
+     palettes. New code should prefer --color-accent-* over
+     --color-orange-* so it picks up theme changes automatically. */
+  --color-accent:      var(--color-orange);
+  --color-accent-light: var(--color-orange-light);
+  --color-accent-dark:  var(--color-orange-dark);
+  --color-accent-pale:  var(--color-orange-pale);
+  --color-accent-glow:  var(--color-orange-glow);
+  --color-accent-on:    var(--color-white);  /* text-on-accent (e.g. button labels) */
+}
+
+/* ── Cobalt theme ─────────────────────────────────────────────
+   Athletic, trustworthy, classic. Deep cobalt blue accent. */
+:root[data-theme="cobalt"] {
+  --color-accent:      #1E40AF;
+  --color-accent-light: #3B5BCC;
+  --color-accent-dark:  #1E3A8A;
+  --color-accent-pale:  #E8EEFB;
+  --color-accent-glow:  rgba(30, 64, 175, 0.20);
+  --color-accent-on:    var(--color-white);
+}
+
+/* ── Burgundy theme ───────────────────────────────────────────
+   Old-world, premium clubhouse feel. Deep wine accent on a
+   slightly warmer cream. */
+:root[data-theme="burgundy"] {
+  --color-accent:      #7F1D1D;
+  --color-accent-light: #A33333;
+  --color-accent-dark:  #5C1414;
+  --color-accent-pale:  #F5E8E8;
+  --color-accent-glow:  rgba(127, 29, 29, 0.18);
+  --color-accent-on:    var(--color-white);
+}
+
+/* Continuation of the root token set (status colors, typography,
+   spacing, etc). The accent/theme tokens above are split out so
+   theme overrides can target them without competing with the rest. */
+:root {
+
   /* — Status Colors ———————————————————————————————————————————
      Used for success/error/warning indicators across the app.
      Each follows the same family pattern as orange: base + light
@@ -76,14 +118,14 @@
   --bg-page:          var(--color-cream-50);
   --bg-surface:       var(--color-cream-200);
   --bg-elevated:      var(--color-white);
-  --bg-accent-tint:   var(--color-orange-pale);
+  --bg-accent-tint:   var(--color-accent-pale);
 
   --text-primary:     var(--color-black);
   --text-secondary:   var(--color-black-80);
   --text-muted:       var(--color-black-60);
   --text-inverse:     var(--color-cream-50);
-  --text-accent:      var(--color-orange);
-  --text-on-accent:   var(--color-white);
+  --text-accent:      var(--color-accent);
+  --text-on-accent:   var(--color-accent-on);
 
   /* Status semantic aliases — text colors on neutral backgrounds.
      For text on tinted backgrounds (e.g. .alert-success), use the
@@ -105,7 +147,7 @@
 
   --border-light:     var(--color-cream-300);
   --border-medium:    var(--color-cream-400);
-  --border-accent:    var(--color-orange);
+  --border-accent:    var(--color-accent);
   --border-dark:      var(--color-black);
 
   /* — Typography ——————————————————————————————————————————— */
@@ -173,7 +215,7 @@
   --shadow-md:  0 4px 16px var(--color-black-20);
   --shadow-lg:  0 8px 32px rgba(13,13,13,.14);
   --shadow-xl:  0 16px 48px rgba(13,13,13,.16);
-  --shadow-accent: 0 6px 24px var(--color-orange-glow);
+  --shadow-accent: 0 6px 24px var(--color-accent-glow);
   --shadow-sheet: 0 -12px 40px rgba(13,13,13,.28), 0 -2px 8px rgba(13,13,13,.12);  /* bottom-sheet uplight */
 
   /* — Transitions —————————————————————————————————————————— */
