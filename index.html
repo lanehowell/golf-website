@@ -28379,9 +28379,10 @@
       name: 'Prairie Lakes Golf Course',
       location: 'Grand Prairie, TX',
       // Coords from 3202 SE 14th St, Grand Prairie, TX 75052.
-      // Approximate — fine-tune via the in-app pin flow if needed.
-      lat: 32.7355,
-      lng: -96.9789,
+      // Course sits on Mountain Creek Lake on the SW edge of Grand
+      // Prairie; lat/lng targets the clubhouse area.
+      lat: 32.7390,
+      lng: -97.0230,
       // Front 9 = Blue 1-9, Back 9 = Red 1-9. Indexes follow the
       // combined-course convention: Blue 9 uses odd indexes 1-17,
       // Red 9 uses even indexes 2-18.
@@ -29187,27 +29188,73 @@
     }
   }
 
-  // Push any seed-array courses that don't yet exist in Firestore.
-  // Runs after the catalog loads — ensures admins can add new courses
-  // by editing the COURSES array; they get published on the next load.
-  // Existing courses are NEVER overwritten (would clobber crowd-sourced
-  // greenCoords / teeBoxes data).
+  // Push any seed-array courses that don't yet exist in Firestore,
+  // AND update any existing Firestore courses where the seed-array
+  // version has different data. Crowd-sourced fields (greenCoords,
+  // teeBoxes) are PRESERVED — we read them from the existing doc
+  // and merge them into the new payload so editing course-data in
+  // the seed never wipes out shared green pins.
+  //
+  // Runs on every admin load. Idempotent — diffs the seed against
+  // Firestore and only writes when something changed.
   async function syncMissingSeedCoursesToFirestore(existingDocs) {
     if (!window.fb || !isCurrentUserAdmin()) return;
-    const existingIds = new Set(existingDocs.map(d => d.id));
-    const missing = COURSES.filter(c => !existingIds.has(c.id));
-    if (missing.length === 0) return;
-    for (const c of missing) {
-      const { id, ...data } = c;
+    const existingById = new Map(existingDocs.map(d => [d.id, d]));
+    for (const c of COURSES) {
+      const { id, ...seedData } = c;
+      const existing = existingById.get(id);
+      if (!existing) {
+        // New course — push it directly.
+        try {
+          await window.fb.upsertCourse(id, seedData);
+          coursesCache.set(id, c);
+          console.log(`Published new seed course: ${id}`);
+        } catch (err) {
+          console.error(`Failed to publish seed course ${id}:`, err);
+        }
+        continue;
+      }
+      // Existing course — check whether the seed version differs from
+      // Firestore on any of the curated (admin-owned) fields. We only
+      // compare the curated fields; crowd-sourced fields are preserved
+      // regardless. Curated diff is checked via a stable JSON snapshot
+      // since holes/tees are nested arrays and we want a deep compare.
+      const curated = pickCuratedCourseFields(seedData);
+      const existingCurated = pickCuratedCourseFields(existing);
+      if (deepEqualJson(curated, existingCurated)) continue;
+      // Need to update. Merge seed curated fields with the existing
+      // crowd-sourced data so we don't blow away pins.
+      const merged = { ...curated };
+      if (existing.greenCoords) merged.greenCoords = existing.greenCoords;
+      if (existing.teeBoxes)    merged.teeBoxes    = existing.teeBoxes;
       try {
-        await window.fb.upsertCourse(id, data);
-        // Also stuff into local cache so it's available immediately
-        coursesCache.set(id, c);
-        console.log(`Published new seed course: ${id}`);
+        await window.fb.upsertCourse(id, merged);
+        coursesCache.set(id, { id, ...merged });
+        console.log(`Updated seed course in Firestore: ${id}`);
       } catch (err) {
-        console.error(`Failed to publish seed course ${id}:`, err);
+        console.error(`Failed to update seed course ${id}:`, err);
       }
     }
+  }
+
+  // Pick the admin-owned (curated) fields from a course doc. Used for
+  // diffing during the seed-sync — we don't want to count
+  // crowd-sourced fields in the "did this change?" check.
+  function pickCuratedCourseFields(c) {
+    return {
+      name:     c.name,
+      location: c.location,
+      lat:      c.lat,
+      lng:      c.lng,
+      holes:    c.holes,
+      tees:     c.tees,
+    };
+  }
+
+  // Deep equality via JSON serialization. Sufficient for our shape
+  // (no functions, dates, undefineds) and avoids dragging in lodash.
+  function deepEqualJson(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
   }
 
   // One-time seed: write each hardcoded course to Firestore. Idempotent
