@@ -5270,6 +5270,17 @@
        readable. */
     width: 22px;
     height: 22px;
+    /* CRITICAL: border-box so the bounding box is exactly 22x22
+       regardless of border. With content-box, sub-pixel rounding of
+       the 2px border at different zoom levels would shift the
+       visual center fractionally — markers appeared to drift as the
+       map zoomed. anchor: 'center' on Mapbox markers measures the
+       offsetWidth/Height of the element, which depends on box-sizing. */
+    box-sizing: border-box;
+    /* Explicit center transform-origin defends against any inherited
+       value from the cascade applying off-center scaling. */
+    transform-origin: center center;
+    flex-shrink: 0;
     border-radius: 50%;
     background: var(--color-player-you);
     border: 2px solid rgba(0, 0, 0, 0.7);
@@ -41742,6 +41753,21 @@
       if (mount) mount.innerHTML = '';
       return;
     }
+    // Critical: force the sheet to its baseline (translateY(0)) state
+    // before applying .closing. If the sheet just re-rendered (which
+    // happens any time the user changes a segment field — many shot
+    // edits) and is still in the .opening state with translateY(100%),
+    // adding .closing wouldn't change the transform value, so no
+    // transition fires and `transitionend` never triggers. The
+    // 320ms fallback still rescues, but the user perceives the
+    // modal as stuck.
+    el.classList.remove('opening');
+    backdrop.classList.remove('opening');
+    // Force a reflow so the browser commits the baseline state
+    // before we transition away from it. Without this, removing
+    // .opening + adding .closing in the same frame can collapse to
+    // a no-op transition.
+    void el.offsetHeight;
     el.classList.add('closing');
     backdrop.classList.add('closing');
     let done = false;
@@ -41759,6 +41785,10 @@
       if (mount) mount.innerHTML = '';
     };
     const onEnd = (e) => {
+      // Only respond to transitions ON the sheet itself, not bubbled
+      // child transitions (chip :active, button focus, etc.) — and
+      // only the transform transition, which is what defines "closed."
+      if (e.target !== el) return;
       if (e.propertyName !== 'transform') return;
       el.removeEventListener('transitionend', onEnd);
       finish();
