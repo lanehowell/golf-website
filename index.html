@@ -5331,6 +5331,26 @@
     border-radius: 50%;
   }
 
+  /* Reticle — the planning sight that drops on the green when GPS
+     opens. Built inline (style + innerHTML); the .round-gps-reticle
+     class exists primarily for the snap state below. */
+  .round-gps-reticle.is-snapped {
+    /* Tinted drop-shadow so the snap reads as a glow even on the
+       lightest greens. Replaces the default neutral shadow. */
+    filter: drop-shadow(0 0 6px var(--color-accent))
+            drop-shadow(0 2px 4px rgba(0,0,0,0.6)) !important;
+  }
+  /* Re-paint the SVG strokes/fills in accent when snapped. The inline
+     SVG stroke="#fff" wins specificity, so we use [stroke] attribute
+     selectors with !important to override. */
+  .round-gps-reticle.is-snapped svg circle[stroke],
+  .round-gps-reticle.is-snapped svg line[stroke] {
+    stroke: var(--color-accent) !important;
+  }
+  .round-gps-reticle.is-snapped svg circle[fill]:not([fill="none"]) {
+    fill: var(--color-accent) !important;
+  }
+
   /* Recenter button — round, bottom-left, floating above the action
      bar so it doesn't get hidden by the bar's gradient. Reframes the
      map on tee+green at the proper bearing when tapped. */
@@ -62816,6 +62836,16 @@
   // and the practice area, strict enough to filter "I'm at home."
   const ROUND_GPS_PLAYING_THRESHOLD_MILES = 1;
 
+  // Magnetic snap radius for the planning reticle. When the user drags
+  // the reticle within this many yards of the effective pin (custom-
+  // dropped pin or green center), the reticle locks to the pin so the
+  // plays-like / wind / elevation readouts reflect "to the actual pin"
+  // rather than a few yards off. Drag past the radius to release.
+  // 6y is roughly thumb-sized at typical playing zoom and feels
+  // forgiving without being aggressive — deliberate drags to nearby
+  // points (8-10y from pin) still work without fighting the snap.
+  const RETICLE_SNAP_YARDS = 6;
+
   function openRoundGpsPanel() {
     if (roundGpsState.open) return;
     const ctx = getCurrentRoundContext();
@@ -63743,6 +63773,7 @@
     // (z-index 1) so taps land here even when both are at the same
     // lat/lng — critical for being able to drag the reticle when a
     // target is committed.
+    el.className = 'round-gps-reticle';
     el.style.cssText = `
       width: 32px; height: 32px;
       cursor: grab;
@@ -63781,26 +63812,67 @@
 
     // While dragging, update the lines + the distance readout in
     // real time. Use 'drag' (every frame) for a responsive feel.
+    // Includes magnetic snap to the pin: when the user's finger is
+    // within RETICLE_SNAP_YARDS of the effective pin, the reticle locks
+    // to the pin position so distances reflect "to the actual pin"
+    // rather than "to a spot 3 yards from the pin." Drag past the
+    // threshold to release.
+    let wasSnapped = false;
     marker.on('dragstart', () => {
+      wasSnapped = false;
       // Collapse any expanded yardage labels — during drag, the
       // breakdown numbers would jitter as the geometry changes.
       // The user can re-expand after drag ends to see updated info.
       const labels = roundGpsState.targetLabels;
       if (labels) {
         if (labels.fromLabel) {
-          const el = labels.fromLabel.getElement();
-          if (el) el.dataset.expanded = 'false';
+          const labelEl = labels.fromLabel.getElement();
+          if (labelEl) labelEl.dataset.expanded = 'false';
         }
         if (labels.greenLabel) {
-          const el = labels.greenLabel.getElement();
-          if (el) el.dataset.expanded = 'false';
+          const labelEl = labels.greenLabel.getElement();
+          if (labelEl) labelEl.dataset.expanded = 'false';
         }
       }
     });
     marker.on('drag', () => {
-      const ll = marker.getLngLat();
-      roundGpsState.targetLat = ll.lat;
-      roundGpsState.targetLng = ll.lng;
+      const natural = marker.getLngLat();
+      let lat = natural.lat;
+      let lng = natural.lng;
+      // Snap to pin when natural position is within threshold. Pin =
+      // user-dropped pin OR green center. Snap distance is in yards
+      // (real-world), so it scales with the map: zooming out doesn't
+      // change the snap radius the user feels relative to the green.
+      const pin = getEffectivePinLatLng();
+      let nowSnapped = false;
+      if (pin) {
+        const yds = haversineYards(lat, lng, pin.lat, pin.lng);
+        if (yds <= RETICLE_SNAP_YARDS) {
+          nowSnapped = true;
+          lat = pin.lat;
+          lng = pin.lng;
+          // Override marker's visual position so it sits on the pin.
+          // Mid-drag setLngLat doesn't disrupt Mapbox's pointer tracking;
+          // next drag tick still reads the finger's actual location.
+          try { marker.setLngLat([lng, lat]); } catch (_) {}
+        }
+      }
+      // Toggle visual snap state on entry/exit transitions only —
+      // avoids redundant DOM writes on every tick. Also fire a soft
+      // haptic on entry so the user feels the lock.
+      if (nowSnapped !== wasSnapped) {
+        if (nowSnapped) {
+          el.classList.add('is-snapped');
+          if (typeof haptic === 'function') {
+            try { haptic('light'); } catch (_) {}
+          }
+        } else {
+          el.classList.remove('is-snapped');
+        }
+        wasSnapped = nowSnapped;
+      }
+      roundGpsState.targetLat = lat;
+      roundGpsState.targetLng = lng;
       el.style.cursor = 'grabbing';
       updateRoundGpsTargetLines();
       updateRoundGpsTargetReadout();
@@ -63814,6 +63886,9 @@
     });
     marker.on('dragend', () => {
       el.style.cursor = 'grab';
+      // Don't clear .is-snapped on dragend — if drag ended while
+      // snapped, the reticle should stay visually locked to indicate
+      // it's parked on the pin. Clears next time drag starts.
     });
 
     roundGpsState.targetActive = true;
