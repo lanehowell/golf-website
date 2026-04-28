@@ -27219,12 +27219,22 @@
   function applyMapboxPolish(map) {
     const apply = () => {
       try {
-        // Pull saturation down ~30% so the green-vs-not-green
-        // difference between zoom tiers is muted. This is the
-        // primary tool for taming the tile-tier color shift.
-        map.setPaintProperty('satellite', 'raster-saturation', -0.35);
-        map.setPaintProperty('satellite', 'raster-brightness-min', 0.05);
-        map.setPaintProperty('satellite', 'raster-contrast', 0.08);
+        // Bump saturation up a touch for richer greens — the default
+        // Mapbox satellite imagery is intentionally muted to handle
+        // global color consistency, but for a golf-course context we
+        // want vibrant fairway/rough/tree differentiation.
+        //
+        // Increased contrast helps tree shadows + fairway edges read
+        // more clearly. A small brightness lift counteracts what
+        // adding contrast would otherwise do to mid-tones.
+        //
+        // Tradeoff vs the previous -0.35 desaturation: tile-tier
+        // color shifts (the seam between zoom levels) are slightly
+        // more visible, but most users don't notice that and DO
+        // notice gray greens.
+        map.setPaintProperty('satellite', 'raster-saturation', 0.10);
+        map.setPaintProperty('satellite', 'raster-brightness-min', 0.08);
+        map.setPaintProperty('satellite', 'raster-contrast', 0.15);
         // raster-fade-duration left at default — extending it caused
         // satellite tiles to fade in slowly after every camera move
         // (including flyTo), making the map look like it's fading
