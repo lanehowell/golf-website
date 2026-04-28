@@ -5820,19 +5820,20 @@
   /* ──────────────────────────────────────────────────────────
      GPS Range Session — full-screen body-level overlay for
      tap-to-log range shots. Same shell pattern as round-gps-panel
-     (fixed inset-0, z-index above panels). Topbar + map + dock
-     stack vertically.
+     (fixed inset-0, z-index above panels). Map fills the entire
+     viewport; topbar and dock are absolute overlays on top.
      ────────────────────────────────────────────────────────── */
   .gps-range-shell {
     position: fixed;
     inset: 0;
     z-index: 9400;
     background: #000;
-    display: flex;
-    flex-direction: column;
   }
   .gps-range-topbar {
-    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     display: grid;
     grid-template-columns: 44px 1fr auto;
     align-items: center;
@@ -5905,16 +5906,19 @@
   }
 
   .gps-range-map {
-    flex: 1;
-    position: relative;
+    position: absolute;
+    inset: 0;
     overflow: hidden;
     background: #000;
   }
 
   /* Bottom dock — target chip on left, club chip on right.
-     Both tappable to switch mid-session. */
+     Both tappable to switch mid-session. Absolute overlay over the map. */
   .gps-range-dock {
-    flex-shrink: 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
