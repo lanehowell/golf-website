@@ -34038,6 +34038,11 @@
       // mishit tag is stripped (too self-critical / exposing). Other
       // fields stay so the replay can animate accurately.
       shots:      sanitizeShotsForPublic(round.shots),
+      // Tee overrides — per-hole positions where the user used Set Tee
+      // during the round. Replays use these to position the tee marker
+      // accurately when there are no shots logged. Just lat/lng pairs
+      // by hole — no privacy concern.
+      teeOverrides: round.teeOverrides || {},
       // Best-round indicator. 'global' | 'course' | null. Friends reading
       // the shared feed use this to decide whether to show a badge on
       // the card — they can't compute it themselves (they don't have my
@@ -35484,6 +35489,11 @@
       shots: roundState.shots,
       totals,
     };
+    // Per-round tee overrides — captured via "Set tee" button in GPS.
+    // Skip the field when empty so untouched rounds stay clean.
+    if (roundState.teeOverrides && Object.keys(roundState.teeOverrides).length > 0) {
+      payload.teeOverrides = roundState.teeOverrides;
+    }
     // Weather snapshot — captured at round start by attachLiveWeather
     // ToRound. Optional; only included if it's been fetched. Persisted
     // on every save thereafter so the snapshot rides with the round.
@@ -36318,6 +36328,12 @@
     holeIndex: 0,           // 0-based for arrays; display as +1
     scores: {},             // { holeNumber: { strokes, putts } }
     shots: {},              // { holeNumber: [ { id, club, distance, startLie, mishit } ] }
+    // Per-round user-overridden tee positions, captured via the GPS
+    // "Set tee" action button. Keyed by hole number. Falls back to
+    // course.teeBoxes (crowd-sourced) when no override exists for a
+    // hole. Persisted with the round so they survive exit/resume —
+    // future rounds get fresh defaults from the course doc.
+    teeOverrides: {},       // { [holeNumber]: { lat, lng } }
     started: null,
     dateKey: null
   };
@@ -36624,6 +36640,9 @@
       : (roundDoc.currentHoleIndex || 0);
     roundState.scores = roundDoc.scores || {};
     roundState.shots = roundDoc.shots || {};
+    // Restore per-round tee overrides — Set Tee captures during a
+    // previous session for this same round get rehydrated here.
+    roundState.teeOverrides = roundDoc.teeOverrides || {};
     roundState.started = roundDoc.startTime;
     roundState.dateKey = roundDoc.dateKey;
     // Restore round format. Defaults to 'standard' for legacy rounds
@@ -36656,6 +36675,7 @@
     roundState.holeIndex = 0;
     roundState.scores = {};
     roundState.shots = {};
+    roundState.teeOverrides = {};
     roundState.started = null;
     roundState.dateKey = null;
     roundState.weather = null;
@@ -37852,7 +37872,11 @@
     try {
       await window.fb.updateGroupRoundPlayer(groupRoundState.docId, currentUser.uid, {
         scores: me.scores || {},
-        shots:  me.shots  || {}
+        shots:  me.shots  || {},
+        // Per-round tee overrides — captured via "Set tee" in GPS.
+        // Each player's overrides are their own; doesn't affect other
+        // players in the group. Persisted so refresh/resume sees them.
+        teeOverrides: me.teeOverrides || {}
       });
       syncEndSave(true);
     } catch (err) {
@@ -38731,6 +38755,12 @@
     // same way regardless of round flavor.
     if (gr.weather) {
       personalPayload.weather = gr.weather;
+    }
+    // Carry tee overrides onto the personal snapshot (each player has
+    // their own). Replays read this so the displayed tee marker
+    // matches the actual position the player used.
+    if (me.teeOverrides && Object.keys(me.teeOverrides).length > 0) {
+      personalPayload.teeOverrides = me.teeOverrides;
     }
     // Pin positions captured above (before localStorage wipe). Same
     // shape as solo: { holeNumber: {lat, lng} }. Used by replays.
@@ -39652,6 +39682,12 @@
       shots: roundState.shots || {},
       totals,
     };
+    // Carry tee overrides onto the completed-round doc — replays read
+    // them so the displayed tee marker matches the actual tee position
+    // the user used during the round.
+    if (roundState.teeOverrides && Object.keys(roundState.teeOverrides).length > 0) {
+      basePayload.teeOverrides = roundState.teeOverrides;
+    }
     // Preserve the weather snapshot if one was captured at round
     // start. Carries forward to the completed-round doc + history.
     if (roundState.weather) {
@@ -58828,8 +58864,16 @@
     let teePos = null;
     if (shots.length > 0) {
       teePos = { lat: shots[0].startLat, lng: shots[0].startLng };
-    } else if (typeof getTeePosition === 'function') {
-      teePos = getTeePosition(course, holeNum, replayState.round?.teeName);
+    } else {
+      // No shots logged for this hole — fall back to the round's saved
+      // tee override (if user used Set Tee for this hole), then to the
+      // course's pinned position.
+      const roundOv = replayState.round?.teeOverrides?.[holeNum];
+      if (roundOv && typeof roundOv.lat === 'number' && typeof roundOv.lng === 'number') {
+        teePos = { lat: roundOv.lat, lng: roundOv.lng };
+      } else if (typeof getTeePosition === 'function') {
+        teePos = getTeePosition(course, holeNum, replayState.round?.teeName);
+      }
     }
     if (teePos) bounds.extend([teePos.lng, teePos.lat]);
     let bearing = 0;
@@ -62808,7 +62852,10 @@
     const hole = course.holes[holeIndex];
 
     const teeName = ctx?.teeName;
-    const teePos = getTeePosition(course, hole.number, teeName);
+    // Effective tee: override (Set Tee for this round) takes precedence
+    // over the course's pinned position. So a previously-saved Set Tee
+    // re-hydrates the marker on round resume.
+    const teePos = getEffectiveTeePosition(course, hole.number, teeName);
     const tee = teeName ? course.tees.find(t => t.name === teeName) : null;
     const holeYards = tee?.yardages?.[holeIndex] ?? null;
 
@@ -62911,7 +62958,9 @@
     const hole = course.holes[holeIndex];
 
     const teeName = ctx?.teeName;
-    const teePos = getTeePosition(course, hole.number, teeName);
+    // Effective tee: see comment in loadRoundGpsHoleAndRender. Per-
+    // round override wins over course pin.
+    const teePos = getEffectiveTeePosition(course, hole.number, teeName);
     const tee = teeName ? course.tees.find(t => t.name === teeName) : null;
     const holeYards = tee?.yardages?.[holeIndex] ?? null;
 
@@ -66809,7 +66858,10 @@
       if (i < currentIdx) continue;
       if (roundGpsState.advanceDismissed.has(i)) continue;
       const hole = course.holes[i];
-      const teePos = getTeePosition(course, hole.number, teeName);
+      // Effective position so auto-advance still works on holes you've
+      // previously Set Tee on (override beats course pin, falls back
+      // to course pin when no override exists).
+      const teePos = getEffectiveTeePosition(course, hole.number, teeName);
       if (!teePos) continue;
       const yds = haversineYards(
         userPos.lat, userPos.lng, teePos.lat, teePos.lng);
@@ -67620,12 +67672,35 @@
     return 'set-tee';
   }
 
+  // Read the effective tee position for the given hole, considering
+  // per-round overrides first, then the course's pinned teeBoxes.
+  // Returns { lat, lng } or null. The "effective" position is what the
+  // user has functionally committed to for this round — either a
+  // crowd-sourced course pin or their own Set Tee capture.
+  function getEffectiveTeePosition(course, holeNumber, teeName) {
+    // Round-scoped override — captured via Set Tee. Per-round, per-
+    // player. Read from the active round (solo or group).
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      const ov = me?.teeOverrides?.[holeNumber];
+      if (ov && typeof ov.lat === 'number' && typeof ov.lng === 'number') {
+        return { lat: ov.lat, lng: ov.lng };
+      }
+    } else {
+      const ov = roundState.teeOverrides?.[holeNumber];
+      if (ov && typeof ov.lat === 'number' && typeof ov.lng === 'number') {
+        return { lat: ov.lat, lng: ov.lng };
+      }
+    }
+    // No override → fall back to course-level tee data.
+    return getTeePosition(course, holeNumber, teeName);
+  }
+
   // "Set tee" handler — captures user's current GPS as the tee position
-  // for THIS hole in THIS round. Round-scoped only (doesn't write back
-  // to the course doc; see Solution 5 / persistence discussion).
-  // Updates lastShotEnd so the next tap measures shot 1's distance
-  // from this corrected position. Also updates the visible tee marker
-  // on the map for clarity.
+  // for THIS hole in THIS round. Persisted onto the round doc as a
+  // teeOverrides entry — survives exit/resume of GPS and of the round
+  // itself. Doesn't write back to the shared course doc; the user can
+  // pin tees globally via the Pin Tees tool when ready.
   function setTeeAtCurrentPosition() {
     if (!roundGpsState.open) return;
     if (roundGpsState.mode !== 'playing') return;
@@ -67634,9 +67709,10 @@
       showToast('No GPS fix — can\'t set tee position', true);
       return;
     }
-    // Override the local roundGpsState tee coords. NOT written back to
-    // the course doc — this is a round-scoped override. Future rounds
-    // will still see the original pinned tee until we add persistence.
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return;
+
+    // Override the local roundGpsState tee coords for immediate UI use.
     roundGpsState.teeLat = userPos.lat;
     roundGpsState.teeLng = userPos.lng;
     // Update lastShotEnd to match — the next "Log shot" tap will
@@ -67645,11 +67721,34 @@
     // Mark this hole as having had its tee manually set this session
     // so the button switches to 'log' mode now (user committed to a
     // tee position; next action is logging shot 1).
-    if (roundGpsState.holeNumber != null) {
-      roundGpsState.teeManuallySetHoles.add(roundGpsState.holeNumber);
+    roundGpsState.teeManuallySetHoles.add(holeNum);
+
+    // PERSIST: write to round state's teeOverrides so the position
+    // survives exit/resume. Per-round, per-player. The round doc
+    // gets the field on the next debounced autosave.
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      if (me) {
+        if (!me.teeOverrides) me.teeOverrides = {};
+        me.teeOverrides[holeNum] = { lat: userPos.lat, lng: userPos.lng };
+      }
+    } else {
+      if (!roundState.teeOverrides) roundState.teeOverrides = {};
+      roundState.teeOverrides[holeNum] = { lat: userPos.lat, lng: userPos.lng };
+    }
+    // Trigger a debounced save so the override hits Firestore. Same
+    // helper used by shot-track persistence — it knows whether this is
+    // a solo round (queueAutoSaveRound) or a group round
+    // (queueSaveMyGroupScores) and writes accordingly.
+    if (typeof persistShotChanges === 'function') {
+      try { persistShotChanges(); } catch (_) {}
     }
 
     // Move the tee marker visually so the user sees their override.
+    // Critical now that we persist: before, the marker was a
+    // visual-only nicety; now it must reflect the truth of where
+    // the persisted tee lives, otherwise the visual mismatches the
+    // data on subsequent loads.
     if (roundGpsState.teeMarker) {
       try {
         roundGpsState.teeMarker.setLngLat([userPos.lng, userPos.lat]);
@@ -67661,7 +67760,7 @@
         const teeEl = buildTeeMarkerEl();
         roundGpsState.teeMarker = new mapboxgl.Marker({ element: teeEl, anchor: 'center' })
           .setLngLat([userPos.lng, userPos.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${roundGpsState.holeNumber} tee`))
+          .setPopup(new mapboxgl.Popup({ offset: 16 }).setText(`Hole ${holeNum} tee`))
           .addTo(roundGpsState.map);
       } catch (_) {}
     }
@@ -67679,9 +67778,7 @@
     }
 
     // Refresh the button so it morphs back to "Log shot" mode now
-    // that we have a tee set (the proximity check is fine but the
-    // button morph is also gated on shots.length === 0; the user
-    // will now expect to log their actual tee shot's landing).
+    // that we have a tee set.
     refreshRoundGpsActionButton();
 
     showToast('Tee set at your position', false);
