@@ -22478,64 +22478,108 @@
   }
 
   /* Feed card — a round by you or a friend. Clickable full card */
+  /* ──────────────────────────────────────────────────────────
+     Feed card — editorial-sports-journal aesthetic. The score is
+     the headline, stats are the byline, actions are marginalia.
+     Restrained typography, single divider, breathing room.
+     ────────────────────────────────────────────────────────── */
   .feed-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-spring);
+    overflow: hidden;  /* contain action-row borders */
   }
   @media (hover: hover) {
-  .feed-card:hover {
-    border-color: var(--color-accent);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    .feed-card:hover {
+      border-color: color-mix(in srgb, var(--color-accent) 30%, var(--border-light));
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
   }
-}
+  .feed-card-body {
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    cursor: pointer;
+  }
 
-  /* Header row — avatar + name/byline */
+  /* ── Header: avatar + byline + flags ─────────────────── */
   .feed-card-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-3);
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
   }
   .feed-card-avatar {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-cream-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
     font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-muted);
+  }
+  .feed-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .feed-card-byline {
     flex: 1;
     min-width: 0;
+  }
+  .feed-card-author-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    line-height: 1.2;
   }
   .feed-card-author {
     font-family: var(--font-display);
     font-size: var(--text-md);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
-    line-height: 1.2;
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    flex-wrap: wrap;
   }
   .feed-card-handle {
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-2xs);
     font-weight: var(--weight-regular);
     color: var(--color-accent);
     letter-spacing: var(--tracking-wide);
   }
-  .feed-card-action {
+  .feed-card-dot {
+    color: var(--text-muted);
+    font-size: var(--text-2xs);
+  }
+  .feed-card-time {
     font-family: var(--font-body);
     font-size: var(--text-xs);
     color: var(--text-muted);
     letter-spacing: var(--tracking-wide);
-    margin-top: 2px;
   }
-  /* Best-round badge on feed cards — only surfaces on the user's own
-     rounds (not friends'). Sized between round-card and summary-hero
-     versions. See renderFeedCard for the isMe gate. */
+  .feed-card-context {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  /* Header right-side flags — stacked vertically, right-aligned.
+     Best-badge (when present) sits above the quick-score pill. */
+  .feed-card-header-flags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
   .feed-card-best-badge {
     display: inline-block;
     padding: 3px 10px;
@@ -22545,8 +22589,7 @@
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     border-radius: var(--radius-pill);
-    margin-top: var(--space-2);
-    line-height: 1.6;
+    line-height: 1.5;
   }
   .feed-card-best-global {
     background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
@@ -22558,155 +22601,116 @@
     color: var(--color-accent);
     border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
   }
-
-  /* Score display — the hero of the feed card */
-  .feed-card-score {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    padding-top: var(--space-3);
-    border-top: 1px dashed var(--color-cream-200);
-    flex-wrap: wrap;
+  .feed-card-qs-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--color-cream-200);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-3xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    font-weight: var(--weight-semibold);
+    border: 1px solid var(--border-light);
+    line-height: 1.4;
   }
-  .feed-card-strokes {
+
+  /* ── Score block — the headline ────────────────────────── */
+  .feed-card-score-block {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px dashed var(--color-cream-200);
+  }
+  .feed-card-score-strokes,
+  .feed-card-score-vspar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .feed-card-strokes-num {
     font-family: var(--font-display);
-    font-size: var(--text-3xl);
+    font-size: var(--text-4xl);   /* 48px */
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
     letter-spacing: var(--tracking-tight);
   }
-  .feed-card-vspar {
+  .feed-card-vspar-num {
     font-family: var(--font-mono);
-    font-size: var(--text-md);
+    font-size: var(--text-3xl);   /* 36px */
     font-weight: var(--weight-semibold);
     color: var(--color-accent);
-    letter-spacing: var(--tracking-wide);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
   }
-  .feed-card-meta {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-left: auto;
-    display: flex;
-    gap: var(--space-3);
-    align-items: baseline;
-    letter-spacing: var(--tracking-wide);
-  }
-  .feed-card-qs-badge {
-    padding: 1px var(--space-2);
-    background: var(--color-cream-200);
-    color: var(--text-muted);
-    border-radius: var(--radius-sm);
+  .feed-card-score-microlabel {
     font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    letter-spacing: var(--tracking-wide);
+    font-size: var(--text-3xs);
     text-transform: uppercase;
-    border: 1px solid var(--border-light);
+    letter-spacing: var(--tracking-widest);
+    color: var(--text-muted);
+    margin-top: 4px;
   }
 
-  /* Rich feed stats — putts, fairways, greens. Always 3 equal columns
-     so the row reads as a consistent stats strip regardless of which
-     values are missing. */
-  .feed-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-2);
+  /* ── Stats line — inline, light, scannable ─────────────── */
+  .feed-card-stats-line {
     margin-top: var(--space-3);
-    padding-top: var(--space-3);
-    border-top: 1px dashed var(--color-cream-200);
-  }
-  .feed-stat {
-    text-align: center;
-    padding: var(--space-2);
-    background: var(--color-cream-100);
-    border-radius: var(--radius-sm);
-  }
-  .feed-stat-value {
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    line-height: 1;
-  }
-  .feed-stat-unit {
     font-family: var(--font-body);
     font-size: var(--text-sm);
-    font-weight: var(--weight-regular);
     color: var(--text-muted);
-    margin-left: 1px;
-  }
-  .feed-stat-label {
-    font-family: var(--font-body);
-    font-size: var(--text-2xs);
-    font-weight: var(--weight-semibold);
+    line-height: 1.4;
     letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-top: 2px;
   }
 
-  /* Separate the clickable card body from the comments strip — they're
-     now two distinct click targets rather than one wrapping click */
-  .feed-card {
-    padding: 0;        /* body does its own padding */
-    overflow: hidden;  /* so strip hover doesn't escape border-radius */
+  /* ── Action row — react / comment / replay ─────────────── */
+  .feed-card-actions {
+    display: flex;
+    border-top: 1px solid var(--color-cream-200);
+    background: color-mix(in srgb, var(--color-cream-100) 50%, transparent);
   }
-  .feed-card-body {
-    padding: var(--space-4) var(--space-5);
-    cursor: pointer;
-  }
-  @media (hover: hover) {
-  .feed-card:hover .feed-card-body {
-    /* don't override card hover; just make cursor + subtle cue */
-  }
-}
-
-  /* Comments strip — bottom of card, toggles inline comments */
-  .feed-comments-strip {
+  .feed-action-btn {
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    width: 100%;
-    padding: var(--space-3) var(--space-5);
-    background: var(--color-cream-100);
+    justify-content: center;
+    gap: 8px;
+    padding: var(--space-3) var(--space-2);
+    background: transparent;
     border: none;
-    border-top: 1px solid var(--border-light);
-    color: var(--text-secondary);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    text-align: left;
+    border-right: 1px solid var(--color-cream-200);
+    color: var(--text-muted);
     cursor: pointer;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
     transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
   }
-  @media (hover: hover) {
-  .feed-comments-strip:hover {
-    background: var(--color-cream-200);
-    color: var(--text-primary);
+  .feed-action-btn:last-child {
+    border-right: none;
   }
-}
-  .feed-comments-strip-active {
-    background: var(--bg-accent-tint);
-    color: var(--color-accent-dark);
-    border-top-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  .feed-action-btn:not(:disabled):hover,
+  .feed-action-btn:not(:disabled):active,
+  .feed-action-btn.is-active {
+    color: var(--color-accent);
+    background: var(--color-accent-pale);
   }
-  @media (hover: hover) {
-  .feed-comments-strip-active:hover {
-    background: var(--bg-accent-tint);
-    color: var(--color-accent-dark);
+  .feed-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
-}
-  .feed-comments-icon {
+  .feed-action-icon {
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
   }
-  .feed-comments-caret {
-    margin-left: auto;
-    font-size: var(--text-2xs);
-    opacity: 0.7;
-  }
-  .feed-card-expanded .feed-comments-strip {
-    border-bottom: 1px solid var(--border-light);
+  .feed-action-label {
+    line-height: 1;
   }
 
   /* Inline comments section — when a feed card is expanded */
@@ -22969,6 +22973,64 @@
     color: var(--text-muted);
     text-align: center;
     font-style: italic;
+  }
+
+  /* "Watch Replay" CTA on public round detail. Inline banner-style
+     button: play icon left, title + sub center, chevron right. */
+  .public-round-replay-cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    margin-top: var(--space-6);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-accent-pale);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    border-radius: var(--radius-lg);
+    color: var(--color-accent-dark);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.dark .public-round-replay-cta {
+    color: var(--color-accent);
+  }
+  .public-round-replay-cta:hover {
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+    transform: translateY(-1px);
+  }
+  .public-round-replay-cta:active {
+    transform: translateY(0);
+  }
+  .public-round-replay-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: var(--color-accent);
+  }
+  .public-round-replay-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .public-round-replay-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+  }
+  .public-round-replay-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: var(--tracking-wide);
+  }
+  .public-round-replay-chev {
+    font-size: var(--text-lg);
+    color: var(--color-accent);
+    flex-shrink: 0;
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -33358,6 +33420,11 @@
       quickScore: !!round.quickScore,
       totals:     round.totals || {},
       scores:     round.scores || {},   // per-hole detail — public if round is public
+      // Shots — mirrored for public replays. Friends can watch a
+      // friend's round shot-by-shot. Sanitized: per memory #13, the
+      // mishit tag is stripped (too self-critical / exposing). Other
+      // fields stay so the replay can animate accurately.
+      shots:      sanitizeShotsForPublic(round.shots),
       // Best-round indicator. 'global' | 'course' | null. Friends reading
       // the shared feed use this to decide whether to show a badge on
       // the card — they can't compute it themselves (they don't have my
@@ -33371,6 +33438,39 @@
         ? round._publicCommentCount
         : 0,
     };
+  }
+
+  // Strip private fields from per-shot data before publishing. Currently
+  // removes `mishit` (exposing self-criticism feels worse than the value
+  // of including it). Kept fields: coords, club, distance, result, intent,
+  // startLie, target — what the replay needs to play back accurately.
+  function sanitizeShotsForPublic(shotsMap) {
+    if (!shotsMap || typeof shotsMap !== 'object') return {};
+    const out = {};
+    for (const [holeStr, arr] of Object.entries(shotsMap)) {
+      if (!Array.isArray(arr)) continue;
+      out[holeStr] = arr.map(shot => {
+        if (!shot || typeof shot !== 'object') return shot;
+        // Exclude `mishit` (and a few other future-private fields) by
+        // building the public copy from a whitelist instead of a blacklist.
+        // Whitelist is safer when new shot fields get added — defaults to
+        // private until explicitly opted in.
+        const pub = {};
+        const PUBLIC_SHOT_FIELDS = [
+          'id', 'club', 'distance', 'distanceActual',
+          'startLat', 'startLng', 'endLat', 'endLng',
+          'startLie', 'intent', 'result',
+          'targetLat', 'targetLng',
+          'lateralOffset', 'alongShot',
+          'pushPull',  // direction tag (push/pull/straight) — public
+        ];
+        for (const f of PUBLIC_SHOT_FIELDS) {
+          if (shot[f] !== undefined) pub[f] = shot[f];
+        }
+        return pub;
+      });
+    }
+    return out;
   }
 
   // Sync a single round to the public mirror (or remove it if no longer public).
@@ -51069,11 +51169,7 @@
       ? renderProfileAvatar(author)
       : `<span>${escapeHtml(authorName.charAt(0).toUpperCase())}</span>`;
 
-    // Stat tiles — Putts, Fairways %, Greens %. Handles two naming
-    // conventions in the underlying round data:
-    //   - Live-tracked rounds: { firHit, firEligible, girHit, girEligible }
-    //   - Quick Score (total mode): { fir, gir, firMax, girMax }
-    // Always shows all three tiles — missing data renders as "—".
+    // Stat values — same dual-naming-convention handling as before.
     const t = round.totals || {};
     const firHit = typeof t.firHit === 'number' ? t.firHit :
                    typeof t.fir === 'number' ? t.fir : null;
@@ -51083,54 +51179,27 @@
                    typeof t.gir === 'number' ? t.gir : null;
     const girMax = typeof t.girEligible === 'number' ? t.girEligible :
                    typeof t.girMax === 'number' ? t.girMax : null;
-    const firPct = (firHit != null && firMax && firMax > 0) ? Math.round((firHit / firMax) * 100) : null;
-    const girPct = (girHit != null && girMax && girMax > 0) ? Math.round((girHit / girMax) * 100) : null;
+    const putts = typeof t.putts === 'number' ? t.putts : null;
 
-    // Only render the stats grid if at least one value is present. If
-    // putts + FIR + GIR are all missing (Quick Score with no optional
-    // stats), the row is hidden entirely rather than showing three
-    // placeholder tiles.
-    const hasAnyStat = (typeof t.putts === 'number') || firPct != null || girPct != null;
-    const statsRow = hasAnyStat ? `
-      <div class="feed-stats-grid">
-        <div class="feed-stat">
-          <div class="feed-stat-value">${typeof t.putts === 'number' ? t.putts : '—'}</div>
-          <div class="feed-stat-label">Putts</div>
-        </div>
-        <div class="feed-stat">
-          <div class="feed-stat-value">${firPct != null ? `${firPct}<span class="feed-stat-unit">%</span>` : '—'}</div>
-          <div class="feed-stat-label">Fairways</div>
-        </div>
-        <div class="feed-stat">
-          <div class="feed-stat-value">${girPct != null ? `${girPct}<span class="feed-stat-unit">%</span>` : '—'}</div>
-          <div class="feed-stat-label">Greens</div>
-        </div>
-      </div>
-    ` : '';
+    // Stats line — inline run-on text with middle-dot separators.
+    // Light, secondary, scannable. Only includes stats that exist
+    // (rather than placeholdering missing values with "—").
+    const statTokens = [];
+    if (firHit != null && firMax) statTokens.push(`${firHit}/${firMax} fairways`);
+    if (girHit != null && girMax) statTokens.push(`${girHit}/${girMax} greens`);
+    if (putts != null) statTokens.push(`${putts} putts`);
+    const statsLine = statTokens.length > 0
+      ? `<div class="feed-card-stats-line">${statTokens.map(escapeHtml).join(' · ')}</div>`
+      : '';
 
-    // Comments strip — bottom of every feed card. Shows count and toggles
-    // inline comments. Separate click handler from the main card body so
-    // tapping here doesn't navigate.
+    // Comments strip — count-only, used as the action-row label.
     const key = feedCardKey(round._authorUid, round.id);
     const isExpanded = socialState.expandedComments.has(key);
-    // Clamp display to 0 minimum. The denormalized commentCount field can
-    // theoretically drift negative if a delete fires without a matching
-    // post (e.g., race during early development, or a comment created
-    // before the count field existed and then deleted). Showing "-1
-    // comments" is worse than showing "Add a comment" — the user shouldn't
-    // pay for our bookkeeping bugs.
     const commentCount = Math.max(0, round.commentCount || 0);
-    const commentsLabel = commentCount === 0
-      ? 'Add a comment'
-      : `${commentCount} comment${commentCount === 1 ? '' : 's'}`;
 
-    // Best-round badge. Primary source: the denormalized `bestType`
-    // field on the round doc (written at completion time, readable by
-    // anyone viewing the round). Fallback for my own rounds: runtime
-    // compute against recentRounds — covers the gap where I just
-    // finished a round and the public mirror hasn't written yet. For
-    // friends' rounds we can't fall back to compute (we don't have
-    // their history), so we trust their stored bestType.
+    // Best-round badge. Same logic as before — primary source is the
+    // denormalized bestType field; fallback to runtime compute for own
+    // rounds where the public mirror hasn't synced yet.
     let feedBestBadge = '';
     let bestType = round.bestType || null;
     if (!bestType && isMe) {
@@ -51139,49 +51208,116 @@
       else if (bests.courseBestIds.has(round.id)) bestType = 'course';
     }
     if (bestType === 'global') {
-      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-global">★ Best Round Ever</div>';
+      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-global">★ Best Ever</div>';
     } else if (bestType === 'course') {
-      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-course">★ Best at This Course</div>';
+      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-course">★ Course Best</div>';
     }
+
+    // Quick-score pill — moves to header, not score row, since it's
+    // metadata about the round type, not about the score itself.
+    const qsBadge = round.quickScore
+      ? '<span class="feed-card-qs-pill">Quick</span>'
+      : '';
+
+    // Replay availability — does this round have GPS shot data we
+    // could replay? Determines whether the Replay action shows.
+    // Skips the action entirely if no replayable data (keeps the
+    // action row from showing a non-functional button).
+    const hasReplayableShots = roundHasReplayableShots(round);
 
     return `
       <div class="feed-card ${isExpanded ? 'feed-card-expanded' : ''}">
         <div class="feed-card-body" onclick="openPublicRound('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')">
+
+          <!-- Header: avatar + byline. Name and handle on one line.
+               Quick-score and best-round badges float top-right. -->
           <div class="feed-card-header">
-            <div class="social-result-avatar feed-card-avatar">${avatarHtml}</div>
+            <div class="feed-card-avatar">${avatarHtml}</div>
             <div class="feed-card-byline">
-              <div class="feed-card-author">
-                ${escapeHtml(authorName)}
+              <div class="feed-card-author-row">
+                <span class="feed-card-author">${escapeHtml(authorName)}</span>
                 ${!isMe && handle ? `<span class="feed-card-handle">@${escapeHtml(handle)}</span>` : ''}
+                <span class="feed-card-dot">·</span>
+                <span class="feed-card-time">${escapeHtml(timeAgo)}</span>
               </div>
-              <div class="feed-card-action">Played ${escapeHtml(round.courseName || 'a round')} · ${escapeHtml(timeAgo)}</div>
-              ${feedBestBadge}
+              <div class="feed-card-context">
+                Played ${escapeHtml(round.courseName || 'a round')}${tee ? ` · ${escapeHtml(tee)} tees` : ''}
+              </div>
             </div>
+            ${qsBadge || feedBestBadge ? `<div class="feed-card-header-flags">${feedBestBadge}${qsBadge}</div>` : ''}
           </div>
-          <div class="feed-card-score">
-            <div class="feed-card-strokes">${score}</div>
-            ${vsParStr ? `<div class="feed-card-vspar">${vsParStr}</div>` : ''}
-            <div class="feed-card-meta">
-              ${tee ? `<span>${escapeHtml(tee)} tees</span>` : ''}
-              ${round.quickScore ? `<span class="feed-card-qs-badge">Quick Score</span>` : ''}
+
+          <!-- Score block: huge strokes number + accent vsPar.
+               Microlabels underneath give context without competing
+               with the headline numbers. -->
+          <div class="feed-card-score-block">
+            <div class="feed-card-score-strokes">
+              <div class="feed-card-strokes-num">${score}</div>
+              <div class="feed-card-score-microlabel">strokes</div>
             </div>
+            ${vsParStr ? `
+              <div class="feed-card-score-vspar">
+                <div class="feed-card-vspar-num">${vsParStr}</div>
+                <div class="feed-card-score-microlabel">vs par</div>
+              </div>
+            ` : ''}
           </div>
-          ${statsRow}
+
+          ${statsLine}
         </div>
 
-        <!-- Comments strip: clickable, separate from the main card body -->
-        <button class="feed-comments-strip ${isExpanded ? 'feed-comments-strip-active' : ''}"
-                onclick="toggleFeedCardComments('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')">
-          <svg class="feed-comments-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>${escapeHtml(commentsLabel)}</span>
-          <span class="feed-comments-caret">${isExpanded ? '▲' : '▼'}</span>
-        </button>
+        <!-- Action row: react / comment / replay. Three evenly-spaced
+             icon-led actions. Comment is the only one wired to existing
+             behavior (toggles inline comments). React and Replay are
+             scaffolded — replay wires up next, react is a future build. -->
+        <div class="feed-card-actions">
+          <button class="feed-action-btn" disabled aria-label="React (coming soon)">
+            <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span class="feed-action-label">React</span>
+          </button>
+          <button class="feed-action-btn ${isExpanded ? 'is-active' : ''}"
+                  onclick="toggleFeedCardComments('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')"
+                  aria-label="${commentCount === 0 ? 'Add a comment' : `${commentCount} comments`}">
+            <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="feed-action-label">${commentCount === 0 ? 'Comment' : commentCount}</span>
+          </button>
+          ${hasReplayableShots ? `
+            <button class="feed-action-btn"
+                    onclick="openPublicReplay('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')"
+                    aria-label="Watch replay">
+              <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+              </svg>
+              <span class="feed-action-label">Replay</span>
+            </button>
+          ` : ''}
+        </div>
 
         ${isExpanded ? renderInlineComments(round._authorUid, round.id) : ''}
       </div>`;
   }
+
+  // Whether a round has GPS shot data that we could replay. Mirrors
+  // openReplay's gating logic: needs at least one hole with shots that
+  // have valid start+end coords. Used by the feed card to decide
+  // whether to show the Replay action.
+  function roundHasReplayableShots(round) {
+    const shotsMap = round?.shots;
+    if (!shotsMap || typeof shotsMap !== 'object') return false;
+    for (const arr of Object.values(shotsMap)) {
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+      const hasValid = arr.some(s =>
+        typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+        typeof s.endLat === 'number' && typeof s.endLng === 'number');
+      if (hasValid) return true;
+    }
+    return false;
+  }
+
 
   // Stable key for a feed item (author uid + round id). Used to index
   // into socialState.expandedComments.
@@ -52310,6 +52446,19 @@
           <div class="round-summary-stat-label">Holes</div>
         </div>
       </div>
+
+      ${roundHasReplayableShots(r) ? `
+        <button class="public-round-replay-cta" onclick="openPublicReplay('${escapeHtml(publicRoundState.authorUid)}', '${escapeHtml(publicRoundState.roundId)}')">
+          <svg class="public-round-replay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+          </svg>
+          <div class="public-round-replay-text">
+            <div class="public-round-replay-title">Watch Replay</div>
+            <div class="public-round-replay-sub">Shot-by-shot animation on the satellite map</div>
+          </div>
+          <span class="public-round-replay-chev">→</span>
+        </button>
+      ` : ''}
 
       ${holeByHoleHtml}
 
@@ -57479,6 +57628,8 @@
     replayState.currentHoleIndex = 0;
     replayState.currentShotIndex = 0;
     replayState.playing = false;
+    replayState.isPublic = false;
+    replayState.publicAuthorUid = null;
     document.body.classList.add('round-replay-open');
     renderReplayShell();
     // Init Mapbox after the shell mounts AND after the browser has
@@ -57501,6 +57652,81 @@
     }).catch(() => {});
   }
   window.openReplay = openReplay;
+
+  // Variant of openReplay for friends' public rounds. Loads from the
+  // publicProfiles mirror (which now includes sanitized shots — see
+  // sanitizeShotsForPublic). Reuses everything else about the replay
+  // shell: map, animation, hole navigation, wind pill.
+  //
+  // Permission model: read access to publicProfiles/{uid}/rounds/{id}
+  // is gated by the round being public + the viewer being a friend
+  // (enforced in firestore.rules). If we can read the round doc we
+  // can view its replay — no separate replay permission.
+  async function openPublicReplay(authorUid, roundId) {
+    if (!authorUid || !roundId) return;
+    showToast('Loading replay…', false);
+    let round, course;
+    try {
+      round = await window.fb.getDoc(`publicProfiles/${authorUid}/rounds/${roundId}`);
+    } catch (err) {
+      console.error('Failed to load public round for replay:', err);
+      showToast('Could not load replay', true);
+      return;
+    }
+    if (!round) {
+      showToast('Round not found', true);
+      return;
+    }
+    course = getCourse(round.courseId);
+    if (!course) {
+      showToast('Course data unavailable', true);
+      return;
+    }
+    // Compute the holes that have replayable shots — same gating as
+    // openReplay. Older rounds in the public mirror may pre-date the
+    // shots field; those just show "no GPS shots."
+    const shotsMap = round.shots || {};
+    const holesPlayed = [];
+    for (const [holeStr, arr] of Object.entries(shotsMap)) {
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+      const valid = arr.filter(s =>
+        typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+        typeof s.endLat === 'number' && typeof s.endLng === 'number');
+      if (valid.length > 0) holesPlayed.push(parseInt(holeStr, 10));
+    }
+    holesPlayed.sort((a, b) => a - b);
+    if (holesPlayed.length === 0) {
+      showToast('No GPS shots in this round', true);
+      return;
+    }
+    // Hydrate replayState — same shape as openReplay so all downstream
+    // replay code Just Works. Differences: we add a non-null authorUid
+    // and isPublic flag so other code can detect this is a public replay
+    // (e.g. to skip personal-only UI like edit-shot or to show whose
+    // round it is in the topbar — left for follow-up polish).
+    replayState.open = true;
+    replayState.roundId = roundId;
+    replayState.round = round;
+    replayState.course = course;
+    replayState.holesPlayed = holesPlayed;
+    replayState.currentHoleIndex = 0;
+    replayState.currentShotIndex = 0;
+    replayState.playing = false;
+    replayState.isPublic = true;
+    replayState.publicAuthorUid = authorUid;
+    document.body.classList.add('round-replay-open');
+    renderReplayShell();
+    setTimeout(() => {
+      initReplayMap();
+      loadReplayHole(0, { autoPlay: false });
+    }, 50);
+    fetchHistoricalWindForRound(round).then(weather => {
+      if (weather && replayState.open && replayState.roundId === roundId) {
+        applyReplayWindDisplay(weather);
+      }
+    }).catch(() => {});
+  }
+  window.openPublicReplay = openPublicReplay;
 
   // Update the wind pill UI from a weather object. Reveals the pill,
   // sets the speed number, stores the weather on replayState so the
