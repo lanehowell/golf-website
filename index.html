@@ -64222,8 +64222,12 @@
       [Math.max(...lngs), Math.max(...lats)],
     ];
 
+    // CRITICAL: set the access token before instantiating. Every other
+    // Mapbox init in this codebase does this — without it the canvas
+    // renders empty (no tile requests fire because the token is null).
+    mapboxgl.accessToken = MAPBOX_TOKEN;
     const map = new mapboxgl.Map({
-      container,
+      container: 'gps-range-map',
       style: 'mapbox://styles/mapbox/satellite-v9',
       bounds,
       fitBoundsOptions: { padding: 80 },
@@ -64231,6 +64235,11 @@
       attributionControl: false,
     });
     gpsRangeSessionState.map = map;
+    // Match the saturation/contrast tweaks the in-round GPS view uses
+    // so satellite imagery looks consistent across both views.
+    if (typeof applyMapboxPolish === 'function') {
+      applyMapboxPolish(map);
+    }
 
     map.on('load', () => {
       renderGpsRangeMapMarkers();
