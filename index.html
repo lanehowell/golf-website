@@ -67584,20 +67584,30 @@
   // Otherwise returns 'log'. Re-evaluated on every position fix so
   // the label updates live as the user walks.
   function getRoundGpsLogButtonMode() {
-    if (roundGpsState.mode !== 'playing') return 'log';
-    const userPos = getRoundGpsUserPos();
-    if (!userPos) return 'log';
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return 'log';
     // Putt mode — if the most recent shot on this hole landed on the
     // green, the next action is putting rather than another GPS shot.
     // Putts are tracked manually (distance + made/missed) since GPS
     // accuracy isn't sufficient at putting distances.
+    //
+    // Critically, this check is BEFORE the GPS-fix / mode gates below.
+    // Putt mode depends purely on shot history — whether the phone has
+    // a current GPS fix is irrelevant. Without this ordering, a user
+    // who tagged their chip as 'Green' could see the button stuck on
+    // "Log shot" because GPS happened to be in a transient state at
+    // refresh time.
     const shots = getShotsForHole(holeNum);
     if (shots && shots.length > 0) {
       const last = shots[shots.length - 1];
       if (last && last.result === 'green') return 'putt';
     }
+    // Below this line: 'set-tee' eligibility checks. These DO need GPS
+    // fix + playing mode (we need to know your distance from the pinned
+    // tee to decide whether you're in tee position).
+    if (roundGpsState.mode !== 'playing') return 'log';
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) return 'log';
     // Already set tee for this hole this session → button stays in
     // log mode. User committed, next action is logging shot 1.
     if (roundGpsState.teeManuallySetHoles.has(holeNum)) return 'log';
@@ -69047,6 +69057,16 @@
         roundGpsState.smoothLat, roundGpsState.smoothLng);
       updateUserAccuracyCircle();
 
+      // Action button refresh — must run regardless of targetActive
+      // because the button's mode (Set tee / Log shot / Log putt)
+      // depends on shot history + user-position vs tee, NOT on whether
+      // a planning target is active. Without this, after a hole
+      // transition (which always leaves targetActive=true), the button
+      // could stay stuck on whatever mode the transition decided —
+      // e.g. 'log' instead of 'set-tee' — until the user clears the
+      // target or exits and re-enters the GPS view.
+      refreshRoundGpsActionButton();
+
       if (roundGpsState.targetActive) {
         updateRoundGpsTargetLines();
         updateRoundGpsTargetReadout();
@@ -69067,11 +69087,6 @@
       // Check if user has walked onto a different hole's tee. If so,
       // surface the auto-advance prompt.
       maybeTriggerRoundGpsAutoAdvance();
-      // Refresh the Log shot / Set tee action button. The mode depends
-      // on user proximity to the pinned tee, so it can change as the
-      // user walks. Cheap call — just updates the button's label/icon
-      // and onclick attribute.
-      refreshRoundGpsActionButton();
     } else {
       // Planning mode — if the target is active, refresh the readout
       // (target may have been dragged).
