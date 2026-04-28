@@ -67464,6 +67464,28 @@
       }
     }
 
+    // Auto-infer result='green' if the shot ended on the green. The
+    // pin coord represents green-center, and a typical green has a
+    // radius of ~12-15 yards from center. We use 12y as a permissive
+    // threshold — a shot ending within 12y of the pin is almost
+    // certainly on the green.
+    //
+    // Why this matters: setting result='green' triggers the action
+    // button to switch to putt mode automatically (see
+    // getRoundGpsLogButtonMode). Without auto-inference, the user
+    // would have to manually edit the shot to tag it as Green before
+    // the next button works as expected.
+    //
+    // Only inferred when we actually have a pin coord. No pin → leave
+    // result null so the user can manually tag it later.
+    let inferredResult = null;
+    const pinForGreenDetect = getEffectivePinLatLng();
+    if (pinForGreenDetect) {
+      const distToPin = haversineYards(
+        endLat, endLng, pinForGreenDetect.lat, pinForGreenDetect.lng);
+      if (distToPin <= 12) inferredResult = 'green';
+    }
+
     // Create the complete shot record. All fields set at tap time.
     // Pre-feature shot records (created by the old lazy-end model)
     // can still exist; the rendering code handles their null endLat
@@ -67479,7 +67501,7 @@
       startLie,
       intent,
       mishit: 'clean',
-      result: null,
+      result: inferredResult,
       // GPS coords. Both start AND end set immediately.
       startLat,
       startLng,
