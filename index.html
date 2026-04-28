@@ -22479,39 +22479,58 @@
 
   /* Feed card — a round by you or a friend. Clickable full card */
   /* ──────────────────────────────────────────────────────────
-     Feed card — editorial-sports-journal aesthetic. The score is
-     the headline, stats are the byline, actions are marginalia.
-     Restrained typography, single divider, breathing room.
+     Feed card — sports-magazine aesthetic. Left edge accent
+     stripe gives each card visual character. Score is the
+     headline (text-5xl), stats are the kicker (text-xs muted).
+     Action row is chrome-less — just icons with optional counts.
      ────────────────────────────────────────────────────────── */
   .feed-card {
+    position: relative;
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
+    overflow: hidden;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-spring);
-    overflow: hidden;  /* contain action-row borders */
   }
   @media (hover: hover) {
     .feed-card:hover {
-      border-color: color-mix(in srgb, var(--color-accent) 30%, var(--border-light));
+      border-color: color-mix(in srgb, var(--color-accent) 25%, var(--border-light));
       box-shadow: var(--shadow-sm);
       transform: translateY(-1px);
     }
   }
+
+  /* Left-edge accent stripe — visual character, scannable cue.
+     Color reflects performance: under par = green, even = accent,
+     over par = muted neutral (most rounds are over par; treating
+     it as "alarm red" would be wrong). */
+  .feed-card-stripe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    z-index: 1;
+  }
+  .feed-card-stripe-under  { background: var(--color-success); }
+  .feed-card-stripe-even   { background: var(--color-accent); }
+  .feed-card-stripe-neutral { background: var(--color-cream-300); }
+
   .feed-card-body {
-    padding: var(--space-5) var(--space-5) var(--space-4);
+    padding: var(--space-4) var(--space-5) var(--space-4) calc(var(--space-5) + 4px);
     cursor: pointer;
   }
 
-  /* ── Header: avatar + byline + flags ─────────────────── */
+  /* ── Header: avatar + byline ───────────────────────────── */
   .feed-card-header {
     display: flex;
     align-items: flex-start;
     gap: var(--space-3);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
   }
   .feed-card-avatar {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
@@ -22536,9 +22555,9 @@
   .feed-card-author-row {
     display: flex;
     align-items: baseline;
-    gap: var(--space-2);
+    gap: 6px;
     flex-wrap: wrap;
-    line-height: 1.2;
+    line-height: 1.3;
   }
   .feed-card-author {
     font-family: var(--font-display);
@@ -22553,15 +22572,10 @@
     color: var(--color-accent);
     letter-spacing: var(--tracking-wide);
   }
-  .feed-card-dot {
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-  }
   .feed-card-time {
     font-family: var(--font-body);
     font-size: var(--text-xs);
     color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
   }
   .feed-card-context {
     font-family: var(--font-body);
@@ -22570,129 +22584,104 @@
     margin-top: 2px;
     line-height: 1.3;
   }
+  .feed-card-context-dim {
+    color: var(--text-muted);
+  }
 
-  /* Header right-side flags — stacked vertically, right-aligned.
-     Best-badge (when present) sits above the quick-score pill. */
-  .feed-card-header-flags {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-  .feed-card-best-badge {
+  /* Inline pills — best round, quick score, etc. Small, tight,
+     part of the byline rather than a separate badge column. */
+  .feed-card-pill {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 2px 7px;
     font-family: var(--font-body);
-    font-size: var(--text-2xs);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
+    font-size: var(--text-3xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-sm);
     line-height: 1.5;
+    margin-left: 2px;
   }
-  .feed-card-best-global {
+  .feed-card-pill-best-global {
     background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
     color: #2A1800;
-    box-shadow: 0 1px 3px rgba(232, 166, 52, 0.3);
   }
-  .feed-card-best-course {
+  .feed-card-pill-best-course {
     background: var(--color-accent-pale);
-    color: var(--color-accent);
+    color: var(--color-accent-dark);
     border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
   }
-  .feed-card-qs-pill {
-    display: inline-block;
-    padding: 2px 8px;
+  html.dark .feed-card-pill-best-course {
+    color: var(--color-accent);
+  }
+  .feed-card-pill-qs {
     background: var(--color-cream-200);
     color: var(--text-muted);
-    border-radius: var(--radius-sm);
     font-family: var(--font-mono);
-    font-size: var(--text-3xs);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    font-weight: var(--weight-semibold);
-    border: 1px solid var(--border-light);
-    line-height: 1.4;
   }
 
-  /* ── Score block — the headline ────────────────────────── */
-  .feed-card-score-block {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-6);
-    padding-top: var(--space-4);
-    border-top: 1px dashed var(--color-cream-200);
+  /* ── Result block: score + stats as a cohesive unit ───── */
+  .feed-card-result {
+    /* No top border / divider — visual hierarchy comes from typography
+       contrast (huge score, tiny stats), not from rules. */
   }
-  .feed-card-score-strokes,
-  .feed-card-score-vspar {
+  .feed-card-score-row {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    align-items: baseline;
+    gap: var(--space-3);
+    line-height: 1;
   }
-  .feed-card-strokes-num {
+  .feed-card-strokes {
     font-family: var(--font-display);
-    font-size: var(--text-4xl);   /* 48px */
+    font-size: var(--text-5xl);   /* 60px — the headline */
     font-weight: var(--weight-bold);
     color: var(--text-primary);
-    line-height: 1;
     letter-spacing: var(--tracking-tight);
+    line-height: 0.95;
   }
-  .feed-card-vspar-num {
+  .feed-card-vspar {
     font-family: var(--font-mono);
-    font-size: var(--text-3xl);   /* 36px */
+    font-size: var(--text-2xl);   /* 30px */
     font-weight: var(--weight-semibold);
-    color: var(--color-accent);
-    line-height: 1;
     letter-spacing: var(--tracking-tight);
   }
-  .feed-card-score-microlabel {
-    font-family: var(--font-mono);
-    font-size: var(--text-3xs);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-widest);
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
+  .feed-card-vspar-under { color: var(--color-success); }
+  .feed-card-vspar-even  { color: var(--color-accent); }
+  .feed-card-vspar-over  { color: var(--text-muted); }
 
-  /* ── Stats line — inline, light, scannable ─────────────── */
-  .feed-card-stats-line {
-    margin-top: var(--space-3);
+  /* Stats: very small kicker line under the score. Tight margin so
+     it visually attaches to the score above. */
+  .feed-card-stats {
+    margin-top: var(--space-2);
     font-family: var(--font-body);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--text-muted);
     line-height: 1.4;
     letter-spacing: var(--tracking-wide);
   }
 
-  /* ── Action row — react / comment / replay ─────────────── */
+  /* ── Action row — chrome-less icons ──────────────────── */
   .feed-card-actions {
     display: flex;
+    gap: var(--space-2);
+    padding: 6px var(--space-3) 8px calc(var(--space-3) + 4px);
     border-top: 1px solid var(--color-cream-200);
-    background: color-mix(in srgb, var(--color-cream-100) 50%, transparent);
   }
   .feed-action-btn {
-    flex: 1;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: var(--space-3) var(--space-2);
+    gap: 6px;
+    padding: 8px 12px;
     background: transparent;
     border: none;
-    border-right: 1px solid var(--color-cream-200);
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
     cursor: pointer;
-    font-family: var(--font-body);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
     transition: background var(--transition-fast), color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
-  }
-  .feed-action-btn:last-child {
-    border-right: none;
   }
   .feed-action-btn:not(:disabled):hover,
   .feed-action-btn:not(:disabled):active,
@@ -22701,7 +22690,7 @@
     background: var(--color-accent-pale);
   }
   .feed-action-btn:disabled {
-    opacity: 0.45;
+    opacity: 0.35;
     cursor: not-allowed;
   }
   .feed-action-icon {
@@ -22709,7 +22698,7 @@
     height: 18px;
     flex-shrink: 0;
   }
-  .feed-action-label {
+  .feed-action-count {
     line-height: 1;
   }
 
@@ -22983,6 +22972,7 @@
     gap: var(--space-3);
     width: 100%;
     margin-top: var(--space-6);
+    margin-bottom: var(--space-6);
     padding: var(--space-4) var(--space-5);
     background: var(--color-accent-pale);
     border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
@@ -51182,24 +51172,30 @@
     const putts = typeof t.putts === 'number' ? t.putts : null;
 
     // Stats line — inline run-on text with middle-dot separators.
-    // Light, secondary, scannable. Only includes stats that exist
-    // (rather than placeholdering missing values with "—").
     const statTokens = [];
     if (firHit != null && firMax) statTokens.push(`${firHit}/${firMax} fairways`);
     if (girHit != null && girMax) statTokens.push(`${girHit}/${girMax} greens`);
     if (putts != null) statTokens.push(`${putts} putts`);
     const statsLine = statTokens.length > 0
-      ? `<div class="feed-card-stats-line">${statTokens.map(escapeHtml).join(' · ')}</div>`
+      ? `<div class="feed-card-stats">${statTokens.map(escapeHtml).join(' · ')}</div>`
       : '';
 
-    // Comments strip — count-only, used as the action-row label.
+    // Comments strip toggle state.
     const key = feedCardKey(round._authorUid, round.id);
     const isExpanded = socialState.expandedComments.has(key);
     const commentCount = Math.max(0, round.commentCount || 0);
 
-    // Best-round badge. Same logic as before — primary source is the
-    // denormalized bestType field; fallback to runtime compute for own
-    // rounds where the public mirror hasn't synced yet.
+    // Accent stripe class — colors the left edge by score performance.
+    // Under par gets the success-green; at par gets accent; over par gets
+    // muted neutral so it doesn't look "alarming" (most rounds are over par).
+    let stripeCls = 'feed-card-stripe-neutral';
+    if (typeof vsPar === 'number') {
+      if (vsPar < 0) stripeCls = 'feed-card-stripe-under';
+      else if (vsPar === 0) stripeCls = 'feed-card-stripe-even';
+    }
+
+    // Best-round badge logic (unchanged — primary source is bestType
+    // field on the doc, fallback is runtime compute for own rounds).
     let feedBestBadge = '';
     let bestType = round.bestType || null;
     if (!bestType && isMe) {
@@ -51208,74 +51204,54 @@
       else if (bests.courseBestIds.has(round.id)) bestType = 'course';
     }
     if (bestType === 'global') {
-      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-global">★ Best Ever</div>';
+      feedBestBadge = '<span class="feed-card-pill feed-card-pill-best-global">★ Best Ever</span>';
     } else if (bestType === 'course') {
-      feedBestBadge = '<div class="feed-card-best-badge feed-card-best-course">★ Course Best</div>';
+      feedBestBadge = '<span class="feed-card-pill feed-card-pill-best-course">★ Course Best</span>';
     }
-
-    // Quick-score pill — moves to header, not score row, since it's
-    // metadata about the round type, not about the score itself.
     const qsBadge = round.quickScore
-      ? '<span class="feed-card-qs-pill">Quick</span>'
+      ? '<span class="feed-card-pill feed-card-pill-qs">Quick</span>'
       : '';
 
-    // Replay availability — does this round have GPS shot data we
-    // could replay? Determines whether the Replay action shows.
-    // Skips the action entirely if no replayable data (keeps the
-    // action row from showing a non-functional button).
     const hasReplayableShots = roundHasReplayableShots(round);
 
     return `
       <div class="feed-card ${isExpanded ? 'feed-card-expanded' : ''}">
+        <div class="feed-card-stripe ${stripeCls}"></div>
         <div class="feed-card-body" onclick="openPublicRound('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')">
 
-          <!-- Header: avatar + byline. Name and handle on one line.
-               Quick-score and best-round badges float top-right. -->
+          <!-- Header: avatar + byline. Pills (best, quick) inline at end of byline -->
           <div class="feed-card-header">
             <div class="feed-card-avatar">${avatarHtml}</div>
             <div class="feed-card-byline">
               <div class="feed-card-author-row">
                 <span class="feed-card-author">${escapeHtml(authorName)}</span>
                 ${!isMe && handle ? `<span class="feed-card-handle">@${escapeHtml(handle)}</span>` : ''}
-                <span class="feed-card-dot">·</span>
-                <span class="feed-card-time">${escapeHtml(timeAgo)}</span>
+                <span class="feed-card-time">· ${escapeHtml(timeAgo)}</span>
+                ${feedBestBadge}${qsBadge}
               </div>
               <div class="feed-card-context">
-                Played ${escapeHtml(round.courseName || 'a round')}${tee ? ` · ${escapeHtml(tee)} tees` : ''}
+                ${escapeHtml(round.courseName || 'Unknown course')}${tee ? ` <span class="feed-card-context-dim">· ${escapeHtml(tee)}</span>` : ''}
               </div>
             </div>
-            ${qsBadge || feedBestBadge ? `<div class="feed-card-header-flags">${feedBestBadge}${qsBadge}</div>` : ''}
           </div>
 
-          <!-- Score block: huge strokes number + accent vsPar.
-               Microlabels underneath give context without competing
-               with the headline numbers. -->
-          <div class="feed-card-score-block">
-            <div class="feed-card-score-strokes">
-              <div class="feed-card-strokes-num">${score}</div>
-              <div class="feed-card-score-microlabel">strokes</div>
+          <!-- Result block: score is the headline, stats are the kicker.
+               Visually cohesive — no dividers, just typography. -->
+          <div class="feed-card-result">
+            <div class="feed-card-score-row">
+              <div class="feed-card-strokes">${score}</div>
+              ${vsParStr ? `<div class="feed-card-vspar feed-card-vspar-${typeof vsPar === 'number' && vsPar < 0 ? 'under' : (vsPar === 0 ? 'even' : 'over')}">${vsParStr}</div>` : ''}
             </div>
-            ${vsParStr ? `
-              <div class="feed-card-score-vspar">
-                <div class="feed-card-vspar-num">${vsParStr}</div>
-                <div class="feed-card-score-microlabel">vs par</div>
-              </div>
-            ` : ''}
+            ${statsLine}
           </div>
-
-          ${statsLine}
         </div>
 
-        <!-- Action row: react / comment / replay. Three evenly-spaced
-             icon-led actions. Comment is the only one wired to existing
-             behavior (toggles inline comments). React and Replay are
-             scaffolded — replay wires up next, react is a future build. -->
+        <!-- Action row: chrome-less icons + counts. Twitter-style. -->
         <div class="feed-card-actions">
           <button class="feed-action-btn" disabled aria-label="React (coming soon)">
             <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <span class="feed-action-label">React</span>
           </button>
           <button class="feed-action-btn ${isExpanded ? 'is-active' : ''}"
                   onclick="toggleFeedCardComments('${escapeHtml(round._authorUid)}', '${escapeHtml(round.id)}')"
@@ -51283,7 +51259,7 @@
             <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <span class="feed-action-label">${commentCount === 0 ? 'Comment' : commentCount}</span>
+            ${commentCount > 0 ? `<span class="feed-action-count">${commentCount}</span>` : ''}
           </button>
           ${hasReplayableShots ? `
             <button class="feed-action-btn"
@@ -51292,7 +51268,6 @@
               <svg class="feed-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
               </svg>
-              <span class="feed-action-label">Replay</span>
             </button>
           ` : ''}
         </div>
@@ -52330,72 +52305,27 @@
     const totalPutts = r.totals?.putts;
     const dateStr = formatRoundDate(r.startTime);
 
-    // Hole-by-hole table — only renders when we have per-hole scores.
-    // Uses course data (pulled from local COURSES array by id) for par info.
-    // If the course isn't in our local data (e.g. an unknown course someone
-    // played), fall back to a simplified table without par / score markers.
+    // Hole-by-hole scorecard — shared layout with renderRoundSummary
+    // via buildScorecardNine. Horizontal Front 9 / Back 9 with hole
+    // numbers across the top, par + score rows below, score markers
+    // (circle for under-par, square for over-par). Both views use the
+    // same code path so they always look identical.
     const course = getCourse(r.courseId);
-    let holeRows = '';
-    if (r.scores && Object.keys(r.scores).length > 0 && !r.quickScore) {
-      const playedHoleNums = Object.keys(r.scores).map(Number).sort((a, b) => a - b);
-      holeRows = playedHoleNums.map(hn => {
-        const hd = course ? course.holes.find(h => h.number === hn) : null;
-        const e = r.scores[hn];
-        if (!e) return '';
-        const par = hd?.par;
-        let scoreMarker = 'none';
-        if (par != null) {
-          const diff = e.strokes - par;
-          if (diff <= -2)      scoreMarker = 'eagle';
-          else if (diff === -1) scoreMarker = 'birdie';
-          else if (diff === 0)  scoreMarker = 'none';
-          else if (diff === 1)  scoreMarker = 'bogey';
-          else                  scoreMarker = 'double';
-        }
-        // Miss direction glyph appended to the miss icon when logged.
-        // Compact arrow that signals the direction without taking
-        // another column. Empty if direction wasn't recorded.
-        const dirGlyph = { left: '←', right: '→', short: '↓', long: '↑' };
-        const firDirSuffix = (e.fir === false && e.firMiss && dirGlyph[e.firMiss])
-          ? ` <span class="rs-cell-dir">${dirGlyph[e.firMiss]}</span>`
-          : '';
-        const girDirSuffix = (e.gir === false && e.girMiss && dirGlyph[e.girMiss])
-          ? ` <span class="rs-cell-dir">${dirGlyph[e.girMiss]}</span>`
-          : '';
-        const firCell = (hd?.par === 3) ? '<span class="rs-cell-dim">—</span>' :
-          (e.fir == null ? '<span class="rs-cell-dim">—</span>' :
-           e.fir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${firDirSuffix}</span>`);
-        const girCell = e.gir == null ? '<span class="rs-cell-dim">—</span>' :
-          e.gir ? '<span class="rs-cell-hit">✓</span>' : `<span class="rs-cell-miss">✗${girDirSuffix}</span>`;
-        // Penalty indicator on the score cell — small superscript dot
-        // count if the user logged any penalties for this hole. Tasteful
-        // so it doesn't clutter clean holes.
-        const penaltyMark = (e.penalties > 0)
-          ? `<span class="rs-cell-pen" title="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}">⚠${e.penalties > 1 ? e.penalties : ''}</span>`
-          : '';
-        return `
-          <tr>
-            <td>${hn}</td>
-            <td>${par ?? '—'}</td>
-            <td><span class="rs-score rs-score-${scoreMarker}">${e.strokes}</span>${penaltyMark}</td>
-            <td>${e.putts ?? '—'}</td>
-            <td>${firCell}</td>
-            <td>${girCell}</td>
-          </tr>`;
-      }).join('');
+    let scorecardHtml = '';
+    if (course && r.scores && Object.keys(r.scores).length > 0 && !r.quickScore) {
+      const front = buildScorecardNine(course, r.scores, 1, 9, 'Front 9');
+      const back  = buildScorecardNine(course, r.scores, 10, 18, 'Back 9');
+      const hasAny = (front.ninePlayed + back.ninePlayed) > 0;
+      if (hasAny) {
+        scorecardHtml = `
+          <div class="round-summary-section-label">Scorecard</div>
+          <div class="rs-sc-scorecard">
+            ${front.tableHtml}
+            ${back.tableHtml}
+          </div>`;
+      }
     }
-
-    const holeByHoleHtml = holeRows ? `
-      <div class="round-summary-section-label">Hole by Hole</div>
-      <div class="round-summary-table-wrap">
-        <table class="round-summary-table">
-          <thead>
-            <tr><th>Hole</th><th>Par</th><th>Score</th><th>Putts</th><th>FIR</th><th>GIR</th></tr>
-          </thead>
-          <tbody>${holeRows}</tbody>
-        </table>
-      </div>
-    ` : (r.quickScore ? `
+    const holeByHoleHtml = scorecardHtml || (r.quickScore ? `
       <div class="public-round-info-note">Quick Score round — no hole-by-hole data.</div>
     ` : '');
 
@@ -56553,6 +56483,58 @@
     }).join('');
   }
 
+  // Build the HTML for one nine (Front 9 = 1-9 or Back 9 = 10-18) of a
+  // scorecard. Hole numbers in header, par + score rows below, Out/In
+  // total in the last column. Returns the HTML string + the computed
+  // nine-totals (so callers can show summary numbers if desired).
+  //
+  // Hoisted out of renderRoundSummary so renderPublicRound can use the
+  // same scorecard layout. Don't fork — both views must stay identical.
+  function buildScorecardNine(course, scores, start, end, label) {
+    let nineParSum = 0, nineStrokeSum = 0, ninePlayed = 0;
+    const numCells = [];
+    const parCells = [];
+    const scoreCells = [];
+    for (let hn = start; hn <= end; hn++) {
+      const hd = course?.holes?.find(h => h.number === hn);
+      const e  = scores?.[hn];
+      const par = hd?.par ?? '—';
+      numCells.push(`<th class="rs-sc-hole-num">${hn}</th>`);
+      parCells.push(`<td class="rs-sc-par">${par}</td>`);
+      if (!hd || !e || e.strokes == null) {
+        scoreCells.push(`<td class="rs-sc-strokes rs-sc-empty">—</td>`);
+        continue;
+      }
+      nineParSum += hd.par;
+      nineStrokeSum += e.strokes;
+      ninePlayed += 1;
+      const diff = e.strokes - hd.par;
+      let cls = '';
+      if (diff <= -2)       cls = ' rs-sc-eagle';
+      else if (diff === -1) cls = ' rs-sc-birdie';
+      else if (diff === 1)  cls = ' rs-sc-bogey';
+      else if (diff >= 2)   cls = ' rs-sc-double';
+      scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}</span></td>`);
+    }
+    const totalLabel = label === 'Front 9' ? 'Out' : 'In';
+    const parTotalCell = `<td class="rs-sc-total rs-sc-par-total">${ninePlayed > 0 ? nineParSum : '—'}</td>`;
+    const scoreTotalCell = `<td class="rs-sc-total">${ninePlayed > 0 ? nineStrokeSum : '—'}</td>`;
+    const tableHtml = `
+      <div class="rs-sc-nine">
+        <div class="rs-sc-nine-label">${label}</div>
+        <table class="rs-sc-table">
+          <thead>
+            <tr><th class="rs-sc-row-label">Hole</th>${numCells.join('')}<th class="rs-sc-total-label">${totalLabel}</th></tr>
+            <tr><td class="rs-sc-row-label">Par</td>${parCells.join('')}${parTotalCell}</tr>
+          </thead>
+          <tbody>
+            <tr><td class="rs-sc-row-label">Score</td>${scoreCells.join('')}${scoreTotalCell}</tr>
+          </tbody>
+        </table>
+      </div>`;
+    return { tableHtml, nineParSum, nineStrokeSum, ninePlayed };
+  }
+
   function renderRoundSummary() {
     const mount = document.getElementById('round-summary-mount');
     if (!mount) return;
@@ -56651,48 +56633,7 @@
     let backParSum  = 0, backStrokeSum  = 0, backPlayed  = 0;
 
     const buildNine = (start, end, label) => {
-      let nineParSum = 0, nineStrokeSum = 0, ninePlayed = 0;
-      const numCells = [];
-      const parCells = [];
-      const scoreCells = [];
-      for (let hn = start; hn <= end; hn++) {
-        const hd = course?.holes.find(h => h.number === hn);
-        const e  = round.scores?.[hn];
-        const par = hd?.par ?? '—';
-        numCells.push(`<th class="rs-sc-hole-num">${hn}</th>`);
-        parCells.push(`<td class="rs-sc-par">${par}</td>`);
-        if (!hd || !e || e.strokes == null) {
-          scoreCells.push(`<td class="rs-sc-strokes rs-sc-empty">—</td>`);
-          continue;
-        }
-        nineParSum += hd.par;
-        nineStrokeSum += e.strokes;
-        ninePlayed += 1;
-        const diff = e.strokes - hd.par;
-        let cls = '';
-        if (diff <= -2)       cls = ' rs-sc-eagle';
-        else if (diff === -1) cls = ' rs-sc-birdie';
-        else if (diff === 1)  cls = ' rs-sc-bogey';
-        else if (diff >= 2)   cls = ' rs-sc-double';
-        scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}</span></td>`);
-      }
-      const totalLabel = label === 'Front 9' ? 'Out' : 'In';
-      const parTotalCell = `<td class="rs-sc-total rs-sc-par-total">${ninePlayed > 0 ? nineParSum : '—'}</td>`;
-      const scoreTotalCell = `<td class="rs-sc-total">${ninePlayed > 0 ? nineStrokeSum : '—'}</td>`;
-      const tableHtml = `
-        <div class="rs-sc-nine">
-          <div class="rs-sc-nine-label">${label}</div>
-          <table class="rs-sc-table">
-            <thead>
-              <tr><th class="rs-sc-row-label">Hole</th>${numCells.join('')}<th class="rs-sc-total-label">${totalLabel}</th></tr>
-              <tr><td class="rs-sc-row-label">Par</td>${parCells.join('')}${parTotalCell}</tr>
-            </thead>
-            <tbody>
-              <tr><td class="rs-sc-row-label">Score</td>${scoreCells.join('')}${scoreTotalCell}</tr>
-            </tbody>
-          </table>
-        </div>`;
-      return { tableHtml, nineParSum, nineStrokeSum, ninePlayed };
+      return buildScorecardNine(course, round.scores, start, end, label);
     };
 
     let hasScorecard = false;
