@@ -28375,6 +28375,74 @@
   // for net handicap calculation.
   const COURSES = [
     {
+      id: 'prairie-lakes-blue-red',
+      name: 'Prairie Lakes Golf Course',
+      location: 'Grand Prairie, TX',
+      // Coords from 3202 SE 14th St, Grand Prairie, TX 75052.
+      // Approximate — fine-tune via the in-app pin flow if needed.
+      lat: 32.7355,
+      lng: -96.9789,
+      // Front 9 = Blue 1-9, Back 9 = Red 1-9. Indexes follow the
+      // combined-course convention: Blue 9 uses odd indexes 1-17,
+      // Red 9 uses even indexes 2-18.
+      holes: [
+        { number: 1,  par: 4, handicap: 15 },
+        { number: 2,  par: 4, handicap: 11 },
+        { number: 3,  par: 4, handicap: 7  },
+        { number: 4,  par: 3, handicap: 13 },
+        { number: 5,  par: 5, handicap: 1  },
+        { number: 6,  par: 3, handicap: 17 },
+        { number: 7,  par: 4, handicap: 9  },
+        { number: 8,  par: 5, handicap: 5  },
+        { number: 9,  par: 4, handicap: 3  },
+        { number: 10, par: 5, handicap: 4  },
+        { number: 11, par: 4, handicap: 10 },
+        { number: 12, par: 4, handicap: 14 },
+        { number: 13, par: 5, handicap: 2  },
+        { number: 14, par: 3, handicap: 12 },
+        { number: 15, par: 4, handicap: 18 },
+        { number: 16, par: 3, handicap: 8  },
+        { number: 17, par: 4, handicap: 6  },
+        { number: 18, par: 4, handicap: 16 }
+      ],
+      tees: [
+        {
+          name: 'Blue',
+          color: '#5BA3D9',
+          yardages: [400, 445, 365, 190, 555, 160, 295, 520, 430, 510, 380, 420, 540, 165, 400, 210, 340, 385],
+          totalYards: 6710,
+          rating: 72.5,
+          slope: 128
+        },
+        {
+          name: 'White',
+          color: '#FFFFFF',
+          yardages: [360, 390, 350, 170, 530, 140, 280, 495, 410, 480, 360, 385, 495, 150, 375, 170, 320, 360],
+          totalYards: 6220,
+          rating: 69.9,
+          slope: 123
+        },
+        {
+          name: 'Black',
+          color: '#0d0d0d',
+          yardages: [322, 337, 310, 133, 490, 130, 260, 473, 370, 435, 322, 342, 445, 125, 325, 140, 300, 320],
+          totalYards: 5579,
+          rating: 66.6,
+          slope: 113
+        },
+        {
+          name: 'Red',
+          color: '#D45D5D',
+          yardages: [285, 285, 270, 95, 450, 120, 240, 450, 330, 390, 285, 300, 395, 100, 276, 110, 280, 280],
+          totalYards: 4941,
+          // Rating cropped in source scorecard — 63.5/108 estimated
+          // for a 4941y par-72 forward tee. Edit if you ever play it.
+          rating: 63.5,
+          slope: 108
+        }
+      ]
+    },
+    {
       id: 'mesquite-gc',
       name: 'Mesquite Golf Club',
       location: 'Mesquite, TX',
@@ -29100,6 +29168,15 @@
       } else {
         coursesCache.clear();
         for (const c of docs) coursesCache.set(c.id, c);
+        // Admin-only: sync any seed-array entries that AREN'T yet in
+        // Firestore. Lets us add a course to the COURSES array and
+        // have it auto-publish on next load. Idempotent — only writes
+        // ids that are missing. Non-admins skip this entirely.
+        if (isCurrentUserAdmin()) {
+          syncMissingSeedCoursesToFirestore(docs).catch(err => {
+            console.warn('Failed to sync missing seed courses:', err);
+          });
+        }
       }
       coursesLoaded = true;
     } catch (err) {
@@ -29107,6 +29184,29 @@
       // On any error, fall back to the seed so the app stays usable.
       seedCoursesCacheFromArray();
       coursesLoaded = true;
+    }
+  }
+
+  // Push any seed-array courses that don't yet exist in Firestore.
+  // Runs after the catalog loads — ensures admins can add new courses
+  // by editing the COURSES array; they get published on the next load.
+  // Existing courses are NEVER overwritten (would clobber crowd-sourced
+  // greenCoords / teeBoxes data).
+  async function syncMissingSeedCoursesToFirestore(existingDocs) {
+    if (!window.fb || !isCurrentUserAdmin()) return;
+    const existingIds = new Set(existingDocs.map(d => d.id));
+    const missing = COURSES.filter(c => !existingIds.has(c.id));
+    if (missing.length === 0) return;
+    for (const c of missing) {
+      const { id, ...data } = c;
+      try {
+        await window.fb.upsertCourse(id, data);
+        // Also stuff into local cache so it's available immediately
+        coursesCache.set(id, c);
+        console.log(`Published new seed course: ${id}`);
+      } catch (err) {
+        console.error(`Failed to publish seed course ${id}:`, err);
+      }
     }
   }
 
