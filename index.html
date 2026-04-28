@@ -68463,6 +68463,18 @@
       const yards = haversineYards(
         roundGpsState.targetLat, roundGpsState.targetLng,
         pinLat, pinLng);
+      // Hide the target→pin label when the target is ON the pin (snap
+      // active or hand-placed exactly on top). A 0y label is noise —
+      // same value as the from-side label, no extra info. Remove the
+      // existing marker if there is one; it'll be rebuilt fresh the
+      // moment the user drags the reticle off the pin again.
+      if (Math.round(yards) === 0) {
+        if (labels.greenLabel) {
+          try { labels.greenLabel.remove(); } catch (_) {}
+          labels.greenLabel = null;
+        }
+        return;
+      }
       const text = `${Math.round(yards)}y`;
       // Plays-like for the hypothetical "next shot" from target → pin.
       // Useful for layup planning — "if I lay up here, my approach
