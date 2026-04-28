@@ -155,10 +155,10 @@
   /* Dark mode — dark brown-gray background, warm off-white text */
   html.dark .app-splash {
     background: #1F1C17;
-    color: var(--color-cream-100);
+    color: var(--color-black);  /* flips to warm off-white in dark mode */
   }
   html.dark .app-splash-title {
-    color: var(--color-cream-100);
+    color: var(--color-black);  /* flips to warm off-white in dark mode */
   }
   html.dark .app-splash-spinner {
     border-color: rgba(255, 248, 236, 0.15);
@@ -5815,6 +5815,195 @@
   .round-gps-layers-popup-row[aria-pressed="true"] .round-gps-layers-popup-toggle::after {
     transform: translateX(14px);
     background: var(--color-player-you-dark);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     GPS Range Session — full-screen body-level overlay for
+     tap-to-log range shots. Same shell pattern as round-gps-panel
+     (fixed inset-0, z-index above panels). Topbar + map + dock
+     stack vertically.
+     ────────────────────────────────────────────────────────── */
+  .gps-range-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 9400;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+  }
+  .gps-range-topbar {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: env(safe-area-inset-top, 0px) var(--space-3) var(--space-2);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    color: var(--color-cream-50);
+    z-index: 2;
+  }
+  .gps-range-close {
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: transparent;
+    color: var(--color-cream-50);
+    font-size: var(--text-2xl);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-range-close:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .gps-range-topbar-title {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    color: var(--color-cream-50);
+    opacity: 0.85;
+  }
+  .gps-range-finish {
+    background: var(--color-orange);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-range-finish:active {
+    background: var(--color-orange-light);
+  }
+
+  /* Pill — floats just below the topbar, centered. Same look as the
+     round-gps info bar. Updates after each shot log. */
+  .gps-range-pill {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    color: var(--color-cream-50);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .gps-range-map {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+
+  /* Bottom dock — target chip on left, club chip on right.
+     Both tappable to switch mid-session. */
+  .gps-range-dock {
+    flex-shrink: 0;
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 2;
+  }
+  .gps-range-target-chip,
+  .gps-range-club-chip {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    color: var(--color-cream-50);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+    position: relative;
+  }
+  .gps-range-target-chip:active,
+  .gps-range-club-chip:active {
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .gps-range-chip-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-3xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .gps-range-chip-label {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+  }
+  .gps-range-chip-chev {
+    position: absolute;
+    top: 50%;
+    right: var(--space-3);
+    transform: translateY(-50%);
+    font-size: var(--text-xs);
+    opacity: 0.5;
+  }
+
+  /* Tee marker — small white-ringed orange dot at the tee position. */
+  .gps-range-tee-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    border: 3px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    cursor: default;
+  }
+  /* Target marker — bigger ring, faded by default; bright + filled
+     when selected. Tap to select that target as your aim point. */
+  .gps-range-target-marker {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 214, 0, 0.18);
+    border: 2px solid rgba(255, 214, 0, 0.6);
+    cursor: pointer;
+    transition: transform 120ms ease-out, background 120ms ease-out, border-color 120ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gps-range-target-marker:active {
+    transform: scale(0.92);
+  }
+  .gps-range-target-marker.is-selected {
+    background: rgba(255, 214, 0, 0.45);
+    border-color: var(--color-player-you);
+    border-width: 3px;
+    box-shadow: 0 0 12px rgba(255, 214, 0, 0.5);
+  }
+  /* Shot pin — small dot color-coded by club. No tap interaction yet
+     in v1; long-press-to-tag is a follow-up. */
+  .gps-range-shot-pin {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
   }
 
   /* Wind compass — bottom-right floating button. Mirrors the recenter
@@ -22100,6 +22289,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-4);
+    margin-top: var(--space-4);
     margin-bottom: var(--space-8);
     padding-bottom: var(--space-6);
     border-bottom: 1px solid var(--border-light);
@@ -26017,6 +26207,12 @@
      view with live distance-to-green. Body-level for the same reason
      as other map-based sheets. -->
 <div id="round-gps-mount"></div>
+
+<!-- GPS Range Session — full-screen Mapbox satellite view for tap-to-log
+     range shots against pinned targets. Body-level overlay (escapes all
+     panel chrome, can sit on top of any underlying screen). Distinct
+     from the manual range-session panel, which is form-based. -->
+<div id="gps-range-session-mount"></div>
 
 <!-- ADD COURSE sheet mount — admin-only flow for searching
      golfcourseapi.com and importing a course into the Firestore
@@ -31437,6 +31633,49 @@
   function makeClubKey(name) {
     if (!name) return null;
     return String(name).toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  // Reverse of makeClubKey: get a display-friendly label for a club key.
+  // Looks up the bag first (preserves the user's actual club name like
+  // "7-iron" or "Pitching Wedge"). Falls back to title-casing the key
+  // itself for clubs that aren't in the current bag (e.g. shots logged
+  // before the user removed that club from their bag).
+  function clubLabelFromKey(key) {
+    if (!key) return null;
+    const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+    const found = bag.find(c => makeClubKey(c.name) === key);
+    if (found && found.name) return found.name;
+    // Title-case fallback: "7-iron" stays as-is; "pitching wedge" → "Pitching Wedge"
+    return String(key).split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  // Stable color for a club key. Hashes the key into the same PALETTE
+  // used by the dispersion scatter so club colors stay consistent across
+  // every club-colored visual in the app (scatter, range session shot
+  // pins, future heat maps, etc.).
+  const CLUB_COLOR_PALETTE = [
+    '#E8A634', // amber
+    '#5BA3D9', // blue
+    '#9C7BC4', // purple
+    '#46B07B', // green
+    '#D9A23E', // gold
+    '#D45D5D', // red
+    '#6CA1A8', // teal
+    '#B07F4E', // brown
+    '#8B8B96', // grey
+  ];
+  function colorForClubKey(key) {
+    if (!key) return CLUB_COLOR_PALETTE[0];
+    // Simple hash of the string into a palette index. djb2-style.
+    let hash = 5381;
+    for (let i = 0; i < key.length; i++) {
+      hash = ((hash << 5) + hash) + key.charCodeAt(i);
+      hash = hash & 0xffffffff; // keep within 32-bit
+    }
+    const idx = Math.abs(hash) % CLUB_COLOR_PALETTE.length;
+    return CLUB_COLOR_PALETTE[idx];
   }
 
   // Pick out the CARRY distance from a shot. Only range shots have
@@ -43554,6 +43793,26 @@
     mount.innerHTML = `
       ${inProgressBanner}
       <div class="practice-types">
+        <!-- TEMP entry point for the new GPS Range Session (scaffold).
+             Will be replaced with a proper menu / replace the existing
+             Range Session card once the range entity + persistence
+             + setup flow are built. -->
+        <button class="practice-type-card" onclick="openGpsRangeSession()">
+          <div class="practice-type-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L12 22"/>
+              <path d="M12 2 L20 5 L12 8 Z" fill="currentColor"/>
+              <circle cx="12" cy="22" r="2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="practice-type-body">
+            <div class="practice-type-eyebrow">Beta · Driving Range</div>
+            <div class="practice-type-title">GPS Range Session</div>
+            <div class="practice-type-desc">Tap on a satellite map where each ball lands. Builds dispersion + accuracy data without a launch monitor.</div>
+          </div>
+          <div class="practice-type-arrow" aria-hidden="true">→</div>
+        </button>
+
         <button class="practice-type-card" onclick="startRangeSession()">
           <div class="practice-type-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -63700,6 +63959,476 @@
     pinModalState.draftLng = null;
     if (mount) mount.innerHTML = '';
   }
+
+  // ──────────────────────────────────────────────────────────
+  // GPS Range Session — full-screen satellite view for tap-to-log
+  // range shots against pre-pinned targets. Distinct from the form-
+  // based "range-session" panel: this one is for when you can SEE
+  // where the ball lands and want real lateral/along data without
+  // a launch monitor.
+  //
+  // Architecture mirrors the in-round GPS view:
+  // - Body-level mount (#gps-range-session-mount), escapes panel chrome
+  // - Mapbox satellite map fills the screen
+  // - Top pill shows current club + session-avg distance + shot count
+  // - Bottom controls = target picker chip + club picker chip
+  // - Tap anywhere on map = log a shot (one tap per swing)
+  // - Mapbox distinguishes tap from drag/pinch natively, so map
+  //   navigation still works
+  //
+  // V1 scaffold: hardcoded placeholder range (Dallas area) + in-memory
+  // shot list only. Range entity + persistence land next session.
+  // ──────────────────────────────────────────────────────────
+
+  const gpsRangeSessionState = {
+    open: false,
+    map: null,
+    range: null,           // hydrated range entity (placeholder for now)
+    currentClub: '7i',     // default to most common range club
+    currentTargetId: null, // selected target id; defaults to first target on open
+    shots: [],             // [{ id, club, targetId, lat, lng, lateralOffset, alongShot, loggedAt }]
+    startedAt: null,
+    // Map artifacts for cleanup
+    teeMarker: null,
+    targetMarkers: {},     // by target id
+    shotPinMarkers: [],    // array of marker handles for cleanup
+    pillRafId: null,       // throttle pill updates after rapid logs
+  };
+
+  // Placeholder range — used until the real range entity / setup flow
+  // exists. Roughly approximates a North Texas range layout so the math
+  // produces sensible numbers during scaffold testing. Throw away once
+  // the range entity model lands.
+  const PLACEHOLDER_RANGE = {
+    id: 'placeholder-range',
+    name: 'Test Range',
+    tee: { lat: 32.7767, lng: -96.7970 },  // generic Dallas anchor
+    targets: [
+      // Roughly N-NW from tee at 100/150/175y. Lat increment of ~0.000914
+      // per yard; here we shift mostly north (positive lat) with slight
+      // azimuth variation so the targets aren't perfectly in a line.
+      { id: 't1', distance: 100, label: '100y', lat: 32.7767 + 0.000914 * 100, lng: -96.7970 - 0.000200 },
+      { id: 't2', distance: 150, label: '150y green', lat: 32.7767 + 0.000914 * 150, lng: -96.7970 - 0.000050 },
+      { id: 't3', distance: 175, label: '175y back', lat: 32.7767 + 0.000914 * 175, lng: -96.7970 + 0.000180 },
+    ],
+  };
+
+  // ──────────────────────────────────────────────────────────
+  // Entry / exit
+  // ──────────────────────────────────────────────────────────
+
+  function openGpsRangeSession() {
+    if (gpsRangeSessionState.open) return;
+    const mount = document.getElementById('gps-range-session-mount');
+    if (!mount) return;
+
+    // Pick a sensible default club from the user's bag. Prefer a 7-iron
+    // (most common range club), fall back to first iron, fall back to
+    // first club, fall back to a placeholder if the bag is empty.
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    let defaultClub = '7-iron';
+    if (bag.length > 0) {
+      const sevenIron = bag.find(c => makeClubKey(c.name) === '7-iron');
+      const firstIron = bag.find(c => /iron|i$/i.test(c.name || ''));
+      const chosen = sevenIron || firstIron || bag[0];
+      defaultClub = makeClubKey(chosen.name);
+    }
+
+    // Hydrate state for a fresh session
+    gpsRangeSessionState.open = true;
+    gpsRangeSessionState.range = PLACEHOLDER_RANGE;  // TODO: pick range via setup flow
+    gpsRangeSessionState.currentClub = defaultClub;
+    gpsRangeSessionState.currentTargetId = PLACEHOLDER_RANGE.targets[0]?.id || null;
+    gpsRangeSessionState.shots = [];
+    gpsRangeSessionState.startedAt = Date.now();
+    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.targetMarkers = {};
+    gpsRangeSessionState.teeMarker = null;
+
+    // Body scroll lock (same pattern as GPS view / replay)
+    document.body.classList.add('round-gps-open');
+
+    mount.innerHTML = renderGpsRangeSession();
+    // Map init must happen AFTER the container is in the DOM
+    requestAnimationFrame(() => initGpsRangeSessionMap());
+  }
+  window.openGpsRangeSession = openGpsRangeSession;
+
+  function closeGpsRangeSession() {
+    if (!gpsRangeSessionState.open) return;
+    const mount = document.getElementById('gps-range-session-mount');
+    cleanupGpsRangeSession(mount);
+  }
+  window.closeGpsRangeSession = closeGpsRangeSession;
+
+  function cleanupGpsRangeSession(mount) {
+    if (gpsRangeSessionState.pillRafId != null) {
+      cancelAnimationFrame(gpsRangeSessionState.pillRafId);
+      gpsRangeSessionState.pillRafId = null;
+    }
+    // Remove all shot pin markers
+    (gpsRangeSessionState.shotPinMarkers || []).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    // Remove tee + target markers
+    if (gpsRangeSessionState.teeMarker) {
+      try { gpsRangeSessionState.teeMarker.remove(); } catch (_) {}
+    }
+    Object.values(gpsRangeSessionState.targetMarkers || {}).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    // Tear down map
+    if (gpsRangeSessionState.map) {
+      try { gpsRangeSessionState.map.remove(); } catch (_) {}
+    }
+    // Reset state
+    gpsRangeSessionState.open = false;
+    gpsRangeSessionState.map = null;
+    gpsRangeSessionState.range = null;
+    gpsRangeSessionState.currentTargetId = null;
+    gpsRangeSessionState.shots = [];
+    gpsRangeSessionState.startedAt = null;
+    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.targetMarkers = {};
+    gpsRangeSessionState.teeMarker = null;
+    document.body.classList.remove('round-gps-open');
+    if (mount) mount.innerHTML = '';
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────────────────
+
+  function renderGpsRangeSession() {
+    return `
+      <div class="gps-range-shell">
+        <!-- Topbar: close button on left, "RANGE SESSION" title centered,
+             finish button on right. Mirrors the round-replay topbar. -->
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="closeGpsRangeSession()" aria-label="Close session">×</button>
+          <div class="gps-range-topbar-title">RANGE SESSION</div>
+          <button class="gps-range-finish" onclick="finishGpsRangeSession()">Finish</button>
+        </div>
+
+        <!-- Top pill: current club · session-avg distance · shot count.
+             Updates after every shot log. -->
+        <div class="gps-range-pill" id="gps-range-pill">${renderGpsRangePill()}</div>
+
+        <!-- Map fills the rest of the screen between pill and bottom dock -->
+        <div id="gps-range-map" class="gps-range-map"></div>
+
+        <!-- Bottom dock: target chip on left, club chip on right.
+             Both tappable to switch mid-session. -->
+        <div class="gps-range-dock">
+          <button class="gps-range-target-chip" id="gps-range-target-chip" onclick="openGpsRangeTargetPicker()">
+            ${renderGpsRangeTargetChipBody()}
+          </button>
+          <button class="gps-range-club-chip" id="gps-range-club-chip" onclick="openGpsRangeClubPicker()">
+            ${renderGpsRangeClubChipBody()}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Pill body — extracted so we can re-render in place after each shot
+  // without rebuilding the whole shell (which would tear down the map).
+  function renderGpsRangePill() {
+    const club = gpsRangeSessionState.currentClub;
+    const clubLabel = clubLabelFromKey(club) || '—';
+    const shots = gpsRangeSessionState.shots.filter(s => s.club === club);
+    const count = gpsRangeSessionState.shots.length;
+    let avgYards = null;
+    if (shots.length > 0) {
+      // Avg distance = avg of alongShot offset from target + target distance
+      // (since alongShot is signed: positive = past target, negative = short)
+      const totalYards = shots.reduce((sum, s) => {
+        const target = gpsRangeSessionState.range.targets.find(t => t.id === s.targetId);
+        const targetDist = target ? target.distance : 0;
+        return sum + (targetDist + (s.alongShot || 0));
+      }, 0);
+      avgYards = Math.round(totalYards / shots.length);
+    }
+    const avgStr = avgYards != null ? `${avgYards}y avg` : 'no data';
+    const countStr = `shot ${count}`;
+    return `${clubLabel} · ${avgStr} · ${countStr}`;
+  }
+
+  // Re-render the pill in place (no map teardown).
+  function refreshGpsRangePill() {
+    if (gpsRangeSessionState.pillRafId != null) {
+      cancelAnimationFrame(gpsRangeSessionState.pillRafId);
+    }
+    gpsRangeSessionState.pillRafId = requestAnimationFrame(() => {
+      gpsRangeSessionState.pillRafId = null;
+      const el = document.getElementById('gps-range-pill');
+      if (el) el.innerHTML = renderGpsRangePill();
+    });
+  }
+
+  function renderGpsRangeTargetChipBody() {
+    const target = currentGpsRangeTarget();
+    if (!target) return `<span class="gps-range-chip-label">No target</span>`;
+    return `
+      <span class="gps-range-chip-eyebrow">TARGET</span>
+      <span class="gps-range-chip-label">${escapeHtml(target.label || `${target.distance}y`)}</span>
+      <span class="gps-range-chip-chev">▾</span>
+    `;
+  }
+
+  function renderGpsRangeClubChipBody() {
+    const club = gpsRangeSessionState.currentClub;
+    const label = clubLabelFromKey(club) || 'Pick club';
+    return `
+      <span class="gps-range-chip-eyebrow">CLUB</span>
+      <span class="gps-range-chip-label">${escapeHtml(label)}</span>
+      <span class="gps-range-chip-chev">▾</span>
+    `;
+  }
+
+  function refreshGpsRangeChips() {
+    const tEl = document.getElementById('gps-range-target-chip');
+    const cEl = document.getElementById('gps-range-club-chip');
+    if (tEl) tEl.innerHTML = renderGpsRangeTargetChipBody();
+    if (cEl) cEl.innerHTML = renderGpsRangeClubChipBody();
+  }
+
+  function currentGpsRangeTarget() {
+    if (!gpsRangeSessionState.range) return null;
+    return gpsRangeSessionState.range.targets.find(
+      t => t.id === gpsRangeSessionState.currentTargetId
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Map init + interactions
+  // ──────────────────────────────────────────────────────────
+
+  function initGpsRangeSessionMap() {
+    if (typeof mapboxgl === 'undefined') {
+      console.warn('Mapbox not loaded; skipping GPS range session map init.');
+      return;
+    }
+    const container = document.getElementById('gps-range-map');
+    if (!container) return;
+    const range = gpsRangeSessionState.range;
+    if (!range) return;
+    // Frame: tee + targets — pick a center between them and zoom to fit
+    const points = [range.tee, ...range.targets].map(p => [p.lng, p.lat]);
+    const lngs = points.map(p => p[0]);
+    const lats = points.map(p => p[1]);
+    const bounds = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+
+    const map = new mapboxgl.Map({
+      container,
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      bounds,
+      fitBoundsOptions: { padding: 80 },
+      bearingSnap: 0,
+      attributionControl: false,
+    });
+    gpsRangeSessionState.map = map;
+
+    map.on('load', () => {
+      renderGpsRangeMapMarkers();
+    });
+
+    // Tap to log shot. Mapbox distinguishes single-tap from drag/pinch
+    // automatically — `click` fires only on a clean tap.
+    map.on('click', (e) => handleGpsRangeMapTap(e.lngLat.lat, e.lngLat.lng));
+  }
+
+  function renderGpsRangeMapMarkers() {
+    const map = gpsRangeSessionState.map;
+    const range = gpsRangeSessionState.range;
+    if (!map || !range) return;
+
+    // Tee marker — small white-bordered orange dot
+    const teeEl = document.createElement('div');
+    teeEl.className = 'gps-range-tee-marker';
+    teeEl.title = 'Tee';
+    gpsRangeSessionState.teeMarker = new mapboxgl.Marker({
+      element: teeEl,
+      anchor: 'center',
+    }).setLngLat([range.tee.lng, range.tee.lat]).addTo(map);
+
+    // Target markers — bright ring for selected, faded for others
+    range.targets.forEach(target => {
+      const isSelected = target.id === gpsRangeSessionState.currentTargetId;
+      const el = document.createElement('div');
+      el.className = `gps-range-target-marker ${isSelected ? 'is-selected' : ''}`;
+      el.dataset.targetId = target.id;
+      el.title = target.label || `${target.distance}y`;
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        selectGpsRangeTarget(target.id);
+      };
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      }).setLngLat([target.lng, target.lat]).addTo(map);
+      gpsRangeSessionState.targetMarkers[target.id] = marker;
+    });
+  }
+
+  function refreshGpsRangeTargetMarkerSelection() {
+    Object.entries(gpsRangeSessionState.targetMarkers).forEach(([id, marker]) => {
+      const el = marker.getElement();
+      if (id === gpsRangeSessionState.currentTargetId) {
+        el.classList.add('is-selected');
+      } else {
+        el.classList.remove('is-selected');
+      }
+    });
+  }
+
+  function selectGpsRangeTarget(targetId) {
+    gpsRangeSessionState.currentTargetId = targetId;
+    refreshGpsRangeTargetMarkerSelection();
+    refreshGpsRangeChips();
+  }
+  window.selectGpsRangeTarget = selectGpsRangeTarget;
+
+  // Tap on map = log a shot at this lat/lng with current club + target.
+  // Compute lateral offset (perpendicular yards from tee→target line)
+  // and along offset (parallel yards: positive = past target, negative
+  // = short of target).
+  function handleGpsRangeMapTap(lat, lng) {
+    const range = gpsRangeSessionState.range;
+    const target = currentGpsRangeTarget();
+    if (!range || !target) return;
+
+    // Compute the shot's offsets relative to the tee→target line.
+    // Reuse the same math we use for on-course shots (haversine yards
+    // for distances, simple geometry for projection).
+    const offsets = projectShotOntoTargetLine(
+      range.tee.lat, range.tee.lng,
+      target.lat, target.lng,
+      lat, lng
+    );
+
+    const shot = {
+      id: 'rs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      club: gpsRangeSessionState.currentClub,
+      targetId: target.id,
+      lat,
+      lng,
+      lateralOffset: offsets.lateral,  // signed: positive = right of target line
+      alongShot: offsets.along,        // signed relative to target distance: positive = past target, negative = short
+      loggedAt: Date.now(),
+    };
+    gpsRangeSessionState.shots.push(shot);
+
+    // Drop a shot pin on the map
+    addGpsRangeShotPin(shot);
+
+    // Refresh the pill (count + avg)
+    refreshGpsRangePill();
+  }
+
+  // Project a shot point onto the tee→target line.
+  // Returns { lateral, along } in yards. lateral is signed (positive =
+  // right of the target line, looking from tee to target). along is
+  // signed relative to the target: positive = past target, negative =
+  // short of target.
+  function projectShotOntoTargetLine(teeLat, teeLng, targetLat, targetLng, shotLat, shotLng) {
+    // Convert all to a local flat plane centered on tee (yards units).
+    // Approximation good for distances <500y at non-polar latitudes.
+    const YARDS_PER_DEG_LAT = 121764;  // ~111195m per degree / 0.9144m per yard
+    const yardsPerDegLng = YARDS_PER_DEG_LAT * Math.cos(teeLat * Math.PI / 180);
+    const tx = 0, ty = 0;
+    const targetX = (targetLng - teeLng) * yardsPerDegLng;
+    const targetY = (targetLat - teeLat) * YARDS_PER_DEG_LAT;
+    const shotX = (shotLng - teeLng) * yardsPerDegLng;
+    const shotY = (shotLat - teeLat) * YARDS_PER_DEG_LAT;
+    // Vector from tee to target; normalize for direction
+    const dx = targetX - tx;
+    const dy = targetY - ty;
+    const targetDist = Math.sqrt(dx * dx + dy * dy);
+    if (targetDist < 0.01) return { lateral: 0, along: 0 };
+    const ux = dx / targetDist;  // unit vector along target line
+    const uy = dy / targetDist;
+    // Perpendicular unit vector (rotate 90° CW so positive = right of line)
+    const px = uy;
+    const py = -ux;
+    // Project shot vector onto target unit vectors
+    const sx = shotX - tx;
+    const sy = shotY - ty;
+    const alongFromTee = sx * ux + sy * uy;       // distance from tee in target direction
+    const lateral = sx * px + sy * py;            // perpendicular distance (signed)
+    const along = alongFromTee - targetDist;      // relative to target: positive = past
+    return { lateral, along };
+  }
+
+  // Add a shot pin marker for the given shot. Color-coded by club so
+  // multi-club sessions can be visually scanned.
+  function addGpsRangeShotPin(shot) {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    const el = document.createElement('div');
+    el.className = 'gps-range-shot-pin';
+    el.style.background = colorForClubKey(shot.club);
+    el.title = `${clubLabelFromKey(shot.club)} · ${Math.round(shot.lateralOffset)}y lateral, ${Math.round(shot.alongShot)}y along`;
+    const marker = new mapboxgl.Marker({
+      element: el,
+      anchor: 'center',
+    }).setLngLat([shot.lng, shot.lat]).addTo(map);
+    gpsRangeSessionState.shotPinMarkers.push(marker);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Pickers (placeholder — functional but barebones)
+  // ──────────────────────────────────────────────────────────
+
+  // Cycle through targets. Replace with a proper bottom-sheet picker
+  // in a follow-up — for v1 scaffold, tap-to-cycle gets us moving.
+  function openGpsRangeTargetPicker() {
+    const targets = gpsRangeSessionState.range?.targets || [];
+    if (targets.length === 0) return;
+    const idx = targets.findIndex(t => t.id === gpsRangeSessionState.currentTargetId);
+    const next = targets[(idx + 1) % targets.length];
+    selectGpsRangeTarget(next.id);
+  }
+  window.openGpsRangeTargetPicker = openGpsRangeTargetPicker;
+
+  // Cycle through bag clubs. Same temporary v1 affordance as targets;
+  // proper picker is a follow-up.
+  function openGpsRangeClubPicker() {
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+    if (!bag || bag.length === 0) return;
+    const keys = bag.map(c => makeClubKey(c.name));
+    const idx = keys.indexOf(gpsRangeSessionState.currentClub);
+    const next = keys[(idx + 1) % keys.length];
+    gpsRangeSessionState.currentClub = next;
+    refreshGpsRangeChips();
+    refreshGpsRangePill();
+  }
+  window.openGpsRangeClubPicker = openGpsRangeClubPicker;
+
+  // ──────────────────────────────────────────────────────────
+  // Finish
+  // ──────────────────────────────────────────────────────────
+
+  // Discard for now (no save until we have the range entity model).
+  // Wraps in confirm if shots > 0 so accidental taps don't lose data.
+  async function finishGpsRangeSession() {
+    if (gpsRangeSessionState.shots.length > 0) {
+      const ok = await confirmDialog({
+        title: 'End session?',
+        message: `${gpsRangeSessionState.shots.length} shot${gpsRangeSessionState.shots.length === 1 ? '' : 's'} logged. The save flow isn't built yet, so these will be discarded.`,
+        confirmText: 'End & discard',
+        cancelText: 'Keep going',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    closeGpsRangeSession();
+  }
+  window.finishGpsRangeSession = finishGpsRangeSession;
+
 
   // ──────────────────────────────────────────────────────────
   // Wind overlay — small compass in the bottom-right corner of
