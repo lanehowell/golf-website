@@ -67660,9 +67660,12 @@
     if (roundGpsState.mode !== 'playing') return 'log';
     const userPos = getRoundGpsUserPos();
     if (!userPos) return 'log';
-    // Already set tee for this hole this session → button stays in
+    // Already set tee for this hole this round → button stays in
     // log mode. User committed, next action is logging shot 1.
-    if (roundGpsState.teeManuallySetHoles.has(holeNum)) return 'log';
+    // Reads from the durable round-state override (persisted with the
+    // round), so this survives reload — unlike the older session-only
+    // teeManuallySetHoles Set, which got wiped on every panel close.
+    if (hasTeeOverrideForHole(holeNum)) return 'log';
     if (shots && shots.length > 0) return 'log';
     if (roundGpsState.teeLat == null || roundGpsState.teeLng == null) return 'log';
     const distFromPinnedTee = haversineYards(
@@ -67670,6 +67673,19 @@
       roundGpsState.teeLat, roundGpsState.teeLng);
     if (distFromPinnedTee > ROUND_GPS_SET_TEE_YARDS) return 'log';
     return 'set-tee';
+  }
+
+  // True if the user has captured a Set Tee position for this hole in
+  // the active round. Reads from solo or group round state depending
+  // on which is active. Same source of truth as getEffectiveTeePosition.
+  function hasTeeOverrideForHole(holeNumber) {
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      const ov = me?.teeOverrides?.[holeNumber];
+      return !!(ov && typeof ov.lat === 'number' && typeof ov.lng === 'number');
+    }
+    const ov = roundState.teeOverrides?.[holeNumber];
+    return !!(ov && typeof ov.lat === 'number' && typeof ov.lng === 'number');
   }
 
   // Read the effective tee position for the given hole, considering
