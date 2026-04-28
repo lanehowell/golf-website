@@ -5270,15 +5270,22 @@
        readable. */
     width: 22px;
     height: 22px;
-    /* CRITICAL: border-box so the bounding box is exactly 22x22
-       regardless of border. With content-box, sub-pixel rounding of
-       the 2px border at different zoom levels would shift the
-       visual center fractionally — markers appeared to drift as the
-       map zoomed. anchor: 'center' on Mapbox markers measures the
-       offsetWidth/Height of the element, which depends on box-sizing. */
+    /* CRITICAL: rigid box. Use explicit min/max so the bounding box
+       can NEVER be altered by descendant content (font loading state,
+       text reflow, sub-pixel border rounding). Mapbox markers with
+       anchor: 'center' measure offsetWidth/offsetHeight at marker-
+       create time; if that varies between markers (e.g. shot 1 was
+       measured before fonts settled, shot 2+ after), the visual
+       centering is inconsistent and zoom amplifies the drift. Locking
+       the box dimensions means EVERY marker — first or fiftieth, before
+       or after fonts load — measures identically. The shot number is
+       rendered in a child span positioned absolutely so its rendered
+       width can't push the parent box around. */
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
     box-sizing: border-box;
-    /* Explicit center transform-origin defends against any inherited
-       value from the cascade applying off-center scaling. */
     transform-origin: center center;
     flex-shrink: 0;
     border-radius: 50%;
@@ -5287,13 +5294,20 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    /* Center the shot number text inside the circle. Dark text on
-       yellow gives strong contrast against any satellite imagery
-       beneath. Tabular numerals so 1-digit and 2-digit pins align
-       to the same baseline. */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    user-select: none;
+    /* Position relative so the absolutely-positioned number child
+       (and the ::before hitbox) anchor to this element's box. */
+    position: relative;
+    overflow: visible;
+  }
+  /* Shot number — positioned absolutely so its rendered dimensions
+     never affect the parent marker's bounding box. Centered via the
+     classic 50% / translate(-50%, -50%) pattern. */
+  .round-gps-shot-marker-num {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-family: var(--font-body);
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -5301,9 +5315,8 @@
     color: var(--color-player-you-dark);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
-    user-select: none;
-    /* Position is relative for the ::before hitbox below. */
-    position: relative;
+    pointer-events: none;
+    white-space: nowrap;
   }
   /* Touch hitbox boost — invisible pad around the visual, so the
      tappable area is ~50px without affecting the marker's positioning
@@ -62703,7 +62716,8 @@
     // mapboxgl.Marker so we can remove them precisely on hole change
     // or shot delete. shotLine is a single mapbox source/layer pair
     // for the connecting line between consecutive shots.
-    shotMarkers: {},               // { [shotId]: mapboxgl.Marker }
+    shotMarkers: {},               // legacy DOM markers; kept for cleanup of old state during transition
+    shotMarkerLayers: null,        // { sourceId, layerIds, clickHandler, ... } | null — new symbol/circle layer approach
     shotLine: null,                // { sourceId, layerId } | null
     // Holes where the user has manually set the tee position via the
     // "Set tee" action button. Once set, the button stays in 'log'
@@ -62850,6 +62864,7 @@
     // about-to-be-destroyed map. Reset references; the actual map
     // tear-down happens via map.remove() above.
     roundGpsState.shotMarkers = {};
+    roundGpsState.shotMarkerLayers = null;
     roundGpsState.shotLine = null;
     roundGpsState.lastShotEnd = null;
     // Committed target — same story; clear on full re-mount.
@@ -63303,6 +63318,7 @@
     // already gone via map.remove() above.
     roundGpsState.lastShotEnd = null;
     roundGpsState.shotMarkers = {};
+    roundGpsState.shotMarkerLayers = null;
     roundGpsState.shotLine = null;
     roundGpsState.teeManuallySetHoles = new Set();
     // Committed target is GPS-session-scoped; cleared on close. The
@@ -67776,22 +67792,97 @@
     // Pin markers — one per logged shot, at its END position. Yellow
     // circle with the shot number inside (1, 2, 3...). Tappable to
     // open the edit sheet for that shot.
-    points.forEach((p) => {
-      const el = document.createElement('div');
-      el.className = 'round-gps-shot-marker';
-      el.title = `Shot ${p.shotIndex + 1}`;
-      el.textContent = String(p.shotIndex + 1);
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openShotEditSheet(holeNum, p.shotId);
-      });
+    //
+    // IMPLEMENTATION: Mapbox circle + symbol LAYERS, not DOM markers.
+    // DOM markers in this codebase have a documented drift problem
+    // (they shift relative to map features as zoom changes), same as
+    // the replay flag pin issue we already solved this way. Layers
+    // are part of the map's coordinate system so they stay perfectly
+    // rooted at every zoom level. Tap handling happens via a layer-
+    // filtered click listener instead of per-element addEventListener.
+    if (points.length > 0) {
+      const sourceId = 'round-gps-shot-pins-src';
+      const circleLayerId = 'round-gps-shot-pins-circle';
+      const numberLayerId = 'round-gps-shot-pins-number';
+      const featureCollection = {
+        type: 'FeatureCollection',
+        features: points.map(p => ({
+          type: 'Feature',
+          properties: {
+            shotId: p.shotId,
+            // Stored as a string because Mapbox's text-field reads
+            // best from string properties; avoids cast surprises.
+            shotNumber: String(p.shotIndex + 1),
+          },
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        })),
+      };
       try {
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([p.lng, p.lat])
-          .addTo(map);
-        roundGpsState.shotMarkers[p.shotId] = marker;
-      } catch (_) {}
-    });
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, { type: 'geojson', data: featureCollection });
+        } else {
+          map.getSource(sourceId).setData(featureCollection);
+        }
+        // Background circle — yellow with thin dark border.
+        if (!map.getLayer(circleLayerId)) {
+          map.addLayer({
+            id: circleLayerId,
+            type: 'circle',
+            source: sourceId,
+            paint: {
+              'circle-radius': 11,
+              'circle-color': resolveCssColor('--color-player-you', '#FFD600'),
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
+            },
+          });
+        }
+        // Number symbol — sits centered on the circle.
+        if (!map.getLayer(numberLayerId)) {
+          map.addLayer({
+            id: numberLayerId,
+            type: 'symbol',
+            source: sourceId,
+            layout: {
+              'text-field': ['get', 'shotNumber'],
+              'text-size': 12,
+              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+              'text-anchor': 'center',
+              'text-justify': 'center',
+            },
+            paint: {
+              'text-color': resolveCssColor('--color-player-you-dark', '#3D2900'),
+            },
+          });
+        }
+        // Click handling — register once per render cycle. Stored on
+        // state so we can detach in clearRoundGpsShotMarkers().
+        const clickHandler = (e) => {
+          const feature = e.features && e.features[0];
+          if (!feature) return;
+          const shotId = feature.properties && feature.properties.shotId;
+          if (shotId) openShotEditSheet(holeNum, shotId);
+        };
+        map.on('click', circleLayerId, clickHandler);
+        // Cursor feedback so taps feel interactive on desktop.
+        const enterHandler = () => { map.getCanvas().style.cursor = 'pointer'; };
+        const leaveHandler = () => { map.getCanvas().style.cursor = ''; };
+        map.on('mouseenter', circleLayerId, enterHandler);
+        map.on('mouseleave', circleLayerId, leaveHandler);
+        roundGpsState.shotMarkerLayers = {
+          sourceId,
+          layerIds: [circleLayerId, numberLayerId],
+          clickHandler,
+          enterHandler,
+          leaveHandler,
+          clickLayerId: circleLayerId,
+        };
+      } catch (err) {
+        console.warn('Failed to render shot pin layers:', err);
+      }
+    }
 
     // Honor current Layers toggle — if user has the trail hidden, the
     // freshly-rendered markers + line should also be hidden.
@@ -67805,7 +67896,25 @@
   // renderRoundGpsShotMarkers itself.
   function clearRoundGpsShotMarkers() {
     const map = roundGpsState.map;
-    Object.values(roundGpsState.shotMarkers).forEach(m => {
+    // Tear down the layered shot pins (circle + number + click
+    // listeners). Defensive try/catch on each step — different
+    // race conditions can leave individual pieces missing.
+    if (map && roundGpsState.shotMarkerLayers) {
+      const m = roundGpsState.shotMarkerLayers;
+      try { map.off('click', m.clickLayerId, m.clickHandler); } catch (_) {}
+      try { map.off('mouseenter', m.clickLayerId, m.enterHandler); } catch (_) {}
+      try { map.off('mouseleave', m.clickLayerId, m.leaveHandler); } catch (_) {}
+      (m.layerIds || []).forEach(layerId => {
+        try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+      });
+      try { if (map.getSource(m.sourceId)) map.removeSource(m.sourceId); } catch (_) {}
+    }
+    roundGpsState.shotMarkerLayers = null;
+    // Legacy: tear down any DOM markers from a previous version's
+    // render. Harmless if shotMarkers is empty (the new code path
+    // doesn't populate it). Kept so users transitioning from an old
+    // build don't get orphaned DOM nodes.
+    Object.values(roundGpsState.shotMarkers || {}).forEach(m => {
       try { m.remove(); } catch (_) {}
     });
     roundGpsState.shotMarkers = {};
