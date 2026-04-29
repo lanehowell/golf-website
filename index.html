@@ -48,6 +48,19 @@
       // failing silently falls back to light mode which is our default.
     }
   })();
+  // Orientation lock — best-effort. Works on Android Chrome PWAs (the
+  // Screen Orientation API is fully supported when added to home
+  // screen). Silently no-ops on iOS Safari where the API requires
+  // fullscreen mode. The CSS .rotate-overlay rule below catches iOS
+  // by showing a "rotate your phone" overlay in landscape orientation.
+  (function() {
+    try {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        // Returns a promise; rejection is expected on iOS — swallow.
+        screen.orientation.lock('portrait').catch(function() {});
+      }
+    } catch (e) { /* unsupported browser; CSS fallback handles it */ }
+  })();
 </script>
 <link rel="stylesheet" href="design-system.css">
 
@@ -185,6 +198,63 @@
     .app-splash-spinner {
       animation: none;
     }
+  }
+
+  /* ── ROTATION LOCK (mobile only) ─────────────────────────────────
+     The app is designed for portrait phone use. When a user lays their
+     phone flat or rotates it sideways, iOS Safari may flip the layout
+     into landscape — which exposes layout bugs (top bar truncated, GPS
+     map wrong aspect, scoring sheet too wide) and is annoying. We
+     can't reliably lock orientation via the JS Screen Orientation API
+     on iOS PWAs (it requires fullscreen + only works on Android), so
+     the CSS approach is: show a "rotate to portrait" overlay covering
+     the whole UI when landscape is detected on a phone-sized viewport.
+
+     Only applies to phone-sized devices (max-height: 500px in
+     landscape covers ~all phones; iPad mini and up are exempt). */
+  .rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: var(--bg-page, #FFFDF7);
+    color: var(--text-primary, #1F1C17);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    font-family: var(--font-body, sans-serif);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .rotate-overlay-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 20px;
+    opacity: 0.85;
+  }
+  .rotate-overlay-title {
+    font-family: var(--font-display, serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  .rotate-overlay-msg {
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--text-secondary, #555);
+    max-width: 280px;
+    margin: 0;
+  }
+  /* Show only on phone-sized devices in landscape orientation. The
+     500px max-height guards against tablets (which have larger
+     short-side dimensions even in landscape) and desktop. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .rotate-overlay { display: flex; }
+    /* Lock body scroll while overlay is showing — user shouldn't be
+       able to interact with anything underneath. */
+    body { overflow: hidden; }
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -9782,9 +9852,37 @@
     background-position: right var(--space-3) center;
     background-size: 16px;
     padding-right: var(--space-10);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
   }
   html.dark .shot-edit-club-select {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  }
+  /* Error state — applied when user attempts to save without a club
+     selected. Red border + soft glow + a quick shake animation on the
+     moment of attempted-save so the field visibly draws attention.
+     Class is removed when the user picks a club (handled in
+     updateShotDraft). */
+  .shot-edit-club-select.is-error {
+    border-color: var(--color-danger);
+    background-color: color-mix(in srgb, var(--color-danger) 6%, var(--bg-surface));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 18%, transparent);
+    animation: shot-edit-field-shake 360ms ease-out;
+  }
+  @keyframes shot-edit-field-shake {
+    0%, 100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(3px); }
+  }
+  /* Error label that appears under the field when validation fails. */
+  .shot-edit-field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: var(--text-xs);
+    color: var(--color-danger);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
   }
   .shot-edit-bag-empty {
     padding: var(--space-4);
@@ -26524,6 +26622,20 @@
 </head>
 <body>
 
+<!-- ROTATION OVERLAY — shown only on phone-sized devices in landscape
+     orientation. Encourages user to flip back to portrait. CSS-driven
+     (no JS state); see .rotate-overlay rule for the @media query. -->
+<div class="rotate-overlay" aria-hidden="true">
+  <svg class="rotate-overlay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="6" y="3" width="12" height="18" rx="2"/>
+    <path d="M11 17h2"/>
+    <path d="M2 7l3 3 3-3"/>
+    <path d="M5 10V6a4 4 0 014-4h2"/>
+  </svg>
+  <h2 class="rotate-overlay-title">Rotate your phone</h2>
+  <p class="rotate-overlay-msg">This app works best in portrait. Flip your phone upright to keep playing.</p>
+</div>
+
 <!-- SPLASH SCREEN (mobile only). Full-viewport overlay shown on initial
      page load. Covers the first ~800ms–3s so Firebase Auth can restore
      the user and Firestore can complete its token handshake before the
@@ -42489,6 +42601,17 @@
   }
   window.updateShotDraftProximityFt = updateShotDraftProximityFt;
 
+  // Clear the validation error state on the club picker. Called from
+  // the select's onchange so the error visual disappears as soon as
+  // the user picks a club.
+  function clearShotEditClubError() {
+    const select = document.getElementById('shot-edit-club-select');
+    const errorLabel = document.getElementById('shot-edit-club-error');
+    if (select) select.classList.remove('is-error');
+    if (errorLabel) errorLabel.hidden = true;
+  }
+  window.clearShotEditClubError = clearShotEditClubError;
+
   // Commit the draft to roundState.shots and persist. Handles both
   // add and edit cases.
   async function saveShotDraft() {
@@ -42497,6 +42620,37 @@
     // Minimal validation: just need a club. Start lie has a smart
     // default so it's always set; everything else is optional.
     if (!draft.club) {
+      // Visual error: highlight the club field, scroll it into view,
+      // show inline "Required" label, fire a shake animation. Toast is
+      // a secondary signal — the field-level state is the primary cue
+      // so the user knows WHICH field is missing.
+      const select = document.getElementById('shot-edit-club-select');
+      const errorLabel = document.getElementById('shot-edit-club-error');
+      if (select) {
+        // Re-trigger the shake by removing + re-adding on next frame.
+        // Without the toggle, repeated save attempts wouldn't re-fire
+        // the animation (CSS only plays it once per class application).
+        select.classList.remove('is-error');
+        // Force reflow so the animation restart actually takes.
+        // eslint-disable-next-line no-unused-expressions
+        void select.offsetWidth;
+        select.classList.add('is-error');
+        // Scroll into view — the modal may be scrolled past the club
+        // field if the user opened it on a long shot edit. Smooth +
+        // centered so the field appears near the middle of the
+        // modal's visible area, not at the very top edge.
+        try {
+          select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {
+          select.scrollIntoView();
+        }
+        // Focus the field — opens the picker on most platforms,
+        // prompting the user toward the next action. iOS Safari may
+        // require a user gesture so this might no-op there; the
+        // visual highlight still does the job.
+        try { select.focus({ preventScroll: true }); } catch (_) {}
+      }
+      if (errorLabel) errorLabel.hidden = false;
       showToast('Pick a club', true);
       return;
     }
@@ -42819,10 +42973,12 @@
            No clubs in your bag. Add some in
            <a role="button" tabindex="0" onclick="closeShotEditSheet(); closeToolsSheet(); showPanel('bag', null)">Profile → My Bag</a>.
          </div>`
-      : `<select class="shot-edit-club-select" onchange="updateShotDraft('club', this.value)">
+      : `<select class="shot-edit-club-select" id="shot-edit-club-select"
+                 onchange="updateShotDraft('club', this.value); clearShotEditClubError()">
            <option value="" ${!draft.club ? 'selected' : ''}>— Pick club —</option>
            ${clubOptions}
-         </select>`;
+         </select>
+         <span class="shot-edit-field-error" id="shot-edit-club-error" hidden>Required</span>`;
 
     // Distance — numeric input, optional. Stored in yards canonically
     // but displayed in user's unit. Putts are special: stored in feet
