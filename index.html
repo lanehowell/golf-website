@@ -38628,6 +38628,10 @@
       // card jump-cuts away before the new one arrives.
       animateHoleTransitionOut('forward');
       renderGroupRoundPanel();
+      // Sync GPS view if open — score sheet is the source of truth.
+      if (roundGpsState.open) {
+        try { transitionRoundGpsToHole(nextUnplayedIdx); } catch (_) {}
+      }
       return;
     }
 
@@ -38657,6 +38661,11 @@
       groupRoundState._holeSlideDirection = 'back';
       animateHoleTransitionOut('back');
       renderGroupRoundPanel();
+      // Sync GPS view if open. Cursor sync inside transition no-ops
+      // (already aligned); only the map animation runs.
+      if (roundGpsState.open) {
+        try { transitionRoundGpsToHole(groupRoundState.yourHoleIndex); } catch (_) {}
+      }
     }
   }
 
@@ -40731,6 +40740,33 @@
     }
   }
 
+  // Recompute entry.strokes from actual tracked data: GPS shots +
+  // putts + penalty strokes. Called after any of those change so the
+  // stroke total stays in sync with reality.
+  //
+  // ONLY bumps UP — protects manual user entries from being silently
+  // dropped. Example: user enters strokes=8 in the score sheet (knows
+  // they shot 8) but only logged 5 GPS shots + 2 putts. trackedCount
+  // is 7, but we leave entry.strokes at 8 because the user's number
+  // is the source of truth when it's higher.
+  //
+  // Conversely, when trackedCount EXCEEDS entry.strokes (e.g. user
+  // logs the 6th shot when entry.strokes was at par-5 default), bump
+  // up. Without this, entry.strokes stays stuck at par regardless of
+  // how many shots get logged — the round saves with the wrong score.
+  function recomputeStrokesFromTracked(holeNumber) {
+    if (holeNumber == null) return;
+    const entry = ensureEntryForHole(holeNumber);
+    if (!entry) return;
+    const shots = getShotsForHole(holeNumber);
+    const puttList = Array.isArray(entry.puttList) ? entry.puttList : [];
+    const penalties = entry.penalties || 0;
+    const trackedCount = shots.length + puttList.length + penalties;
+    if (entry.strokes == null || entry.strokes < trackedCount) {
+      entry.strokes = trackedCount;
+    }
+  }
+
   // Smart default for a new shot's startLie. First shot defaults to tee;
   // subsequent shots default to fairway (a safe assumption when chaining
   // — the user adjusts if they're elsewhere).
@@ -42529,6 +42565,14 @@
           updatePenaltyBanner();
         }
       }
+    }
+    // Recompute strokes after any shot OR penalty change. Without
+    // this, a retroactive penalty mark could leave entry.strokes
+    // unchanged even though tracked count grew. Skipped for replay
+    // edits — historical rounds shouldn't have stroke totals
+    // mutated by edit-shot operations.
+    if (!isReplayEdit) {
+      recomputeStrokesFromTracked(holeNumber);
     }
     closeShotEditSheet();
     // Re-render the shots tool so the new/edited shot shows up
@@ -45059,6 +45103,14 @@
       // crash-recovery doesn't re-apply the now-stale scratchpad to the
       // new hole.
       clearScoreScratchpad(roundState.docId);
+      // Sync GPS view if open — score sheet is the source of truth for
+      // hole cursor; GPS follows. The cursor-sync branch inside
+      // transitionRoundGpsToHole no-ops since roundState.holeIndex is
+      // already aligned, but the map animation runs so the GPS view
+      // lands on the right hole.
+      if (roundGpsState.open) {
+        try { transitionRoundGpsToHole(nextUnplayedIdx); } catch (_) {}
+      }
       return;
     }
 
@@ -45125,6 +45177,11 @@
       roundState._holeSlideDirection = 'back';
       animateHoleTransitionOut('back');
       renderRound();
+      // Sync GPS view if open. Cursor sync inside transition no-ops
+      // (already aligned); only the map animation runs.
+      if (roundGpsState.open) {
+        try { transitionRoundGpsToHole(roundState.holeIndex); } catch (_) {}
+      }
     }
   }
   // End the round early — flip to completed if any holes were played,
@@ -64717,6 +64774,60 @@
     if (roundGpsState.advancePromptVisible) {
       hideRoundGpsAdvancePrompt();
     }
+    // Flush dirty scratchpad for the about-to-be-left hole BEFORE
+    // moving the cursor. Mirrors the pattern in holePickerJumpTo +
+    // goPreviousHole. Without this, the scratchpad would still point
+    // at the previous hole and a crash before the next autoSaveRound
+    // flush would lose the in-progress edits.
+    if (isGroupRoundActive()) {
+      const me = getMyGroupRoundPlayer();
+      const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
+      const needsFlush = groupRoundState._dirtyHole != null
+        && groupRoundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
+        if (typeof saveMyGroupScoresNow === 'function') saveMyGroupScoresNow();
+        clearScoreScratchpad(groupRoundState.docId);
+      }
+    } else {
+      const currentHoleNum = course.holes[roundState.holeIndex]?.number;
+      const needsFlush = roundState._dirtyHole != null
+        && roundState._dirtyHole === currentHoleNum;
+      if (needsFlush) {
+        autoSaveRound().catch(err => console.error('Failed to save on GPS hole change:', err));
+        clearScoreScratchpad(roundState.docId);
+      }
+    }
+    // Full cursor sync — GPS hole IS the score sheet hole. Whichever
+    // entry point changes one updates the other so they never diverge.
+    // Without this, GPS prev/next would silently let the cursors drift
+    // (user navigates GPS to hole 7, closes GPS, taps Save & Next, and
+    // the score sheet still on hole 5 saves the wrong hole). The hole
+    // picker + auto-advance paths already update the cursor before
+    // calling here, so this branch no-ops in those cases.
+    if (isGroupRoundActive()) {
+      if (groupRoundState.yourHoleIndex !== holeIndex) {
+        groupRoundState.yourHoleIndex = holeIndex;
+        if (typeof saveGroupRoundCursor === 'function') {
+          try { saveGroupRoundCursor(); } catch (_) {}
+        }
+        // Re-render the panel underneath so when the user closes GPS
+        // they land on the correct hole's scoring view. Render is
+        // cheap and the user can't see it (GPS is full-screen).
+        if (typeof renderGroupRoundPanel === 'function') {
+          try { renderGroupRoundPanel(); } catch (_) {}
+        }
+      }
+    } else {
+      if (roundState.holeIndex !== holeIndex) {
+        roundState.holeIndex = holeIndex;
+        if (typeof saveSoloRoundCursor === 'function') {
+          try { saveSoloRoundCursor(); } catch (_) {}
+        }
+        if (typeof renderRound === 'function') {
+          try { renderRound(); } catch (_) {}
+        }
+      }
+    }
     // Guard: during the hole transition the target gets cleared and
     // re-created, which would normally toggle the set-target button's
     // visibility (briefly hiding it then showing again — visible blink).
@@ -69361,14 +69472,9 @@
       loggedAt: Date.now(),
     });
     syncLegacyPuttFields(holeNum);
-    // Recompute strokes — if the user logged a putt before entering
-    // strokes for the hole, bump strokes to reflect total shots+putts.
-    const entry = ensureEntryForHole(holeNum);
-    const shotCount = getShotsForHole(holeNum).length;
-    const totalStrokes = shotCount + puttList.length;
-    if (entry.strokes == null || entry.strokes < totalStrokes) {
-      entry.strokes = totalStrokes;
-    }
+    // Recompute strokes — bump entry.strokes if needed so the stroke
+    // total reflects actual tracked data (shots + putts + penalties).
+    recomputeStrokesFromTracked(holeNum);
     // Persist — both solo and group rounds have their own save paths.
     if (typeof persistShotChanges === 'function') {
       try { persistShotChanges(); } catch (_) {}
@@ -69709,6 +69815,13 @@
       roundGpsState.pendingDropLng = null;
       updatePenaltyBanner();
     }
+
+    // Bump entry.strokes to match newly tracked data (shots + putts +
+    // penalties). Without this, logging GPS shots leaves entry.strokes
+    // at the par default, so a Save & Next without opening the score
+    // sheet would persist the wrong stroke total. The helper only
+    // bumps UP — manual user entries higher than tracked are preserved.
+    recomputeStrokesFromTracked(holeNum);
 
     // Advance lastShotEnd to the captured end position. Next tap
     // will derive THIS end as that shot's start.
