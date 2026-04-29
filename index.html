@@ -5151,6 +5151,52 @@
      pattern but on a dark map background. The buttons themselves
      reuse .round-tools-btn / .round-save-btn classes from the round
      screen for consistent styling. */
+  /* Live shot tracker — sits between the top info pill and the
+     bottom action bar. Same see-through pill language as the top
+     info bar so they visually pair as the "GPS readout family." */
+  .round-gps-shot-tracker {
+    position: absolute;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: var(--radius-pill);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: #fff;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .round-gps-shot-tracker-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+  }
+  .round-gps-shot-tracker-unit {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.65);
+    margin-right: 2px;
+  }
+  .round-gps-shot-tracker-label {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 4px;
+  }
+
   .round-gps-action-bar {
     position: absolute;
     bottom: 0;
@@ -64328,6 +64374,14 @@
     let wasSnapped = false;
     marker.on('dragstart', () => {
       wasSnapped = false;
+      // Clear the visual snap state from any previous drag that ended
+      // while parked on the pin. The drag handler only toggles the
+      // class on transitions (nowSnapped !== wasSnapped); if we don't
+      // clear the DOM here, a fresh drag that starts AT the pin (where
+      // we're already "snapped") looks fine, but a fresh drag that
+      // starts AWAY from the pin doesn't re-trigger an exit transition
+      // (both sides false) — so the orange tint sticks.
+      el.classList.remove('is-snapped');
       // Collapse any expanded yardage labels — during drag, the
       // breakdown numbers would jitter as the geometry changes.
       // The user can re-expand after drag ends to see updated info.
@@ -65102,6 +65156,7 @@
     refreshRoundGpsPinBtn();
     syncGreenMarkerVisibility();
     updateRoundGpsInfoBar();
+    updateShotTrackerReadout();
     if (roundGpsState.targetActive) {
       updateRoundGpsTargetReadout();
       updateRoundGpsTargetLines();
@@ -65109,6 +65164,44 @@
     // Dispersion overlay may anchor to the pin position when no
     // target is set — keep it in sync as the pin moves.
     updateDispersionOverlay();
+  }
+
+  // Live "from previous shot" readout. Shows yards from the position
+  // where the next shot will start (lastShotEnd — either the tee or
+  // the previous shot's end) to the user's current smoothed position.
+  // Lets the player see how far they've walked up to a shot in real
+  // time without having to log + check.
+  //
+  // Hidden when:
+  //   - No tracker DOM (panel not mounted)
+  //   - No lastShotEnd (no tee set AND no prior shots — first hole, no
+  //     setup. The user hasn't given us a reference)
+  //   - No smoothed user position (no GPS fix yet)
+  //   - User mode isn't 'playing' (planning mode shouldn't show this)
+  function updateShotTrackerReadout() {
+    const tracker = document.getElementById('round-gps-shot-tracker');
+    if (!tracker) return;
+    const userPos = getRoundGpsUserPos();
+    const startPos = roundGpsState.lastShotEnd;
+    if (!userPos || !startPos
+        || roundGpsState.mode !== 'playing'
+        || roundGpsState.holeNumber == null) {
+      tracker.style.display = 'none';
+      return;
+    }
+    const yards = haversineYards(
+      startPos.lat, startPos.lng,
+      userPos.lat, userPos.lng);
+    // Resolve label — "from tee" if no shots yet on this hole,
+    // "from prev" once shots exist (lastShotEnd has advanced past the
+    // tee).
+    const shots = getShotsForHole(roundGpsState.holeNumber) || [];
+    const label = shots.length === 0 ? 'from tee' : 'from prev';
+    const valueEl = document.getElementById('round-gps-shot-tracker-value');
+    const labelEl = document.getElementById('round-gps-shot-tracker-label');
+    if (valueEl) valueEl.textContent = String(Math.round(yards));
+    if (labelEl) labelEl.textContent = label;
+    tracker.style.display = '';
   }
 
   // Show/hide the green-center marker based on whether the user has
@@ -67551,6 +67644,9 @@
         }
       }
     }
+    // Refresh the shot tracker — lastShotEnd just (re)assigned, so the
+    // pill needs to reflect the new reference (or hide if no reference).
+    updateShotTrackerReadout();
   }
 
   // Heuristic for the lie a fresh shot starts on. We can't read the
@@ -68163,6 +68259,10 @@
     // Render shot pins and the connecting line on the map.
     renderRoundGpsShotMarkers();
     refreshRoundGpsActionButton();
+    // Tracker readout now refers to a new previous shot — refresh
+    // immediately so the label flips from "from tee" to "from prev"
+    // and the value resets to ~0 (user is standing on the new shot).
+    updateShotTrackerReadout();
 
     // Consume the committed target — it belonged to THIS shot, now
     // captured. Subsequent shots need their own explicit "Set as
@@ -68204,12 +68304,15 @@
   window.getShotMissContext = getShotMissContext;
 
   // Distance threshold for showing "Set tee" mode on the action button.
-  // Generous enough to cover multi-tee complexes (gold tee can be 50-60y
-  // ahead of black tee) but tight enough that mid-fairway doesn't qualify.
-  // Different from ROUND_GPS_TEE_DETECT_YARDS (which is for auto-advance);
-  // tee-detect is "are you on the next hole's tee" while this is "are you
-  // near YOUR hole's tee complex enough to override the pinned position".
-  const ROUND_GPS_SET_TEE_YARDS = 80;
+  // Generous enough to cover multi-tee complexes — including forward
+  // tees that skip hazards on long par 4s, which can sit 100+ yards
+  // ahead of the championship tee. Tight enough that mid-fairway
+  // doesn't qualify (par 4s are 280y+ from tee to typical lay-up
+  // position, well outside this radius). Different from
+  // ROUND_GPS_TEE_DETECT_YARDS (which is for auto-advance); tee-detect
+  // is "are you on the next hole's tee" while this is "are you near
+  // YOUR hole's tee complex enough to override the pinned position".
+  const ROUND_GPS_SET_TEE_YARDS = 120;
 
   // Decide what the action button should be doing based on context.
   // Returns 'set-tee' when:
@@ -68342,6 +68445,9 @@
     if (typeof persistShotChanges === 'function') {
       try { persistShotChanges(); } catch (_) {}
     }
+    // Tracker now has lastShotEnd set to the tee — refresh so the pill
+    // appears (or updates) immediately.
+    updateShotTrackerReadout();
 
     // Move the tee marker visually so the user sees their override.
     // Critical now that we persist: before, the marker was a
@@ -69491,6 +69597,18 @@
              GPS). Input score opens a bottom sheet hosting a clone of
              the regular round screen's hole card — the user scores
              without ever leaving GPS context. -->
+        <!-- Live "shot tracking" readout — shows distance from the
+             previous shot's start position to the user's current
+             position while they're walking up. Hidden until both a
+             start position (lastShotEnd) and a smoothed user position
+             exist. Updated by refreshDistanceReadouts. -->
+        <div class="round-gps-shot-tracker" id="round-gps-shot-tracker"
+             style="display: none;" aria-live="polite">
+          <span class="round-gps-shot-tracker-value" id="round-gps-shot-tracker-value">—</span>
+          <span class="round-gps-shot-tracker-unit">y</span>
+          <span class="round-gps-shot-tracker-label" id="round-gps-shot-tracker-label">from tee</span>
+        </div>
+
         <!-- Bottom action bar — Tools (secondary), Log Shot (primary
              orange), Score (secondary). Log Shot is the in-play action
              tapped once per shot to capture position. Score remains
@@ -69785,6 +69903,7 @@
             roundGpsState.greenLat, roundGpsState.greenLng);
           subEl.textContent = `Remaining ${Math.round(remaining)}y · ±${Math.round(accuracy)}m`;
         }
+        updateShotTrackerReadout();
         // Auto-advance check still relevant during target planning
         // (user could be on next tee while planning). Wind overlay
         // refresh is cheap.
@@ -69792,6 +69911,7 @@
         return;
       }
       updateRoundGpsInfoBar();
+      updateShotTrackerReadout();
       // Check if user has walked onto a different hole's tee. If so,
       // surface the auto-advance prompt.
       maybeTriggerRoundGpsAutoAdvance();
