@@ -40627,6 +40627,27 @@
     }
     return roundState.shots?.[holeNumber] || [];
   }
+
+  // Convert a shot's array index into its actual stroke number on the
+  // hole, accounting for penalty strokes attributed to preceding
+  // endedInTrouble shots. Each endedInTrouble shot has a penalty
+  // stroke that comes IMMEDIATELY AFTER it in the stroke sequence.
+  //
+  // Example: tee → trouble (shot 0, ends in water) → penalty stroke
+  //          → drop swing (shot 1, afterDrop) → approach (shot 2)
+  //   Indices: 0, 1, 2
+  //   Stroke numbers: 1, 3, 4
+  //
+  // Without this, shot pins would label as 1, 2, 3 — failing to
+  // communicate that 2 strokes were spent before the drop swing.
+  function getShotStrokeNumber(shots, shotIndex) {
+    if (!Array.isArray(shots) || shotIndex < 0) return shotIndex + 1;
+    let penaltiesBefore = 0;
+    for (let i = 0; i < shotIndex; i++) {
+      if (shots[i]?.endedInTrouble) penaltiesBefore++;
+    }
+    return shotIndex + 1 + penaltiesBefore;
+  }
   function ensureShotsForHole(holeNumber, roundOverride) {
     if (roundOverride) {
       if (!roundOverride.shots) roundOverride.shots = {};
@@ -41627,8 +41648,8 @@
           <div class="shot-row" role="button" tabindex="0"
                onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')"
                onkeydown="if(event.key==='Enter'){openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')}"
-               aria-label="Edit shot ${i + 1}">
-            <span class="shot-row-num">${i + 1}</span>
+               aria-label="Edit shot ${getShotStrokeNumber(shots, i)}">
+            <span class="shot-row-num">${getShotStrokeNumber(shots, i)}</span>
             <span class="shot-row-body">
               <span class="shot-row-top">
                 <span class="shot-row-club">${escapeHtml(s.club || 'Club')}</span>
@@ -51165,7 +51186,36 @@
       }
       const shotsForHole = shotsMap[hn] || [];
       const scoreEntry = (round.scores && round.scores[hn]) || {};
-      const puttList = Array.isArray(scoreEntry.puttList) ? scoreEntry.puttList : [];
+      const rawPuttList = Array.isArray(scoreEntry.puttList) ? scoreEntry.puttList : [];
+      // Synthesize a puttList from legacy fields when the structured
+      // puttList is empty. Users who enter score data via the simple
+      // view (just total putts + first putt distance) don't populate
+      // puttList — but their legacy fields contain enough info to
+      // compute first-putt SG + count subsequent putts toward strokes.
+      // Without this synthesis, those rounds were silently excluded
+      // from SG with no good reason.
+      let puttList = rawPuttList;
+      if (rawPuttList.length === 0
+          && typeof scoreEntry.putts === 'number'
+          && scoreEntry.putts > 0) {
+        const firstFt = (typeof scoreEntry.firstPuttFeet === 'number'
+                         && Number.isFinite(scoreEntry.firstPuttFeet))
+          ? scoreEntry.firstPuttFeet
+          : null;
+        // Build a synthetic list of length entry.putts. First entry
+        // carries the known distance; remaining entries have no
+        // distance (the per-putt SG loop handles missing distances by
+        // assuming a ~3ft tap-in for the NEXT-putt fallback, which is
+        // the right default when we just don't know).
+        puttList = [];
+        for (let i = 0; i < scoreEntry.putts; i++) {
+          puttList.push({
+            distanceFt: i === 0 ? firstFt : null,
+            made: i === scoreEntry.putts - 1,  // last putt holed out
+            _synthetic: true,  // diagnostic — marks this as not from GPS
+          });
+        }
+      }
       const reportedStrokes = scoreEntry.strokes;
 
       // Skip holes with no green coordinates — can't compute distance
@@ -51306,12 +51356,40 @@
       // with startLie='green', distance = puttList[i].distanceFt.
       // The afterES for putt N is the expectedStrokes from the start
       // of putt N+1 (or 0 if N is the last putt OR if it was made).
+      //
+      // Distance-missing handling:
+      //   - First putt MUST have distance (anchors all the SG math; no
+      //     distance = no meaningful first-putt SG, hole excluded).
+      //   - Subsequent putts may have null distance (happens with
+      //     synthesized puttLists from legacy fields). Treat as neutral
+      //     SG=0 contributions: they count as strokes but don't move SG
+      //     in either direction. Honest about the data we have.
       for (let i = 0; i < puttList.length; i++) {
         const putt = puttList[i];
         const beforeFt = putt.distanceFt;
+        const isFirstPutt = (i === 0);
         if (typeof beforeFt !== 'number' || !Number.isFinite(beforeFt)) {
-          holeShotsValid = false;
-          break;
+          if (isFirstPutt) {
+            // First putt distance is required — without it we can't
+            // compute first-putt SG, which is the dominant signal in
+            // the putting category.
+            holeShotsValid = false;
+            break;
+          }
+          // Subsequent putt with unknown distance — contribute SG=0
+          // and move on. Still adds to the per-hole stroke count via
+          // the holeContributions push below.
+          holeContributions.push({
+            holeNumber: hn,
+            shotIndex: shotsForHole.length + i,
+            category: 'putt',
+            sg: 0,
+            beforeES: null,
+            afterES: null,
+            startLie: 'green',
+            distFromPin: null,
+          });
+          continue;
         }
         const beforeES = expectedStrokesPutt(beforeFt);
         let afterES;
@@ -51400,15 +51478,25 @@
       const shots = (round.shots && round.shots[hn]) || [];
       const entry = (round.scores && round.scores[hn]) || {};
       const puttList = Array.isArray(entry.puttList) ? entry.puttList : [];
+      const penalties = entry.penalties || 0;
+      const troubleShots = shots.filter(s => s.endedInTrouble).length;
+      const afterDropShots = shots.filter(s => s.afterDrop).length;
+      // Tracked count = shots + putts + penalties (matches the SG
+      // eligibility check). Gap = reportedStrokes - tracked. A gap of
+      // 0 means the hole is eligible; nonzero gap = stroke-mismatch
+      // exclusion.
       return {
         hole: hn,
         par: h.par,
         gpsShots: shots.length,
-        puttListEntries: puttList.length,
-        legacyPuttsCount: entry.putts != null ? entry.putts : '—',
+        puttList: puttList.length,
+        penalties,
+        trouble: troubleShots,
+        afterDrop: afterDropShots,
         reportedStrokes: entry.strokes != null ? entry.strokes : '—',
+        tracked: shots.length + puttList.length + penalties,
         gap: typeof entry.strokes === 'number'
-          ? entry.strokes - shots.length - puttList.length
+          ? entry.strokes - shots.length - puttList.length - penalties
           : '—',
       };
     });
@@ -57902,7 +57990,7 @@
       const hole = course?.holes?.find(h => h.number === holeNum);
       const parStr = hole ? ` · Par ${hole.par}` : '';
       const shotLines = shots[holeNum].map((s, i) => {
-        const num = i + 1;
+        const num = getShotStrokeNumber(shots[holeNum], i);
         const club = s.club || '—';
         const dist = (typeof s.actualYards === 'number' && s.actualYards > 0)
           ? `${Math.round(s.actualYards)}y`
@@ -60833,12 +60921,13 @@
         : '';
       const meta = [club, yards].filter(Boolean).join(' · ') || 'Shot';
       const isActive = (i === activeChipIndex);
+      const strokeNum = getShotStrokeNumber(shots, i);
       return `
         <button class="round-replay-shot-chip${isActive ? ' is-active' : ''}"
                 data-shot-index="${i}"
                 onclick="replayJumpToShot(${i})"
-                aria-label="Jump to shot ${i + 1}${isActive ? ' (current)' : ''}">
-          <span class="round-replay-shot-chip-num">${i + 1}</span>
+                aria-label="Jump to shot ${strokeNum}${isActive ? ' (current)' : ''}">
+          <span class="round-replay-shot-chip-num">${strokeNum}</span>
           <span class="round-replay-shot-chip-text">${escapeHtml(meta)}</span>
         </button>`;
     }).join('');
@@ -60900,7 +60989,7 @@
     // dropped at endLat/Lng. We reuse the same line geometry math
     // as animateReplayShot but skip the per-frame animation.
     for (let i = 0; i <= targetIdx; i++) {
-      drawReplayShotInstantly(shots[i], i + 1);
+      drawReplayShotInstantly(shots[i], getShotStrokeNumber(shots, i));
     }
     // After drawing the full chain, ensure every pin is above every
     // line. Each drawReplayShotInstantly call moves its OWN pin to
@@ -60916,9 +61005,10 @@
     }
     replayState.currentShotIndex = targetIdx + 1;
     // Caption: show the shot's info as if its animation just finished.
+    // Use stroke number (accounts for penalties) rather than array index.
     const lastShot = shots[targetIdx];
     const club = lastShot.club ? formatClubName(lastShot.club) : '';
-    let caption = `Shot ${targetIdx + 1}`;
+    let caption = `Shot ${getShotStrokeNumber(shots, targetIdx)}`;
     if (club) caption += ` · ${club}`;
     if (typeof lastShot.actualYards === 'number') caption += ` · ${Math.round(lastShot.actualYards)}y`;
     setReplayCaption(caption);
@@ -61040,7 +61130,7 @@
       return;
     }
     const shot = shots[idx];
-    animateReplayShot(shot, idx + 1, () => {
+    animateReplayShot(shot, getShotStrokeNumber(shots, idx), () => {
       // After this shot finishes, advance and schedule the next.
       if (!replayState.playing) return;
       replayState.currentShotIndex = idx + 1;
@@ -61413,7 +61503,7 @@
     // stays in "paused" state.
     replayState.playing = true;
     updateReplayChrome();
-    animateReplayShot(shot, idx + 1, () => {
+    animateReplayShot(shot, getShotStrokeNumber(shots, idx), () => {
       replayState.currentShotIndex = idx + 1;
       replayState.playing = false;
       updateReplayChrome();
@@ -70038,7 +70128,11 @@
             type: 'Feature',
             properties: {
               shotId: p.shotId,
-              shotNumber: String(p.shotIndex + 1),
+              // Stroke number, not array index — accounts for penalty
+              // strokes attributed to preceding endedInTrouble shots.
+              // So a drop swing after a trouble tee shot reads "3"
+              // (tee=1, penalty=2, drop=3) rather than "2."
+              shotNumber: String(getShotStrokeNumber(shots, p.shotIndex)),
               // Trouble flag drives circle color via Mapbox data
               // expression below — red for shots that ended in a
               // hazard, normal color otherwise.
