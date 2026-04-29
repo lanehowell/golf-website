@@ -40767,6 +40767,129 @@
     }
   }
 
+  // Derive FIR + GIR from the shots data on a hole. Returns
+  // { fir: true | false | null, gir: true | false | null } where null
+  // means "insufficient evidence" — caller leaves the entry's value
+  // alone in that case.
+  //
+  // FIR (Fairway In Regulation):
+  //   - Par 3: not applicable (no fairway concept on a tee shot to green)
+  //   - Par 4/5: was the first shot's result === 'fairway'?
+  //   - Returns null if no first shot logged or result not classified
+  //
+  // GIR (Green In Regulation):
+  //   - Par 3: ball on green in 1 stroke
+  //   - Par 4: ball on green in 2 strokes
+  //   - Par 5: ball on green in 3 strokes
+  //   - "Strokes" counts shot records PLUS penalty strokes attributed
+  //     to preceding endedInTrouble shots (so a tee-into-water on par 4
+  //     with subsequent drop + approach to green is "3 strokes to
+  //     green" → not GIR for par 4).
+  //   - Returns true if the regulation-numbered shot ended on the green
+  //     (result === 'green'); false if that shot didn't land on green;
+  //     null if there aren't enough shots logged to determine.
+  function deriveStatsFromShots(shots, par) {
+    const result = { fir: null, gir: null };
+    if (!Array.isArray(shots) || shots.length === 0) return result;
+    if (typeof par !== 'number') return result;
+
+    // FIR — first shot's result.
+    const isPar3 = par === 3;
+    if (!isPar3) {
+      const firstShot = shots[0];
+      if (firstShot && firstShot.result) {
+        result.fir = (firstShot.result === 'fairway');
+      }
+      // null preserved if first shot has no result classified
+    }
+
+    // GIR — walk shots accumulating stroke count (shot + any penalty
+    // attached to it). Mark TRUE if any shot at stroke count ≤ regulation
+    // ended on the green. Mark FALSE if we exceed regulation without
+    // finding a green-landing shot. NULL if we run out of shots before
+    // either condition is met (ball still in play, can't determine yet).
+    const regulationStrokes = par - 2;
+    if (regulationStrokes < 1) return result;  // shouldn't happen for valid pars
+
+    let strokeCount = 0;
+    for (let i = 0; i < shots.length; i++) {
+      strokeCount += 1;  // the shot itself
+      const shot = shots[i];
+
+      // Did this shot land on green at stroke ≤ regulation? GIR.
+      if (strokeCount <= regulationStrokes && shot.result === 'green') {
+        result.gir = true;
+        return result;
+      }
+
+      // A shot that ended in trouble carries an implicit +1 penalty
+      // stroke that comes AFTER it. Increment stroke count and check
+      // for over-limit.
+      if (shot.endedInTrouble) {
+        strokeCount += 1;
+      }
+
+      // If we've now exceeded regulation without finding a green-
+      // landing shot, GIR is definitively false.
+      if (strokeCount > regulationStrokes) {
+        result.gir = false;
+        return result;
+      }
+    }
+
+    // Loop ended (ran out of shots) without exceeding regulation AND
+    // without finding a green-landing shot. We can't conclude yet —
+    // the ball might still be in play with shots not yet logged.
+    // Leave result.gir as null.
+
+    return result;
+  }
+
+  // Auto-fill FIR + GIR on the hole's score entry based on derived
+  // shot data. Only fills nulls — manual user entries are preserved.
+  // Called after every shot mutation so the auto-derived values stay
+  // in sync as the user logs.
+  function autoFillStatsFromShots(holeNumber) {
+    if (holeNumber == null) return;
+    const courseId = isGroupRoundActive() ? groupRoundState.doc?.courseId : roundState.courseId;
+    const course = getCourse(courseId);
+    if (!course) return;
+    const hole = course.holes.find(h => h.number === holeNumber);
+    if (!hole) return;
+    const entry = ensureEntryForHole(holeNumber);
+    if (!entry) return;
+    const shots = getShotsForHole(holeNumber);
+    const derived = deriveStatsFromShots(shots, hole.par);
+
+    // FIR: only fill if currently null (preserve manual entries) AND
+    // derivation produced a definitive value. Par 3s never set FIR.
+    // No legacy-fields fallback for FIR — without shot data, we can't
+    // know whether the tee shot landed in the fairway. User must log
+    // shots or manually toggle if they want FIR tracked.
+    if (entry.fir == null && derived.fir != null && hole.par !== 3) {
+      entry.fir = derived.fir;
+    }
+
+    // GIR: prefer shot-derived value; fall back to legacy fields when
+    // shot data is incomplete. Legacy rule: ball reached green in
+    // (strokes - putts) shots. If that's ≤ regulation, GIR. Works for
+    // users who enter scores via simple view only (strokes + putts
+    // manually). entry.strokes already includes any penalty strokes.
+    if (entry.gir == null) {
+      if (derived.gir != null) {
+        entry.gir = derived.gir;
+      } else if (typeof entry.strokes === 'number'
+                 && typeof entry.putts === 'number'
+                 && entry.strokes > 0) {
+        const shotsToGreen = entry.strokes - entry.putts;
+        const regulation = hole.par - 2;
+        if (shotsToGreen >= 1 && regulation >= 1) {
+          entry.gir = (shotsToGreen <= regulation);
+        }
+      }
+    }
+  }
+
   // Smart default for a new shot's startLie. First shot defaults to tee;
   // subsequent shots default to fairway (a safe assumption when chaining
   // — the user adjusts if they're elsewhere).
@@ -42573,6 +42696,7 @@
     // mutated by edit-shot operations.
     if (!isReplayEdit) {
       recomputeStrokesFromTracked(holeNumber);
+      autoFillStatsFromShots(holeNumber);
     }
     closeShotEditSheet();
     // Re-render the shots tool so the new/edited shot shows up
@@ -69475,6 +69599,9 @@
     // Recompute strokes — bump entry.strokes if needed so the stroke
     // total reflects actual tracked data (shots + putts + penalties).
     recomputeStrokesFromTracked(holeNum);
+    // Auto-fill FIR/GIR if derivable from current shot/score data.
+    // Manual entries are preserved; only nulls get filled.
+    autoFillStatsFromShots(holeNum);
     // Persist — both solo and group rounds have their own save paths.
     if (typeof persistShotChanges === 'function') {
       try { persistShotChanges(); } catch (_) {}
@@ -69822,6 +69949,10 @@
     // sheet would persist the wrong stroke total. The helper only
     // bumps UP — manual user entries higher than tracked are preserved.
     recomputeStrokesFromTracked(holeNum);
+    // Auto-fill FIR/GIR from the current shot data. Each shot logged
+    // potentially completes the picture: shot 1's result gives FIR,
+    // and a shot landing on green at/before regulation gives GIR.
+    autoFillStatsFromShots(holeNum);
 
     // Advance lastShotEnd to the captured end position. Next tap
     // will derive THIS end as that shot's start.
