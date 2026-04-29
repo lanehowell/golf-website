@@ -42644,11 +42644,13 @@
         } catch (_) {
           select.scrollIntoView();
         }
-        // Focus the field — opens the picker on most platforms,
-        // prompting the user toward the next action. iOS Safari may
-        // require a user gesture so this might no-op there; the
-        // visual highlight still does the job.
-        try { select.focus({ preventScroll: true }); } catch (_) {}
+        // NOTE: deliberately NOT calling select.focus() here. On iOS
+        // Safari, programmatic focus on a <select> without a user
+        // gesture leaves the element in a weird state where the next
+        // tap gets consumed by an internal blur-refocus dance instead
+        // of opening the native picker. User has to tap, see nothing
+        // happen, then tap again. The visual error highlight is the
+        // cue; the user opens the picker themselves with a real tap.
       }
       if (errorLabel) errorLabel.hidden = false;
       showToast('Pick a club', true);
