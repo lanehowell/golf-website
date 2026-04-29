@@ -23174,6 +23174,17 @@
     color: var(--text-muted);
     font-family: var(--font-mono);
   }
+  /* Format pill — surfaces non-standard formats (Scramble, Best Ball,
+     etc.) so viewers know "this 54 with -17 isn't actually a stroke-play
+     round." Same neutral muted treatment as the Quick pill since both
+     are informational, not achievements. */
+  .feed-card-pill-format {
+    background: var(--color-cream-200);
+    color: var(--text-muted);
+  }
+  html.dark .feed-card-pill-format {
+    background: rgba(255, 255, 255, 0.08);
+  }
 
   /* ── Result block: score + stats as a cohesive unit ───── */
   .feed-card-result {
@@ -34267,6 +34278,52 @@
     }
   }
 
+  // Orphan cleanup — finds rounds in the user's public mirror that
+  // don't exist in their private rounds collection and deletes them.
+  // Stranded public docs can happen if a private round was deleted via
+  // a path that didn't also clean up the public copy (a class of bugs
+  // we've fixed but pre-fix orphans persist). Window-exposed so the
+  // user can run it from console: `cleanupOrphanedPublicRounds()`.
+  // Returns a summary { scanned, orphans, deleted, errors }.
+  window.cleanupOrphanedPublicRounds = async function cleanupOrphanedPublicRounds() {
+    if (!currentUser || !window.fb) {
+      console.warn('[cleanupOrphans] not signed in');
+      return null;
+    }
+    if (!roundsLoaded) {
+      console.warn('[cleanupOrphans] rounds not yet loaded — wait and retry');
+      return null;
+    }
+    const uid = currentUser.uid;
+    let publicRounds = [];
+    try {
+      publicRounds = await window.fb.listPublicRounds(uid, { limit: 200 }) || [];
+    } catch (err) {
+      console.error('[cleanupOrphans] failed to list public rounds:', err);
+      return null;
+    }
+    const privateIds = new Set((recentRounds || []).map(r => r.id));
+    const orphans = publicRounds.filter(r => !privateIds.has(r.id));
+    console.log(`[cleanupOrphans] scanned ${publicRounds.length} public rounds, ${privateIds.size} private rounds, found ${orphans.length} orphans`);
+    if (orphans.length === 0) {
+      return { scanned: publicRounds.length, orphans: 0, deleted: 0, errors: 0 };
+    }
+    let deleted = 0, errors = 0;
+    for (const orphan of orphans) {
+      console.log(`[cleanupOrphans] deleting orphan: ${orphan.id} (${orphan.courseName || 'unknown'}, ${orphan.totals?.strokes || '?'} strokes)`);
+      try {
+        await window.fb.deleteDoc(`publicProfiles/${uid}/rounds/${orphan.id}`);
+        deleted++;
+      } catch (err) {
+        console.error(`[cleanupOrphans] failed to delete ${orphan.id}:`, err);
+        errors++;
+      }
+    }
+    if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+    console.log(`[cleanupOrphans] done. deleted=${deleted}, errors=${errors}`);
+    return { scanned: publicRounds.length, orphans: orphans.length, deleted, errors };
+  };
+
   // User-initiated resync of all public rounds. Primary use case: a user
   // has rounds completed before the bestType feature shipped — those
   // rounds have no bestType in their public mirror, so friends don't
@@ -36776,6 +36833,16 @@
       try {
         await window.fb.deleteDoc(`users/${currentUser.uid}/rounds/${docId}`);
         recentRounds = recentRounds.filter(r => r.id !== docId);
+        // Also clean up the public mirror if it exists. In-progress
+        // rounds aren't normally mirrored, but a round that was once
+        // completed (and therefore mirrored) and is now being deleted
+        // via this path would leave a stranded public copy that shows
+        // up in the social feed. Best-effort delete; safe to call even
+        // if the doc doesn't exist.
+        await window.fb.deleteDoc(`publicProfiles/${currentUser.uid}/rounds/${docId}`).catch(() => {});
+        // Round count + handicap may have changed — refresh public profile.
+        if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+        syncPublicProfile();
       } catch (err) {
         console.error('Failed to delete abandoned round:', err);
       }
@@ -52251,6 +52318,13 @@
     const qsBadge = round.quickScore
       ? '<span class="feed-card-pill feed-card-pill-qs">Quick</span>'
       : '';
+    // Format pill — non-standard rounds (scramble, best ball, alt shot,
+    // casual) get a label so viewers see "this 54 isn't a real 54." Skipped
+    // for 'standard' since stroke play is the unspoken default.
+    const fmt = getRoundFormat(round);
+    const fmtBadge = (fmt && fmt !== 'standard')
+      ? `<span class="feed-card-pill feed-card-pill-format">${escapeHtml(getRoundFormatLabel(round))}</span>`
+      : '';
 
     const hasReplayableShots = roundHasReplayableShots(round);
 
@@ -52267,7 +52341,7 @@
                 <span class="feed-card-author">${escapeHtml(authorName)}</span>
                 ${!isMe && handle ? `<span class="feed-card-handle">@${escapeHtml(handle)}</span>` : ''}
                 <span class="feed-card-time">· ${escapeHtml(timeAgo)}</span>
-                ${feedBestBadge}${qsBadge}
+                ${feedBestBadge}${qsBadge}${fmtBadge}
               </div>
               <div class="feed-card-context">
                 ${escapeHtml(round.courseName || 'Unknown course')}${tee ? ` <span class="feed-card-context-dim">· ${escapeHtml(tee)}</span>` : ''}
