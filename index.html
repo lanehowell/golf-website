@@ -9608,6 +9608,38 @@
     text-align: center;
     font-style: italic;
   }
+  /* Live readout variant — when actual distances are being shown
+     instead of the static "drag pins" hint. Switches off italics,
+     bumps to a more functional mono presentation: a yardage number
+     followed by a small label, optionally paired with a "remaining"
+     readout via a centered separator. */
+  .shot-edit-map-caption.shot-edit-map-caption-live {
+    font-style: normal;
+    color: var(--text-primary);
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .shot-edit-map-caption-metric {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+  .shot-edit-map-caption-metric-label {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .shot-edit-map-caption-sep {
+    color: var(--text-muted);
+    margin: 0 var(--space-1);
+  }
   .shot-edit-label {
     display: flex;
     align-items: baseline;
@@ -15269,6 +15301,32 @@
     border: 1px solid var(--border-light);
     color: var(--text-secondary);
     line-height: 1.2;
+  }
+  /* Tappable shot row variant — used when the shot has GPS coords and
+     can be inspected via the round replay. Adds a chevron column,
+     interactive feedback, and a button-shaped cursor. */
+  .shot-cat-shot-row-tappable {
+    grid-template-columns: 36px 1fr 60px auto 14px;
+    cursor: pointer;
+    transition: background 120ms ease-out, border-color 120ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shot-cat-shot-row-tappable:hover {
+    background: var(--bg-hover, var(--bg-elevated));
+    border-color: var(--border-strong, var(--border-light));
+  }
+  .shot-cat-shot-row-tappable:active {
+    transform: scale(0.99);
+  }
+  .shot-cat-shot-row-tappable:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .shot-cat-shot-chev {
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    text-align: right;
   }
 
   /* ─── Shot Log bottom sheet ─────────────────────────────────
@@ -34095,7 +34153,7 @@
         // private until explicitly opted in.
         const pub = {};
         const PUBLIC_SHOT_FIELDS = [
-          'id', 'club', 'distance', 'distanceActual',
+          'id', 'club', 'distance', 'distanceActual', 'actualYards',
           'startLat', 'startLng', 'endLat', 'endLng',
           'startLie', 'intent', 'result',
           'targetLat', 'targetLng',
@@ -41349,14 +41407,20 @@
         </div>`;
     } else {
       const rows = shots.map((s, i) => {
-        // Distance display — putts use feet (distanceFeet), everything
-        // else uses yards (distance, converted via distanceToDisplay).
-        // Mutually exclusive fields; check both.
+        // Distance display — putts use feet (distanceFeet, manually
+        // entered). For everything else, show actualYards (haversine
+        // of start→end coords; the ball's flight). We don't fall back
+        // to s.distance: that field is "yards to target" at log time
+        // (where the shot was AIMED, not where it went), which would
+        // be misleading. Em dash for shots without GPS-measured
+        // distance — legacy or partial records.
         let distText = '';
         if (typeof s.distanceFeet === 'number') {
           distText = `<span class="shot-row-dist">${s.distanceFeet}<span class="shot-row-unit">ft</span></span>`;
-        } else if (typeof s.distance === 'number') {
-          distText = `<span class="shot-row-dist">${distanceToDisplay(s.distance)}<span class="shot-row-unit">${unit}</span></span>`;
+        } else if (typeof s.actualYards === 'number') {
+          distText = `<span class="shot-row-dist">${distanceToDisplay(s.actualYards)}<span class="shot-row-unit">${unit}</span></span>`;
+        } else {
+          distText = `<span class="shot-row-dist">—</span>`;
         }
         const fromLbl = SHOT_LIE_SHORT[s.startLie] || s.startLie || '—';
         const mishitBadge = (s.mishit && s.mishit !== 'clean')
@@ -41718,6 +41782,10 @@
       duration: 0,
       maxZoom: 18,
     });
+
+    // Initial caption render — shows distances immediately so the
+    // user has a baseline before they start dragging.
+    updateShotEditDistanceCaption();
   }
 
   // Helpers used by drag handlers + initial map render. Read CURRENT
@@ -41763,6 +41831,96 @@
       const src = map.getSource('shot-edit-flight');
       if (src) src.setData(buildShotEditFlightFeature());
     } catch (_) {}
+    // The caption's distance readouts also depend on flight geometry —
+    // refresh them whenever the line redraws.
+    updateShotEditDistanceCaption();
+  }
+
+  // Compute the live distance readouts for the shot being edited.
+  // Returns { shotLength, remaining, remainingLabel } or null when
+  // no useful values can be derived. shotLength is start→end of THIS
+  // shot. remaining is end→nextRef where nextRef resolves in priority:
+  //   1. The next shot's start (chained ball positions)
+  //   2. round.pins[holeNumber] (user-placed pin from this round)
+  //   3. course.holes[hole].greenLat/Lng (course-level green center)
+  //   4. null (no remaining leg shown)
+  function computeShotEditDistances() {
+    const draft = shotEditState.draft;
+    if (!draft) return null;
+    if (typeof draft.startLat !== 'number' || typeof draft.startLng !== 'number'
+        || typeof draft.endLat !== 'number' || typeof draft.endLng !== 'number') {
+      return null;
+    }
+
+    // Shot length: haversine of THIS shot's start → end.
+    const shotLength = haversineYards(
+      draft.startLat, draft.startLng,
+      draft.endLat, draft.endLng);
+
+    // Resolve the reference point for "remaining" — the distance from
+    // this shot's end to where the pin sits on the green. Walk through
+    // the priority list. Note: we deliberately don't use the next
+    // shot's start as a reference, because chain propagation enforces
+    // that shot N's end == shot N+1's start, so the haversine of those
+    // is always 0 — not a useful readout.
+    let remaining = null;
+    let remainingLabel = null;
+    const holeNumber = shotEditState.holeNumber;
+
+    // 1. Persisted pin position from the round (post-round only).
+    {
+      const overrideRound = getEditingRoundOverride();
+      const roundPins = overrideRound?.pins;
+      const pinForHole = roundPins && holeNumber != null
+        ? (roundPins[holeNumber] || roundPins[String(holeNumber)])
+        : null;
+      if (pinForHole && typeof pinForHole.lat === 'number' && typeof pinForHole.lng === 'number') {
+        remaining = haversineYards(
+          draft.endLat, draft.endLng,
+          pinForHole.lat, pinForHole.lng);
+        remainingLabel = 'to pin';
+      }
+    }
+
+    // 2. Course-level green center.
+    if (remaining == null && holeNumber != null) {
+      const overrideRound = getEditingRoundOverride();
+      const courseId = overrideRound?.courseId || roundState.courseId;
+      const course = courseId ? getCourse(courseId) : null;
+      const hole = course?.holes?.find(h => h.number === holeNumber);
+      if (hole && typeof hole.greenLat === 'number' && typeof hole.greenLng === 'number') {
+        remaining = haversineYards(
+          draft.endLat, draft.endLng,
+          hole.greenLat, hole.greenLng);
+        remainingLabel = 'to green';
+      }
+    }
+
+    return { shotLength, remaining, remainingLabel };
+  }
+
+  // Refresh the caption beneath the shot edit map with live distance
+  // readouts. Called on map load AND on every drag tick (via the
+  // updateShotEdit*Line helpers).
+  function updateShotEditDistanceCaption() {
+    const captionEl = document.querySelector('.shot-edit-map-caption');
+    if (!captionEl) return;
+    const data = computeShotEditDistances();
+    if (!data) {
+      // No mappable coords or draft missing — restore static hint.
+      captionEl.innerHTML = 'Drag pins to correct positions · Save to apply';
+      captionEl.classList.remove('shot-edit-map-caption-live');
+      return;
+    }
+    const shotLengthStr = `${Math.round(data.shotLength)}y`;
+    let html = `<span class="shot-edit-map-caption-metric">${shotLengthStr}</span><span class="shot-edit-map-caption-metric-label">shot length</span>`;
+    if (data.remaining != null && data.remainingLabel) {
+      const remStr = `${Math.round(data.remaining)}y`;
+      html += `<span class="shot-edit-map-caption-sep">·</span>`;
+      html += `<span class="shot-edit-map-caption-metric">${remStr}</span><span class="shot-edit-map-caption-metric-label">${data.remainingLabel}</span>`;
+    }
+    captionEl.innerHTML = html;
+    captionEl.classList.add('shot-edit-map-caption-live');
   }
 
   // Update a pin's circle-layer source to follow drag. lng/lat are
@@ -42035,6 +42193,67 @@
         return;
       }
       shots[idx] = { ...shots[idx], ...draft };
+
+      // Propagate boundary coords to neighboring shots so the chain
+      // stays consistent. Shot N's end and shot N+1's start are the
+      // same physical event (where the ball landed = where the next
+      // shot begins from). Propagation runs unconditionally on save:
+      // a no-op when already equal, a repair when they got out of
+      // sync (from edits made before propagation was implemented, or
+      // from any other path that mutated one boundary without the
+      // other). Cheap to do; ensures the invariant holds.
+      const newEndLat = shots[idx].endLat;
+      const newEndLng = shots[idx].endLng;
+      const newStartLat = shots[idx].startLat;
+      const newStartLng = shots[idx].startLng;
+
+      // End → next shot's start (if any).
+      if (typeof newEndLat === 'number' && typeof newEndLng === 'number'
+          && idx < shots.length - 1) {
+        const next = shots[idx + 1];
+        next.startLat = newEndLat;
+        next.startLng = newEndLng;
+        // Recompute next shot's actualYards since its start may have moved.
+        if (typeof next.endLat === 'number' && typeof next.endLng === 'number') {
+          next.actualYards = Math.round(haversineYards(
+            next.startLat, next.startLng,
+            next.endLat, next.endLng));
+          // Miss vector too — only meaningful with a target set.
+          if (typeof next.targetLat === 'number' && typeof next.targetLng === 'number') {
+            const miss = computeShotMissVector(
+              next.startLat, next.startLng,
+              next.targetLat, next.targetLng,
+              next.endLat, next.endLng);
+            if (miss) {
+              next.alongShot = miss.alongShot;
+              next.lateralOffset = miss.lateralOffset;
+            }
+          }
+        }
+      }
+
+      // Start → previous shot's end (if any). Mirror logic.
+      if (typeof newStartLat === 'number' && typeof newStartLng === 'number'
+          && idx > 0) {
+        const prev = shots[idx - 1];
+        prev.endLat = newStartLat;
+        prev.endLng = newStartLng;
+        if (typeof prev.startLat === 'number' && typeof prev.startLng === 'number') {
+          prev.actualYards = Math.round(haversineYards(
+            prev.startLat, prev.startLng,
+            prev.endLat, prev.endLng));
+          if (typeof prev.targetLat === 'number' && typeof prev.targetLng === 'number') {
+            const miss = computeShotMissVector(
+              prev.startLat, prev.startLng,
+              prev.targetLat, prev.targetLng,
+              prev.endLat, prev.endLng);
+            if (miss) {
+              prev.alongShot = miss.alongShot;
+              prev.lateralOffset = miss.lateralOffset;
+            }
+          }
+        }
+      }
     } else {
       shots.push({ id: newShotId(), ...draft });
     }
@@ -43210,7 +43429,17 @@
       girMiss: stored?.girMiss ?? null,
       penalties: stored?.penalties ?? 0,
       firstPuttFeet: stored?.firstPuttFeet ?? null,
+      // puttList — per-putt distance + made/missed entries written by
+      // the Log Putt modal. Must be preserved through rebuilds or any
+      // score sheet interaction (stepper, Save & Next) silently
+      // destroys it. Without this, SG can't compute putt-level
+      // strokes-gained because trackedCount won't include the putts.
+      puttList: Array.isArray(stored?.puttList) ? stored.puttList : undefined,
     };
+    // Strip the puttList key entirely if it's undefined so we don't
+    // litter Firestore docs with explicit-undefined fields (Firestore
+    // rejects those on write). Equivalent shape to "key absent."
+    if (entry.puttList === undefined) delete entry.puttList;
     roundState.scores[hole.number] = entry;
     return { entry, hole, isPar3 };
   }
@@ -50651,8 +50880,27 @@
     for (const hole of course.holes || []) {
       const hn = hole.number;
       const par = hole.par;
-      const greenLat = hole.greenLat;
-      const greenLng = hole.greenLng;
+      // Resolve green coordinates with a fallback chain:
+      //   1. course.holes[i].greenLat/Lng — set by getCourse() merging
+      //      from course.greenCoords (crowd-sourced via Pin Greens).
+      //   2. round.pins[holeNumber] — the per-hole pin position the
+      //      player placed during play. Saved on the round doc at
+      //      completion. Same physical reference (where the flag was)
+      //      so it works for SG distance computations.
+      // Without (2) as a fallback, SG silently excludes every hole on
+      // a course with no greens-pinned-yet, even when the player
+      // diligently placed pins during play.
+      let greenLat = hole.greenLat;
+      let greenLng = hole.greenLng;
+      if ((greenLat == null || greenLng == null) && round.pins) {
+        const roundPin = round.pins[hn] || round.pins[String(hn)];
+        if (roundPin
+            && typeof roundPin.lat === 'number'
+            && typeof roundPin.lng === 'number') {
+          greenLat = roundPin.lat;
+          greenLng = roundPin.lng;
+        }
+      }
       const shotsForHole = shotsMap[hn] || [];
       const scoreEntry = (round.scores && round.scores[hn]) || {};
       const puttList = Array.isArray(scoreEntry.puttList) ? scoreEntry.puttList : [];
@@ -50850,6 +51098,100 @@
       },
     };
   }
+
+  // Debug helper — dumps SG coverage for a round to the console.
+  // Call from the browser dev console: `debugSG()` for the most recent
+  // round, or `debugSG('roundId')` for a specific one. Shows which
+  // holes were excluded and why, plus what data each hole had to work
+  // with. Useful for chasing down "why does SG show 0 of 18?" issues.
+  window.debugSG = function debugSG(roundId) {
+    if (!Array.isArray(recentRounds) || recentRounds.length === 0) {
+      console.log('[debugSG] no rounds in cache');
+      return;
+    }
+    const round = roundId
+      ? recentRounds.find(r => r.id === roundId)
+      : recentRounds[0];
+    if (!round) {
+      console.log('[debugSG] round not found:', roundId);
+      return;
+    }
+    const course = getCourse(round.courseId);
+    if (!course) {
+      console.log('[debugSG] course not found:', round.courseId);
+      return;
+    }
+    console.log('[debugSG] round:', round.id, 'course:', round.courseId);
+    console.log('[debugSG] course.greenCoords:', course.greenCoords);
+    console.log('[debugSG] round.pins:', round.pins);
+    // Per-hole stroke accounting — how many GPS shots, how many putts
+    // in the puttList, what was reported as stroke count, and where
+    // the gap lies. Crucial for diagnosing stroke-mismatch exclusions.
+    console.log('[debugSG] per-hole stroke accounting:');
+    const accounting = (course.holes || []).map(h => {
+      const hn = h.number;
+      const shots = (round.shots && round.shots[hn]) || [];
+      const entry = (round.scores && round.scores[hn]) || {};
+      const puttList = Array.isArray(entry.puttList) ? entry.puttList : [];
+      return {
+        hole: hn,
+        par: h.par,
+        gpsShots: shots.length,
+        puttListEntries: puttList.length,
+        legacyPuttsCount: entry.putts != null ? entry.putts : '—',
+        reportedStrokes: entry.strokes != null ? entry.strokes : '—',
+        gap: typeof entry.strokes === 'number'
+          ? entry.strokes - shots.length - puttList.length
+          : '—',
+      };
+    });
+    console.table(accounting);
+    const sg = computeRoundSG(round, course);
+    if (!sg) {
+      console.log('[debugSG] computeRoundSG returned null');
+      return;
+    }
+    console.log('[debugSG] coverage:', sg.coverage);
+    console.log('[debugSG] excluded breakdown:');
+    const byReason = {};
+    (sg.coverage.excludedHoles || []).forEach(e => {
+      byReason[e.reason] = (byReason[e.reason] || 0) + 1;
+    });
+    console.table(byReason);
+  };
+
+  // Dump raw per-hole score entries for a round. Shows whether the
+  // puttList field is populated, what the legacy putts counter says,
+  // and whether the strokes value is consistent. Useful for diagnosing
+  // why SG can't tie strokes to logged data.
+  window.debugScores = function debugScores(roundId) {
+    if (!Array.isArray(recentRounds) || recentRounds.length === 0) {
+      console.log('[debugScores] no rounds in cache');
+      return;
+    }
+    const round = roundId
+      ? recentRounds.find(r => r.id === roundId)
+      : recentRounds[0];
+    if (!round) {
+      console.log('[debugScores] round not found:', roundId);
+      return;
+    }
+    console.log('[debugScores] round:', round.id);
+    console.log('[debugScores] round.scores (raw):', round.scores);
+    console.log('[debugScores] per-hole entries:');
+    const hns = Object.keys(round.scores || {}).map(Number).sort((a, b) => a - b);
+    for (const hn of hns) {
+      const e = round.scores[hn];
+      const puttListSummary = Array.isArray(e?.puttList)
+        ? `[${e.puttList.length} entries]`
+        : (e?.puttList === undefined ? 'undefined' : JSON.stringify(e.puttList));
+      console.log(
+        `  hole ${hn}: strokes=${e?.strokes}, putts=${e?.putts}, ` +
+        `firstPuttFeet=${e?.firstPuttFeet}, puttList=${puttListSummary}`,
+        e?.puttList
+      );
+    }
+  };
 
   // Aggregate SG across multiple rounds. Used by the Stats page to
   // show per-category averages over a time window. Only rounds with
@@ -56999,14 +57341,41 @@
         <div class="shot-cat-club-list">${clubRows}</div>`;
     }
 
-    // Shot list — per-hole entries
+    // Shot list — per-hole entries. Each row is tappable when the shot
+    // has GPS coords (start + end set), which opens the round replay
+    // scrubbed to that exact shot. Lets the user verify suspect
+    // distances by seeing where the start and end coords landed on
+    // the map.
+    const roundIdEsc = escapeHtml(round.id || '');
     const shotRows = stats.items.map(it => {
       const s = it.shot;
       const dir = resolveShotDirection(s, 'round');
       const con = resolveShotContact(s, 'round');
       const dirTag = dir ? `<span class="shot-cat-shot-tag tag-dir-${dir}">${dir === 'left' ? 'L' : dir === 'right' ? 'R' : 'S'}</span>` : '';
       const conTag = con ? `<span class="shot-cat-shot-tag tag-contact-${con}">${con.charAt(0).toUpperCase()}</span>` : '';
-      const distLabel = (typeof s.distance === 'number' && s.distance > 0) ? `${s.distance}${distanceUnit()}` : '';
+      // Distance display — actualYards (ball-flight, haversine of
+      // start→end). NOT s.distance: that's yards-to-target captured
+      // at log time, which conflates "where I aimed" with "how far
+      // I hit it." Em dash if no GPS-measured distance available
+      // (legacy shots, partial records).
+      const distLabel = (typeof s.actualYards === 'number' && s.actualYards > 0)
+        ? `${Math.round(s.actualYards)}${distanceUnit()}`
+        : '—';
+      const hasGps = typeof s.startLat === 'number' && typeof s.startLng === 'number'
+                  && typeof s.endLat === 'number' && typeof s.endLng === 'number';
+      const shotIdEsc = escapeHtml(s.id || '');
+      if (hasGps && s.id) {
+        return `
+          <div class="shot-cat-shot-row shot-cat-shot-row-tappable" role="button" tabindex="0"
+               onclick="openReplayAtShot('${roundIdEsc}', ${it.holeNumber}, '${shotIdEsc}')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openReplayAtShot('${roundIdEsc}', ${it.holeNumber}, '${shotIdEsc}');}">
+            <div class="shot-cat-shot-hole">H${it.holeNumber}</div>
+            <div class="shot-cat-shot-club">${escapeHtml(s.club || '—')}</div>
+            <div class="shot-cat-shot-distance">${distLabel}</div>
+            <div class="shot-cat-shot-tags">${dirTag}${conTag}</div>
+            <div class="shot-cat-shot-chev" aria-hidden="true">›</div>
+          </div>`;
+      }
       return `
         <div class="shot-cat-shot-row">
           <div class="shot-cat-shot-hole">H${it.holeNumber}</div>
@@ -57153,7 +57522,9 @@
       const shotLines = shots[holeNum].map((s, i) => {
         const num = i + 1;
         const club = s.club || '—';
-        const dist = s.distance != null ? `${s.distance}y` : '—';
+        const dist = (typeof s.actualYards === 'number' && s.actualYards > 0)
+          ? `${Math.round(s.actualYards)}y`
+          : '—';
         const lie = lieLabel(s.startLie);
         const intent = intentLabel(s.intent);
         const result = s.result ? resultLabel(s.result) : '—';
@@ -58228,7 +58599,15 @@
     drawnShotLines: [],
   };
 
-  async function openReplay(roundId) {
+  async function openReplay(roundId, opts) {
+    // opts: { initialHole, initialShotId } — both optional. Used by
+    // the per-shot drill-down (round summary category panel rows) to
+    // scrub the replay directly to a specific shot. Falls back gracefully
+    // if the requested hole/shot isn't in the played set.
+    const initialHole = opts && typeof opts.initialHole === 'number'
+      ? opts.initialHole : null;
+    const initialShotId = opts && typeof opts.initialShotId === 'string'
+      ? opts.initialShotId : null;
     // Resolve round + course before opening — fail fast with a
     // toast if anything's missing rather than render an empty shell.
     let round = null;
@@ -58264,7 +58643,28 @@
     replayState.round = round;
     replayState.course = course;
     replayState.holesPlayed = holesPlayed;
-    replayState.currentHoleIndex = 0;
+    // Resolve initial hole — if caller asked for a specific hole AND
+    // it has GPS shots, jump there. Otherwise start at hole 0.
+    let startHoleIdx = 0;
+    if (initialHole != null) {
+      const idx = holesPlayed.indexOf(initialHole);
+      if (idx >= 0) startHoleIdx = idx;
+    }
+    replayState.currentHoleIndex = startHoleIdx;
+    // Resolve initial shot — use shot ID lookup against the filtered
+    // GPS-shots list so the index is correct regardless of putts-only
+    // entries that get filtered out. Stored as the array index of the
+    // shot itself; replayJumpToShot's +1 offset for the active-chip
+    // highlight is applied later inside that function.
+    let initialShotArrayIdx = null;
+    if (initialShotId != null) {
+      const targetHole = holesPlayed[startHoleIdx];
+      const holeShots = (shotsMap[targetHole] || []).filter(s =>
+        typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+        typeof s.endLat === 'number' && typeof s.endLng === 'number');
+      const found = holeShots.findIndex(s => s.id === initialShotId);
+      if (found >= 0) initialShotArrayIdx = found;
+    }
     replayState.currentShotIndex = 0;
     replayState.playing = false;
     replayState.isPublic = false;
@@ -58279,7 +58679,10 @@
     // out the flex container before we measure its dimensions.
     setTimeout(() => {
       initReplayMap();
-      loadReplayHole(0, { autoPlay: false });
+      loadReplayHole(startHoleIdx, {
+        autoPlay: false,
+        initialShotIndex: initialShotArrayIdx,
+      });
     }, 50);
     // Kick off historical wind fetch in the background — non-blocking.
     // Updates the wind pill once data lands (or stays hidden if the
@@ -58291,6 +58694,17 @@
     }).catch(() => {});
   }
   window.openReplay = openReplay;
+
+  // Thin wrapper used by per-shot drill-down rows in the round summary
+  // category panel. Opens the replay scrubbed to a specific shot by id
+  // so the user can verify GPS coords / distances visually on the map.
+  function openReplayAtShot(roundId, holeNumber, shotId) {
+    return openReplay(roundId, {
+      initialHole: typeof holeNumber === 'number' ? holeNumber : Number(holeNumber),
+      initialShotId: shotId,
+    });
+  }
+  window.openReplayAtShot = openReplayAtShot;
 
   // Variant of openReplay for friends' public rounds. Loads from the
   // publicProfiles mirror (which now includes sanitized shots — see
@@ -58956,7 +59370,7 @@
   }
   window.replayRecenterToHole = replayRecenterToHole;
 
-  function loadReplayHole(idx, { autoPlay = false } = {}) {
+  function loadReplayHole(idx, { autoPlay = false, initialShotIndex = null } = {}) {
     cancelReplayAnimation();
     replayState.currentHoleIndex = idx;
     replayState.currentShotIndex = 0;
@@ -58979,9 +59393,17 @@
     // After the camera settles, render markers + caption + (optionally) auto-play.
     setTimeout(() => {
       renderReplayStaticMarkers(holeNum, framing?.teePos, framing?.holeData);
-      // Caption: "Tap play to watch your X shot[s]" — invitation.
-      setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
-      renderReplayShotList();
+      // If the caller asked us to scrub to a specific shot (deep-link
+      // from a round-summary per-shot tap), jump there. This redraws
+      // shots 0..targetIdx instantly and lights up the matching chip.
+      // Otherwise show the standard "tap play" invitation.
+      if (typeof initialShotIndex === 'number' && initialShotIndex >= 0
+          && initialShotIndex < shots.length) {
+        replayJumpToShot(initialShotIndex);
+      } else {
+        setReplayCaption(`${shots.length} shot${shots.length === 1 ? '' : 's'} this hole — tap play`);
+        renderReplayShotList();
+      }
       if (autoPlay) replayPlay();
     }, 900);
   }
@@ -59329,6 +59751,18 @@
     // as animateReplayShot but skip the per-frame animation.
     for (let i = 0; i <= targetIdx; i++) {
       drawReplayShotInstantly(shots[i], i + 1);
+    }
+    // After drawing the full chain, ensure every pin is above every
+    // line. Each drawReplayShotInstantly call moves its OWN pin to
+    // the top, but then the next iteration adds a fresh line on top
+    // of all existing pins, burying the older ones. Walk all pins
+    // in order so each ends up on top in its proper stacking order.
+    if (map && Array.isArray(replayState.shotEndLayers)) {
+      replayState.shotEndLayers.forEach(({ layerIds }) => {
+        (layerIds || []).forEach(lid => {
+          try { if (map.getLayer(lid)) map.moveLayer(lid); } catch (_) {}
+        });
+      });
     }
     replayState.currentShotIndex = targetIdx + 1;
     // Caption: show the shot's info as if its animation just finished.
