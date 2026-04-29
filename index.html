@@ -43911,7 +43911,13 @@
       entry = roundState.scores?.[holeNum];
     }
     const putts = entry?.putts ?? 0;
-    const expectedShots = Math.max(0, strokes - putts);
+    // Penalty strokes are tracked via entry.penalties, not as GPS shot
+    // records. They're real strokes but they're not swings the user
+    // logged at a position — same accounting category as putts.
+    // Subtract them from the expected shot count to avoid a false
+    // "1 shot not logged" banner on holes with hazard drops.
+    const penalties = entry?.penalties ?? 0;
+    const expectedShots = Math.max(0, strokes - putts - penalties);
 
     // Don't show if no shots logged — user clearly isn't tracking this
     // hole. Also don't show if balanced.
@@ -51478,11 +51484,18 @@
       const shots = (round.shots && round.shots[hn]) || [];
       const entry = (round.scores && round.scores[hn]) || {};
       const puttList = Array.isArray(entry.puttList) ? entry.puttList : [];
+      const legacyPutts = (typeof entry.putts === 'number' && entry.putts > 0)
+        ? entry.putts : 0;
+      // Effective putt count — what SG actually uses. Prefers structured
+      // puttList; falls back to synthesizing from legacy entry.putts
+      // when puttList is empty. This is the value SG eligibility checks
+      // against, so it's what should match the gap math.
+      const effectivePutts = puttList.length > 0 ? puttList.length : legacyPutts;
       const penalties = entry.penalties || 0;
       const troubleShots = shots.filter(s => s.endedInTrouble).length;
       const afterDropShots = shots.filter(s => s.afterDrop).length;
-      // Tracked count = shots + putts + penalties (matches the SG
-      // eligibility check). Gap = reportedStrokes - tracked. A gap of
+      // Tracked count = shots + effective putts + penalties (matches the
+      // SG eligibility check). Gap = reportedStrokes - tracked. A gap of
       // 0 means the hole is eligible; nonzero gap = stroke-mismatch
       // exclusion.
       return {
@@ -51490,13 +51503,15 @@
         par: h.par,
         gpsShots: shots.length,
         puttList: puttList.length,
+        legacyPutts,
+        effPutts: effectivePutts,
         penalties,
         trouble: troubleShots,
         afterDrop: afterDropShots,
         reportedStrokes: entry.strokes != null ? entry.strokes : '—',
-        tracked: shots.length + puttList.length + penalties,
+        tracked: shots.length + effectivePutts + penalties,
         gap: typeof entry.strokes === 'number'
-          ? entry.strokes - shots.length - puttList.length - penalties
+          ? entry.strokes - shots.length - effectivePutts - penalties
           : '—',
       };
     });
