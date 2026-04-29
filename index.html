@@ -10056,6 +10056,18 @@
     border-color: var(--color-success-light);
     color: var(--color-success-light);
   }
+  /* Penalty result — red tint when active. Visually marks "this ended
+     in trouble" vs the surface lies (which are all neutral). */
+  .shot-result-lie-btn.is-penalty.is-active {
+    background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
+  html.dark .shot-result-lie-btn.is-penalty.is-active {
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+    border-color: var(--color-danger-light);
+    color: var(--color-danger-light);
+  }
   /* Empty placeholder — shouldn't exist in our 3x3 (all 9 cells filled)
      but defined defensively in case SHOT_RESULTS ever changes shape. */
   .shot-result-cell-empty { visibility: hidden; }
@@ -40476,6 +40488,12 @@
     { id: 'recovery', label: 'Recovery', short: 'Rec' },
     { id: 'fringe',   label: 'Fringe',   short: 'Frg' },
     { id: 'green',    label: 'Green',    short: 'Grn' },
+    // Penalty — ball ended in a hazard / OB / unplayable. Distinct
+    // from the surface lies above: implies a +1 penalty stroke and
+    // (usually) a drop somewhere new. Picking this on a shot edit
+    // marks the shot endedInTrouble and triggers the drop-capture
+    // flow on save (if conditions allow — see openDropPromptIfNeeded).
+    { id: 'penalty',  label: 'Penalty',  short: 'Pen' },
   ];
 
   // Short labels for the compact shot row. Only start lies — there's
@@ -42252,13 +42270,48 @@
     const replayRoundId = shotEditState.roundId; // capture before close
 
     const shots = ensureShotsForHole(holeNumber, overrideRound);
+    // Track penalty state transitions for reconciliation below. We
+    // need to know whether the user just toggled the result onto or
+    // off of 'penalty' so we can update entry.penalties + the
+    // endedInTrouble flag idempotently.
+    let penaltyTransition = null;  // 'now-penalty' | 'no-longer-penalty' | null
+    let editingShotIndex = -1;
     if (editingId) {
-      const idx = shots.findIndex(s => s.id === editingId);
+      editingShotIndex = shots.findIndex(s => s.id === editingId);
+      if (editingShotIndex !== -1) {
+        const wasPenalty = !!shots[editingShotIndex].endedInTrouble;
+        const willBePenalty = (draft.result === 'penalty');
+        if (!wasPenalty && willBePenalty) penaltyTransition = 'now-penalty';
+        else if (wasPenalty && !willBePenalty) penaltyTransition = 'no-longer-penalty';
+      }
+    } else {
+      // Inserting a brand-new shot. If draft.result === 'penalty', mark
+      // it as a transition so the post-save logic kicks off the drop
+      // flow + bumps penalty count.
+      if (draft.result === 'penalty') penaltyTransition = 'now-penalty';
+    }
+    if (editingId) {
+      const idx = editingShotIndex;
       if (idx === -1) {
         showToast('Shot not found', true);
         return;
       }
       shots[idx] = { ...shots[idx], ...draft };
+      // Apply endedInTrouble flag based on the transition. Without
+      // this, shot edits wouldn't update the visual red pin / the
+      // chain-break behavior when the user retroactively classifies
+      // a shot as ending in a hazard.
+      if (penaltyTransition === 'now-penalty') {
+        shots[idx].endedInTrouble = true;
+        // Default penaltyKind for retroactive marks. Most retro marks
+        // are drop-new (lateral relief) since stroke + distance is
+        // usually a real-time decision. User can refine via re-edit
+        // if needed (or we can offer a kind picker in v2).
+        if (!shots[idx].penaltyKind) shots[idx].penaltyKind = 'drop-new';
+      } else if (penaltyTransition === 'no-longer-penalty') {
+        delete shots[idx].endedInTrouble;
+        delete shots[idx].penaltyKind;
+      }
 
       // Propagate boundary coords to neighboring shots so the chain
       // stays consistent. Shot N's end and shot N+1's start are the
@@ -42328,7 +42381,49 @@
         }
       }
     } else {
-      shots.push({ id: newShotId(), ...draft });
+      const newShot = { id: newShotId(), ...draft };
+      if (draft.result === 'penalty') {
+        newShot.endedInTrouble = true;
+        if (!newShot.penaltyKind) newShot.penaltyKind = 'drop-new';
+      }
+      shots.push(newShot);
+    }
+    // Reconcile entry.penalties + maybe kick off the drop flow.
+    // Driven by the penaltyTransition computed before the merge.
+    if (penaltyTransition && !isReplayEdit) {
+      const entry = ensureEntryForHole(holeNumber);
+      if (entry) {
+        if (penaltyTransition === 'now-penalty') {
+          entry.penalties = (entry.penalties || 0) + 1;
+        } else if (penaltyTransition === 'no-longer-penalty') {
+          entry.penalties = Math.max(0, (entry.penalties || 0) - 1);
+        }
+      }
+      // Trigger drop-capture flow ONLY when conditions allow:
+      //   - Transition is now-penalty (not the inverse)
+      //   - GPS view is open (the flow needs the GPS UI)
+      //   - The edited shot is the LAST shot on the hole (no shots
+      //     after it — otherwise the drop would have happened back
+      //     when the original chain was logged)
+      //   - We're not already mid-penalty-flow (would clobber state)
+      // This means a retroactive penalty mark on an OLD shot just
+      // adjusts data without surprising the user with a drop prompt.
+      if (penaltyTransition === 'now-penalty'
+          && roundGpsState.open
+          && roundGpsState.penaltyMode == null) {
+        const liveShots = ensureShotsForHole(holeNumber);
+        const editedShotIsLast = liveShots.length > 0
+          && liveShots[liveShots.length - 1].id === editingId;
+        if (editedShotIsLast) {
+          // Kick the user into 'awaiting-drop' so the action button
+          // flips to "Drop here". Skip the modal — the user just
+          // explicitly picked Penalty as the result, no need to ask
+          // again. Default to 'drop-new' kind.
+          roundGpsState.penaltyMode = 'awaiting-drop';
+          roundGpsState.penaltyKind = liveShots[liveShots.length - 1].penaltyKind || 'drop-new';
+          updatePenaltyBanner();
+        }
+      }
     }
     closeShotEditSheet();
     // Re-render the shots tool so the new/edited shot shows up
@@ -42528,12 +42623,15 @@
           { id: 'recovery', label: 'Recovery' },
           { id: 'fringe',   label: 'Fringe' },
           { id: 'green',    label: 'Green' },
+          { id: 'penalty',  label: 'Penalty' },
         ].map(opt => {
           const isActive = draft.result === opt.id;
           const isGreen = opt.id === 'green';
+          const isPenalty = opt.id === 'penalty';
+          const extraClass = isGreen ? ' is-green' : (isPenalty ? ' is-penalty' : '');
           return `
             <button type="button"
-                    class="shot-result-lie-btn${isActive ? ' is-active' : ''}${isGreen ? ' is-green' : ''}"
+                    class="shot-result-lie-btn${isActive ? ' is-active' : ''}${extraClass}"
                     onclick="toggleShotDraft('result', '${opt.id}')"
                     aria-label="${escapeAttr(opt.label)}"
                     aria-pressed="${isActive ? 'true' : 'false'}">
