@@ -9425,6 +9425,43 @@
     color: var(--color-cream-300);
     border-color: rgba(255, 255, 255, 0.08);
   }
+  /* Penalty result — red pill so trouble shots are visually obvious
+     in the shot list. Distinct from the gray "miss" treatment because
+     a penalty is meaningfully worse than missing left by 8 yards. */
+  .shot-row-result-penalty {
+    background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+    color: var(--color-danger);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  }
+  html.dark .shot-row-result-penalty {
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+    color: var(--color-danger-light);
+    border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  }
+  /* Drop divider — sits between an afterDrop shot and the previous
+     row, indicating the chain break. Subtle, indented to align with
+     where shot content begins; an arrow icon visually conveys "ball
+     moved off the chain to here." Pure informational; not tappable. */
+  .shot-row-drop-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px var(--space-3);
+    margin-left: var(--space-6);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-style: italic;
+    line-height: 1.2;
+  }
+  .shot-row-drop-icon {
+    color: var(--color-danger);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-sm);
+  }
+  .shot-row-drop-label {
+    letter-spacing: var(--tracking-wide);
+  }
   .shot-row-chevron {
     flex-shrink: 0;
     color: var(--text-muted);
@@ -12428,6 +12465,20 @@
     height: 24px;
     padding: 0 4px;
     border-radius: 50%;
+    position: relative;  /* anchor for .dock-sc-penalty-dot */
+  }
+  /* Penalty dot — small red marker in the corner when this hole had
+     penalty strokes. Same treatment as the round summary scorecard. */
+  .dock-sc-penalty-dot {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    box-shadow: 0 0 0 1.5px var(--bg-card);
+    pointer-events: none;
   }
   /* Score markers — match the player-sheet/solo-round visual language */
   .dock-sc-eagle .dock-sc-strokes-inner {
@@ -15974,6 +16025,21 @@
     height: 24px;
     padding: 0 4px;
     border-radius: 50%;
+    position: relative;  /* anchor for .rs-sc-penalty-dot */
+  }
+  /* Penalty dot — small red marker in the corner of the score cell
+     when this hole had penalty strokes. Sized so it's visible but
+     doesn't compete with the score number for attention. */
+  .rs-sc-penalty-dot {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    box-shadow: 0 0 0 1.5px var(--bg-card);
+    pointer-events: none;
   }
   /* Score markers — eagle (filled orange circle), birdie (orange ring),
      bogey (small rounded square), double+ (square + outline). Mirrors
@@ -34128,6 +34194,11 @@
           'targetLat', 'targetLng',
           'lateralOffset', 'alongShot',
           'pushPull',  // direction tag (push/pull/straight) — public
+          // Penalty / hazard flags — needed so friends viewing public
+          // replays see trouble shots in red + chain breaks at drops.
+          // Without these, the public version misrepresents the round
+          // (every drop shot would look like a continuous chain).
+          'endedInTrouble', 'afterDrop', 'penaltyKind',
         ];
         for (const f of PUBLIC_SHOT_FIELDS) {
           if (shot[f] !== undefined) pub[f] = shot[f];
@@ -41525,8 +41596,15 @@
           'fairway', 'green', 'fringe',      // favorable lies
         ]);
         const isPositiveResult = POSITIVE_RESULTS.has(s.result);
+        const isPenaltyResult = (s.result === 'penalty');
+        // Pick pill variant: penalty (red) > positive (green) > miss (gray).
+        // The penalty pill stands out from the generic miss treatment so
+        // hazard shots are obvious when scanning the shot list.
+        const resultPillVariant = isPenaltyResult
+          ? 'penalty'
+          : (isPositiveResult ? 'on' : 'miss');
         const resultBadge = resultMeta
-          ? `<span class="shot-row-result shot-row-result-${isPositiveResult ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
+          ? `<span class="shot-row-result shot-row-result-${resultPillVariant}">${escapeHtml(resultMeta.short)}</span>`
           : '';
         // Intent chip — display-only on the row. Set/changed via the
         // edit sheet (tap the row). Subtle "Set intent" placeholder
@@ -41540,6 +41618,12 @@
           ? `<span class="shot-row-proximity">→ ${s.proximityFt}ft</span>`
           : '';
         return `
+          ${s.afterDrop && i > 0 ? `
+            <div class="shot-row-drop-divider" aria-label="Drop occurred between these shots">
+              <span class="shot-row-drop-icon" aria-hidden="true">↳</span>
+              <span class="shot-row-drop-label">${s.penaltyKind === 'stroke-distance' ? 'Re-hit (stroke + distance)' : 'Drop'}</span>
+            </div>
+          ` : ''}
           <div class="shot-row" role="button" tabindex="0"
                onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')"
                onkeydown="if(event.key==='Enter'){openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')}"
@@ -43271,7 +43355,8 @@
       }).join('');
       const pars = nineHoles.map(h => `<td class="dock-sc-par">${h.par}</td>`).join('');
       const strokeCells = nineHoles.map(h => {
-        const s = scores[h.number]?.strokes;
+        const e = scores[h.number];
+        const s = e?.strokes;
         if (s == null) return `<td class="dock-sc-strokes dock-sc-empty">—</td>`;
         const diff = s - h.par;
         let cls = '';
@@ -43279,7 +43364,13 @@
         else if (diff === -1) cls = ' dock-sc-birdie';
         else if (diff === 1)  cls = ' dock-sc-bogey';
         else if (diff >= 2)   cls = ' dock-sc-double';
-        return `<td class="dock-sc-strokes${cls}"><span class="dock-sc-strokes-inner">${s}</span></td>`;
+        // Penalty dot — same indicator as the round summary scorecard.
+        // Lets the player see at-a-glance which holes had penalties
+        // while reviewing their scorecard mid-round.
+        const penaltyMark = (e?.penalties && e.penalties > 0)
+          ? `<span class="dock-sc-penalty-dot" aria-label="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}"></span>`
+          : '';
+        return `<td class="dock-sc-strokes${cls}"><span class="dock-sc-strokes-inner">${s}${penaltyMark}</span></td>`;
       }).join('');
       const nineStrokesDisplay = nineStrokes > 0 ? nineStrokes : '—';
       return `
@@ -57874,7 +57965,14 @@
       else if (diff === -1) cls = ' rs-sc-birdie';
       else if (diff === 1)  cls = ' rs-sc-bogey';
       else if (diff >= 2)   cls = ' rs-sc-double';
-      scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}</span></td>`);
+      // Penalty indicator — tiny red dot in the corner of the cell
+      // when this hole had any penalty strokes. Lets the user scan
+      // the scorecard and immediately spot which holes blew up due
+      // to hazards vs which were just bad putting/approach play.
+      const penaltyMark = (e.penalties && e.penalties > 0)
+        ? `<span class="rs-sc-penalty-dot" aria-label="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}"></span>`
+        : '';
+      scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}${penaltyMark}</span></td>`);
     }
     const totalLabel = label === 'Front 9' ? 'Out' : 'In';
     const parTotalCell = `<td class="rs-sc-total rs-sc-par-total">${ninePlayed > 0 ? nineParSum : '—'}</td>`;
@@ -59597,14 +59695,26 @@
     roundEntry.shots.forEach((shot, shotIdx) => {
       const samples = buildShotPathSamples(shot, map);
       if (!samples || samples.length < 2) return;
+      // endedInTrouble drives the per-feature color override below —
+      // trouble shots render in red regardless of the round's score
+      // color, mirroring the in-round + replay treatments.
+      const isTrouble = !!shot.endedInTrouble;
       lineFeatures.push({
         type: 'Feature',
-        properties: { roundId: roundEntry.roundId, shotIdx },
+        properties: {
+          roundId: roundEntry.roundId,
+          shotIdx,
+          endedInTrouble: isTrouble,
+        },
         geometry: { type: 'LineString', coordinates: samples },
       });
       endFeatures.push({
         type: 'Feature',
-        properties: { roundId: roundEntry.roundId, shotIdx },
+        properties: {
+          roundId: roundEntry.roundId,
+          shotIdx,
+          endedInTrouble: isTrouble,
+        },
         geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
       });
     });
@@ -59612,6 +59722,7 @@
     const sourceId = `hh-round-${roundIdx}-${Date.now()}`;
     const lineLayerId = `${sourceId}-lines`;
     const pointLayerId = `${sourceId}-points`;
+    const dangerColor = resolveCssColor('--color-danger', '#E8744A');
     map.addSource(sourceId, {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: lineFeatures },
@@ -59622,7 +59733,12 @@
       source: sourceId,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': color,
+        'line-color': [
+          'case',
+          ['get', 'endedInTrouble'],
+          dangerColor,
+          color,
+        ],
         'line-width': 3,
         'line-opacity': opacity,
       },
@@ -59638,7 +59754,12 @@
       source: endSourceId,
       paint: {
         'circle-radius': 5,
-        'circle-color': color,
+        'circle-color': [
+          'case',
+          ['get', 'endedInTrouble'],
+          dangerColor,
+          color,
+        ],
         'circle-opacity': Math.min(1, opacity + 0.2),
         'circle-stroke-color': '#fff',
         'circle-stroke-width': 1.5,
@@ -59774,6 +59895,12 @@
     if (!map) return;
     const samples = buildShotPathSamples(shot, map);
     if (!samples || samples.length < 2) return;
+    // Override color for trouble shots — render in red regardless of
+    // the round's score-result color, mirroring heatmap + replay
+    // treatments so the visual story is consistent.
+    const effectiveColor = shot.endedInTrouble
+      ? resolveCssColor('--color-danger', '#E8744A')
+      : color;
     const sourceId = `hh-reel-${roundIdx}-${shotIdx}-${Date.now()}`;
     const lineLayerId = `${sourceId}-line`;
     const pointLayerId = `${sourceId}-point`;
@@ -59791,7 +59918,7 @@
       source: sourceId,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': color,
+        'line-color': effectiveColor,
         'line-width': 3.5,
         'line-opacity': 0.9,
       },
@@ -59810,7 +59937,7 @@
       source: `${sourceId}-pt`,
       paint: {
         'circle-radius': 6,
-        'circle-color': color,
+        'circle-color': effectiveColor,
         'circle-opacity': 1,
         'circle-stroke-color': '#fff',
         'circle-stroke-width': 1.5,
@@ -60848,13 +60975,19 @@
           geometry: { type: 'LineString', coordinates: curvePoints },
         },
       });
+      // Trouble shots get a red line — same logic as animateReplayShot,
+      // applied to the instant-draw path used for shot deep-links and
+      // jump-to-shot interactions.
+      const lineColor = shot.endedInTrouble
+        ? resolveCssColor('--color-danger', '#E8744A')
+        : '#FFD600';
       map.addLayer({
         id: lineLayerId,
         type: 'line',
         source: lineSourceId,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#FFD600',
+          'line-color': lineColor,
           'line-width': 2.75,
           'line-opacity': 0.95,
         },
@@ -61021,13 +61154,21 @@
     };
     try {
       map.addSource(lineSourceId, { type: 'geojson', data: initialFeature });
+      // Trouble shots draw the line in red — visual reinforces "this
+      // ended badly" along with the red end-pin. afterDrop shots use
+      // the normal yellow line (the swing itself was normal; only the
+      // chain-context is unusual, and that's communicated by the gap
+      // in the chain).
+      const lineColor = shot.endedInTrouble
+        ? resolveCssColor('--color-danger', '#E8744A')
+        : '#FFD600';
       map.addLayer({
         id: lineLayerId,
         type: 'line',
         source: lineSourceId,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#FFD600',
+          'line-color': lineColor,
           'line-width': 2.75,
           'line-opacity': 0.95,
         },
@@ -61119,20 +61260,28 @@
           geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
         },
       });
-      // Circle: filled yellow with dark stroke. Sized to roughly
-      // match the old DOM marker (22px diameter visual).
+      // Circle: filled yellow with dark stroke (red for trouble shots
+      // — matches the in-round GPS view's red treatment so replay
+      // tells the same visual story). Sized to roughly match the old
+      // DOM marker (22px diameter visual).
+      const isTrouble = !!shot.endedInTrouble;
+      const fillColor = isTrouble
+        ? resolveCssColor('--color-danger', '#E8744A')
+        : '#FFD600';
       map.addLayer({
         id: circleLayerId,
         type: 'circle',
         source: sourceId,
         paint: {
           'circle-radius': 11,
-          'circle-color': '#FFD600',
+          'circle-color': fillColor,
           'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
           'circle-stroke-width': 2,
         },
       });
       // Label: shot number, dark text, centered on the circle.
+      // Halo color tracks the fill so the number stays legible
+      // against either the yellow or the red background.
       map.addLayer({
         id: labelLayerId,
         type: 'symbol',
@@ -61146,8 +61295,10 @@
           'text-anchor': 'center',
         },
         paint: {
-          'text-color': '#1a1a1a',
-          'text-halo-color': 'rgba(255, 214, 0, 0.6)',
+          'text-color': isTrouble ? '#fff' : '#1a1a1a',
+          'text-halo-color': isTrouble
+            ? 'rgba(0, 0, 0, 0.45)'
+            : 'rgba(255, 214, 0, 0.6)',
           'text-halo-width': 0.5,
         },
       });
