@@ -2935,6 +2935,31 @@
     font-weight: var(--weight-semibold);
     color: var(--text-secondary);
   }
+  /* Hole rows that have tracked-shot history get a subtle tappable
+     treatment. The chevron in .hole-num signals "tap for more"; hover
+     darkens the row a touch more than the default tbody hover. Active
+     state gives press feedback. */
+  .scorecard-table tr.hole-row-tappable {
+    cursor: pointer;
+    transition: background-color 120ms ease-out;
+  }
+  .scorecard-table tr.hole-row-tappable:active {
+    background: var(--color-cream-200);
+  }
+  .scorecard-table tr.hole-row-tappable .hole-num {
+    color: var(--color-accent-dark);
+  }
+  .hole-row-history-indicator {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--color-accent);
+    font-weight: var(--weight-bold);
+    font-size: 0.9em;
+    opacity: 0.7;
+  }
+  html.dark .scorecard-table tr.hole-row-tappable .hole-num {
+    color: var(--color-accent);
+  }
   .scorecard-table .hole-par {
     font-family: var(--font-display);
     font-weight: var(--weight-bold);
@@ -4437,7 +4462,7 @@
   .sync-indicator[data-state="error"] {
     background: var(--bg-elevated);
     color: var(--color-accent-dark);
-    border: 1px solid rgba(200, 50, 0, 0.4);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
     cursor: pointer;
     pointer-events: auto;
   }
@@ -7647,7 +7672,7 @@
   .round-card-step-display.score-doublebogey,
   .round-card-step-display.score-over {
     background: var(--bg-danger-tint);
-    border-color: rgba(200, 50, 0, 0.35);
+    border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
   }
   .round-card-step-display.score-doublebogey .round-card-step-tag,
   .round-card-step-display.score-over .round-card-step-tag {
@@ -9107,7 +9132,7 @@
   .rec-cell-par    { /* default neutral */ }
   .rec-cell-bogey  { background: rgba(0, 0, 0, 0.04); }
   html.dark .rec-cell-bogey { background: rgba(255, 255, 255, 0.06); }
-  .rec-cell-over   { background: rgba(200, 50, 0, 0.08); border-color: rgba(200, 50, 0, 0.2); }
+  .rec-cell-over   { background: color-mix(in srgb, var(--color-danger) 8%, transparent); border-color: color-mix(in srgb, var(--color-danger) 20%, transparent); }
 
   /* Action buttons — same shape as finish-sheet options for visual
      consistency. Primary = save (orange), secondary = continue
@@ -9153,12 +9178,12 @@
     border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
   }
   .rec-action-destructive {
-    border-color: rgba(200, 50, 0, 0.25);
+    border-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
   }
   @media (hover: hover) {
     .rec-action-destructive:hover {
-      background: rgba(200, 50, 0, 0.05);
-      border-color: rgba(200, 50, 0, 0.4);
+      background: color-mix(in srgb, var(--color-danger) 5%, transparent);
+      border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
     }
   }
   .rec-action-title {
@@ -10063,7 +10088,7 @@
   .shot-edit-delete {
     padding: var(--space-4) var(--space-5);
     background: transparent;
-    border: 1.5px solid rgba(200, 50, 0, 0.35);
+    border: 1.5px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
     border-radius: var(--radius-lg);
     color: var(--color-danger-dark);
     font-family: var(--font-body);
@@ -10074,7 +10099,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   @media (hover: hover) {
-    .shot-edit-delete:hover { background: rgba(200, 50, 0, 0.08); }
+    .shot-edit-delete:hover { background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
   }
 
   /* ── Putt log modal — focused bottom sheet for logging a single putt.
@@ -15968,7 +15993,215 @@
   body.round-replay-open .training-nav,
   body.round-replay-open .mobile-bottomnav { display: none !important; }
 
-  /* Round-replay fullscreen takeover. The mount lives at body level
+  /* Hole History fullscreen takeover — same model as round-replay-open.
+     Body-level mount; only adopts fullscreen positioning when the body
+     class is set (so the empty mount is invisible / zero-size when
+     closed). */
+  body.hole-history-open #hole-history-mount {
+    position: fixed;
+    inset: 0;
+    z-index: 9300;
+    background: #000;
+    overflow: hidden;
+  }
+  #hole-history-mount {
+    width: 100%;
+    height: 100%;
+  }
+  .hole-history-shell {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  .hole-history-map {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  /* Top bar — hole indicator + close. Same translucent pill language
+     as the in-round GPS info bar so the design family reads consistent. */
+  .hole-history-topbar {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 5;
+    pointer-events: none;
+    gap: 8px;
+  }
+  .hole-history-topbar > * {
+    pointer-events: auto;
+  }
+  .hole-history-close,
+  .hole-history-hole-nav {
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: none;
+    color: #fff;
+    border-radius: var(--radius-pill);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .hole-history-close {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .hole-history-close:active {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .hole-history-hole-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .hole-history-hole-nav-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hole-history-hole-nav-btn:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .hole-history-hole-nav-btn[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .hole-history-hole-nav-label {
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    padding: 0 12px;
+    min-width: 70px;
+    text-align: center;
+    letter-spacing: var(--tracking-wide);
+  }
+  /* Bottom panel — caption + mode toggle. Slides up from the bottom
+     of the screen so the map gets maximum vertical space above. */
+  .hole-history-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.6) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  .hole-history-bottom > * {
+    pointer-events: auto;
+  }
+  .hole-history-caption {
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    line-height: 1.4;
+    max-width: 90%;
+  }
+  .hole-history-caption-empty {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+  }
+  .hole-history-mode-toggle {
+    display: inline-flex;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .hole-history-mode-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+  }
+  .hole-history-mode-btn.is-active {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+  .hole-history-reel-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .hole-history-reel-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hole-history-reel-btn:active {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .hole-history-reel-status {
+    color: rgba(255, 255, 255, 0.85);
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* Round Replay fullscreen takeover. The mount lives at body level
      (so it can escape any panel transforms / containing blocks), but
      it only adopts fullscreen positioning when replay is open. When
      closed, the empty mount is invisible / zero-size. */
@@ -20096,11 +20329,11 @@
     background: var(--color-accent-dark);
     border-color: var(--color-accent-dark);
   }
-  /* Destructive confirm — deeper red-orange for "delete" / "discard" actions */
+  /* Destructive confirm — deeper accent for "delete" / "discard" actions */
   .confirm-btn-confirm.destructive {
     background: var(--color-accent-dark);
     border-color: var(--color-accent-dark);
-    box-shadow: 0 4px 16px rgba(200, 50, 0, 0.25);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-accent-dark) 25%, transparent);
   }
   @media (hover: hover) {
   .confirm-btn-confirm.destructive:hover {
@@ -24188,7 +24421,7 @@
   @media (hover: hover) {
   .bag-remove-btn:hover {
     color: var(--color-accent-dark);
-    border-color: rgba(200, 50, 0, 0.25);
+    border-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
     background: var(--bg-danger-tint);
   }
 }
@@ -26840,6 +27073,13 @@
      mounts. Empty when replay is closed. -->
 <div id="round-replay-mount"></div>
 
+<!-- HOLE HISTORY mount — full-screen view showing every shot the user
+     has logged on a single hole across all rounds. Heat-map mode draws
+     them all together; reel mode plays them in sequence. Tap a shot to
+     jump to that round's full replay. Body-level for same reasons as
+     replay mount above. -->
+<div id="hole-history-mount"></div>
+
 <!-- LOBBY ACTION BAR mount — populated by renderGroupLobby() with the
      fixed bottom Start Round pill (or "Waiting for…" hint). Lives at
      body level for the same reason as the round dock mount: the
@@ -28726,524 +28966,6 @@
           slope: 110
         }
       ]
-    },
-    {
-      id: 'cedar-crest-gc',
-      name: 'Cedar Crest Golf Course',
-      location: 'Dallas, TX',
-      // 1800 Southerland Ave, Dallas, TX 75203
-      // Historic A.W. Tillinghast design (1919), host of the 1927 PGA
-      // Championship. Renovations by D.A. Weibring / Golf Resources, Inc.
-      lat: 32.736,
-      lng: -96.812,
-      // Par 70 (35/35). Scorecard labels front-9 handicap as "Index".
-      holes: [
-        { number: 1,  par: 5, handicap: 2  },
-        { number: 2,  par: 4, handicap: 17 },
-        { number: 3,  par: 3, handicap: 3  },
-        { number: 4,  par: 4, handicap: 6  },
-        { number: 5,  par: 4, handicap: 13 },
-        { number: 6,  par: 3, handicap: 10 },
-        { number: 7,  par: 5, handicap: 9  },
-        { number: 8,  par: 4, handicap: 16 },
-        { number: 9,  par: 3, handicap: 12 },
-        { number: 10, par: 4, handicap: 1  },
-        { number: 11, par: 3, handicap: 4  },
-        { number: 12, par: 4, handicap: 15 },
-        { number: 13, par: 4, handicap: 18 },
-        { number: 14, par: 5, handicap: 8  },
-        { number: 15, par: 3, handicap: 7  },
-        { number: 16, par: 5, handicap: 11 },
-        { number: 17, par: 3, handicap: 5  },
-        { number: 18, par: 4, handicap: 14 }
-      ],
-      tees: [
-        {
-          name: 'Tournament',
-          color: '#a4b5d8',
-          yardages: [611, 362, 206, 467, 402, 185, 552, 315, 180, 482, 226, 358, 408, 551, 211, 561, 221, 428],
-          totalYards: 6726,
-          rating: 73.8,
-          slope: 134
-        },
-        {
-          name: 'Black',
-          color: '#0d0d0d',
-          yardages: [602, 350, 200, 462, 385, 182, 538, 303, 177, 474, 220, 340, 390, 550, 208, 556, 218, 418],
-          totalYards: 6573,
-          rating: 73.2,
-          slope: 132
-        },
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [586, 342, 175, 445, 360, 169, 485, 290, 161, 456, 187, 322, 365, 520, 187, 495, 175, 394],
-          totalYards: 6114,
-          rating: 70.8,
-          slope: 134
-        },
-        {
-          name: 'Silver',
-          color: '#c0c0c0',
-          yardages: [562, 327, 157, 428, 335, 153, 465, 276, 138, 447, 167, 298, 338, 485, 161, 466, 147, 325],
-          totalYards: 5675,
-          rating: 69.1,
-          slope: 125
-        },
-        {
-          name: 'Ruby',
-          color: '#c03030',
-          yardages: [485, 273, 134, 328, 282, 136, 410, 247, 127, 443, 137, 274, 286, 423, 138, 400, 128, 251],
-          totalYards: 4902,
-          rating: 65.2,
-          slope: 112
-        }
-      ]
-    },
-    {
-      id: 'buffalo-creek-gc',
-      name: 'Buffalo Creek Golf Club',
-      location: 'Heath, TX',
-      // 624 Country Club Dr, Heath, TX 75032 — eastern shore of
-      // Lake Ray Hubbard, ~30 min east of downtown Dallas.
-      lat: 32.846,
-      lng: -96.467,
-      // Par 71 (35/36). Tom Weiskopf / Jay Morrish design, opened 1992.
-      holes: [
-        { number: 1,  par: 4, handicap: 9  },
-        { number: 2,  par: 4, handicap: 11 },
-        { number: 3,  par: 5, handicap: 3  },
-        { number: 4,  par: 3, handicap: 15 },
-        { number: 5,  par: 4, handicap: 13 },
-        { number: 6,  par: 4, handicap: 1  },
-        { number: 7,  par: 4, handicap: 7  },
-        { number: 8,  par: 3, handicap: 17 },
-        { number: 9,  par: 4, handicap: 5  },
-        { number: 10, par: 4, handicap: 8  },
-        { number: 11, par: 4, handicap: 10 },
-        { number: 12, par: 3, handicap: 18 },
-        { number: 13, par: 4, handicap: 14 },
-        { number: 14, par: 5, handicap: 12 },
-        { number: 15, par: 4, handicap: 6  },
-        { number: 16, par: 5, handicap: 4  },
-        { number: 17, par: 3, handicap: 16 },
-        { number: 18, par: 4, handicap: 2  }
-      ],
-      tees: [
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [408, 435, 572, 227, 347, 478, 397, 156, 450, 430, 378, 196, 352, 523, 466, 611, 171, 481],
-          totalYards: 7078,
-          rating: 74.9,
-          slope: 132
-        },
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [383, 410, 534, 195, 328, 440, 357, 128, 386, 408, 348, 170, 330, 500, 427, 551, 146, 458],
-          totalYards: 6499,
-          rating: 72.2,
-          slope: 127
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [350, 366, 489, 167, 307, 407, 306, 119, 325, 369, 300, 141, 308, 467, 391, 484, 126, 441],
-          totalYards: 5863,
-          rating: 68.8,
-          slope: 124
-        },
-        {
-          name: 'Green',
-          color: '#4a8c4a',
-          yardages: [298, 313, 451, 141, 253, 368, 270, 103, 291, 336, 264, 102, 284, 428, 350, 445, 105, 407],
-          totalYards: 5209,
-          rating: 66.1,
-          slope: 113
-        }
-      ]
-    },
-    {
-      id: 'keeton-park-gc',
-      name: 'Keeton Park Golf Course',
-      location: 'Dallas, TX',
-      // 2323 N Jim Miller Rd, Dallas, TX 75227. David Bennett design (1979),
-      // Dallas muni, par 72.
-      lat: 32.7821,
-      lng: -96.7025,
-      holes: [
-        { number: 1,  par: 4, handicap: 7  },
-        { number: 2,  par: 3, handicap: 15 },
-        { number: 3,  par: 5, handicap: 1  },
-        { number: 4,  par: 4, handicap: 5  },
-        { number: 5,  par: 4, handicap: 13 },
-        { number: 6,  par: 5, handicap: 3  },
-        { number: 7,  par: 4, handicap: 9  },
-        { number: 8,  par: 3, handicap: 17 },
-        { number: 9,  par: 4, handicap: 11 },
-        { number: 10, par: 4, handicap: 14 },
-        { number: 11, par: 3, handicap: 16 },
-        { number: 12, par: 4, handicap: 10 },
-        { number: 13, par: 5, handicap: 4  },
-        { number: 14, par: 3, handicap: 18 },
-        { number: 15, par: 4, handicap: 2  },
-        { number: 16, par: 4, handicap: 8  },
-        { number: 17, par: 4, handicap: 6  },
-        { number: 18, par: 5, handicap: 12 }
-      ],
-      tees: [
-        {
-          name: 'Black',
-          color: '#0d0d0d',
-          yardages: [390, 171, 563, 382, 344, 561, 402, 172, 405, 382, 177, 362, 500, 164, 440, 420, 410, 513],
-          totalYards: 6758,
-          rating: 72.7,
-          slope: 127
-        },
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [361, 147, 556, 369, 321, 521, 375, 156, 344, 343, 156, 357, 481, 145, 419, 389, 387, 463],
-          totalYards: 6290,
-          rating: 70.5,
-          slope: 123
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [330, 135, 477, 343, 296, 490, 366, 141, 315, 321, 149, 330, 468, 130, 402, 361, 331, 440],
-          totalYards: 5825,
-          rating: 68.7,
-          slope: 115
-        },
-        {
-          name: 'Red',
-          color: '#c03030',
-          yardages: [260, 103, 392, 284, 260, 417, 272, 127, 236, 272, 124, 274, 394, 94, 312, 293, 277, 367],
-          totalYards: 4758,
-          rating: 63.9,
-          slope: 106
-        }
-      ]
-    },
-    {
-      id: 'heritage-ranch-gcc',
-      name: 'Heritage Ranch Golf & Country Club',
-      location: 'Fairview, TX',
-      // Fairview, TX (north DFW). Par 71. The scorecard shows a fourth
-      // set of tees labeled "Bronze..." (truncated) — yardages are a
-      // hybrid of Bronze and Gold values, so we label it "Bronze-Gold".
-      lat: 33.155,
-      lng: -96.615,
-      holes: [
-        { number: 1,  par: 4, handicap: 15 },
-        { number: 2,  par: 4, handicap: 7  },
-        { number: 3,  par: 5, handicap: 1  },
-        { number: 4,  par: 3, handicap: 13 },
-        { number: 5,  par: 4, handicap: 11 },
-        { number: 6,  par: 3, handicap: 17 },
-        { number: 7,  par: 3, handicap: 3  },
-        { number: 8,  par: 5, handicap: 5  },
-        { number: 9,  par: 4, handicap: 9  },
-        { number: 10, par: 4, handicap: 14 },
-        { number: 11, par: 5, handicap: 2  },
-        { number: 12, par: 3, handicap: 18 },
-        { number: 13, par: 4, handicap: 6  },
-        { number: 14, par: 4, handicap: 12 },
-        { number: 15, par: 4, handicap: 16 },
-        { number: 16, par: 3, handicap: 8  },
-        { number: 17, par: 5, handicap: 4  },
-        { number: 18, par: 4, handicap: 10 }
-      ],
-      tees: [
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [388, 406, 524, 210, 443, 173, 133, 571, 403, 385, 535, 182, 448, 388, 356, 208, 547, 433],
-          totalYards: 6733,
-          rating: 72.4,
-          slope: 130
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [353, 383, 501, 192, 396, 156, 133, 534, 386, 358, 506, 160, 422, 362, 327, 182, 519, 398],
-          totalYards: 6268,
-          rating: 70.0,
-          slope: 128
-        },
-        {
-          name: 'Bronze',
-          color: '#cd7f32',
-          yardages: [343, 359, 485, 160, 385, 140, 133, 505, 322, 329, 476, 135, 400, 340, 320, 165, 499, 366],
-          totalYards: 5862,
-          rating: 68.1,
-          slope: 122
-        },
-        {
-          name: 'Bronze-Gold',
-          color: '#d4a855',
-          yardages: [343, 325, 468, 160, 364, 140, 133, 475, 322, 329, 446, 135, 364, 340, 320, 165, 458, 346],
-          totalYards: 5633,
-          rating: 67.1,
-          slope: 120
-        },
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [320, 325, 468, 158, 364, 131, 133, 475, 319, 305, 446, 121, 364, 312, 304, 165, 458, 346],
-          totalYards: 5514,
-          rating: 66.5,
-          slope: 118
-        }
-      ]
-    },
-    {
-      id: 'stone-river-gc',
-      name: 'Stone River Golf Club',
-      location: 'Royse City, TX',
-      // 2001 Stone River Blvd (also 846 FM 2453), Royse City, TX 75189.
-      // Akira Ishikawa design (1997), par 72. East of Dallas.
-      lat: 32.969,
-      lng: -96.307,
-      holes: [
-        { number: 1,  par: 4, handicap: 5  },
-        { number: 2,  par: 4, handicap: 13 },
-        { number: 3,  par: 3, handicap: 15 },
-        { number: 4,  par: 5, handicap: 17 },
-        { number: 5,  par: 3, handicap: 11 },
-        { number: 6,  par: 4, handicap: 3  },
-        { number: 7,  par: 4, handicap: 7  },
-        { number: 8,  par: 4, handicap: 9  },
-        { number: 9,  par: 4, handicap: 1  },
-        { number: 10, par: 4, handicap: 4  },
-        { number: 11, par: 3, handicap: 16 },
-        { number: 12, par: 4, handicap: 12 },
-        { number: 13, par: 4, handicap: 6  },
-        { number: 14, par: 5, handicap: 8  },
-        { number: 15, par: 4, handicap: 18 },
-        { number: 16, par: 5, handicap: 2  },
-        { number: 17, par: 3, handicap: 10 },
-        { number: 18, par: 5, handicap: 14 }
-      ],
-      tees: [
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [366, 318, 156, 510, 215, 405, 390, 366, 380, 415, 140, 343, 356, 541, 288, 590, 173, 480],
-          totalYards: 6432,
-          rating: 70.5,
-          slope: 114
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [337, 301, 122, 485, 175, 365, 360, 326, 357, 395, 123, 324, 310, 501, 271, 513, 143, 465],
-          totalYards: 5873,
-          rating: 67.9,
-          slope: 111
-        },
-        {
-          name: 'Red',
-          color: '#c03030',
-          yardages: [302, 236, 97, 425, 150, 313, 321, 236, 316, 340, 104, 280, 263, 440, 228, 448, 115, 400],
-          totalYards: 5014,
-          rating: 63.8,
-          slope: 104
-        }
-      ]
-    },
-    {
-      id: 'old-brickyard-gc',
-      name: 'Old Brickyard Golf Course',
-      location: 'Ferris, TX',
-      // Ferris, TX (south of Dallas). Par 71.
-      lat: 32.535,
-      lng: -96.665,
-      holes: [
-        { number: 1,  par: 4, handicap: 9  },
-        { number: 2,  par: 5, handicap: 11 },
-        { number: 3,  par: 4, handicap: 17 },
-        { number: 4,  par: 3, handicap: 13 },
-        { number: 5,  par: 5, handicap: 1  },
-        { number: 6,  par: 3, handicap: 15 },
-        { number: 7,  par: 5, handicap: 5  },
-        { number: 8,  par: 3, handicap: 3  },
-        { number: 9,  par: 4, handicap: 7  },
-        { number: 10, par: 5, handicap: 2  },
-        { number: 11, par: 4, handicap: 8  },
-        { number: 12, par: 4, handicap: 4  },
-        { number: 13, par: 3, handicap: 16 },
-        { number: 14, par: 4, handicap: 14 },
-        { number: 15, par: 3, handicap: 18 },
-        { number: 16, par: 4, handicap: 12 },
-        { number: 17, par: 4, handicap: 10 },
-        { number: 18, par: 4, handicap: 6  }
-      ],
-      tees: [
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [368, 501, 359, 172, 562, 184, 468, 207, 332, 553, 348, 419, 177, 364, 136, 396, 348, 399],
-          totalYards: 6293,
-          rating: 70.8,
-          slope: 127
-        },
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [339, 455, 335, 150, 542, 166, 468, 167, 310, 530, 324, 399, 148, 330, 124, 396, 330, 381],
-          totalYards: 5894,
-          rating: 69.5,
-          slope: 122
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [339, 431, 335, 150, 500, 142, 450, 138, 310, 375, 324, 305, 148, 330, 124, 396, 330, 325],
-          totalYards: 5452,
-          rating: 66.9,
-          slope: 116
-        }
-      ]
-    },
-    {
-      id: 'cross-timbers-gc',
-      name: 'Cross Timbers Golf Course',
-      location: 'Azle, TX',
-      // 1181 S Stewart St, Azle, TX 76020. Jeff Brauer design (1995),
-      // par 72. West side of DFW, near Fort Worth.
-      lat: 32.893,
-      lng: -97.537,
-      holes: [
-        { number: 1,  par: 4, handicap: 15 },
-        { number: 2,  par: 4, handicap: 9  },
-        { number: 3,  par: 5, handicap: 3  },
-        { number: 4,  par: 4, handicap: 7  },
-        { number: 5,  par: 4, handicap: 1  },
-        { number: 6,  par: 3, handicap: 11 },
-        { number: 7,  par: 5, handicap: 5  },
-        { number: 8,  par: 4, handicap: 17 },
-        { number: 9,  par: 3, handicap: 13 },
-        { number: 10, par: 4, handicap: 4  },
-        { number: 11, par: 3, handicap: 14 },
-        { number: 12, par: 4, handicap: 12 },
-        { number: 13, par: 4, handicap: 6  },
-        { number: 14, par: 5, handicap: 10 },
-        { number: 15, par: 3, handicap: 18 },
-        { number: 16, par: 4, handicap: 2  },
-        { number: 17, par: 4, handicap: 8  },
-        { number: 18, par: 5, handicap: 16 }
-      ],
-      tees: [
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [351, 378, 562, 420, 468, 229, 575, 332, 165, 372, 165, 345, 385, 404, 519, 220, 340, 504],
-          totalYards: 6734,
-          rating: 73.6,
-          slope: 127
-        },
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [331, 352, 544, 405, 427, 222, 559, 316, 155, 349, 150, 334, 368, 389, 497, 214, 325, 480],
-          totalYards: 6417,
-          rating: 72.1,
-          slope: 124
-        },
-        {
-          name: 'White',
-          color: '#ffffff',
-          yardages: [314, 326, 526, 368, 403, 170, 521, 308, 143, 333, 135, 323, 347, 361, 472, 175, 301, 472],
-          totalYards: 5998,
-          rating: 70.1,
-          slope: 120
-        },
-        {
-          name: 'Red',
-          color: '#c03030',
-          yardages: [243, 286, 380, 326, 349, 209, 481, 265, 120, 246, 125, 204, 323, 336, 414, 135, 220, 435],
-          totalYards: 5097,
-          rating: 65.3,
-          slope: 114
-        }
-      ]
-    },
-    {
-      id: 'waterview-gc',
-      name: 'Waterview Golf Club',
-      location: 'Rowlett, TX',
-      lat: 32.950270,
-      lng: -96.534224,
-      // Par 72. Data sourced from the official Waterview scorecard.
-      // Tee order back-to-forward: Black > Blue > White > Gold.
-      // (Note: Gold is the FORWARD tees here — different from Mesquite,
-      // where Gold is a middle-back tee. Tee names match what's printed
-      // at the course.)
-      holes: [
-        { number: 1,  par: 4, handicap: 3  },
-        { number: 2,  par: 3, handicap: 11 },
-        { number: 3,  par: 5, handicap: 15 },
-        { number: 4,  par: 4, handicap: 1  },
-        { number: 5,  par: 4, handicap: 17 },
-        { number: 6,  par: 5, handicap: 13 },
-        { number: 7,  par: 4, handicap: 9  },
-        { number: 8,  par: 3, handicap: 7  },
-        { number: 9,  par: 4, handicap: 5  },
-        { number: 10, par: 4, handicap: 12 },
-        { number: 11, par: 5, handicap: 6  },
-        { number: 12, par: 3, handicap: 16 },
-        { number: 13, par: 4, handicap: 2  },
-        { number: 14, par: 4, handicap: 18 },
-        { number: 15, par: 5, handicap: 10 },
-        { number: 16, par: 4, handicap: 4  },
-        { number: 17, par: 3, handicap: 14 },
-        { number: 18, par: 4, handicap: 8  }
-      ],
-      tees: [
-        {
-          name: 'Black',
-          color: '#0d0d0d',
-          yardages: [466, 162, 532, 442, 313, 564, 383, 235, 446, 375, 602, 179, 436, 353, 556, 480, 206, 461],
-          totalYards: 7191,
-          rating: 74.5,
-          slope: 133
-        },
-        {
-          name: 'Blue',
-          color: '#1e63d1',
-          yardages: [447, 152, 508, 417, 287, 536, 364, 213, 423, 338, 576, 162, 408, 331, 534, 453, 182, 431],
-          totalYards: 6762,
-          rating: 72.3,
-          slope: 130
-        },
-        {
-          name: 'White',
-          color: '#f5f0e6',
-          yardages: [417, 147, 486, 393, 248, 510, 345, 189, 404, 314, 555, 147, 380, 307, 509, 433, 163, 408],
-          totalYards: 6355,
-          rating: 71.3,
-          slope: 126
-        },
-        {
-          name: 'Gold',
-          color: '#c9a23a',
-          yardages: [387, 122, 463, 366, 220, 483, 326, 161, 381, 277, 525, 142, 344, 285, 486, 410, 141, 387],
-          totalYards: 5906,
-          rating: 68.5,
-          slope: 115
-        },
-        {
-          name: 'Green',
-          color: '#4a7c54',
-          yardages: [350, 112, 435, 338, 199, 462, 306, 142, 359, 260, 493, 136, 317, 259, 456, 374, 121, 353],
-          totalYards: 5472,
-          rating: 66.6,
-          slope: 109
-        }
-      ]
     }
   ];
 
@@ -29381,10 +29103,15 @@
       const existingCurated = pickCuratedCourseFields(existing);
       if (deepEqualJson(curated, existingCurated)) continue;
       // Need to update. Merge seed curated fields with the existing
-      // crowd-sourced data so we don't blow away pins.
+      // crowd-sourced data so we don't blow away pins. lat/lng are
+      // also preserved when present on the existing doc — they're
+      // crowd-correctable via setCourseCenter, so re-running the
+      // seed sync shouldn't stomp on a fix.
       const merged = { ...curated };
       if (existing.greenCoords) merged.greenCoords = existing.greenCoords;
       if (existing.teeBoxes)    merged.teeBoxes    = existing.teeBoxes;
+      if (typeof existing.lat === 'number') merged.lat = existing.lat;
+      if (typeof existing.lng === 'number') merged.lng = existing.lng;
       try {
         await window.fb.upsertCourse(id, merged);
         coursesCache.set(id, { id, ...merged });
@@ -29397,13 +29124,15 @@
 
   // Pick the admin-owned (curated) fields from a course doc. Used for
   // diffing during the seed-sync — we don't want to count
-  // crowd-sourced fields in the "did this change?" check.
+  // crowd-sourced fields in the "did this change?" check. lat/lng are
+  // intentionally NOT in this set: they're crowd-correctable via
+  // setCourseCenter (anyone with eyes on Google Maps can fix a seed
+  // course's bad coords), and re-running the seed sync shouldn't
+  // overwrite a fix.
   function pickCuratedCourseFields(c) {
     return {
       name:     c.name,
       location: c.location,
-      lat:      c.lat,
-      lng:      c.lng,
       holes:    c.holes,
       tees:     c.tees,
     };
@@ -35933,6 +35662,11 @@
       // wouldn't appear on a cold-load — the panel mounts before
       // these caches are populated.
       if (currentPanelId === 'play') renderPlayLanding();
+      // Refresh the "N courses available" count — it was set at parse
+      // time when coursesCache held only the seed array; now that
+      // loadCourses() has populated the full Firestore catalog, the
+      // displayed count needs to update to match.
+      if (typeof updatePlayCoursesCount === 'function') updatePlayCoursesCount();
       // After the one-shot load completes, spin up a live subscription
       // so new invites arriving while the user is online surface
       // without a page refresh.
@@ -36341,13 +36075,45 @@
 
     // Hole-by-hole rows. We render front 9 and back 9 as separate sub-tables
     // so subtotals can sit between them naturally.
-    const holeRow = (h) => `
-      <tr>
-        <td class="hole-num">${h.number}</td>
+    //
+    // Pre-compute which holes have tracked-shot history at this course
+    // so we can highlight them as tappable. A hole has history if any
+    // completed round at this course logged at least one shot with
+    // valid GPS coords on it. Click → opens the per-hole history view
+    // showing all those shots layered together.
+    const historyHoles = new Set();
+    if (Array.isArray(recentRounds)) {
+      for (const r of recentRounds) {
+        if (r.status !== 'completed') continue;
+        if (r.courseId !== course.id) continue;
+        const sm = r.shots || {};
+        for (const hn of Object.keys(sm)) {
+          const arr = sm[hn] || [];
+          if (arr.some(s =>
+              typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+              typeof s.endLat === 'number' && typeof s.endLng === 'number')) {
+            historyHoles.add(Number(hn));
+          }
+        }
+      }
+    }
+    const holeRow = (h) => {
+      const hasHistory = historyHoles.has(h.number);
+      const cls = hasHistory ? ' hole-row-tappable' : '';
+      const onclick = hasHistory
+        ? ` onclick="openHoleHistory('${escapeAttr(course.id)}', ${h.number})"`
+        : '';
+      const indicator = hasHistory
+        ? `<span class="hole-row-history-indicator" title="View hole history" aria-hidden="true">›</span>`
+        : '';
+      return `
+      <tr class="hole-row${cls}"${onclick}>
+        <td class="hole-num">${h.number}${indicator}</td>
         <td class="hole-yards">${tee.yardages[h.number - 1].toLocaleString()}</td>
         <td class="hole-par">${h.par}</td>
         <td class="hole-hcp">${h.handicap}</td>
       </tr>`;
+    };
     const frontRows = course.holes.slice(0, 9).map(holeRow).join('');
     const backRows  = course.holes.slice(9).map(holeRow).join('');
 
@@ -51306,6 +51072,114 @@
     }
   };
 
+  // List which courses can be safely deleted (no rounds reference
+  // them) vs which have round history attached. Used when cleaning up
+  // bad-coord seed courses — courses with rounds need in-place coord
+  // fixes (setCourseCenter) since deleting would orphan the history;
+  // unused courses can be deleted from the Firebase console and
+  // re-imported via the API for clean coords + structured ids.
+  window.unusedCourses = function unusedCourses() {
+    const usage = new Map(); // courseId → round count
+    for (const r of (recentRounds || [])) {
+      if (r.courseId) usage.set(r.courseId, (usage.get(r.courseId) || 0) + 1);
+    }
+    const rows = [];
+    for (const [id, c] of coursesCache.entries()) {
+      const rounds = usage.get(id) || 0;
+      rows.push({
+        id,
+        name: c.name,
+        rounds,
+        verdict: rounds === 0 ? 'safe to delete' : `${rounds} round${rounds === 1 ? '' : 's'} — fix in place`,
+        lat: c.lat,
+        lng: c.lng,
+        mapsUrl: (typeof c.lat === 'number' && typeof c.lng === 'number')
+          ? `https://www.google.com/maps/@${c.lat},${c.lng},17z`
+          : '(no coords)',
+      });
+    }
+    rows.sort((a, b) => a.rounds - b.rounds); // safe-to-delete first
+    console.table(rows);
+  };
+
+  // Inspect a course's stored coords + name + tee data. Generates a
+  // Google Maps URL so you can immediately see whether the coords land
+  // on the actual course or somewhere wildly off (a common problem with
+  // golfcourseapi.com imports — their lat/lng can resolve to a city
+  // centroid or the wrong club). Call from console:
+  //   debugCourse() → lists all courses with quick coord verification
+  //   debugCourse('course-id') → details for one course
+  window.debugCourse = function debugCourse(courseId) {
+    if (!courseId) {
+      console.log('[debugCourse] available courses:');
+      const rows = [];
+      for (const [id, c] of coursesCache.entries()) {
+        rows.push({
+          id,
+          name: c.name,
+          lat: c.lat,
+          lng: c.lng,
+          mapsUrl: (typeof c.lat === 'number' && typeof c.lng === 'number')
+            ? `https://www.google.com/maps/@${c.lat},${c.lng},17z`
+            : '(no coords)',
+        });
+      }
+      console.table(rows);
+      console.log('[debugCourse] tip: pass a course id to see full details, e.g. debugCourse("gca-12345-mesquite-gc")');
+      return;
+    }
+    const c = coursesCache.get(courseId) || COURSES.find(x => x.id === courseId);
+    if (!c) {
+      console.log('[debugCourse] not found:', courseId);
+      return;
+    }
+    console.log('[debugCourse]', courseId);
+    console.log('  name:', c.name);
+    console.log('  location:', c.location);
+    console.log('  lat:', c.lat, 'lng:', c.lng);
+    if (typeof c.lat === 'number' && typeof c.lng === 'number') {
+      console.log(`  google maps: https://www.google.com/maps/@${c.lat},${c.lng},17z`);
+    }
+    console.log('  holes:', (c.holes || []).length);
+    console.log('  tees:', (c.tees || []).map(t => t.name).join(', '));
+    console.log('  greenCoords pinned:', c.greenCoords ? Object.keys(c.greenCoords).length : 0);
+    console.log('  teeBoxes pinned:', c.teeBoxes ? Object.keys(c.teeBoxes).length : 0);
+    console.log('[debugCourse] if coords are wrong, run: setCourseCenter("' + courseId + '", LAT, LNG)');
+  };
+
+  // Manually set a course's center coordinates. Useful when an imported
+  // course has bad lat/lng from the API. Pin Greens, weather, "near me"
+  // sort, and the GPS view's initial framing all depend on these coords
+  // being roughly on the course property. After fixing, the Pin Greens
+  // map will open centered correctly on the next visit.
+  // Usage: setCourseCenter('gca-12345-foo-gc', 32.6974, -96.9783)
+  window.setCourseCenter = async function setCourseCenter(courseId, lat, lng) {
+    if (!courseId || typeof lat !== 'number' || typeof lng !== 'number') {
+      console.log('[setCourseCenter] usage: setCourseCenter(courseId, lat, lng)');
+      return;
+    }
+    if (!window.fb) {
+      console.log('[setCourseCenter] firebase not ready');
+      return;
+    }
+    try {
+      // Use upsertCourse with the merged shape (existing data preserved
+      // by the wrapper's merge semantics — only lat/lng change).
+      const existing = coursesCache.get(courseId);
+      if (!existing) {
+        console.log('[setCourseCenter] course not in cache:', courseId);
+        return;
+      }
+      const merged = { ...existing, lat, lng };
+      await window.fb.upsertCourse(courseId, merged);
+      coursesCache.set(courseId, { id: courseId, ...merged });
+      console.log('[setCourseCenter] updated', courseId, '→ lat:', lat, 'lng:', lng);
+      console.log(`[setCourseCenter] verify: https://www.google.com/maps/@${lat},${lng},17z`);
+    } catch (err) {
+      console.error('[setCourseCenter] failed:', err);
+    }
+  };
+
   // Aggregate SG across multiple rounds. Used by the Stats page to
   // show per-category averages over a time window. Only rounds with
   // valid SG data contribute. Returns:
@@ -58962,6 +58836,738 @@
     if (mount) mount.innerHTML = '';
   }
   window.closeReplay = closeReplay;
+
+  // ─────────────────────────────────────────────────────────────
+  // Hole History — per-hole shot replay across all rounds at a course
+  // ─────────────────────────────────────────────────────────────
+  // Distinct from Round Replay: that animates one round across many holes;
+  // this animates many rounds across ONE hole. Lets the user see every
+  // shot they've ever logged on hole N at course X all together — pattern
+  // recognition (where do my drives tend to go on this hole?) plus
+  // longitudinal storytelling (have I gotten better here over time?).
+  //
+  // Data flow: gather completed rounds at this courseId that have shots
+  // on this holeNumber, sort oldest→newest, render either as heatmap
+  // (everything together, color-coded by score result vs par) or reel
+  // (one round at a time animating, then the next overlays).
+  //
+  // Self-contained — does NOT borrow replayState because that's bound
+  // to one round. We need parallel rendering for many rounds.
+  const holeHistoryState = {
+    open: false,
+    courseId: null,
+    holeNumber: null,
+    course: null,
+    rounds: [],          // completed rounds with shots on this hole, sorted oldest→newest
+    map: null,           // Mapbox instance
+    mode: 'heatmap',     // 'heatmap' | 'reel'
+    layers: [],          // { sourceId, layerIds[] } pairs to clean up between renders
+    markers: [],         // DOM markers (start/end pins)
+    reelTimers: [],      // setTimeout handles for reel animation
+    reelActive: false,
+    reelRoundIndex: 0,
+  };
+
+  // Open the hole-history view for a specific course + hole. Pulls
+  // completed rounds from recentRounds, filters to ones at this course
+  // with shots on this hole, opens the full-screen shell, and renders.
+  async function openHoleHistory(courseId, holeNumber) {
+    if (holeHistoryState.open) return;
+    const course = getCourse(courseId);
+    if (!course) {
+      showToast('Course not found', true);
+      return;
+    }
+    holeHistoryState.open = true;
+    holeHistoryState.courseId = courseId;
+    holeHistoryState.holeNumber = holeNumber;
+    holeHistoryState.course = course;
+    holeHistoryState.mode = 'heatmap';
+    holeHistoryState.rounds = gatherRoundsForHole(courseId, holeNumber);
+    document.body.classList.add('hole-history-open');
+    acquireScrollLock();
+    renderHoleHistoryShell();
+    // First-time map init happens inside renderHoleHistoryShell (it
+    // creates the map element and attaches the Mapbox instance once).
+    // After the map's 'load' event, loadHoleHistoryHole() draws the
+    // shots — see the load handler below.
+  }
+  window.openHoleHistory = openHoleHistory;
+
+  function closeHoleHistory() {
+    if (!holeHistoryState.open) return;
+    cancelHoleHistoryReel();
+    if (holeHistoryState.map) {
+      try { holeHistoryState.map.remove(); } catch (_) {}
+      holeHistoryState.map = null;
+    }
+    holeHistoryState.open = false;
+    holeHistoryState.courseId = null;
+    holeHistoryState.holeNumber = null;
+    holeHistoryState.course = null;
+    holeHistoryState.rounds = [];
+    holeHistoryState.layers = [];
+    holeHistoryState.markers = [];
+    document.body.classList.remove('hole-history-open');
+    releaseScrollLock();
+    const mount = document.getElementById('hole-history-mount');
+    if (mount) mount.innerHTML = '';
+  }
+  window.closeHoleHistory = closeHoleHistory;
+
+  // Gather all completed rounds at this course that have at least one
+  // valid (start+end coords) shot on this hole. Sorted oldest→newest so
+  // the reel plays chronologically and so colors in heatmap mode read
+  // intuitively (older = more transparent).
+  function gatherRoundsForHole(courseId, holeNumber) {
+    if (!Array.isArray(recentRounds)) return [];
+    const out = [];
+    for (const round of recentRounds) {
+      if (round.status !== 'completed') continue;
+      if (round.courseId !== courseId) continue;
+      const shotsAtHole = (round.shots && round.shots[holeNumber]) || [];
+      const validShots = shotsAtHole.filter(s =>
+        typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+        typeof s.endLat === 'number' && typeof s.endLng === 'number');
+      if (validShots.length === 0) continue;
+      out.push({
+        roundId: round.id,
+        round,
+        shots: validShots,
+        startTime: round.startTime || 0,
+        // Strokes for this hole — used to color-code by result. Falls
+        // back to validShots.length if the score sheet has no entry
+        // (rare but defensive).
+        strokes: round.scores?.[holeNumber]?.strokes ?? validShots.length,
+      });
+    }
+    out.sort((a, b) => a.startTime - b.startTime);
+    return out;
+  }
+
+  function renderHoleHistoryShell() {
+    const mount = document.getElementById('hole-history-mount');
+    if (!mount) return;
+    if (mount.querySelector('.hole-history-shell')) {
+      updateHoleHistoryChrome();
+      return;
+    }
+    const { course, holeNumber } = holeHistoryState;
+    const holeData = (course?.holes || []).find(h => h.number === holeNumber);
+    const par = holeData?.par;
+    mount.innerHTML = `
+      <div class="hole-history-shell">
+        <div id="hole-history-map" class="hole-history-map"></div>
+
+        <!-- Top: hole nav + close -->
+        <div class="hole-history-topbar">
+          <button class="hole-history-close" onclick="closeHoleHistory()" aria-label="Close">×</button>
+          <div class="hole-history-hole-nav">
+            <button class="hole-history-hole-nav-btn"
+                    id="hole-history-prev"
+                    onclick="holeHistoryPrev()"
+                    aria-label="Previous hole">‹</button>
+            <span class="hole-history-hole-nav-label" id="hole-history-hole-label">
+              Hole ${holeNumber}${par ? ` · Par ${par}` : ''}
+            </span>
+            <button class="hole-history-hole-nav-btn"
+                    id="hole-history-next"
+                    onclick="holeHistoryNext()"
+                    aria-label="Next hole">›</button>
+          </div>
+        </div>
+
+        <!-- Bottom: caption + mode toggle (+ reel controls when in reel mode) -->
+        <div class="hole-history-bottom">
+          <div class="hole-history-caption" id="hole-history-caption"></div>
+          <div id="hole-history-reel-controls-wrap"></div>
+          <div class="hole-history-mode-toggle">
+            <button class="hole-history-mode-btn is-active"
+                    id="hole-history-mode-heatmap"
+                    onclick="setHoleHistoryMode('heatmap')">All Together</button>
+            <button class="hole-history-mode-btn"
+                    id="hole-history-mode-reel"
+                    onclick="setHoleHistoryMode('reel')">Sequential</button>
+          </div>
+        </div>
+      </div>`;
+    // Init Mapbox. Center is a placeholder — once load fires we'll fit
+    // bounds to the actual hole geometry.
+    if (typeof mapboxgl === 'undefined') {
+      console.warn('[holeHistory] Mapbox not loaded');
+      return;
+    }
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: 'hole-history-map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: [course.lng || 0, course.lat || 0],
+      zoom: 17,
+      minZoom: 14,
+      maxZoom: 19,
+      attributionControl: true,
+    });
+    holeHistoryState.map = map;
+    if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
+    map.on('load', () => {
+      loadHoleHistoryHole();
+    });
+    updateHoleHistoryChrome();
+  }
+
+  // Refresh chrome (caption, hole label, mode toggle states, prev/next
+  // disabled state). Runs on hole nav, mode change, and when rounds
+  // for the current hole are recomputed.
+  function updateHoleHistoryChrome() {
+    const { course, holeNumber, rounds, mode } = holeHistoryState;
+    const holeLabel = document.getElementById('hole-history-hole-label');
+    if (holeLabel) {
+      const holeData = (course?.holes || []).find(h => h.number === holeNumber);
+      const par = holeData?.par;
+      holeLabel.textContent = `Hole ${holeNumber}${par ? ` · Par ${par}` : ''}`;
+    }
+    const totalHoles = course?.holes?.length || 18;
+    const prevBtn = document.getElementById('hole-history-prev');
+    const nextBtn = document.getElementById('hole-history-next');
+    if (prevBtn) prevBtn.disabled = (holeNumber <= 1);
+    if (nextBtn) nextBtn.disabled = (holeNumber >= totalHoles);
+    // Caption — round count + score range. Empty hint if no rounds.
+    const caption = document.getElementById('hole-history-caption');
+    if (caption) {
+      if (rounds.length === 0) {
+        caption.innerHTML = `<span class="hole-history-caption-empty">No tracked shots on this hole yet</span>`;
+      } else {
+        const scores = rounds.map(r => r.strokes).filter(s => typeof s === 'number');
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const rangeStr = (min === max) ? `score ${min}` : `scores ${min}–${max}`;
+        caption.textContent = `${rounds.length} round${rounds.length === 1 ? '' : 's'} · ${rangeStr} · avg ${avg.toFixed(1)}`;
+      }
+    }
+    // Mode toggle active states
+    const heatBtn = document.getElementById('hole-history-mode-heatmap');
+    const reelBtn = document.getElementById('hole-history-mode-reel');
+    if (heatBtn) heatBtn.classList.toggle('is-active', mode === 'heatmap');
+    if (reelBtn) reelBtn.classList.toggle('is-active', mode === 'reel');
+    // Reel controls — only present when in reel mode AND we have rounds
+    const reelWrap = document.getElementById('hole-history-reel-controls-wrap');
+    if (reelWrap) {
+      if (mode === 'reel' && rounds.length > 0) {
+        const idx = holeHistoryState.reelRoundIndex;
+        const r = rounds[idx];
+        const dateStr = r ? formatTimeAgo(r.startTime) : '';
+        reelWrap.innerHTML = `
+          <div class="hole-history-reel-controls">
+            <button class="hole-history-reel-btn"
+                    onclick="holeHistoryReelPrev()"
+                    aria-label="Previous round">‹</button>
+            <span class="hole-history-reel-status">
+              ${idx + 1} of ${rounds.length}${dateStr ? ` · ${escapeHtml(dateStr)}` : ''}
+            </span>
+            <button class="hole-history-reel-btn"
+                    onclick="holeHistoryReelNext()"
+                    aria-label="Next round">›</button>
+          </div>`;
+      } else {
+        reelWrap.innerHTML = '';
+      }
+    }
+  }
+
+  // Navigation between holes. Wraps within course bounds, no skipping.
+  function holeHistoryPrev() {
+    if (holeHistoryState.holeNumber > 1) {
+      navigateHoleHistoryTo(holeHistoryState.holeNumber - 1);
+    }
+  }
+  window.holeHistoryPrev = holeHistoryPrev;
+  function holeHistoryNext() {
+    const total = holeHistoryState.course?.holes?.length || 18;
+    if (holeHistoryState.holeNumber < total) {
+      navigateHoleHistoryTo(holeHistoryState.holeNumber + 1);
+    }
+  }
+  window.holeHistoryNext = holeHistoryNext;
+  function navigateHoleHistoryTo(holeNumber) {
+    holeHistoryState.holeNumber = holeNumber;
+    holeHistoryState.rounds = gatherRoundsForHole(
+      holeHistoryState.courseId, holeNumber);
+    holeHistoryState.reelRoundIndex = 0;
+    updateHoleHistoryChrome();
+    cancelHoleHistoryReel();
+    clearHoleHistoryOverlays();
+    loadHoleHistoryHole();
+  }
+
+  // Mode toggle — switch between heatmap (all shots together) and reel
+  // (sequential per-round playback).
+  function setHoleHistoryMode(mode) {
+    if (holeHistoryState.mode === mode) return;
+    holeHistoryState.mode = mode;
+    holeHistoryState.reelRoundIndex = 0;
+    cancelHoleHistoryReel();
+    clearHoleHistoryOverlays();
+    updateHoleHistoryChrome();
+    loadHoleHistoryHole();
+  }
+  window.setHoleHistoryMode = setHoleHistoryMode;
+
+  // Reel-mode round nav — step through rounds one at a time. Each tap
+  // cancels current animation, advances, and animates the new round.
+  function holeHistoryReelPrev() {
+    if (holeHistoryState.reelRoundIndex > 0) {
+      holeHistoryState.reelRoundIndex--;
+      restartReelAtCurrent();
+    }
+  }
+  window.holeHistoryReelPrev = holeHistoryReelPrev;
+  function holeHistoryReelNext() {
+    if (holeHistoryState.reelRoundIndex < holeHistoryState.rounds.length - 1) {
+      holeHistoryState.reelRoundIndex++;
+      restartReelAtCurrent();
+    }
+  }
+  window.holeHistoryReelNext = holeHistoryReelNext;
+  function restartReelAtCurrent() {
+    cancelHoleHistoryReel();
+    clearHoleHistoryOverlays();
+    updateHoleHistoryChrome();
+    animateReelRound(holeHistoryState.reelRoundIndex);
+  }
+
+  function cancelHoleHistoryReel() {
+    holeHistoryState.reelTimers.forEach(t => clearTimeout(t));
+    holeHistoryState.reelTimers = [];
+    holeHistoryState.reelActive = false;
+  }
+
+  // Frame the map to the hole + render shots. Called after map.load
+  // and after every navigation/mode-change.
+  function loadHoleHistoryHole() {
+    const map = holeHistoryState.map;
+    if (!map) return;
+    const framing = computeHoleHistoryFraming();
+    if (framing) {
+      const cam = map.cameraForBounds(framing.bounds, {
+        padding: { top: 100, bottom: 180, left: 50, right: 50 },
+        bearing: framing.bearing,
+        maxZoom: 17,
+      });
+      if (cam) {
+        map.flyTo({
+          center: cam.center,
+          zoom: cam.zoom,
+          bearing: cam.bearing,
+          duration: 600,
+          essential: true,
+        });
+      }
+    }
+    // Wait for the camera to settle before drawing — same pattern as
+    // round replay. Otherwise map.project() returns stale coords for
+    // any layout-dependent rendering.
+    setTimeout(() => {
+      renderHoleHistoryStaticMarkers(framing);
+      if (holeHistoryState.mode === 'heatmap') {
+        renderHoleHistoryHeatmap();
+      } else {
+        animateReelRound(holeHistoryState.reelRoundIndex);
+      }
+    }, 700);
+  }
+
+  function computeHoleHistoryFraming() {
+    const { course, holeNumber, rounds } = holeHistoryState;
+    if (!course) return null;
+    const holeData = course.holes.find(h => h.number === holeNumber);
+    const bounds = new mapboxgl.LngLatBounds();
+    let hasPoints = false;
+    // All shot start + end coords across ALL rounds.
+    for (const r of rounds) {
+      for (const s of r.shots) {
+        bounds.extend([s.startLng, s.startLat]);
+        bounds.extend([s.endLng, s.endLat]);
+        hasPoints = true;
+      }
+    }
+    // Green coord — use course.greenCoords first, fall back to holeData.
+    let greenLat = null, greenLng = null;
+    const sharedPin = course.greenCoords?.[holeNumber];
+    if (sharedPin && typeof sharedPin.lat === 'number') {
+      greenLat = sharedPin.lat; greenLng = sharedPin.lng;
+    } else if (holeData?.greenLat != null) {
+      greenLat = holeData.greenLat; greenLng = holeData.greenLng;
+    }
+    if (greenLat != null) {
+      bounds.extend([greenLng, greenLat]);
+      hasPoints = true;
+    }
+    // Tee coord — first shot's start of the most recent round, falling
+    // back to course tee position.
+    let teePos = null;
+    if (rounds.length > 0) {
+      const lastRound = rounds[rounds.length - 1];
+      if (lastRound.shots.length > 0) {
+        const s = lastRound.shots[0];
+        teePos = { lat: s.startLat, lng: s.startLng };
+      }
+    }
+    if (!teePos && typeof getTeePosition === 'function' && rounds.length > 0) {
+      const teeName = rounds[rounds.length - 1].round.teeName;
+      teePos = getTeePosition(course, holeNumber, teeName);
+    }
+    if (teePos) {
+      bounds.extend([teePos.lng, teePos.lat]);
+      hasPoints = true;
+    }
+    if (!hasPoints) return null;
+    let bearing = 0;
+    if (teePos && greenLat != null) {
+      bearing = bearingDegrees(teePos.lat, teePos.lng, greenLat, greenLng);
+    }
+    return { bounds, bearing, teePos, greenLat, greenLng };
+  }
+
+  // Tee + green markers — minimal so they don't compete with the shot
+  // visuals. Reuse the GPS view's marker builders if available, else
+  // simple DOM circles.
+  function renderHoleHistoryStaticMarkers(framing) {
+    if (!framing) return;
+    const map = holeHistoryState.map;
+    if (!map) return;
+    if (framing.teePos && typeof buildTeeMarkerEl === 'function') {
+      try {
+        const el = buildTeeMarkerEl();
+        const m = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([framing.teePos.lng, framing.teePos.lat])
+          .addTo(map);
+        holeHistoryState.markers.push(m);
+      } catch (_) {}
+    }
+    if (framing.greenLat != null && typeof buildGreenMarkerEl === 'function') {
+      try {
+        const el = buildGreenMarkerEl();
+        const m = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([framing.greenLng, framing.greenLat])
+          .addTo(map);
+        holeHistoryState.markers.push(m);
+      } catch (_) {}
+    }
+  }
+
+  // Color a round's shots by score result vs par. Eagle/birdie green,
+  // par cream, bogey orange, double+ red. Returns a CSS color string.
+  function holeHistoryColorForRound(roundEntry, par) {
+    if (typeof par !== 'number' || typeof roundEntry?.strokes !== 'number') {
+      return '#cccccc';
+    }
+    const diff = roundEntry.strokes - par;
+    if (diff <= -2) return '#10b981';   // eagle+: emerald
+    if (diff === -1) return '#84cc16';  // birdie: lime
+    if (diff === 0)  return '#f5deb3';  // par: cream
+    if (diff === 1)  return '#f59e0b';  // bogey: amber
+    if (diff === 2)  return '#ef4444';  // double: red
+    return '#b91c1c';                   // worse: dark red
+  }
+
+  // Draw all rounds' shots simultaneously. Each round's shots get
+  // a single color (by score vs par); within a round each shot is
+  // a curved polyline + a small end pin. Shots are tappable — taps
+  // open the round's full replay deep-linked to this hole/shot.
+  function renderHoleHistoryHeatmap() {
+    const { rounds, course, holeNumber } = holeHistoryState;
+    if (rounds.length === 0) return;
+    const map = holeHistoryState.map;
+    if (!map) return;
+    const holeData = course.holes.find(h => h.number === holeNumber);
+    const par = holeData?.par;
+    rounds.forEach((roundEntry, roundIdx) => {
+      const color = holeHistoryColorForRound(roundEntry, par);
+      drawRoundShotsAsLayer(roundEntry, roundIdx, color, /* opacity */ 0.7);
+    });
+  }
+
+  // Draw one round's worth of shots as Mapbox source+layers. Curved
+  // polylines for each shot (using the same bezier sampling as round
+  // replay) + small end pins. Stored on holeHistoryState.layers for
+  // teardown.
+  function drawRoundShotsAsLayer(roundEntry, roundIdx, color, opacity) {
+    const map = holeHistoryState.map;
+    if (!map) return;
+    const lineFeatures = [];
+    const endFeatures = [];
+    roundEntry.shots.forEach((shot, shotIdx) => {
+      const samples = buildShotPathSamples(shot, map);
+      if (!samples || samples.length < 2) return;
+      lineFeatures.push({
+        type: 'Feature',
+        properties: { roundId: roundEntry.roundId, shotIdx },
+        geometry: { type: 'LineString', coordinates: samples },
+      });
+      endFeatures.push({
+        type: 'Feature',
+        properties: { roundId: roundEntry.roundId, shotIdx },
+        geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
+      });
+    });
+    if (lineFeatures.length === 0) return;
+    const sourceId = `hh-round-${roundIdx}-${Date.now()}`;
+    const lineLayerId = `${sourceId}-lines`;
+    const pointLayerId = `${sourceId}-points`;
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: lineFeatures },
+    });
+    map.addLayer({
+      id: lineLayerId,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 3,
+        'line-opacity': opacity,
+      },
+    });
+    const endSourceId = `${sourceId}-end`;
+    map.addSource(endSourceId, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: endFeatures },
+    });
+    map.addLayer({
+      id: pointLayerId,
+      type: 'circle',
+      source: endSourceId,
+      paint: {
+        'circle-radius': 5,
+        'circle-color': color,
+        'circle-opacity': Math.min(1, opacity + 0.2),
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 1.5,
+        'circle-stroke-opacity': 0.85,
+      },
+    });
+    holeHistoryState.layers.push({
+      sourceId,
+      layerIds: [lineLayerId],
+    });
+    holeHistoryState.layers.push({
+      sourceId: endSourceId,
+      layerIds: [pointLayerId],
+    });
+    // Tap on circles → jump to that round's full replay.
+    map.on('click', pointLayerId, (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const roundId = f.properties?.roundId;
+      if (roundId) jumpToRoundReplay(roundId);
+    });
+    map.on('mouseenter', pointLayerId, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', pointLayerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  }
+
+  // Bezier-sample a shot path into N points. Mirrors the curve-sampling
+  // in drawReplayShotInstantly but standalone (so we can render onto
+  // any map, not just replayState.map). Adds a perpendicular control
+  // point proportional to shot length so longer shots arc more.
+  function buildShotPathSamples(shot, map) {
+    if (typeof shot.startLat !== 'number' || typeof shot.startLng !== 'number'
+        || typeof shot.endLat !== 'number' || typeof shot.endLng !== 'number') {
+      return null;
+    }
+    let startPx, endPx;
+    try {
+      startPx = map.project([shot.startLng, shot.startLat]);
+      endPx = map.project([shot.endLng, shot.endLat]);
+    } catch (_) { return null; }
+    const dx = endPx.x - startPx.x;
+    const dy = endPx.y - startPx.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) {
+      // Degenerate — start and end essentially same point. Just
+      // return a 2-point straight line so the layer can render.
+      return [
+        [shot.startLng, shot.startLat],
+        [shot.endLng, shot.endLat],
+      ];
+    }
+    const midPx = { x: (startPx.x + endPx.x) / 2, y: (startPx.y + endPx.y) / 2 };
+    let perpX = -dy / len;
+    let perpY = dx / len;
+    if (perpY > 0) { perpX = -perpX; perpY = -perpY; }
+    const horizFactor = Math.pow(Math.abs(dx) / len, 2);
+    const archMag = Math.min(60, len * 0.14) * horizFactor;
+    const ctrlPx = {
+      x: midPx.x + perpX * archMag,
+      y: midPx.y + perpY * archMag,
+    };
+    const N = 18;
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      if (i === 0) { pts.push([shot.startLng, shot.startLat]); continue; }
+      if (i === N) { pts.push([shot.endLng, shot.endLat]); continue; }
+      const t = i / N;
+      const inv = 1 - t;
+      const px = inv * inv * startPx.x + 2 * inv * t * ctrlPx.x + t * t * endPx.x;
+      const py = inv * inv * startPx.y + 2 * inv * t * ctrlPx.y + t * t * endPx.y;
+      try {
+        const ll = map.unproject([px, py]);
+        pts.push([ll.lng, ll.lat]);
+      } catch (_) {
+        return null;
+      }
+    }
+    return pts;
+  }
+
+  // Animate one round's shots in sequence, then auto-advance to the
+  // next round. User can stop progression by tapping prev/next on the
+  // reel controls. Each shot renders by progressively extending its
+  // line over a short duration.
+  function animateReelRound(roundIdx) {
+    cancelHoleHistoryReel();
+    clearHoleHistoryOverlays();
+    holeHistoryState.reelActive = true;
+    holeHistoryState.reelRoundIndex = roundIdx;
+    updateHoleHistoryChrome();
+    const map = holeHistoryState.map;
+    const { rounds, course, holeNumber } = holeHistoryState;
+    if (!map || rounds.length === 0) return;
+    const roundEntry = rounds[roundIdx];
+    if (!roundEntry) return;
+    const holeData = course.holes.find(h => h.number === holeNumber);
+    const par = holeData?.par;
+    const color = holeHistoryColorForRound(roundEntry, par);
+    // Render this round's shots, one by one, with a small delay between.
+    // Each shot draws as a static line+pin; we don't have per-shot
+    // ball-flight tweening like replay (would be a fun phase 2). For
+    // now, sequential reveal is enough to communicate "watch this round
+    // unfold."
+    const shotDelayMs = 700;  // gap between shots within a round
+    const interRoundDelayMs = 1800; // pause before auto-advance
+    roundEntry.shots.forEach((shot, shotIdx) => {
+      const t = setTimeout(() => {
+        if (!holeHistoryState.reelActive) return;
+        drawSingleShotLayer(shot, color, roundIdx, shotIdx, roundEntry.roundId);
+      }, shotIdx * shotDelayMs);
+      holeHistoryState.reelTimers.push(t);
+    });
+    // After all shots have drawn, schedule auto-advance to the next
+    // round. If this is the last round, leave the view static so the
+    // user can study it.
+    if (roundIdx < rounds.length - 1) {
+      const advanceAt = roundEntry.shots.length * shotDelayMs + interRoundDelayMs;
+      const advanceTimer = setTimeout(() => {
+        if (!holeHistoryState.reelActive) return;
+        animateReelRound(roundIdx + 1);
+      }, advanceAt);
+      holeHistoryState.reelTimers.push(advanceTimer);
+    }
+  }
+
+  // Draw one shot's line + end pin onto the map. Standalone variant
+  // of drawRoundShotsAsLayer for single-shot rendering during the reel.
+  function drawSingleShotLayer(shot, color, roundIdx, shotIdx, roundId) {
+    const map = holeHistoryState.map;
+    if (!map) return;
+    const samples = buildShotPathSamples(shot, map);
+    if (!samples || samples.length < 2) return;
+    const sourceId = `hh-reel-${roundIdx}-${shotIdx}-${Date.now()}`;
+    const lineLayerId = `${sourceId}-line`;
+    const pointLayerId = `${sourceId}-point`;
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: { roundId, shotIdx },
+        geometry: { type: 'LineString', coordinates: samples },
+      },
+    });
+    map.addLayer({
+      id: lineLayerId,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 3.5,
+        'line-opacity': 0.9,
+      },
+    });
+    map.addSource(`${sourceId}-pt`, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: { roundId, shotIdx },
+        geometry: { type: 'Point', coordinates: [shot.endLng, shot.endLat] },
+      },
+    });
+    map.addLayer({
+      id: pointLayerId,
+      type: 'circle',
+      source: `${sourceId}-pt`,
+      paint: {
+        'circle-radius': 6,
+        'circle-color': color,
+        'circle-opacity': 1,
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 1.5,
+      },
+    });
+    holeHistoryState.layers.push({ sourceId, layerIds: [lineLayerId] });
+    holeHistoryState.layers.push({ sourceId: `${sourceId}-pt`, layerIds: [pointLayerId] });
+    // Tap → jump to that round's full replay.
+    map.on('click', pointLayerId, () => {
+      jumpToRoundReplay(roundId);
+    });
+    map.on('mouseenter', pointLayerId, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', pointLayerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  }
+
+  // Strip all overlay layers from the map. Called between hole/mode
+  // changes so previous renders don't bleed over.
+  function clearHoleHistoryOverlays() {
+    const map = holeHistoryState.map;
+    if (!map) {
+      holeHistoryState.layers = [];
+      holeHistoryState.markers = [];
+      return;
+    }
+    (holeHistoryState.layers || []).forEach(({ sourceId, layerIds }) => {
+      (layerIds || []).forEach(lid => {
+        try { if (map.getLayer(lid)) map.removeLayer(lid); } catch (_) {}
+      });
+      try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch (_) {}
+    });
+    holeHistoryState.layers = [];
+    (holeHistoryState.markers || []).forEach(m => {
+      try { m.remove(); } catch (_) {}
+    });
+    holeHistoryState.markers = [];
+  }
+
+  // Tap-on-shot deep link — close hole history, open round replay
+  // scoped to this hole (and optionally this specific shot).
+  function jumpToRoundReplay(roundId) {
+    const holeNumber = holeHistoryState.holeNumber;
+    closeHoleHistory();
+    if (typeof openReplay === 'function') {
+      // Pass the hole number through openReplay's opts so it lands
+      // on the right hole. The deep-link wiring for hole-level was
+      // added in a previous session.
+      openReplay(roundId, { initialHole: holeNumber });
+    }
+  }
+  window.jumpToRoundReplay = jumpToRoundReplay;
 
   function renderReplayShell() {
     const mount = document.getElementById('round-replay-mount');
