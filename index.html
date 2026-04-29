@@ -10107,6 +10107,172 @@
      shot on this hole landed on the green. Captures distance + made/
      missed in one tap-light flow. Mirrors shot-edit-sheet structure:
      fade-in backdrop, slide-up sheet from the bottom edge. */
+  /* PENALTY MODAL — bottom sheet, mirrors putt-log-sheet visual
+     language. Three primary buttons stacked vertically: drop new,
+     stroke + distance, cancel. */
+  .penalty-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-dropdown) + 25);
+    background: rgba(13, 13, 13, 0.55);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .penalty-modal-backdrop.opening,
+  .penalty-modal-backdrop.closing { opacity: 0; }
+  .penalty-modal-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-dropdown) + 26);
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .penalty-modal-sheet.opening,
+  .penalty-modal-sheet.closing { transform: translateY(100%); }
+  /* When GPS panel is open, lift z-index so modal sits above the map */
+  body.round-gps-open .penalty-modal-backdrop { z-index: 9485; }
+  body.round-gps-open .penalty-modal-sheet    { z-index: 9495; }
+  .penalty-modal-header {
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .penalty-modal-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-danger);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    margin-bottom: var(--space-1);
+  }
+  .penalty-modal-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .penalty-modal-body {
+    padding: var(--space-4) var(--space-5);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+  .penalty-modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: 0 var(--space-5) var(--space-4);
+  }
+  .penalty-modal-option {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-medium);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .penalty-modal-option:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-pale);
+  }
+  .penalty-modal-option-label {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+  }
+  .penalty-modal-option-desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .penalty-modal-cancel {
+    margin: 0 var(--space-5) var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-light);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+  }
+  .penalty-modal-cancel:hover {
+    color: var(--text-primary);
+    border-color: var(--color-black-60);
+  }
+
+  /* Penalty status banner — sits at the top of the GPS view while the
+     user is mid-flow. Reminds them what step they're on and provides
+     a cancel button. Sits BELOW the existing GPS info bar. */
+  .round-gps-penalty-banner {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 76px);
+    left: 12px;
+    right: 12px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 8px 14px;
+    background: color-mix(in srgb, var(--color-danger) 88%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: var(--radius-pill);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    pointer-events: auto;
+  }
+  .round-gps-penalty-banner-text {
+    flex: 1;
+    line-height: 1.3;
+  }
+  .round-gps-penalty-banner-cancel {
+    background: rgba(0, 0, 0, 0.25);
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .round-gps-penalty-banner-cancel:active {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* PUTT LOG — same bottom-sheet pattern */
   .putt-log-backdrop {
     position: fixed;
     inset: 0;
@@ -27067,6 +27233,11 @@
      escapes panel transforms. Empty when the modal is closed. -->
 <div id="putt-log-modal-mount"></div>
 
+<!-- PENALTY MODAL mount — confirms a hazard drop / stroke+distance
+     penalty stroke and kicks off the multi-tap capture flow on the
+     GPS view. Empty when the modal is closed. -->
+<div id="penalty-modal-mount"></div>
+
 <!-- ROUND REPLAY mount — populated by openReplay() with a full-screen
      Mapbox view that animates the user's shots hole-by-hole. Body-level
      for the same containing-block reason as the other floating UI
@@ -40173,6 +40344,10 @@
     // inline tool surface. Only meaningful while the GPS view is
     // active; renderToolsList filters it out when GPS is closed.
     { id: 'dispersion', label: 'Dispersion',  icon: '⭕', gpsOnly: true, isToggle: true },
+    // Penalty — one-shot action that opens the penalty modal. Only
+    // surfaced while GPS is open since the whole flow uses GPS to
+    // capture trouble + drop positions.
+    { id: 'penalty',    label: 'Penalty',     icon: '⚠️', gpsOnly: true, isAction: true },
   ];
 
   // Compute the tools list the user actually sees in the sheet, applying
@@ -40557,6 +40732,17 @@
       }
       closeToolsSheet();
       toggleDispersionOverlay();
+      return;
+    }
+    // Penalty — opens the penalty modal which lets the user pick
+    // "drop somewhere new" or "stroke + distance," then walks them
+    // through capturing the trouble-end + drop-start positions on
+    // the GPS view. Only meaningful while GPS is open (action is
+    // gated by the gpsOnly filter in renderToolsList).
+    if (toolId === 'penalty') {
+      closeToolsSheet();
+      if (!(roundGpsState && roundGpsState.open)) return;
+      openPenaltyModal();
       return;
     }
     animateSheetHeightChange(() => {
@@ -41135,6 +41321,7 @@
       caddie:     'Get a club suggestion',
       bag:        'Reference your club distances',
       dispersion: 'Show your shot dispersion on the map',
+      penalty:    'Mark a hazard drop or stroke + distance',
     };
     // While GPS is open, the GPS row pivots to its inverse — tapping it
     // exits GPS back to the simple hole-card view. Same row, opposite
@@ -42086,9 +42273,13 @@
       const newStartLat = shots[idx].startLat;
       const newStartLng = shots[idx].startLng;
 
-      // End → next shot's start (if any).
+      // End → next shot's start (if any). Skipped when the next shot
+      // is afterDrop — that boundary is intentionally broken because
+      // the ball moved from previous shot's end to the drop position
+      // without a swing. Syncing would corrupt the drop position.
       if (typeof newEndLat === 'number' && typeof newEndLng === 'number'
-          && idx < shots.length - 1) {
+          && idx < shots.length - 1
+          && !shots[idx + 1].afterDrop) {
         const next = shots[idx + 1];
         next.startLat = newEndLat;
         next.startLng = newEndLng;
@@ -42111,9 +42302,12 @@
         }
       }
 
-      // Start → previous shot's end (if any). Mirror logic.
+      // Start → previous shot's end (if any). Mirror logic — and same
+      // afterDrop guard: if THIS shot is afterDrop, don't propagate
+      // backward (its start is the drop, not the previous shot's end).
       if (typeof newStartLat === 'number' && typeof newStartLng === 'number'
-          && idx > 0) {
+          && idx > 0
+          && !shots[idx].afterDrop) {
         const prev = shots[idx - 1];
         prev.endLat = newStartLat;
         prev.endLng = newStartLng;
@@ -50802,7 +50996,12 @@
       // Without a clean shot count we can't know which shot was the
       // hole-out, so SG would be unreliable. v2 could try harder
       // (e.g., infer missing putts from shotcount-vs-strokes gap).
-      const trackedCount = shotsForHole.length + puttList.length;
+      // Penalty strokes count toward trackedCount so holes where the
+      // user took a penalty + drop don't get excluded for "missing"
+      // a stroke (the penalty IS the missing stroke; it's tracked,
+      // just not as a shot record).
+      const penaltyCount = scoreEntry?.penalties || 0;
+      const trackedCount = shotsForHole.length + puttList.length + penaltyCount;
       if (typeof reportedStrokes === 'number' && reportedStrokes > 0
           && trackedCount > 0 && trackedCount !== reportedStrokes) {
         excludedHoles.push({ holeNumber: hn, reason: 'stroke-mismatch' });
@@ -63986,6 +64185,35 @@
       fillLayerId: null,       // fill layer (translucent inner)
       outlineLayerId: null,    // line layer (dashed outline)
     },
+
+    // Penalty / hazard drop state machine. See "Hazard drops" section
+    // below for the full flow + design rationale. Reset between rounds.
+    //
+    //   null                       — normal logging
+    //   'awaiting-trouble'         — user just marked penalty; next
+    //                                 Log Shot captures the trouble-end
+    //                                 position, marks the just-captured
+    //                                 shot endedInTrouble, advances to
+    //                                 'awaiting-drop'
+    //   'awaiting-drop'            — trouble logged; action button reads
+    //                                 "Drop Here" / "Re-hit Here". Next
+    //                                 tap captures the drop start
+    //                                 position, advances to
+    //                                 'pending-shot-after-drop'
+    //   'pending-shot-after-drop'  — drop position stored; next Log Shot
+    //                                 creates the after-drop shot, with
+    //                                 startLat/Lng = stored drop pos and
+    //                                 afterDrop = true. Resets to null.
+    penaltyMode: null,
+    // 'drop-new' or 'stroke-distance' — chosen at penalty-modal time.
+    // Drives the action button label ("Drop Here" vs "Re-hit Here") and
+    // the in-replay marker style. Otherwise mechanics are identical.
+    penaltyKind: null,
+    // The drop start position captured during the 'awaiting-drop' tap.
+    // Used as startLat/Lng for the next-logged shot when penaltyMode is
+    // 'pending-shot-after-drop'.
+    pendingDropLat: null,
+    pendingDropLng: null,
   };
 
   // Threshold for switching between planning and playing modes.
@@ -64107,6 +64335,13 @@
     // Committed target — same story; clear on full re-mount.
     roundGpsState.committedTarget = null;
     roundGpsState.committedTargetMarker = null;
+    // Penalty state machine — per-hole, per-flow. Hole change abandons
+    // any in-progress flow silently. Already-logged shots + penalty
+    // counts on the previous hole stay untouched (they're persisted).
+    roundGpsState.penaltyMode = null;
+    roundGpsState.penaltyKind = null;
+    roundGpsState.pendingDropLat = null;
+    roundGpsState.pendingDropLng = null;
 
     renderRoundGpsPanel();
   }
@@ -64578,6 +64813,15 @@
     // map is destroyed by map.remove() upstream.
     roundGpsState.pinPositions = {};
     roundGpsState.pinMarker = null;
+    // Reset penalty flow view state. The shots + penalty count are
+    // persisted; only the in-flight state machine + drop position are
+    // GPS-view-scoped. Without this, reopening GPS would resume mid-
+    // flow with stale references. (User can still see the trouble
+    // pin in red — that's persisted on the shot record itself.)
+    roundGpsState.penaltyMode = null;
+    roundGpsState.penaltyKind = null;
+    roundGpsState.pendingDropLat = null;
+    roundGpsState.pendingDropLng = null;
     // Also close the pin placement modal if it's open — otherwise it
     // would stay as a zombie sheet over a torn-down GPS panel.
     if (pinModalState.open) closePinPlacementModal();
@@ -68471,6 +68715,220 @@
   // matches the user's mental model: "this pin is where my ball
   // went," not "this pin is where I hit from."
   // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // Hazard drops — penalty stroke + drop / re-hit flow
+  //
+  // When a player hits into a hazard or loses a ball, three things
+  // need to be captured: the position where the ball ended up (or
+  // entered the hazard), the +1 penalty stroke, and the position
+  // where the next swing will start from (drop area or original
+  // spot for stroke + distance). The flow:
+  //
+  //   1. User taps Tools → Penalty
+  //   2. Modal asks: drop-new or stroke+distance
+  //   3. State → 'awaiting-trouble', action button stays "Log shot"
+  //   4. User walks to where ball entered trouble, taps Log shot
+  //      → logged as a normal shot, then flagged endedInTrouble: true
+  //      → entry.penalties += 1
+  //      → State → 'awaiting-drop', action button label flips to
+  //         "Drop here" or "Re-hit here" depending on penaltyKind
+  //   5. User walks to drop area / original spot, taps action button
+  //      → captured as pendingDrop position (NOT a shot)
+  //      → State → 'pending-shot-after-drop', action button back to
+  //         "Log shot"
+  //   6. User hits the drop shot, walks to ball, taps Log shot
+  //      → New shot: startLat/Lng = pendingDrop, endLat/Lng = userPos,
+  //         afterDrop: true. Chain propagation will now respect
+  //         afterDrop boundaries (no sync to/from previous shot).
+  //      → State → null, normal flow resumes.
+  //
+  // Cancellation: at any step the user can cancel via the banner X,
+  // which returns state to null. Already-logged trouble shots stay
+  // logged (the user might've genuinely meant to log it; they can
+  // edit it manually later); the penalty count is rolled back if
+  // we incremented it.
+  // ─────────────────────────────────────────────────────────────
+  function openPenaltyModal() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.holeNumber == null) return;
+    if (roundGpsState.penaltyMode != null) {
+      showToast('You\'re already in a penalty flow — cancel first', false);
+      return;
+    }
+    const mount = document.getElementById('penalty-modal-mount');
+    if (!mount) return;
+    mount.innerHTML = `
+      <div class="penalty-modal-backdrop opening" onclick="closePenaltyModal()"></div>
+      <div class="penalty-modal-sheet opening" role="dialog" aria-modal="true"
+           aria-labelledby="penalty-modal-title">
+        <div class="penalty-modal-header">
+          <div class="penalty-modal-eyebrow">Penalty Stroke</div>
+          <h2 class="penalty-modal-title" id="penalty-modal-title">Take a penalty</h2>
+        </div>
+        <div class="penalty-modal-body">
+          <p>This adds 1 stroke and walks you through capturing where the ball ended up plus where your next shot starts.</p>
+        </div>
+        <div class="penalty-modal-options">
+          <button class="penalty-modal-option" onclick="confirmPenalty('drop-new')">
+            <span class="penalty-modal-option-label">Drop somewhere new</span>
+            <span class="penalty-modal-option-desc">Lateral drop or hazard relief — your next shot starts from a new location.</span>
+          </button>
+          <button class="penalty-modal-option" onclick="confirmPenalty('stroke-distance')">
+            <span class="penalty-modal-option-label">Stroke and distance</span>
+            <span class="penalty-modal-option-desc">OB or lost ball — go back to where you hit from and replay the shot.</span>
+          </button>
+        </div>
+        <button class="penalty-modal-cancel" onclick="closePenaltyModal()">Cancel</button>
+      </div>`;
+    acquireScrollLock();
+    requestAnimationFrame(() => {
+      const sheet = mount.querySelector('.penalty-modal-sheet');
+      const backdrop = mount.querySelector('.penalty-modal-backdrop');
+      if (sheet) sheet.classList.remove('opening');
+      if (backdrop) backdrop.classList.remove('opening');
+    });
+  }
+  window.openPenaltyModal = openPenaltyModal;
+
+  function closePenaltyModal() {
+    const mount = document.getElementById('penalty-modal-mount');
+    if (!mount) return;
+    const sheet = mount.querySelector('.penalty-modal-sheet');
+    const backdrop = mount.querySelector('.penalty-modal-backdrop');
+    if (sheet) sheet.classList.add('closing');
+    if (backdrop) backdrop.classList.add('closing');
+    setTimeout(() => {
+      if (mount) mount.innerHTML = '';
+      releaseScrollLock();
+    }, 220);
+  }
+  window.closePenaltyModal = closePenaltyModal;
+
+  function confirmPenalty(kind) {
+    if (kind !== 'drop-new' && kind !== 'stroke-distance') return;
+    roundGpsState.penaltyMode = 'awaiting-trouble';
+    roundGpsState.penaltyKind = kind;
+    closePenaltyModal();
+    updatePenaltyBanner();
+    refreshRoundGpsActionButton();
+    haptic('light');
+  }
+  window.confirmPenalty = confirmPenalty;
+
+  // Cancel from the banner X. Wipes the state machine back to normal.
+  // If we already incremented penalties (i.e., user advanced past
+  // 'awaiting-trouble' by logging the trouble shot), roll that back
+  // and clear the endedInTrouble flag on the most recent shot.
+  function cancelPenaltyFlow() {
+    if (roundGpsState.penaltyMode == null) return;
+    if (roundGpsState.penaltyMode === 'awaiting-drop'
+        || roundGpsState.penaltyMode === 'pending-shot-after-drop') {
+      const holeNum = roundGpsState.holeNumber;
+      if (holeNum != null) {
+        const entry = ensureEntryForHole(holeNum);
+        if (entry && (entry.penalties || 0) > 0) {
+          entry.penalties = Math.max(0, (entry.penalties || 0) - 1);
+        }
+        const shots = getShotsForHole(holeNum);
+        if (shots && shots.length > 0) {
+          const last = shots[shots.length - 1];
+          if (last.endedInTrouble) {
+            delete last.endedInTrouble;
+            delete last.penaltyKind;
+            if (typeof renderRoundGpsShotMarkers === 'function') {
+              renderRoundGpsShotMarkers();
+            }
+          }
+        }
+        if (typeof persistShotChanges === 'function') {
+          try { persistShotChanges(); } catch (_) {}
+        }
+      }
+    }
+    roundGpsState.penaltyMode = null;
+    roundGpsState.penaltyKind = null;
+    roundGpsState.pendingDropLat = null;
+    roundGpsState.pendingDropLng = null;
+    updatePenaltyBanner();
+    refreshRoundGpsActionButton();
+    showToast('Penalty cancelled', false);
+  }
+  window.cancelPenaltyFlow = cancelPenaltyFlow;
+
+  // Refresh the banner text + visibility based on current penaltyMode.
+  function updatePenaltyBanner() {
+    const banner = document.getElementById('round-gps-penalty-banner');
+    const textEl = document.getElementById('round-gps-penalty-banner-text');
+    if (!banner || !textEl) return;
+    const mode = roundGpsState.penaltyMode;
+    if (mode == null) {
+      banner.style.display = 'none';
+      return;
+    }
+    let text = '';
+    if (mode === 'awaiting-trouble') {
+      text = 'Walk to where the ball went in, then Log shot';
+    } else if (mode === 'awaiting-drop') {
+      text = roundGpsState.penaltyKind === 'stroke-distance'
+        ? 'Walk to your original spot, then Re-hit here'
+        : 'Walk to your drop area, then Drop here';
+    } else if (mode === 'pending-shot-after-drop') {
+      text = 'Drop set — hit your shot and Log shot at the ball';
+    }
+    textEl.textContent = text;
+    banner.style.display = '';
+  }
+
+  // Called by logShotAtCurrentPosition right after the trouble shot
+  // is added to the shots array. Marks it endedInTrouble + increments
+  // penalty count + advances state machine.
+  function handlePostTroubleShotLogged(shot) {
+    if (!shot) return;
+    shot.endedInTrouble = true;
+    shot.penaltyKind = roundGpsState.penaltyKind;
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum != null) {
+      const entry = ensureEntryForHole(holeNum);
+      if (entry) entry.penalties = (entry.penalties || 0) + 1;
+    }
+    roundGpsState.penaltyMode = 'awaiting-drop';
+    updatePenaltyBanner();
+    refreshRoundGpsActionButton();
+  }
+
+  // Called when user taps the "Drop here" / "Re-hit here" action.
+  // Stores user's current position as the next shot's start; advances
+  // state. NOT a separate shot — just a pending start override.
+  function captureDropPosition() {
+    if (roundGpsState.penaltyMode !== 'awaiting-drop') return;
+    if (roundGpsState.mode !== 'playing') {
+      showToast('GPS hasn\'t found you yet — wait a moment', true);
+      return;
+    }
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) {
+      showToast('No GPS fix — can\'t capture drop position', true);
+      return;
+    }
+    roundGpsState.pendingDropLat = userPos.lat;
+    roundGpsState.pendingDropLng = userPos.lng;
+    // Also update lastShotEnd so the live "from prev" tracker pill
+    // reflects the new reference. The next shot's actual start will
+    // come from pendingDropLat/Lng but lastShotEnd drives the readout
+    // — keep them in sync.
+    roundGpsState.lastShotEnd = { lat: userPos.lat, lng: userPos.lng };
+    roundGpsState.penaltyMode = 'pending-shot-after-drop';
+    updatePenaltyBanner();
+    refreshRoundGpsActionButton();
+    if (typeof updateShotTrackerReadout === 'function') updateShotTrackerReadout();
+    haptic('light');
+    showToast(roundGpsState.penaltyKind === 'stroke-distance'
+      ? 'Re-hit position set'
+      : 'Drop position set', false);
+  }
+  window.captureDropPosition = captureDropPosition;
+
+  // ─────────────────────────────────────────────────────────────
   // Putt log modal — bottom sheet for logging a putt's distance and
   // whether it was made. Triggered by the GPS Log putt button when
   // in putt mode (most recent shot ended on the green).
@@ -68483,8 +68941,8 @@
   const puttModalState = {
     open: false,
     holeNumber: null,
-    distanceFt: null, // number entered by user, null if not yet typed
-    made: null,       // true | false | null (null = not yet picked)
+    distanceFt: null,
+    made: null,
   };
 
   function openPuttLogModal() {
@@ -68668,11 +69126,21 @@
     const prevShot = existingShots[existingShots.length - 1];
 
     // Derive shot start. Priority:
-    //   1. Previous shot's end (chained ball positions through hole)
-    //   2. roundGpsState.lastShotEnd (set by Set tee or as backup)
-    //   3. userPos as zero-length fallback (shouldn't happen in practice)
+    //   1. Drop position (if penaltyMode is 'pending-shot-after-drop')
+    //      — the ball was moved from prev shot's end to the drop area
+    //      without a swing; this shot starts from the drop, not from
+    //      the previous shot's end. Chain breaks intentionally here.
+    //   2. Previous shot's end (chained ball positions through hole)
+    //   3. roundGpsState.lastShotEnd (set by Set tee or as backup)
+    //   4. userPos as zero-length fallback (shouldn't happen in practice)
     let startLat, startLng;
-    if (prevShot && prevShot.endLat != null && prevShot.endLng != null) {
+    const isAfterDrop = (roundGpsState.penaltyMode === 'pending-shot-after-drop'
+                         && roundGpsState.pendingDropLat != null
+                         && roundGpsState.pendingDropLng != null);
+    if (isAfterDrop) {
+      startLat = roundGpsState.pendingDropLat;
+      startLng = roundGpsState.pendingDropLng;
+    } else if (prevShot && prevShot.endLat != null && prevShot.endLng != null) {
       startLat = prevShot.endLat;
       startLng = prevShot.endLng;
     } else if (roundGpsState.lastShotEnd) {
@@ -68696,10 +69164,17 @@
     // Compares userPos (this tap's position) against startLat/Lng
     // (= previous shot's end OR Set-tee position). If they're the
     // same spot, the user hasn't moved.
+    //
+    // SKIPPED during the 'awaiting-trouble' penalty step: the user
+    // explicitly initiated the flow ("I'm logging where my ball went
+    // in"), so we trust the tap even if the math suggests minimal
+    // movement (can happen on tee shots into trouble with no Set Tee
+    // captured — start defaults to userPos and dist would read 0).
     const recentWasPutt = prevShot && prevShot.intent === 'putt';
     const dupThresholdYards = recentWasPutt ? 0.5 : 2;
     const distFromStart = haversineYards(startLat, startLng, endLat, endLng);
-    if (distFromStart < dupThresholdYards) {
+    const skipDupGuard = (roundGpsState.penaltyMode === 'awaiting-trouble');
+    if (!skipDupGuard && distFromStart < dupThresholdYards) {
       const msg = isFirstShotOfHole && roundGpsState.lastShotEnd
         ? 'Walk to your ball before logging the shot'
         : 'You haven\'t moved much — log when you reach your ball';
@@ -68856,7 +69331,30 @@
       lateralOffset,
       loggedAt: Date.now(),
     };
+    // afterDrop flag — set when this shot started from a drop area
+    // rather than the previous shot's end. Read by chain propagation
+    // (saveShotDraft) to skip syncing across this boundary, by replay
+    // to render the chain break, and by stats so future analysis can
+    // distinguish "regular swing" from "post-penalty swing."
+    if (isAfterDrop) {
+      newShot.afterDrop = true;
+      newShot.penaltyKind = roundGpsState.penaltyKind;
+    }
     shots.push(newShot);
+
+    // Penalty handlers — runs IMMEDIATELY after the shot is added so
+    // the state machine and entry.penalties stay in sync with the
+    // shot record we just created.
+    if (roundGpsState.penaltyMode === 'awaiting-trouble') {
+      handlePostTroubleShotLogged(newShot);
+    } else if (isAfterDrop) {
+      // We just used the pending drop — clear all penalty state.
+      roundGpsState.penaltyMode = null;
+      roundGpsState.penaltyKind = null;
+      roundGpsState.pendingDropLat = null;
+      roundGpsState.pendingDropLng = null;
+      updatePenaltyBanner();
+    }
 
     // Advance lastShotEnd to the captured end position. Next tap
     // will derive THIS end as that shot's start.
@@ -68930,6 +69428,14 @@
   function getRoundGpsLogButtonMode() {
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return 'log';
+    // Penalty flow takes precedence over everything else. The 'awaiting-
+    // drop' state is what gets the new mode — action button label flips
+    // to "Drop here" / "Re-hit here". The other penalty states stay in
+    // 'log' mode but the tap handler does extra work (mark trouble shot
+    // / use stored drop position).
+    if (roundGpsState.penaltyMode === 'awaiting-drop') {
+      return 'drop';
+    }
     // Putt mode — if the most recent shot on this hole landed on the
     // green, the next action is putting rather than another GPS shot.
     // Putts are tracked manually (distance + made/missed) since GPS
@@ -68952,6 +69458,9 @@
     if (roundGpsState.mode !== 'playing') return 'log';
     const userPos = getRoundGpsUserPos();
     if (!userPos) return 'log';
+    // While in any penalty state, don't show set-tee — even between
+    // shots in the flow we want the button to be 'log' (or 'drop').
+    if (roundGpsState.penaltyMode != null) return 'log';
     // Already set tee for this hole this round → button stays in
     // log mode. User committed, next action is logging shot 1.
     // Reads from the durable round-state override (persisted with the
@@ -69117,6 +69626,16 @@
       btn.setAttribute('onclick', 'openPuttLogModal()');
       btn.setAttribute('aria-label', 'Log putt');
       if (labelEl) labelEl.textContent = 'Log putt';
+    } else if (mode === 'drop') {
+      // Drop mode — penalty flow has captured the trouble end and is
+      // waiting for the user to walk to the drop area / original spot.
+      // Tap captures position; doesn't create a shot.
+      btn.dataset.mode = 'drop';
+      btn.setAttribute('onclick', 'captureDropPosition()');
+      const isStrokeDistance = roundGpsState.penaltyKind === 'stroke-distance';
+      btn.setAttribute('aria-label',
+        isStrokeDistance ? 'Re-hit position' : 'Set drop position');
+      if (labelEl) labelEl.textContent = isStrokeDistance ? 'Re-hit here' : 'Drop here';
     } else {
       btn.dataset.mode = 'log';
       btn.setAttribute('onclick', 'logShotAtCurrentPosition()');
@@ -69180,37 +69699,55 @@
       }
     });
 
-    // Connecting line — traces ball-end positions in order. To make the
-    // trail start from the tee (or from shot 1's start), we prepend
-    // the first shot's startLat/Lng before all the end points. That
-    // way the visual story is: tee/start → ball 1 → ball 2 → ... .
-    // No marker at the prepended start point; the tee marker handles
-    // that visually.
-    const lineCoords = [];
+    // Connecting line — traces ball-end positions in order. Built as
+    // multiple segments so afterDrop boundaries break the line: the
+    // ball moved from previous shot's end to the drop area without a
+    // swing, so connecting them would look like the ball teleported.
+    // Each segment: tee/drop → ball 1 → ball 2 → ... → trouble (or end).
+    // Tee marker handles the visual at segment starts.
+    const lineSegments = [];
+    let currentSegment = [];
     const firstShot = shots[0];
     if (firstShot && firstShot.startLat != null && firstShot.startLng != null) {
-      lineCoords.push([firstShot.startLng, firstShot.startLat]);
+      currentSegment.push([firstShot.startLng, firstShot.startLat]);
     }
-    points.forEach(p => lineCoords.push([p.lng, p.lat]));
+    for (let i = 0; i < shots.length; i++) {
+      const s = shots[i];
+      // afterDrop boundary — close the current segment and start a new
+      // one from the drop's start position. Skip if this is the first
+      // shot (shouldn't be tagged afterDrop without context, but be
+      // defensive — would create an empty segment).
+      if (s.afterDrop && i > 0) {
+        if (currentSegment.length >= 2) lineSegments.push(currentSegment);
+        currentSegment = [];
+        if (typeof s.startLat === 'number' && typeof s.startLng === 'number') {
+          currentSegment.push([s.startLng, s.startLat]);
+        }
+      }
+      if (typeof s.endLat === 'number' && typeof s.endLng === 'number') {
+        currentSegment.push([s.endLng, s.endLat]);
+      }
+    }
+    if (currentSegment.length >= 2) lineSegments.push(currentSegment);
 
     // Connecting line — thin yellow polyline through the shot points.
     // Yellow stands out against satellite imagery (grass, dirt, sand)
     // better than orange and reads as a continuous "ball trail."
-    if (lineCoords.length >= 2) {
+    if (lineSegments.length > 0) {
       const sourceId = 'round-gps-shot-line-src';
       const layerId = 'round-gps-shot-line-lyr';
-      const feature = {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: lineCoords,
-        },
+      const featureCollection = {
+        type: 'FeatureCollection',
+        features: lineSegments.map(coords => ({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: coords },
+        })),
       };
       try {
         if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, { type: 'geojson', data: feature });
+          map.addSource(sourceId, { type: 'geojson', data: featureCollection });
         } else {
-          map.getSource(sourceId).setData(feature);
+          map.getSource(sourceId).setData(featureCollection);
         }
         if (!map.getLayer(layerId)) {
           map.addLayer({
@@ -69246,16 +69783,21 @@
       const numberLayerId = 'round-gps-shot-pins-number';
       const featureCollection = {
         type: 'FeatureCollection',
-        features: points.map(p => ({
-          type: 'Feature',
-          properties: {
-            shotId: p.shotId,
-            // Stored as a string because Mapbox's text-field reads
-            // best from string properties; avoids cast surprises.
-            shotNumber: String(p.shotIndex + 1),
-          },
-          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-        })),
+        features: points.map(p => {
+          const shot = shots[p.shotIndex];
+          return {
+            type: 'Feature',
+            properties: {
+              shotId: p.shotId,
+              shotNumber: String(p.shotIndex + 1),
+              // Trouble flag drives circle color via Mapbox data
+              // expression below — red for shots that ended in a
+              // hazard, normal color otherwise.
+              endedInTrouble: !!(shot && shot.endedInTrouble),
+            },
+            geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+          };
+        }),
       };
       try {
         if (!map.getSource(sourceId)) {
@@ -69263,7 +69805,8 @@
         } else {
           map.getSource(sourceId).setData(featureCollection);
         }
-        // Background circle — yellow with thin dark border.
+        // Background circle — yellow with thin dark border. Trouble
+        // shots get red instead via the data expression.
         if (!map.getLayer(circleLayerId)) {
           map.addLayer({
             id: circleLayerId,
@@ -69271,7 +69814,12 @@
             source: sourceId,
             paint: {
               'circle-radius': 11,
-              'circle-color': resolveCssColor('--color-player-you', '#FFD600'),
+              'circle-color': [
+                'case',
+                ['get', 'endedInTrouble'],
+                resolveCssColor('--color-danger', '#E8744A'),
+                resolveCssColor('--color-player-you', '#FFD600'),
+              ],
               'circle-stroke-width': 1.5,
               'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
             },
@@ -70069,6 +70617,19 @@
             </div>
           </div>
           <button class="round-gps-close round-gps-close-float" onclick="closeRoundGpsPanelWithTransition()" aria-label="Close">×</button>
+        </div>
+
+        <!-- Penalty status banner — appears while the user is mid-
+             penalty flow (between tapping Penalty in the tools sheet
+             and finishing the drop sequence). Reminds them what step
+             they're on and provides a cancel button. Driven by
+             updatePenaltyBanner(); display:none until then. -->
+        <div class="round-gps-penalty-banner" id="round-gps-penalty-banner"
+             style="display: none;" aria-live="polite">
+          <span class="round-gps-penalty-banner-text" id="round-gps-penalty-banner-text"></span>
+          <button class="round-gps-penalty-banner-cancel"
+                  onclick="cancelPenaltyFlow()"
+                  aria-label="Cancel penalty flow">×</button>
         </div>
 
         <!-- Map fills the whole panel -->
