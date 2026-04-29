@@ -42711,6 +42711,20 @@
       renderRoundGpsShotMarkers();
       refreshRoundGpsActionButton();
     }
+    // Re-render the round panel underneath so #round-mount has fresh
+    // data — the GPS score sheet clone (refreshed below) reads from
+    // there. Skipped for replay edits (those mutate a different round).
+    if (!isReplayEdit) {
+      if (isGroupRoundActive()) {
+        if (typeof renderGroupRoundPanel === 'function') {
+          try { renderGroupRoundPanel(); } catch (_) {}
+        }
+      } else {
+        if (typeof renderRound === 'function') {
+          try { renderRound(); } catch (_) {}
+        }
+      }
+    }
     // If the GPS score sheet is open on top of GPS, its cloned card
     // needs refreshing so the reconciliation banner picks up the new
     // shot count. Same dance happens for stroke adjustments inside the
@@ -69610,6 +69624,22 @@
     closePuttLogModal();
     // Refresh the GPS button + count so the user sees updated state.
     refreshRoundGpsActionButton();
+    // Re-render the round panel + GPS score sheet (if open) so the
+    // updated putt count + auto-derived GIR + stroke total all show
+    // through immediately. Without this, the GPS score sheet would
+    // display stale numbers until the user closes + reopens GPS.
+    if (isGroupRoundActive()) {
+      if (typeof renderGroupRoundPanel === 'function') {
+        try { renderGroupRoundPanel(); } catch (_) {}
+      }
+    } else {
+      if (typeof renderRound === 'function') {
+        try { renderRound(); } catch (_) {}
+      }
+    }
+    if (typeof window.refreshGpsScoreSheetBody === 'function') {
+      try { window.refreshGpsScoreSheetBody(); } catch (_) {}
+    }
   }
   window.savePuttFromModal = savePuttFromModal;
 
@@ -69987,6 +70017,21 @@
     // to another hole) plus writes the scratchpad as a belt-and-
     // suspenders backup for crash-during-debounce.
     persistShotChanges();
+
+    // Re-render the round panel underneath so its DOM reflects the
+    // new shot count, auto-derived FIR/GIR, and updated stroke total.
+    // Without this, the GPS score sheet's cloned card (refreshed
+    // below) would copy stale data — the user only sees the new
+    // values after closing + reopening GPS.
+    if (isGroupRoundActive()) {
+      if (typeof renderGroupRoundPanel === 'function') {
+        try { renderGroupRoundPanel(); } catch (_) {}
+      }
+    } else {
+      if (typeof renderRound === 'function') {
+        try { renderRound(); } catch (_) {}
+      }
+    }
 
     // If the GPS score sheet is open beneath the about-to-open shot
     // edit sheet, refresh its cloned card so the reconciliation
