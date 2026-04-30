@@ -450,11 +450,12 @@
   html.dark .play-hero {
     background: #161310;       /* slightly deeper than --color-cream-50 (#1F1C17) */
     color: var(--color-black);
-    border: 1px solid var(--color-cream-300);
   }
   html.dark .play-hero-title   { color: var(--color-black); }
   html.dark .play-hero-sub     { color: var(--color-black-80); }
   html.dark .play-hero-meta    { color: var(--color-black-60); }
+  html.dark .play-hero-date    { color: var(--color-black-60); }
+  html.dark .play-hero-kicker  { color: var(--color-black-60); }
   /* Continue-Round progress panel — the tokens it uses (--color-cream-50
      and --color-cream-300) flip to dark browns in dark mode, making the
      numbers and labels invisible against the already-dark hero card.
@@ -1862,46 +1863,117 @@
      PLAY LANDING PAGE
      ══════════════════════════════════════════════════════════════ */
 
-  /* Hero CTA — dark card mirrors the Today card's visual weight */
+  /* Hero CTA — full-bleed dark band that runs edge-to-edge of the
+     viewport. Breaks out of the .training-container's max-width +
+     padding-inline using the negative-margin trick:
+       width: 100vw + margin-inline: calc(50% - 50vw)
+     centers the hero on the viewport regardless of how the parent
+     is laid out. Inner content stays in a readable column via
+     .play-hero-inner. No side rounded corners (the mockup look). */
   .play-hero {
     background: var(--color-black);
     color: var(--text-inverse);
-    border-radius: var(--radius-xl);
-    padding: var(--space-10) var(--space-8);
-    margin-bottom: var(--space-10);
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    margin-top: calc(-1 * var(--space-8));
+    margin-bottom: var(--space-4);
+    padding: var(--space-12) 0 var(--space-6);
     position: relative;
     overflow: hidden;
   }
-  /* Subtle decorative golf flag mark */
+  /* Subtle grid pattern overlay — adds texture without competing for
+     attention. Light dotted matrix with a soft glow on the right
+     side to draw the eye toward the date / progress info there. */
   .play-hero::before {
     content: '';
     position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 240px;
-    height: 240px;
-    background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 65%);
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, transparent 45%),
+      linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px, 32px 32px;
+    background-position: top right, top left, top left;
     pointer-events: none;
   }
+  /* Bottom fade — softens the hero-to-page transition. Without this,
+     the dark band ends with a hard line against the page bg. The
+     gradient runs from transparent at the top (revealing hero
+     background) to var(--bg-page) at the bottom (matching page bg).
+     No midpoint mix — the previous version mixed --color-black with
+     --bg-page, which works in light mode but produces a lighter
+     "muddy" band in dark mode (where --color-black flips to cream).
+     A simple transparent→bg-page transition handles both modes
+     correctly because it doesn't reference any color that flips. */
+  .play-hero::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90px;
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      var(--bg-page) 100%);
+    pointer-events: none;
+  }
+  /* Inner content wrapper — re-applies the .training-container's
+     constraint so text + buttons don't sprawl across the viewport.
+     z-index keeps content above the bottom fade overlay. */
+  .play-hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin-inline: auto;
+    padding-inline: var(--space-5);
+  }
+  /* Top row: PLAY tag on left, date on right. Aligned to the top
+     of the hero so they bracket the content visually. */
+  .play-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+  }
   .play-hero-eyebrow {
+    display: inline-block;
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0;
+  }
+  .play-hero-date {
     font-family: var(--font-body);
     font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-cream-300);
+  }
+  /* Mini eyebrow above the title (e.g., "TIME TO PLAY"). Smaller
+     and quieter than the pill. Sits just above the headline. */
+  .play-hero-kicker {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
-    color: var(--color-accent);
+    color: var(--color-cream-300);
     margin-bottom: var(--space-3);
-    position: relative;
   }
   .play-hero-title {
     font-family: var(--font-display);
-    font-size: var(--text-5xl);
+    font-size: var(--text-6xl);
     font-weight: var(--weight-bold);
-    line-height: 1.05;
-    letter-spacing: var(--tracking-tight);
+    line-height: 1.0;
+    letter-spacing: -0.02em;
     color: var(--color-cream-50);
     margin-bottom: var(--space-4);
-    position: relative;
   }
   .play-hero-title em {
     font-style: italic;
@@ -1912,30 +1984,33 @@
     color: var(--color-cream-300);
     line-height: var(--leading-normal);
     max-width: 48ch;
-    margin-bottom: var(--space-8);
-    position: relative;
+    margin-bottom: var(--space-10);
   }
   .play-hero-actions {
     display: flex;
+    flex-direction: column;
     gap: var(--space-3);
-    flex-wrap: wrap;
-    position: relative;
   }
+  /* Primary CTA — wide accent button with arrow on the right.
+     Uses flex layout so the kicker label "TAP TO BEGIN" sits above
+     the action label "Start a Round" + arrow stays right-aligned. */
   .play-hero-btn {
-    padding: var(--space-4) var(--space-8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
     cursor: pointer;
     border: 2px solid transparent;
+    text-align: left;
     transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
   }
   @media (hover: hover) {
-  .play-hero-btn:hover { transform: translateY(-2px); }
-}
+    .play-hero-btn:hover { transform: translateY(-2px); }
+  }
   .play-hero-btn-primary {
     background: var(--color-accent);
     color: var(--color-white);
@@ -1943,22 +2018,57 @@
     box-shadow: var(--shadow-accent);
   }
   @media (hover: hover) {
-  .play-hero-btn-primary:hover {
-    background: var(--color-accent-light);
-    border-color: var(--color-accent-light);
+    .play-hero-btn-primary:hover {
+      background: var(--color-accent-light);
+      border-color: var(--color-accent-light);
+    }
   }
-}
   .play-hero-btn-ghost {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.06);
     color: var(--color-cream-50);
-    border-color: rgba(255, 253, 247, 0.3);
+    border-color: rgba(255, 253, 247, 0.18);
   }
   @media (hover: hover) {
-  .play-hero-btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: var(--color-cream-50);
+    .play-hero-btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--color-cream-50);
+    }
   }
-}
+  /* Stack: kicker label on top, action label below. Tight spacing. */
+  .play-hero-btn-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.15;
+  }
+  .play-hero-btn-kicker {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .play-hero-btn-label {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-tight);
+  }
+  /* Arrow circle on the right of the CTA. Subtle outlined chip. */
+  .play-hero-btn-arrow {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-hero-btn-arrow svg { width: 14px; height: 14px; }
+  .play-hero-btn-ghost .play-hero-btn-arrow {
+    background: rgba(255, 255, 255, 0.10);
+  }
   .play-hero-meta {
     margin-top: var(--space-6);
     font-size: var(--text-xs);
@@ -1978,9 +2088,8 @@
     margin-left: var(--space-2);
   }
 
-  /* Active-round hero variant — same dark card, but with a progress strip
-     showing hole/strokes/vs-par, and an orange pulse accent so it reads as
-     "a thing already underway" rather than "start something new". */
+  /* Active-round hero variant — when round is in progress, the
+     pill turns into a status pulse and a progress strip appears. */
   .play-hero-active .play-hero-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -2037,10 +2146,14 @@
     color: var(--color-cream-300);
   }
 
-  /* Stats strip — 4 numbers in a row, mirrors the Library .lib-stats look */
+  /* Stats grid — 3 equal-sized squares in a row. Each card has a
+     1:1 aspect ratio so they stay perfectly square regardless of
+     viewport width. Content is top-aligned (label, value, hint
+     stacked from the top of the card). The Rounds Played metric
+     was dropped since it's already implied by the rounds list. */
   .play-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
     margin-bottom: var(--space-10);
   }
@@ -2048,43 +2161,84 @@
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    padding: var(--space-5) var(--space-4);
-    text-align: center;
-  }
-  .play-stat-value {
-    display: block;
-    font-family: var(--font-display);
-    font-size: var(--text-3xl);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    line-height: 1;
-    margin-bottom: var(--space-2);
+    padding: var(--space-4);
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    overflow: hidden;
   }
   .play-stat-label {
     display: block;
     font-family: var(--font-body);
-    font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--text-muted);
+    line-height: 1.3;
+    /* Reserve space for 2 lines so labels of different lengths
+       ("Handicap Index" wraps to 2 lines, "Avg Score" stays on 1)
+       all push their values to the same vertical position. Without
+       this the values would land at different heights across cards. */
+    min-height: 2.6em;
   }
-  /* Secondary hint caption below the label — used by the Handicap tile
-     to explain provisional state ("1 more round to establish" etc). */
+  .play-stat-value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
+  }
+  .play-stat-meta {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    letter-spacing: var(--tracking-normal);
+    margin-top: auto;
+  }
+  /* Hint caption used by the Handicap tile to explain provisional
+     state ("1 more round to establish" etc). Italic so it reads as
+     subtext, not a label. Accent color when actionable. Pushed to
+     bottom via margin-top: auto so it sits at the bottom of the card. */
   .play-stat-hint {
     display: block;
-    margin-top: var(--space-2);
+    margin-top: auto;
     font-family: var(--font-body);
     font-size: var(--text-2xs);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--color-accent);
     letter-spacing: var(--tracking-normal);
     text-transform: none;
     line-height: 1.3;
     font-style: italic;
   }
-  @media (max-width: 640px) {
-    .play-stats { grid-template-columns: repeat(2, 1fr); }
+  /* Centered section label variant — used above the stats grid.
+     Differs from .home-section-label (which has a line on the right
+     only) by having lines on both sides. */
+  .play-section-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: 0;
+    margin-bottom: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .play-section-label::before,
+  .play-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light);
   }
 
   /* Empty rounds state */
@@ -2125,10 +2279,8 @@
 
   /* Mobile tweaks */
   @media (max-width: 640px) {
-    .play-hero { padding: var(--space-8) var(--space-6); }
-    .play-hero-title { font-size: var(--text-4xl); }
-    .play-hero-actions { flex-direction: column; }
-    .play-hero-btn { width: 100%; }
+    .play-hero { padding-block: var(--space-10) var(--space-6); }
+    .play-hero-title { font-size: var(--text-5xl); }
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -26931,8 +27083,10 @@
            2. Round in progress → "Continue Round" (→ resumes the round) -->
       <div id="play-hero-mount"></div>
 
-      <!-- Stats strip — dynamic based on completed rounds -->
-      <div class="home-section-label">Your Game</div>
+      <!-- Stats strip — dynamic based on completed rounds. Centered
+           "Your Game" section label has dividers on both sides; see
+           .play-section-label for the styling. -->
+      <div class="play-section-label">Your Game</div>
       <div id="play-stats-mount"></div>
 
       <!-- Browse Courses entry point — sub-page off Play -->
@@ -49543,6 +49697,29 @@
     if (!mount) return;
     const inProgress = findInProgressRound();
 
+    // Build the date string ("Fri, Apr 25") shown in the top-right
+    // of the hero. Static for the lifetime of the render — we only
+    // re-render the hero on state changes, not on a timer, so a
+    // user with the page open across midnight would see a slightly
+    // stale date. Acceptable: re-renders happen often enough that
+    // it'll catch up on the next nav action.
+    const today = new Date();
+    const dateStr = today.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    // Arrow icon used in the primary CTA. Right-pointing chevron in
+    // a circular chip; sits flush right of the button text.
+    const arrowSvg = `
+      <span class="play-hero-btn-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </span>`;
+
     // Group round takes precedence in the hero — if the user is in one,
     // that's the thing they probably want to get back to. Rendered before
     // solo check so active group round always wins.
@@ -49551,15 +49728,28 @@
       const course = getCourse(gr.courseId);
       const courseName = course ? course.name : 'Round';
       const playerCount = (gr.players || []).length;
-      const statusLabel = gr.status === 'lobby' ? 'Assembling players' : 'Round in Progress';
-      const actionLabel = gr.status === 'lobby' ? 'Open Lobby →' : 'Continue Round →';
+      const isLobby = gr.status === 'lobby';
+      const statusLabel = isLobby ? 'Assembling players' : 'Round in Progress';
+      const ctaKicker = isLobby ? 'Tap to Open' : 'Tap to Continue';
+      const ctaLabel = isLobby ? 'Open Lobby' : 'Continue Round';
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
-          <div class="play-hero-eyebrow">Group · ${escapeHtml(statusLabel)}</div>
-          <h2 class="play-hero-title">${gr.status === 'lobby' ? 'Waiting to Start' : 'Continue <em>Round</em>'}</h2>
-          <p class="play-hero-sub">${escapeHtml(courseName)} · ${playerCount} player${playerCount === 1 ? '' : 's'}</p>
-          <div class="play-hero-actions">
-            <button class="play-hero-btn play-hero-btn-primary" onclick="openActiveGroupRound()">${actionLabel}</button>
+          <div class="play-hero-inner">
+            <div class="play-hero-top">
+              <div class="play-hero-eyebrow">Group · ${escapeHtml(statusLabel)}</div>
+              <div class="play-hero-date">${escapeHtml(dateStr)}</div>
+            </div>
+            <h2 class="play-hero-title">${isLobby ? 'Waiting to <em>Start</em>' : 'Continue <em>Round</em>'}</h2>
+            <p class="play-hero-sub">${escapeHtml(courseName)} · ${playerCount} player${playerCount === 1 ? '' : 's'}</p>
+            <div class="play-hero-actions">
+              <button class="play-hero-btn play-hero-btn-primary" onclick="openActiveGroupRound()">
+                <span class="play-hero-btn-text">
+                  <span class="play-hero-btn-kicker">${ctaKicker}</span>
+                  <span class="play-hero-btn-label">${ctaLabel}</span>
+                </span>
+                ${arrowSvg}
+              </button>
+            </div>
           </div>
         </div>`;
       return;
@@ -49569,32 +49759,42 @@
       const course = getCourse(inProgress.courseId);
       const courseName = course ? course.name : (inProgress.courseName || 'Round');
       const totalHoles = course ? course.holes.length : 18;
-      const holesPlayed = (inProgress.totals && inProgress.totals.holesPlayed) || 0;
       const currentHole = (inProgress.currentHoleIndex || 0) + 1;
       const vsPar = inProgress.totals?.vsPar ?? 0;
       const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
       const strokes = inProgress.totals?.strokes ?? 0;
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
-          <div class="play-hero-eyebrow">Round in Progress</div>
-          <h2 class="play-hero-title">Continue <em>Round</em></h2>
-          <p class="play-hero-sub">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')}</p>
-          <div class="play-hero-progress">
-            <div class="play-hero-progress-item">
-              <div class="play-hero-progress-value">${currentHole}<span>/${totalHoles}</span></div>
-              <div class="play-hero-progress-label">Hole</div>
+          <div class="play-hero-inner">
+            <div class="play-hero-top">
+              <div class="play-hero-eyebrow">Round in Progress</div>
+              <div class="play-hero-date">${escapeHtml(dateStr)}</div>
             </div>
-            <div class="play-hero-progress-item">
-              <div class="play-hero-progress-value">${strokes}</div>
-              <div class="play-hero-progress-label">Strokes</div>
+            <h2 class="play-hero-title">Continue <em>Round</em></h2>
+            <p class="play-hero-sub">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')}</p>
+            <div class="play-hero-progress">
+              <div class="play-hero-progress-item">
+                <div class="play-hero-progress-value">${currentHole}<span>/${totalHoles}</span></div>
+                <div class="play-hero-progress-label">Hole</div>
+              </div>
+              <div class="play-hero-progress-item">
+                <div class="play-hero-progress-value">${strokes}</div>
+                <div class="play-hero-progress-label">Strokes</div>
+              </div>
+              <div class="play-hero-progress-item">
+                <div class="play-hero-progress-value">${vsParStr}</div>
+                <div class="play-hero-progress-label">vs Par</div>
+              </div>
             </div>
-            <div class="play-hero-progress-item">
-              <div class="play-hero-progress-value">${vsParStr}</div>
-              <div class="play-hero-progress-label">vs Par</div>
+            <div class="play-hero-actions">
+              <button class="play-hero-btn play-hero-btn-primary" onclick="resumeActiveRound()">
+                <span class="play-hero-btn-text">
+                  <span class="play-hero-btn-kicker">Tap to Continue</span>
+                  <span class="play-hero-btn-label">Continue Round</span>
+                </span>
+                ${arrowSvg}
+              </button>
             </div>
-          </div>
-          <div class="play-hero-actions">
-            <button class="play-hero-btn play-hero-btn-primary" onclick="resumeActiveRound()">Continue Round →</button>
           </div>
         </div>`;
       return;
@@ -49604,12 +49804,29 @@
     // is the default; With Friends is a toggle inside the course detail.
     mount.innerHTML = `
       <div class="play-hero">
-        <div class="play-hero-eyebrow">Round Tracking</div>
-        <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores and putts hole by hole. Play solo or invite friends for a live shared scorecard.</p>
-        <div class="play-hero-actions">
-          <button class="play-hero-btn play-hero-btn-primary" onclick="startRoundFlow()">Start a Round →</button>
-          <button class="play-hero-btn play-hero-btn-ghost" onclick="showPanel('quick-score', null)">Quick Score</button>
+        <div class="play-hero-inner">
+          <div class="play-hero-top">
+            <div class="play-hero-eyebrow">Play</div>
+            <div class="play-hero-date">${escapeHtml(dateStr)}</div>
+          </div>
+          <h2 class="play-hero-title">Start a <em>Round.</em></h2>
+          <p class="play-hero-sub">Track every hole. Invite friends. See your game in real time.</p>
+          <div class="play-hero-actions">
+            <button class="play-hero-btn play-hero-btn-primary" onclick="startRoundFlow()">
+              <span class="play-hero-btn-text">
+                <span class="play-hero-btn-kicker">Tap to Begin</span>
+                <span class="play-hero-btn-label">Start a Round</span>
+              </span>
+              ${arrowSvg}
+            </button>
+            <button class="play-hero-btn play-hero-btn-ghost" onclick="showPanel('quick-score', null)">
+              <span class="play-hero-btn-text">
+                <span class="play-hero-btn-kicker">Already played</span>
+                <span class="play-hero-btn-label">Quick Score</span>
+              </span>
+              ${arrowSvg}
+            </button>
+          </div>
         </div>
       </div>`;
   }
@@ -51217,11 +51434,12 @@
 
     let avgScore = '—';
     let bestRound = '—';
+    let bestRoundCourse = '';
+    let avgTrend = null;  // { dir: 'up' | 'down' | 'flat', label }
     if (roundsPlayed > 0) {
       // Performance stats (avg + best) are scoped to rounds that count
       // toward stats — scrambles persist in your account but a 54 in
       // a scramble shouldn't pull your "avg score" down 12 strokes.
-      // Rounds Played still includes everything since you DID play them.
       // Only count full 18s so a 9-hole "ended early" doesn't beat
       // your best 18 with strokes alone.
       const fullRounds = completed.filter(r =>
@@ -51230,18 +51448,45 @@
       if (fullRounds.length > 0) {
         const totalStrokes = fullRounds.reduce((s, r) => s + (r.totals?.strokes || 0), 0);
         avgScore = Math.round(totalStrokes / fullRounds.length);
-        const best = fullRounds.reduce((b, r) => {
-          const s = r.totals?.strokes || Infinity;
-          return s < b ? s : b;
-        }, Infinity);
-        if (best !== Infinity) bestRound = best;
+
+        const bestEntry = fullRounds.reduce((b, r) => {
+          const s = r.totals?.strokes ?? Infinity;
+          return s < (b.totals?.strokes ?? Infinity) ? r : b;
+        }, fullRounds[0]);
+        if (bestEntry?.totals?.strokes != null) {
+          bestRound = bestEntry.totals.strokes;
+          // Course name shown as the meta line under the best score.
+          // Falls back to round.courseName then a generic label.
+          const bestCourse = getCourse(bestEntry.courseId);
+          bestRoundCourse = bestCourse?.name || bestEntry.courseName || '';
+        }
+
+        // Trend: compare the average of the most recent 5 rounds vs
+        // the prior 5. Lower = improving. Skip if too few rounds.
+        // Sort by completion time descending (most recent first).
+        const sortedByDate = [...fullRounds].sort((a, b) =>
+          (b.completedAt || 0) - (a.completedAt || 0));
+        if (sortedByDate.length >= 6) {
+          const recent5 = sortedByDate.slice(0, 5);
+          const prior5 = sortedByDate.slice(5, 10);
+          const avgRecent = recent5.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / recent5.length;
+          const avgPrior = prior5.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / prior5.length;
+          const delta = avgRecent - avgPrior;
+          // Threshold of 0.5 strokes — anything smaller is noise.
+          if (delta < -0.5) {
+            avgTrend = { dir: 'down', label: 'improving' };
+          } else if (delta > 0.5) {
+            avgTrend = { dir: 'up', label: 'rising' };
+          } else {
+            avgTrend = { dir: 'flat', label: 'steady' };
+          }
+        }
       }
     }
 
     // Handicap calculation — returns a formatted number or em-dash, plus
     // a small hint below the tile explaining what's needed if not yet
-    // computable. The hint overlays the bottom of the tile as a small
-    // muted caption.
+    // computable. The hint sits at the bottom of the card.
     const hcpResult = computeHandicapIndex();
     const hcpDisplay = formatHandicapIndex(hcpResult.index);
     let hcpHint = '';
@@ -51250,7 +51495,7 @@
       if (hcpResult.reason === 'no-eligible-rounds') {
         hcpHint = `<span class="play-stat-hint">Play 3 full 18s to establish</span>`;
       } else if (hcpResult.reason === 'need-more-rounds') {
-        hcpHint = `<span class="play-stat-hint">${needed} more round${needed === 1 ? '' : 's'} to establish</span>`;
+        hcpHint = `<span class="play-stat-hint">${needed} more round${needed === 1 ? '' : 's'} needed</span>`;
       }
     } else if (hcpResult.basedOn < 8) {
       // Transparent about the provisional nature when we're averaging fewer
@@ -51259,24 +51504,35 @@
       hcpHint = `<span class="play-stat-hint">Based on ${hcpResult.basedOn} of ${hcpResult.roundsCount}</span>`;
     }
 
+    // Trend arrow below avg score. Down-arrow + "improving" is positive
+    // (lower scores = better), so it gets accent color via CSS class.
+    let avgMeta = '';
+    if (avgTrend) {
+      const arrow = avgTrend.dir === 'down' ? '↓' : avgTrend.dir === 'up' ? '↑' : '→';
+      avgMeta = `<span class="play-stat-meta">${arrow} ${avgTrend.label}</span>`;
+    }
+
+    // Best round meta line — course name below the score.
+    const bestMeta = bestRoundCourse
+      ? `<span class="play-stat-meta">${escapeHtml(bestRoundCourse)}</span>`
+      : '';
+
     mount.innerHTML = `
       <div class="play-stats">
         <div class="play-stat">
+          <span class="play-stat-label">Handicap Index</span>
           <span class="play-stat-value">${hcpDisplay}</span>
-          <span class="play-stat-label">Handicap</span>
           ${hcpHint}
         </div>
         <div class="play-stat">
-          <span class="play-stat-value">${avgScore}</span>
           <span class="play-stat-label">Avg Score</span>
+          <span class="play-stat-value">${avgScore}</span>
+          ${avgMeta}
         </div>
         <div class="play-stat">
-          <span class="play-stat-value">${roundsPlayed}</span>
-          <span class="play-stat-label">Rounds Played</span>
-        </div>
-        <div class="play-stat">
-          <span class="play-stat-value">${bestRound}</span>
           <span class="play-stat-label">Best Round</span>
+          <span class="play-stat-value">${bestRound}</span>
+          ${bestMeta}
         </div>
       </div>
       ${roundsPlayed > 0 ? `
