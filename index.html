@@ -3292,6 +3292,52 @@
   }
 }
 
+  /* Preview Course — secondary CTA below the primary Start Round.
+     Ghost style: transparent fill, accent border + text. Same shape
+     and spacing as the primary so they read as a pair, but visually
+     subordinate (primary stays the dominant action). */
+  .start-round-preview-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    background: transparent;
+    color: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast),
+                transform var(--transition-spring);
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .start-round-preview-btn:hover {
+      background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+      transform: translateY(-2px);
+    }
+  }
+  .start-round-preview-btn:active {
+    transform: translateY(0);
+  }
+  .start-round-preview-btn-arrow {
+    font-size: var(--text-lg);
+    line-height: 1;
+    transition: transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .start-round-preview-btn:hover .start-round-preview-btn-arrow {
+      transform: translateX(3px);
+    }
+  }
+
   @media (max-width: 480px) {
     .start-round-card { padding: var(--space-4) var(--space-5) var(--space-5); }
     .tee-info { grid-template-columns: repeat(2, 1fr); }
@@ -5369,8 +5415,24 @@
   .round-gps-shot-btn:active { transform: scale(0.98); }
   .round-gps-shot-btn:disabled {
     opacity: 0.55;
-    cursor: not-allowed;
+    cursor: not-allowed;    box-shadow: none;
+  }
+  /* Planning-mode treatment: muted neutral instead of accent orange,
+     no glow, slightly italic label. Communicates "this is waiting" —
+     not "this is broken." Same dimensions as the live state so the
+     action bar doesn't shift when GPS upgrades to playing mode. */
+  .round-gps-shot-btn.is-planning {
+    background: rgba(0, 0, 0, 0.55);
+    color: rgba(255, 253, 247, 0.78);
+    border-color: rgba(255, 253, 247, 0.18);
     box-shadow: none;
+    backdrop-filter: blur(10px);
+    cursor: default;
+    opacity: 1;  /* override :disabled fade — we handle visual via colors */
+  }
+  .round-gps-shot-btn.is-planning .round-gps-shot-btn-label {
+    font-style: italic;
+    font-weight: var(--weight-medium);
   }
   .round-gps-shot-btn-icon {
     font-size: var(--text-base);
@@ -5627,7 +5689,13 @@
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
     -webkit-tap-highlight-color: transparent;
-    transition: background 150ms ease-out, transform 100ms ease-out;
+    transition: background 150ms ease-out,
+                transform 100ms ease-out,
+                opacity 220ms ease-out;
+  }
+  .round-gps-pin-btn.is-hidden {
+    opacity: 0;
+    pointer-events: none;
   }
   .round-gps-pin-btn:active { transform: scale(0.92); }
   .round-gps-pin-btn[aria-expanded="true"] {
@@ -36545,6 +36613,16 @@
           <span>${courseDetailState.pickMode === 'group' ? 'Create Round' : 'Start Round'} — ${escapeHtml(tee.name)}</span>
           <span class="start-round-cta-arrow" aria-hidden="true">→</span>
         </button>
+        <!-- Preview Course — secondary CTA. Opens the GPS view in
+             preview mode (no round started, planning-mode locked) so
+             the user can study hole layouts, distances, and
+             dispersion overlays without committing to a round. Uses
+             the same tee + starting hole selected above. -->
+        <button class="start-round-preview-btn"
+                onclick="previewCourseFromCourseDetail('${course.id}', '${tee.name}')">
+          <span>Preview Course</span>
+          <span class="start-round-preview-btn-arrow" aria-hidden="true">→</span>
+        </button>
       </div>
 
       <!-- Tee reference stats — key at-a-glance numbers (yards/rating/
@@ -36882,6 +36960,32 @@
     renderPlayLanding();
     updateRoundBanner();
   }
+
+  // Open GPS view in preview mode from the Course Detail page. No
+  // round is started — the GPS panel locks to planning mode (no
+  // user marker, no auto-upgrade), hides round-only UI (Score
+  // button, Scorecard tool, Track Shots tool, Penalty), and lets
+  // the user explore the hole layouts + measure distances with the
+  // reticle. Closing the GPS panel returns to the course detail
+  // page (which is still mounted beneath).
+  function previewCourseFromCourseDetail(courseId, teeName) {
+    if (isRoundActive()) {
+      // A round is going — previewing would conflict with that
+      // round's GPS state. Direct the user to resume their round
+      // instead. Better than silently breaking or trying to detangle
+      // two GPS sessions.
+      showToast('Finish or abandon your current round first', true);
+      return;
+    }
+    const course = getCourse(courseId);
+    if (!course) return;
+    openRoundGpsPanel({
+      previewCourseId: courseId,
+      previewTeeName: teeName,
+      holeIndex: getStartingHoleIndex(courseId),
+    });
+  }
+  window.previewCourseFromCourseDetail = previewCourseFromCourseDetail;
 
   // Begin a new round from Course Detail's "Start a Round Here" button.
   // Creates a new Firestore doc immediately so resume detection works
@@ -40538,8 +40642,11 @@
   // Registry of available tools. Adding a new tool = adding an entry here
   // and a render function. The dock UI iterates this list.
   const DOCK_TOOLS = [
-    { id: 'scorecard',  label: 'Scorecard',   icon: '📋' },
-    { id: 'shots',      label: 'Track Shots', icon: '📍' },
+    // roundOnly: hidden in GPS preview mode (no round = no scores/shots
+    // to display). Other tools (weather, caddie, bag, preshot,
+    // dispersion) work without a round and stay available in preview.
+    { id: 'scorecard',  label: 'Scorecard',   icon: '📋', roundOnly: true },
+    { id: 'shots',      label: 'Track Shots', icon: '📍', roundOnly: true },
     { id: 'gps',        label: 'GPS',         icon: '🗺️' },
     { id: 'weather',    label: 'Weather',     icon: '🌤️' },
     { id: 'preshot',    label: 'Pre-Shot',    icon: '🎯' },
@@ -40551,8 +40658,10 @@
     { id: 'dispersion', label: 'Dispersion',  icon: '⭕', gpsOnly: true, isToggle: true },
     // Penalty — one-shot action that opens the penalty modal. Only
     // surfaced while GPS is open since the whole flow uses GPS to
-    // capture trouble + drop positions.
-    { id: 'penalty',    label: 'Penalty',     icon: '⚠️', gpsOnly: true, isAction: true },
+    // capture trouble + drop positions. Also hidden in planning mode
+    // since the flow needs a real user position to capture (the
+    // trouble-end shot + drop area both rely on the GPS fix).
+    { id: 'penalty',    label: 'Penalty',     icon: '⚠️', gpsOnly: true, playingOnly: true, isAction: true },
   ];
 
   // Compute the tools list the user actually sees in the sheet, applying
@@ -41517,9 +41626,14 @@
     const mount = document.getElementById('round-dock-mount');
     if (!mount) return;
 
-    // Mount on BOTH round surfaces — solo and group. Same tools work
-    // in both thanks to the unified getCurrentRoundContext() reader.
-    if (currentPanelId !== 'round' && currentPanelId !== 'group-round') {
+    // Mount on round surfaces (solo + group) — same tools work in both
+    // thanks to the unified getCurrentRoundContext() reader. Also mount
+    // when GPS is open: in preview mode the user is on course-detail
+    // underneath the GPS panel, so currentPanelId isn't 'round' but
+    // the tools sheet still belongs to the active GPS view. Without
+    // this, opening Tools in preview renders empty.
+    const gpsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
+    if (currentPanelId !== 'round' && currentPanelId !== 'group-round' && !gpsOpen) {
       if (mount.innerHTML) mount.innerHTML = '';
       return;
     }
@@ -41710,10 +41824,31 @@
     // semantic. Keeps the user's mental map of "Tools is where I switch
     // between modes" without needing a separate toggle elsewhere.
     const gpsIsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
+    // Planning vs playing — relevant for tools that require an actual
+    // GPS position (e.g., Penalty needs to capture a trouble end +
+    // drop area, both of which need a live user fix).
+    const gpsIsPlaying = gpsIsOpen && roundGpsState.mode === 'playing';
+    // Preview mode — GPS is open without an active round (course
+    // study). Tools that need round state (scorecard, track shots)
+    // hide; tools that work on user data (weather, caddie, bag) stay.
+    const gpsIsPreview = gpsIsOpen && roundGpsState.previewMode === true;
     const rows = getEffectiveDockTools()
       // GPS-only tools are hidden from the list when GPS isn't open.
       // They wouldn't do anything useful in that mode.
-      .filter(tool => !tool.gpsOnly || gpsIsOpen)
+      // Playing-only tools additionally hide while GPS is in planning
+      // mode (haven't found the user near the course yet) — since the
+      // flow needs a real position to be useful.
+      // Round-only tools hide while in preview mode (no round to
+      // display scores/shots from).
+      .filter(tool =>
+        (!tool.gpsOnly || gpsIsOpen)
+        && (!tool.playingOnly || gpsIsPlaying)
+        && (!tool.roundOnly || !gpsIsPreview)
+        // In preview mode, hide the GPS toggle. Its "Simple View" mode
+        // would try to switch back to the round panel, but there's no
+        // round in preview — the close button (×) is the only sensible
+        // exit, so don't surface a confusing toggle here.
+        && !(tool.id === 'gps' && gpsIsPreview))
       .map(tool => {
         let label = tool.label;
         let icon = tool.icon;
@@ -52100,8 +52235,17 @@
   function computeAggregateSG(rounds) {
     const sums = { tee: 0, approach: 0, around: 0, putt: 0, total: 0 };
     let roundsWithSG = 0;
-    const roundsTotal = (rounds || []).length;
-    for (const round of rounds || []) {
+    // Filter to only standard-format completed rounds. Scrambles, best
+    // ball, alt shot, casual — none of these represent the user's
+    // individual stroke-play game and would skew the SG baseline math.
+    // Single source of truth: roundCountsForStats. Defensive:
+    // additionally require completed status since SG only makes sense
+    // for finished rounds (in-progress totals are partial).
+    const eligibleRounds = (rounds || []).filter(r =>
+      r && r.status === 'completed' && roundCountsForStats(r)
+    );
+    const roundsTotal = eligibleRounds.length;
+    for (const round of eligibleRounds) {
       const course = getCourse(round.courseId);
       if (!course) continue;
       const sg = computeRoundSG(round, course);
@@ -52190,6 +52334,153 @@
     }
     if (best && best.value > 0) return best;
     return null;
+  }
+
+  // Render a single-category SG card, formatted to match the existing
+  // .stats-card pattern used elsewhere on the My Stats page. Used to
+  // surface per-category SG numbers in their respective skill tabs
+  // (tee → Driving, approach + around → Approach, putt → Putting).
+  //
+  // Args:
+  //   agg     — result of computeAggregateSG; already filtered+windowed
+  //   key     — 'tee' | 'approach' | 'around' | 'putt' | 'total'
+  //   label   — card heading (e.g. 'SG: Off the Tee')
+  //   sublabel — small caption under the value (context for what the number means)
+  //
+  // Returns empty string when not enough data to display. Caller can
+  // drop this in unconditionally.
+  function renderSGCard(agg, key, label, sublabel) {
+    if (!agg || !agg.avgPerRound) return '';
+    if (agg.roundsWithSG < 3) return '';
+    const v = agg.avgPerRound[key];
+    if (typeof v !== 'number' || !Number.isFinite(v)) return '';
+    const formatted = formatSGValue(v);
+    // Positive = gaining strokes vs Tour = good = accent color.
+    // Negative = losing strokes = danger color. Zero is neutral.
+    let valueClass = '';
+    const rounded = Math.round(v * 10) / 10;
+    if (rounded > 0) valueClass = 'sg-bar-value-pos';
+    else if (rounded < 0) valueClass = 'sg-bar-value-neg';
+    return `
+      <div class="stats-card">
+        <div class="stats-card-label">${escapeHtml(label)}</div>
+        <div class="stats-card-headline">
+          <span class="stats-card-headline-value ${valueClass}">${formatted}</span>
+          <span class="stats-card-headline-suffix">/round</span>
+        </div>
+        <div class="stats-card-sub">${escapeHtml(sublabel)}</div>
+      </div>
+    `;
+  }
+
+  // Render the multi-round aggregate SG block for the My Stats page.
+  // Accepts the result of computeAggregateSG. Same visual language as
+  // renderSGBlock (diverging bars centered on zero) but reads as
+  // "averages over time" rather than "today's round."
+  //
+  // Returns empty string when:
+  //   - aggregate is null/undefined (defensive)
+  //   - no rounds had enough analyzed data (avgPerRound is null)
+  //   - fewer than 3 rounds qualified (multi-round average needs a few
+  //     samples to be meaningful — single-round ag would just confuse
+  //     vs. the round summary's own SG block)
+  // Caller can drop the return value into a tab unconditionally; if
+  // empty, nothing renders.
+  function renderAggregateSGBlock(agg) {
+    if (!agg || !agg.avgPerRound) return '';
+    if (agg.roundsWithSG < 3) return '';
+    const a = agg.avgPerRound;
+
+    // Header phrase — "Avg X.X strokes vs Tour" with positive/negative
+    // framing. Rounded to 1 decimal place since fractional strokes are
+    // the natural unit of SG.
+    const totalRounded = Math.round(a.total * 10) / 10;
+    let headerPhrase;
+    if (totalRounded > 0) {
+      headerPhrase = `Gaining ${totalRounded.toFixed(1)} strokes/round vs Tour`;
+    } else if (totalRounded < 0) {
+      headerPhrase = `Losing ${Math.abs(totalRounded).toFixed(1)} strokes/round vs Tour`;
+    } else {
+      headerPhrase = 'Even with Tour on average';
+    }
+
+    // X-axis scale — same approach as renderSGBlock. Min of 1.0
+    // ensures a small aggregate still has a sensible scale.
+    const maxAbs = Math.max(
+      1.0,
+      Math.abs(a.tee), Math.abs(a.approach),
+      Math.abs(a.around), Math.abs(a.putt)
+    );
+
+    const cats = [
+      { key: 'tee',      label: 'Off the Tee' },
+      { key: 'approach', label: 'Approach' },
+      { key: 'around',   label: 'Around Green' },
+      { key: 'putt',     label: 'Putting' },
+    ];
+    const rowsHtml = cats.map(c => {
+      const v = a[c.key];
+      const pct = (Math.abs(v) / maxAbs) * 50;
+      const isPositive = v >= 0;
+      const valueClass = isPositive ? 'sg-bar-value-pos' : 'sg-bar-value-neg';
+      const fillClass = isPositive ? 'sg-bar-fill-pos' : 'sg-bar-fill-neg';
+      const fillStyle = isPositive
+        ? `left: 50%; width: ${pct.toFixed(2)}%;`
+        : `right: 50%; width: ${pct.toFixed(2)}%;`;
+      return `
+        <div class="sg-bar-row">
+          <div class="sg-bar-label">${escapeHtml(c.label)}</div>
+          <div class="sg-bar-track">
+            <div class="sg-bar-axis"></div>
+            <div class="sg-bar-fill ${fillClass}" style="${fillStyle}"></div>
+          </div>
+          <div class="sg-bar-value ${valueClass}">${formatSGValue(v)}</div>
+        </div>`;
+    }).join('');
+
+    // Insight line — practice prescription. For losing players, the
+    // worst category is where the highest-leverage practice lives.
+    // For gaining players, name the strength so they can keep doing it.
+    let insightLine = '';
+    const worst = findWorstSGCategory(a);
+    const best = findBestSGCategory(a);
+    if (totalRounded < 0 && worst) {
+      const lostHere = Math.abs(worst.value);
+      insightLine = `<div class="sg-insight">
+        Biggest leak is ${escapeHtml(worst.label)} — ${lostHere.toFixed(1)} strokes/round on average. Practice here for the highest leverage.
+      </div>`;
+    } else if (totalRounded > 0 && best) {
+      insightLine = `<div class="sg-insight">
+        Strongest area is ${escapeHtml(best.label)} — gaining ${best.value.toFixed(1)} strokes/round there.
+      </div>`;
+    }
+
+    // Coverage footer — transparency about the sample. Notes both the
+    // qualifying count and any rounds that were excluded for being
+    // below the 9-hole-analyzed threshold (so it doesn't look like
+    // their data is being ignored without explanation).
+    let coverageLine = '';
+    const excluded = agg.roundsTotal - agg.roundsWithSG;
+    if (excluded > 0) {
+      coverageLine = `<div class="sg-coverage">
+        From ${agg.roundsWithSG} round${agg.roundsWithSG === 1 ? '' : 's'} with full SG data · ${excluded} excluded for incomplete tracking
+      </div>`;
+    } else {
+      coverageLine = `<div class="sg-coverage">
+        From ${agg.roundsWithSG} round${agg.roundsWithSG === 1 ? '' : 's'} with full SG data
+      </div>`;
+    }
+
+    return `
+      <div class="sg-card">
+        <div class="sg-header">
+          <div class="sg-header-phrase">${escapeHtml(headerPhrase)}</div>
+        </div>
+        <div class="sg-bars">${rowsHtml}</div>
+        ${insightLine}
+        ${coverageLine}
+      </div>
+    `;
   }
 
   // Render the SG block for a round summary. Inputs the result of
@@ -56349,6 +56640,12 @@
     // Apply current filters
     const filtered = filterRoundsForStats(allCompleted, myStatsState.courseFilter, myStatsState.timeFilter);
     const stats = computeStatsAggregate(filtered);
+    // Aggregate SG — driven by the same filtered+windowed rounds.
+    // computeAggregateSG additionally hard-filters to standard format
+    // even if the caller forgot, so this is safe regardless. Returns
+    // null-shaped result when not enough data; the renderers handle
+    // that gracefully (return '').
+    const aggSG = computeAggregateSG(filtered);
 
     // Time-window pills (always shown)
     const timeOptions = [
@@ -56847,9 +57144,16 @@
     // above (cardFir, cardGir, etc.) so we get one source of truth and
     // tab switching is just a recompose.
 
-    // Overview: a digest of the 4 main bucket cards. Uses the existing
-    // big stat cards (which already include Last 10 + Best per bucket).
+    // Build the aggregate SG block. Renders to '' when fewer than 3
+    // qualifying rounds, so on a fresh user this just disappears.
+    const aggSGBlock = renderAggregateSGBlock(aggSG);
+
+    // Overview: aggregate SG block + digest of the 4 main bucket cards.
+    // The SG block leads because it's the most prescriptive view of
+    // "where am I losing strokes" — the bucket cards (FIR/GIR/Putts/
+    // Score) are the constituent inputs that drive that picture.
     const overviewContent = `
+      ${aggSGBlock}
       <div class="stats-tab-grid">
         ${cardFir}
         ${cardGir}
@@ -56858,13 +57162,20 @@
       </div>
     `;
 
-    // Driving: fairway% headline card + miss patterns (FIR only).
+    // Driving: SG: Off the Tee headline + fairway% + miss patterns.
+    // SG card leads — it's the most prescriptive driving metric (fairway
+    // hit-rate alone misses distance gained/lost which SG captures).
+    const drivingSGCard = renderSGCard(
+      aggSG, 'tee', 'SG: Off the Tee',
+      'Strokes gained vs Tour baseline on tee shots'
+    );
     let drivingMissCard = '';
     if (stats.firMissesWithDirection > 0 || stats.firMissesTotal > 0) {
       drivingMissCard = renderMissDirCard('Driving misses', stats.firMissDirCounts, stats.firMissesWithDirection, stats.firMissesTotal);
     }
     const drivingContent = `
       <div class="stats-tab-grid">
+        ${drivingSGCard}
         ${cardFir}
         ${drivingMissCard || `
           <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
@@ -56896,8 +57207,18 @@
         </div>
       `;
     }
+    const approachSGCard = renderSGCard(
+      aggSG, 'approach', 'SG: Approach',
+      'Strokes gained vs Tour on full-swing approaches'
+    );
+    const aroundGreenSGCard = renderSGCard(
+      aggSG, 'around', 'SG: Around Green',
+      'Strokes gained vs Tour on chips, pitches, and bunker shots'
+    );
     const approachContent = `
       <div class="stats-tab-grid">
+        ${approachSGCard}
+        ${aroundGreenSGCard}
         ${cardGir}
         ${approachMissCard || `
           <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
@@ -56937,8 +57258,13 @@
         </div>
       `;
     }
+    const puttingSGCard = renderSGCard(
+      aggSG, 'putt', 'SG: Putting',
+      'Strokes gained vs Tour on the green'
+    );
     const puttingContent = `
       <div class="stats-tab-grid">
+        ${puttingSGCard}
         ${cardPutts}
         ${onePuttCard}
         ${threePuttCard}
@@ -57021,8 +57347,13 @@
         </div>
       `;
     }
+    const totalSGCard = renderSGCard(
+      aggSG, 'total', 'SG: Total',
+      'Total strokes gained vs Tour baseline'
+    );
     const scoringContent = `
       <div class="stats-tab-grid">
+        ${totalSGCard}
         ${cardScore}
         ${birdieCard}
         ${bogeyCard}
@@ -57053,6 +57384,10 @@
       }
       if (stats.bestFirPct != null) {
         supportingBits.push(`Best ${fmtPct(stats.bestFirPct)}`);
+      }
+      // Inline aggregate SG when the sample is large enough.
+      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
+        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.tee)}/rd`);
       }
       const supportingHtml = supportingBits.length
         ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
@@ -57112,6 +57447,13 @@
       if (stats.scramblingAttempts > 0) {
         supportingBits.push(`Up&Down ${fmtPct(stats.scramblingPct)}`);
       }
+      // SG: Approach + SG: Around. Two categories live in this bucket
+      // conceptually so surface both; readers can compare their full-
+      // swing approaches vs short-game performance at a glance.
+      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
+        supportingBits.push(`SG App ${formatSGValue(aggSG.avgPerRound.approach)}/rd`);
+        supportingBits.push(`SG Short ${formatSGValue(aggSG.avgPerRound.around)}/rd`);
+      }
       const supportingHtml = supportingBits.length
         ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
         : '';
@@ -57166,6 +57508,9 @@
       if (stats.lowestPuttsPerHole != null) {
         supportingBits.push(`Best ${fmtPutts(stats.lowestPuttsPerHole)}`);
       }
+      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
+        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.putt)}/rd`);
+      }
       const supportingHtml = supportingBits.length
         ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
         : '';
@@ -57210,6 +57555,9 @@
       }
       if (stats.bestRound) {
         supportingBits.push(`Best ${fmtScore(stats.bestRound.totals?.strokes)} ${fmtVsPar(stats.bestVsPar)}`);
+      }
+      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
+        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.total)}/rd`);
       }
       const supportingHtml = supportingBits.length
         ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
@@ -57289,6 +57637,7 @@
     }
 
     const mobileContent = `
+      ${aggSGBlock}
       <div class="stats-mb-stack">
         ${renderMobileBucketDriving()}
         ${renderMobileBucketApproach()}
@@ -64933,6 +65282,14 @@
     // this object plus the popup markup. Reset to defaults on
     // closeRoundGpsPanel.
     layers: { trail: true },
+    // Preview mode — GPS was opened from a course's detail page to
+    // study the layout without an active round. previewMode locks the
+    // panel to planning mode (no auto-upgrade to playing on GPS fix),
+    // hides round-specific UI (Score button, Scorecard tool, Track
+    // Shots tool, etc.), and uses previewTeeName as the synthetic
+    // tee selection (since there's no round to inherit from).
+    previewMode: false,
+    previewTeeName: null,
     // Per-hole pin offsets in yards. Positive = back pin (further from
     // Per-hole user-placed pin position. When the user drops the pin
     // marker on the green at a non-center spot, it's stored here so
@@ -65005,27 +65362,75 @@
   // points (8-10y from pin) still work without fighting the snap.
   const RETICLE_SNAP_YARDS = 6;
 
-  function openRoundGpsPanel() {
-    if (roundGpsState.open) return;
-    const ctx = getCurrentRoundContext();
-    if (!ctx) {
-      showToast('Start a round to use GPS', true);
-      return;
+  // GPS-subsystem-only context reader. Returns the active round
+  // context when one exists, OR a synthetic preview context when GPS
+  // was opened in preview mode (no active round, just exploring the
+  // course). The synthetic shape mirrors getCurrentRoundContext's
+  // output so the GPS subsystem's existing ctx readers don't need
+  // to know which mode they're in.
+  //
+  // Note: dock tools (Caddie, Scorecard, etc.) deliberately keep using
+  // getCurrentRoundContext() so they return null in preview mode
+  // (and render an empty/disabled state rather than rendering against
+  // fake data). The split keeps preview's surface area limited.
+  function getRoundGpsCtx() {
+    if (roundGpsState.previewMode) {
+      return {
+        courseId: roundGpsState.courseId,
+        teeName: roundGpsState.previewTeeName,
+        scores: {},
+        holeIndex: roundGpsState.holeIndex || 0,
+        isGroup: false,
+        isPreview: true,
+      };
     }
-    const course = getCourse(ctx.courseId);
+    return getCurrentRoundContext();
+  }
+
+  function openRoundGpsPanel(options) {
+    if (roundGpsState.open) return;
+    // Two entry paths:
+    //   1. Active round (default): pull courseId/teeName/holeIndex
+    //      from getCurrentRoundContext.
+    //   2. Preview: caller passes { previewCourseId, previewTeeName,
+    //      holeIndex } to study a course without starting a round.
+    let previewMode = false;
+    let courseId, teeName, holeIndex;
+    if (options && options.previewCourseId) {
+      previewMode = true;
+      courseId = options.previewCourseId;
+      teeName = options.previewTeeName || null;
+      holeIndex = options.holeIndex || 0;
+    } else {
+      const ctx = getCurrentRoundContext();
+      if (!ctx) {
+        showToast('Start a round to use GPS', true);
+        return;
+      }
+      courseId = ctx.courseId;
+      teeName = ctx.teeName;
+      holeIndex = ctx.holeIndex;
+    }
+    const course = getCourse(courseId);
     if (!course) return;
-    if (ctx.holeIndex < 0 || ctx.holeIndex >= course.holes.length) return;
+    if (holeIndex < 0 || holeIndex >= course.holes.length) return;
 
     roundGpsState.open = true;
-    roundGpsState.courseId = ctx.courseId;
+    roundGpsState.courseId = courseId;
+    roundGpsState.previewMode = previewMode;
+    roundGpsState.previewTeeName = previewMode ? teeName : null;
     // Hydrate persisted pins from localStorage. If this round has
     // saved pins (set in a previous session that was refreshed/closed),
     // they're restored before the map renders so the locked marker
-    // appears on initial draw.
+    // appears on initial draw. In preview mode, pins are course-scoped
+    // (not round-scoped), so this loads from a different bucket — but
+    // for now the loadPinsForRound implementation doesn't crash on no-
+    // round, it just no-ops, which is fine for v1 (preview won't show
+    // the pin button anyway since it's locked to planning mode).
     loadPinsForRound();
     document.body.classList.add('round-gps-open');
     acquireScrollLock();
-    loadRoundGpsHoleAndRender(ctx.holeIndex);
+    loadRoundGpsHoleAndRender(holeIndex);
   }
   window.openRoundGpsPanel = openRoundGpsPanel;
 
@@ -65037,7 +65442,7 @@
     const course = getCourse(roundGpsState.courseId);
     if (!course) return;
     if (holeIndex < 0 || holeIndex >= course.holes.length) return;
-    const ctx = getCurrentRoundContext();
+    const ctx = getRoundGpsCtx();
     const hole = course.holes[holeIndex];
 
     const teeName = ctx?.teeName;
@@ -65204,7 +65609,7 @@
       refreshRoundGpsTargetBtn();
       return;
     }
-    const ctx = getCurrentRoundContext();
+    const ctx = getRoundGpsCtx();
     const hole = course.holes[holeIndex];
 
     const teeName = ctx?.teeName;
@@ -65599,6 +66004,10 @@
     roundGpsState.holeYards = null;
     roundGpsState.holePar = null;
     roundGpsState.mode = 'planning';
+    // Preview mode is per-session; cleared on close so reopening
+    // (whether for a real round or another preview) starts clean.
+    roundGpsState.previewMode = false;
+    roundGpsState.previewTeeName = null;
     roundGpsState.targetActive = false;
     roundGpsState.targetMarker = null;
     roundGpsState.targetLat = null;
@@ -66342,7 +66751,16 @@
       // target is briefly cleared between holes — without a transition,
       // the button hard-hides for ~800ms then hard-shows). Pointer
       // events disabled when hidden so it can't be tapped invisibly.
-      if (!roundGpsState.targetActive) {
+      // Two hide reasons:
+      //   1. No active target (reticle not placed yet)
+      //   2. Planning mode — without a real user position, committing
+      //      a target has no actionable meaning. The user is studying
+      //      the hole pre-round; let them measure with the reticle
+      //      but don't show a "Set Target" button that doesn't do
+      //      anything useful.
+      const shouldHide = !roundGpsState.targetActive
+        || roundGpsState.mode === 'planning';
+      if (shouldHide) {
         btn.classList.add('is-hidden');
       } else {
         btn.classList.remove('is-hidden');
@@ -66909,6 +67327,11 @@
     if (!btn) return;
     const hasCustom = hasCustomPinForCurrentHole();
     btn.classList.toggle('has-offset', hasCustom);
+    // Hide entirely in planning mode. Pre-round, the user doesn't
+    // know where the flag actually is; defaulting to green-center is
+    // a better proxy than an early guess. Pin placement makes sense
+    // once they walk up and can see the flag.
+    btn.classList.toggle('is-hidden', roundGpsState.mode === 'planning');
     btn.setAttribute('aria-label', hasCustom
       ? 'Pin placed — tap to adjust or remove'
       : 'Drop pin on green');
@@ -69195,7 +69618,7 @@
     // one and within the detection threshold. Bias toward forward
     // progression — only consider holes >= currentHole + 1 (so going
     // back to an earlier hole's tee doesn't prompt).
-    const ctx = getCurrentRoundContext();
+    const ctx = getRoundGpsCtx();
     const teeName = ctx?.teeName;
     const currentIdx = roundGpsState.holeIndex;
 
@@ -70479,6 +70902,27 @@
   function refreshRoundGpsActionButton() {
     const btn = document.getElementById('round-gps-shot-btn');
     if (!btn) return;
+    // Planning mode — GPS hasn't found us on the course yet. The Log
+    // Shot button can't do anything useful (would error on tap), so
+    // swap it out for a non-interactive "Walking up" placeholder.
+    // Same dimensions as the live button so the action bar doesn't
+    // shift when GPS upgrades to playing mode.
+    if (roundGpsState.mode === 'planning') {
+      btn.dataset.mode = 'planning';
+      btn.classList.add('is-planning');
+      btn.removeAttribute('onclick');
+      btn.setAttribute('aria-label', 'Walking up — Log shot will activate when you arrive');
+      btn.setAttribute('disabled', 'disabled');
+      const labelEl = btn.querySelector('.round-gps-shot-btn-label');
+      if (labelEl) labelEl.textContent = 'Walk up to start';
+      const countEl = document.getElementById('round-gps-shot-btn-count');
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+    // Coming back from planning → playing — clear the planning flags
+    // before applying the playing-mode states below.
+    btn.classList.remove('is-planning');
+    btn.removeAttribute('disabled');
     const mode = getRoundGpsLogButtonMode();
     const labelEl = btn.querySelector('.round-gps-shot-btn-label');
     if (mode === 'set-tee') {
@@ -71650,7 +72094,8 @@
         <!-- Bottom action bar — Tools (secondary), Log Shot (primary
              orange), Score (secondary). Log Shot is the in-play action
              tapped once per shot to capture position. Score remains
-             accessible via its own button for end-of-hole input. -->
+             accessible via its own button for end-of-hole input.
+             Score is hidden in preview mode (no round to record). -->
         <div class="round-gps-action-bar">
           <button class="round-tools-btn round-tools-btn-compact"
                   onclick="openToolsSheet()"
@@ -71664,11 +72109,13 @@
             <span class="round-gps-shot-btn-label">Log shot</span>
             <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
           </button>
-          <button class="round-tools-btn round-tools-btn-compact"
-                  onclick="openGpsScoreSheet()"
-                  aria-label="Input score">
-            <span class="round-tools-btn-label">Score</span>
-          </button>
+          ${roundGpsState.previewMode ? '' : `
+            <button class="round-tools-btn round-tools-btn-compact"
+                    onclick="openGpsScoreSheet()"
+                    aria-label="Input score">
+              <span class="round-tools-btn-label">Score</span>
+            </button>
+          `}
         </div>
       </div>`;
 
@@ -71824,8 +72271,15 @@
       );
     }
     // Initial pin offset button state — sync the badge with whatever
-    // offset (likely 0) is set for the current hole.
+    // offset (likely 0) is set for the current hole. Also applies
+    // planning-mode hide if applicable.
     refreshRoundGpsPinBtn();
+    // Initial action button + target button state. These match the
+    // current mode (planning vs playing) so a fresh open while still
+    // far from the course shows the muted placeholder + hidden target,
+    // not the live Log Shot / Set Target controls.
+    refreshRoundGpsActionButton();
+    refreshRoundGpsTargetBtn();
     // If a pin was loaded from localStorage for this hole, render
     // its locked marker on the map. (transitionRoundGpsToHole does
     // this for hole changes; the initial render needs it too.)
@@ -71908,7 +72362,11 @@
           latitude, longitude, course.lat, course.lng);
         onCourse = milesAway <= ROUND_GPS_PLAYING_THRESHOLD_MILES;
       }
-      if (onCourse) {
+      // Preview mode locks to planning. Even if the user happens to
+      // be standing at the course while previewing it, they're not
+      // actively playing — the upgrade would surface Log Shot / Set
+      // Tee / Set Pin which all need a round to do anything useful.
+      if (onCourse && !roundGpsState.previewMode) {
         upgradeRoundGpsToPlayingMode(latitude, longitude, accuracy);
       }
     }
@@ -72179,6 +72637,10 @@
       roundGpsState.map.once('idle', renderRoundGpsShotMarkers);
     }
     refreshRoundGpsActionButton();
+    // Pin + target buttons are hidden while in planning mode. Refresh
+    // both so they fade in now that the user is on the course.
+    refreshRoundGpsPinBtn();
+    refreshRoundGpsTargetBtn();
   }
 
   // ─────────────────────────────────────────────────────────────
