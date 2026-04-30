@@ -42005,6 +42005,11 @@
     shotEditState.draft = draft;
     shotEditState.editingId = pendingShotId;
     shotEditState.holeNumber = holeNumber;
+    // Flag: was this sheet opened on a brand-new stub shot (e.g. from
+    // Log Shot in GPS view)? If so, dismissing the sheet without
+    // saving + without a club selected should prompt to discard the
+    // shot rather than silently committing an unconfigured stub.
+    shotEditState.isNewStub = !!opts.isNewStub;
     acquireScrollLock();
     renderShotEditSheet();
   }
@@ -42424,6 +42429,62 @@
     shotEditState.targetMarker = null;
   }
 
+  // User-initiated dismiss path. If this is a freshly-created stub
+  // (Log Shot pushed it but user never picked a club / hit save),
+  // prompt to discard rather than silently leaving a clubless shot
+  // in the array. Only fires for stubs from Log Shot — editing an
+  // existing shot dismisses immediately like before.
+  async function dismissShotEditSheet() {
+    if (!shotEditState.open) return;
+    const isStub = shotEditState.isNewStub;
+    const draft = shotEditState.draft;
+    const hasClub = !!(draft && draft.club);
+    if (isStub && !hasClub) {
+      const ok = await confirmDialog({
+        eyebrow: 'Discard Shot',
+        eyebrowStyle: 'warning',
+        title: 'Discard this shot?',
+        message: 'You haven\'t picked a club yet. The shot and its GPS position will be lost.',
+        confirmText: 'Discard',
+        cancelText: 'Keep editing',
+        destructive: true,
+      });
+      if (!ok) return;  // user chose to keep editing — sheet stays open
+
+      // Remove the stub from the shots array. Mirror the cleanup from
+      // deleteShotDraft minus the confirm (already done).
+      const { editingId, holeNumber } = shotEditState;
+      if (editingId != null && holeNumber != null) {
+        const overrideRound = getEditingRoundOverride();
+        const isReplayEdit = !!overrideRound;
+        const replayRoundId = shotEditState.roundId;
+        const shots = ensureShotsForHole(holeNumber, overrideRound);
+        const idx = shots.findIndex(s => s.id === editingId);
+        if (idx !== -1) shots.splice(idx, 1);
+        // Clean up GPS-side state for the removed stub: re-init shot
+        // tracking so lastShotEnd reflects the now-shorter array, and
+        // re-render the map pins. Without this, the next Log Shot tap
+        // would treat the removed stub's end as the previous shot's
+        // start, putting the next shot in the wrong place.
+        if (typeof renderRoundGpsShotMarkers === 'function'
+            && roundGpsState.open
+            && roundGpsState.holeNumber === holeNumber) {
+          initShotTrackingForHole();
+          renderRoundGpsShotMarkers();
+          refreshRoundGpsActionButton();
+        }
+        // Persist the removal so it survives refresh.
+        if (isReplayEdit) {
+          persistShotChangesForReplay(replayRoundId);
+        } else {
+          persistShotChanges();
+        }
+      }
+    }
+    closeShotEditSheet();
+  }
+  window.dismissShotEditSheet = dismissShotEditSheet;
+
   function closeShotEditSheet() {
     if (!shotEditState.open) return;
     const el = document.querySelector('.shot-edit-sheet');
@@ -42435,6 +42496,7 @@
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
+      shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
       if (mount) mount.innerHTML = '';
@@ -42467,6 +42529,7 @@
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
+      shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
       if (mount) mount.innerHTML = '';
@@ -43257,11 +43320,11 @@
     }
 
     mount.innerHTML = `
-      <div class="shot-edit-backdrop opening" onclick="closeShotEditSheet()" aria-hidden="true"></div>
+      <div class="shot-edit-backdrop opening" onclick="dismissShotEditSheet()" aria-hidden="true"></div>
       <div class="shot-edit-sheet opening" role="dialog" aria-modal="true" aria-label="${isEditing ? 'Edit shot' : 'Add shot'}">
         <div class="shot-edit-header">
           <div class="shot-edit-eyebrow">${isEditing ? 'Edit Shot' : 'Add Shot'}</div>
-          <button class="shot-edit-close" onclick="closeShotEditSheet()" aria-label="Close">×</button>
+          <button class="shot-edit-close" onclick="dismissShotEditSheet()" aria-label="Close">×</button>
         </div>
         <div class="shot-edit-body">${bodyHtml}</div>
         <div class="shot-edit-footer">
@@ -70202,8 +70265,10 @@
     }
 
     // Open the shot edit sheet so the user can fill in club / details.
-    // They can dismiss without changing anything; defaults stand.
-    openShotEditSheet(holeNum, newShot.id);
+    // The isNewStub flag tells dismissShotEditSheet to prompt for
+    // discard if the user closes without picking a club — prevents
+    // clubless stubs from polluting the array.
+    openShotEditSheet(holeNum, newShot.id, { isNewStub: true });
   }
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
   window.getShotMissContext = getShotMissContext;
