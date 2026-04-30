@@ -6180,25 +6180,69 @@
     background: var(--color-accent-light);
   }
 
-  /* Pill — floats just below the topbar, centered. Same look as the
-     round-gps info bar. Updates after each shot log. */
-  .gps-range-pill {
+  /* ─────────────────────────────────────────────────────────────
+     Live-session header. The session view drops the full-width
+     `.gps-range-topbar` used by setup/picker in favor of a floating
+     pill + floating close button — same approach as `.round-gps-header`
+     so the map can fill the entire viewport. The header is a passthrough
+     wrapper so taps fall through to the map; the pill + close override
+     pointer-events to be tappable.
+     ───────────────────────────────────────────────────────────── */
+  .gps-range-header {
     position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 56px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    color: var(--color-cream-50);
-    padding: var(--space-2) var(--space-4);
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Pill — centered above the map. Matches `.round-gps-info-bar`
+     styling so the two GPS surfaces feel like the same family.
+     Position is relative to the header (the header centers it
+     horizontally via flex). The pill content itself stays plain
+     text "club · avg · shot N" — it's not split into bordered
+     cells like the round info bar because the values are wordier
+     (a club name + "162y avg" + "shot 3") and would crowd at 375px
+     if each cell had its own padding. */
+  .gps-range-pill {
+    background: rgba(0, 0, 0, 0.55);
     border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-4);
+    color: var(--color-cream-50);
     font-family: var(--font-body);
     font-size: var(--text-sm);
     font-weight: var(--weight-medium);
     white-space: nowrap;
-    pointer-events: none;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+      0 2px 16px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Floating close button — top-right of the header, transparent
+     background, white ×. Mirrors `.round-gps-close-float`. The base
+     `.gps-range-close` class is shared with the picker/setup topbar
+     buttons; this modifier positions it absolutely + adds a subtle
+     hit-area tint. */
+  .gps-range-close-float {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: 12px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .gps-range-close-float:active {
+    background: rgba(0, 0, 0, 0.65);
   }
 
   .gps-range-map {
@@ -6208,8 +6252,127 @@
     background: #000;
   }
 
-  /* Bottom dock — target chip on left, club chip on right.
-     Both tappable to switch mid-session. Absolute overlay over the map. */
+  /* ─────────────────────────────────────────────────────────────
+     Bottom action bar (live session). Same architecture as
+     `.round-gps-action-bar`: gradient fade-out from black at the
+     bottom to transparent at the top, no solid bar, three children
+     (compact, primary, compact). The gradient is wide enough to
+     keep the chips legible on bright satellite imagery without
+     drawing a hard horizontal line across the map.
+     ───────────────────────────────────────────────────────────── */
+  .gps-range-action-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.6) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    pointer-events: none;
+  }
+  .gps-range-action-bar > * { pointer-events: auto; }
+
+  /* Compact chip — fills the same role as the round-gps action bar's
+     compact Tools/Score buttons. Holds the eyebrow ("TARGET" / "CLUB")
+     above the primary label. Two-line stack matches the existing
+     chip content; the chevron ▾ stays anchored top-right. */
+  .gps-range-action-chip {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-md);
+    color: var(--color-cream-50);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    text-align: left;
+    position: relative;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-height: 52px;
+  }
+  .gps-range-action-chip:active {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  /* Hide the chevron inside the compact action-bar chip — at this
+     size the eyebrow + label already reads as a button, and the chev
+     would crowd the right edge against the chip border. The legacy
+     `.gps-range-target-chip` / `.gps-range-club-chip` (full-width
+     dock variant) still shows it. */
+  .gps-range-action-chip .gps-range-chip-chev {
+    display: none;
+  }
+  /* Compact-context label — slightly tighter sizing to fit the
+     compact chip without truncating common values like "7-iron"
+     or "150y". The base `.gps-range-chip-label` uses display font
+     and `text-base`, which is right for the legacy dock but a bit
+     tall for the action bar. Switch to body font + smaller size
+     here to mirror the round-gps Tools/Score button label
+     proportions. */
+  .gps-range-action-chip .gps-range-chip-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.2;
+  }
+
+  /* Primary Finish CTA — sits between the two chips, takes the most
+     flex so it dominates visually (mirrors the round GPS Log Shot
+     button). Orange accent + glow shadow, same shape as the round-save
+     button family for consistency. */
+  .gps-range-finish-btn {
+    flex: 1;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-accent);
+    color: var(--color-white);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    min-height: 52px;
+    box-shadow:
+      0 8px 24px var(--color-accent-glow),
+      0 2px 6px rgba(13, 13, 13, 0.12);
+    transition:
+      transform var(--transition-spring),
+      background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .gps-range-finish-btn:hover {
+      background: var(--color-accent-light);
+      border-color: var(--color-accent-light);
+    }
+  }
+  .gps-range-finish-btn:active { transform: scale(0.98); }
+
+  /* Bottom dock (legacy) — the OLD live-session layout used a solid
+     dock with two big chips (no Finish in the dock). Kept around in
+     case any future flow wants the simpler dock; the live session no
+     longer uses it. The setup substages also don't use it (they have
+     their own panels). */
   .gps-range-dock {
     position: absolute;
     bottom: 0;
@@ -68872,28 +69035,42 @@
   function renderGpsRangeSession() {
     return `
       <div class="gps-range-shell">
-        <!-- Topbar: close button on left, "RANGE SESSION" title centered,
-             finish button on right. Mirrors the round-replay topbar. -->
-        <div class="gps-range-topbar">
-          <button class="gps-range-close" onclick="closeGpsRangeSession()" aria-label="Close session">×</button>
-          <div class="gps-range-topbar-title">RANGE SESSION</div>
-          <button class="gps-range-finish" onclick="finishGpsRangeSession()">Finish</button>
+        <!-- Floating header — centered pill with current club / avg /
+             shot count, plus a top-right floating close button. Mirrors
+             the round GPS view's header structure: no full-width topbar
+             stealing screen real estate, just two transparent overlays
+             on top of the map. -->
+        <div class="gps-range-header">
+          <div class="gps-range-pill" id="gps-range-pill">${renderGpsRangePill()}</div>
+          <button class="gps-range-close gps-range-close-float"
+                  onclick="closeGpsRangeSession()"
+                  aria-label="Close session">×</button>
         </div>
 
-        <!-- Top pill: current club · session-avg distance · shot count.
-             Updates after every shot log. -->
-        <div class="gps-range-pill" id="gps-range-pill">${renderGpsRangePill()}</div>
-
-        <!-- Map fills the rest of the screen between pill and bottom dock -->
+        <!-- Map fills the entire viewport. Header floats above, action
+             bar floats below, both with transparent / fade-out
+             treatments so the map dominates. -->
         <div id="gps-range-map" class="gps-range-map"></div>
 
-        <!-- Bottom dock: target chip on left, club chip on right.
-             Both tappable to switch mid-session. -->
-        <div class="gps-range-dock">
-          <button class="gps-range-target-chip" id="gps-range-target-chip" onclick="openGpsRangeTargetPicker()">
+        <!-- Bottom action bar — Target chip (compact, opens picker) /
+             Finish (primary orange CTA, ends session) / Club chip
+             (compact, opens picker). Mirrors the round GPS action bar's
+             Tools / Log Shot / Score pattern: two pickers flanking the
+             primary action. The chips' eyebrow+label content fits a
+             compact two-line treatment, same as Tools/Score. -->
+        <div class="gps-range-action-bar">
+          <button class="gps-range-action-chip"
+                  id="gps-range-target-chip"
+                  onclick="openGpsRangeTargetPicker()">
             ${renderGpsRangeTargetChipBody()}
           </button>
-          <button class="gps-range-club-chip" id="gps-range-club-chip" onclick="openGpsRangeClubPicker()">
+          <button class="gps-range-finish-btn"
+                  onclick="finishGpsRangeSession()">
+            Finish
+          </button>
+          <button class="gps-range-action-chip"
+                  id="gps-range-club-chip"
+                  onclick="openGpsRangeClubPicker()">
             ${renderGpsRangeClubChipBody()}
           </button>
         </div>
