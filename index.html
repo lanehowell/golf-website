@@ -6235,67 +6235,238 @@
   }
   .gps-range-action-bar > * { pointer-events: auto; }
 
-  /* Action chip — Target / Club picker triggers. Higher contrast
-     than the previous compact variant so the labels read clearly
-     against bright satellite imagery. The eyebrow ("TARGET" /
-     "CLUB") sits above the value ("75y" / "7 Iron"). Chips share
-     equal flex so they balance the bottom bar without one
-     dominating. */
-  .gps-range-action-chip {
-    flex: 1;
-    min-width: 0;
+  /* ── Floating selector pills (live substage) ─────────────────
+     Replaces the previous rectangular two-chip action bar. Smaller,
+     transparent-ish pills floating over the map at the bottom — the
+     map is the actual primary surface, and the pills should feel
+     like tappable references, not chrome that competes with it.
+     Centered horizontally as a pair; sit above safe-area inset.
+     ──────────────────────────────────────────────────────────── */
+  .gps-range-floating-pills {
+    position: absolute;
+    /* Hug the bottom of the screen, above safe-area inset. Sit ABOVE
+       the BL/BR button stacks (which start at 16px from bottom), so
+       no overlap. */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 0;
+    right: 0;
+    z-index: 5;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
     justify-content: center;
-    gap: 3px;
-    padding: var(--space-3) var(--space-4);
-    background: rgba(0, 0, 0, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: var(--radius-lg);
-    color: var(--color-cream-50);
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+    pointer-events: none;
+  }
+  .gps-range-floating-pills > * { pointer-events: auto; }
+
+  .gps-range-floating-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-pill);
+    color: #fff;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    text-align: left;
-    position: relative;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    min-height: 56px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    line-height: 1.2;
+    /* Single-line, no wrap — pill shrinks gracefully via parent
+       gap/padding rather than wrapping. */
+    white-space: nowrap;
+    /* Cap max width so the BL/BR button stacks (each ~76px reserved
+       — 44px button + 16px margin + 16px gap) don't get crowded.
+       On a 375px screen, this leaves ~223px for the pill itself. */
+    max-width: calc(100vw - 152px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 120ms ease-out, transform 120ms ease-out;
   }
-  .gps-range-action-chip:active {
-    background: rgba(0, 0, 0, 0.88);
+  .gps-range-floating-pill:active {
+    background: rgba(0, 0, 0, 0.78);
+    transform: scale(0.97);
   }
 
-  /* Hide the chevron — at this size with two-chip layout the eyebrow
-     + label already reads as a tappable control, and the chev would
-     just clutter the right edge. */
-  .gps-range-action-chip .gps-range-chip-chev {
+  /* Combined pill variant — slight extra horizontal padding because
+     it carries more info (target + club). The visual rhythm reads
+     left-to-right: swatch → name → distance → · → club. */
+  .gps-range-combined-pill {
+    padding: 10px 16px;
+  }
+
+  /* Soft separator between target half and club half of the
+     combined pill. Subtle dot rather than a heavy divider so the
+     pill still reads as a unified surface. */
+  .gps-range-floating-pill-sep {
+    opacity: 0.45;
+    font-weight: var(--weight-medium);
+    margin: 0 2px;
+  }
+
+  /* Colored swatch on the target pill — matches the on-map ring
+     color so the user's eye can connect "the pill says 150y red,
+     and the red ring on the map is what I'm aiming at." */
+  .gps-range-floating-pill-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  /* Open variant — used for free-aim state (reticle not snapped to
+     a target). Hollow ring distinguishes "between flags" from
+     "locked on a flag" at a glance. */
+  .gps-range-floating-pill-swatch-open {
+    background: transparent !important;
+  }
+
+  .gps-range-floating-pill-text {
+    /* Primary text: target name OR club label. Truncates if too
+       long to fit. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .gps-range-floating-pill-detail {
+    /* Secondary text: dynamic distance ("150y"). Sits to the right
+       of the name with reduced opacity so the eye reads name first.
+       Mono font for numerals. */
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    opacity: 0.72;
+    flex-shrink: 0;
+  }
+
+  /* ── Bottom-corner button stack (tools) ─────────────────────
+     Same circular dark-translucent style as the round GPS view's
+     recenter / wind buttons for visual harmony across the family.
+     44px circles, 12px gaps, stacked from the bottom-left corner.
+     ──────────────────────────────────────────────────────────── */
+  .gps-range-tools-btn {
+    position: absolute;
+    left: 16px;
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out, transform 120ms ease-out;
+  }
+  .gps-range-tools-btn:active {
+    background: rgba(0, 0, 0, 0.78);
+    transform: scale(0.95);
+  }
+  /* Recenter sits at the bottom of the stack, just above the
+     floating pills. Pills are at bottom: ~12px + safe-area, with
+     ~40px tall pill height, so the recenter button needs to clear
+     ~52-60px from the safe-area floor. */
+  .gps-range-tools-btn-recenter {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 64px);
+  }
+  /* Shot log sits 56px above recenter (44 button + 12 gap). */
+  .gps-range-tools-btn-shotlog {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 64px + 56px);
+  }
+  /* Shot count badge — small numeric pill on the top-right of the
+     shot log button. Hides when count is 0. */
+  .gps-range-tools-btn-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: 2px solid rgba(0, 0, 0, 0.85);
+    font-family: var(--font-mono);
+    font-size: var(--text-3xs);
+    font-weight: var(--weight-bold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .gps-range-tools-btn-badge.is-hidden {
     display: none;
   }
 
-  /* Eyebrow inside the chip — small uppercase label ("TARGET" /
-     "CLUB") above the value. Bumped from the legacy 0.6 opacity
-     to 0.72 so it reads more solidly against satellite. */
-  .gps-range-action-chip .gps-range-chip-eyebrow {
+  /* ── Wind compass (BR corner) ───────────────────────────────
+     Mirrors the round GPS view's wind compass. Different element
+     id (gps-range-wind) so its own update fn can target it
+     independently of the in-round one. Hidden until weather data
+     lands.
+     ──────────────────────────────────────────────────────────── */
+  .gps-range-wind {
+    position: absolute;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 64px);
+    z-index: 5;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out, transform 120ms ease-out;
+  }
+  .gps-range-wind:active {
+    background: rgba(0, 0, 0, 0.78);
+    transform: scale(0.95);
+  }
+  .gps-range-wind.is-hidden {
+    display: none;
+  }
+  .gps-range-wind-arrow {
+    /* Rotated by JS to point in wind direction relative to map
+       bearing — same windArrowRotation helper as the round GPS. */
+    transition: transform 200ms ease-out;
+    color: #fff;
+  }
+  .gps-range-wind-speed {
     font-family: var(--font-mono);
-    font-size: var(--text-3xs);
-    letter-spacing: var(--tracking-widest);
-    text-transform: uppercase;
-    opacity: 0.72;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
     line-height: 1;
   }
-
-  /* Primary value inside the chip — the user's current selection
-     ("75y" / "7 Iron"). Body-font, bold, full-opacity white so it
-     reads even on light imagery without relying on the chip
-     background to do the lifting. */
-  .gps-range-action-chip .gps-range-chip-label {
-    font-family: var(--font-body);
-    font-size: var(--text-md);
-    font-weight: var(--weight-semibold);
-    line-height: 1.2;
-    color: #fff;
+  .gps-range-wind-unit {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    line-height: 1;
   }
 
   /* "Set hitting position" primary CTA shown during the session's
@@ -6400,6 +6571,55 @@
     border: 1.5px solid #fff;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     cursor: pointer;
+  }
+
+  /* ── Aim reticle ─────────────────────────────────────────────
+     Draggable reticle that the user moves to set their aim point.
+     Magnetic-snaps to nearby targets. Larger than a target ring so
+     it's easy to grab; concentric rings make it read clearly as a
+     reticle (not just another target). Includes a small center
+     dot for precision.
+     ──────────────────────────────────────────────────────────── */
+  .gps-range-aim-reticle {
+    width: 48px;
+    height: 48px;
+    cursor: grab;
+    -webkit-tap-highlight-color: transparent;
+    /* Subtle drop shadow so it stands out on busy satellite tiles. */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    /* Render the reticle SVG centered on the lat/lng. Mapbox marker
+       anchors center by default. */
+    pointer-events: auto;
+  }
+  .gps-range-aim-reticle:active {
+    cursor: grabbing;
+  }
+  /* Snapped state — tighter visual to indicate "magnet engaged."
+     The accent stroke pulses subtly so the user can tell at a
+     glance the reticle is locked to a target. */
+  .gps-range-aim-reticle.is-snapped {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+
+  /* Midpoint yardage label — DOM marker positioned at the midpoint
+     of the tee→aim line. Black pill with mono numerals; same family
+     as the round GPS view's distance pill but simpler (no plays-like
+     expansion since ranges don't have elevation data). */
+  .gps-range-aim-yardage-label {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    padding: 4px 10px;
+    border-radius: 12px;
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
   /* ── Static shell variant (no map) — loading, picker, name stage ── */
@@ -6823,13 +7043,20 @@
     cursor: pointer;
   }
 
-  /* ── Bottom-sheet pickers (target/club) on top of session map ── */
+  /* ── Bottom-sheet pickers (unified target+club) on top of session map ── */
   .gps-range-picker-backdrop {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 5;
+    /* Fade in on open, out on close — classes added in parallel
+       with the sheet's slide. Same duration so they finish together. */
+    opacity: 1;
+    transition: opacity 220ms ease-out;
   }
+  .gps-range-picker-backdrop.opening,
+  .gps-range-picker-backdrop.closing { opacity: 0; }
+
   .gps-range-picker-sheet {
     position: absolute;
     bottom: 0;
@@ -6845,7 +7072,13 @@
     max-height: 70vh;
     display: flex;
     flex-direction: column;
+    /* Slide up on open, down on close. Same pattern as the shot
+       modal — render with .opening, remove next frame to animate. */
+    transform: translateY(0);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  .gps-range-picker-sheet.opening,
+  .gps-range-picker-sheet.closing { transform: translateY(100%); }
   .gps-range-picker-handle {
     width: 40px;
     height: 4px;
@@ -6869,6 +7102,33 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+  /* Section header within the unified picker — small uppercase
+     eyebrow that splits "Target" from "Club" rows. The gap above
+     gives breathing room between sections. */
+  .gps-range-picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .gps-range-picker-section + .gps-range-picker-section {
+    margin-top: var(--space-3);
+  }
+  .gps-range-picker-section-header {
+    font-family: var(--font-mono);
+    font-size: var(--text-3xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    padding: var(--space-1) var(--space-3);
+    margin-top: var(--space-1);
+  }
+  .gps-range-picker-section-empty {
+    padding: var(--space-3);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-align: center;
   }
   .gps-range-picker-row {
     display: flex;
@@ -7135,6 +7395,252 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18),
                 0 1px 4px rgba(0, 0, 0, 0.6);
   }
+
+  /* ── Shot log modal ────────────────────────────────────────
+     List of shots logged this session. Bottom sheet, 75vh tall to
+     give breathing room for many shots; rows scroll within. Each
+     row shows: shot number, club + yardage headline, target +
+     contact + shape meta line. Tap row → edit; trash button →
+     delete with confirm. Mounts at body-level (#gps-range-shot-
+     log-modal-mount) for z-index escape from the session shell.
+     ──────────────────────────────────────────────────────────── */
+  #gps-range-shot-log-modal-mount {
+    position: fixed;
+    inset: 0;
+    /* Sit below the per-shot modal (z-index 9700) but above the
+       session shell. */
+    z-index: 9650;
+    pointer-events: none;
+  }
+  #gps-range-shot-log-modal-mount:empty { display: none; }
+
+  .gps-range-shot-log-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 220ms ease-out;
+  }
+  .gps-range-shot-log-backdrop.opening,
+  .gps-range-shot-log-backdrop.closing { opacity: 0; }
+
+  .gps-range-shot-log-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 75vh;
+    max-height: 75vh;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    transform: translateY(0);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .gps-range-shot-log-sheet.opening,
+  .gps-range-shot-log-sheet.closing { transform: translateY(100%); }
+
+  .gps-range-shot-log-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-medium);
+    margin: var(--space-2) auto var(--space-1);
+    flex-shrink: 0;
+  }
+
+  .gps-range-shot-log-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--text-primary);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  .gps-range-shot-log-rows {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  /* Empty state — friendly nudge when no shots yet. */
+  .gps-range-shot-log-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  /* Row layout: main button (taps open edit) + trash button.
+     Side-by-side, each with its own tap target so the user can
+     either edit OR delete without ambiguity. */
+  .gps-range-shot-log-row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-1);
+    padding: 4px;
+    background: var(--bg-page);
+    border-radius: var(--radius-md);
+  }
+  .gps-range-shot-log-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out;
+  }
+  .gps-range-shot-log-row-main:active {
+    background: var(--color-cream-100);
+  }
+  html.dark .gps-range-shot-log-row-main:active {
+    background: var(--bg-surface);
+  }
+
+  /* Shot number — small, dimmed, monospace. Quick scan. */
+  .gps-range-shot-log-row-num {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--text-secondary);
+    min-width: 32px;
+  }
+
+  .gps-range-shot-log-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .gps-range-shot-log-row-headline {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
+  .gps-range-shot-log-row-club {
+    color: var(--text-primary);
+  }
+  .gps-range-shot-log-row-yardage {
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+  }
+  /* Swing % label — sits next to yardage in the headline. Uses a
+     subtle pill style so "75%" reads as a tag rather than blending
+     with the yardage. Hidden when shot is 100% (default). */
+  .gps-range-shot-log-row-swing {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 1px 6px;
+    line-height: 1.1;
+  }
+  .gps-range-shot-log-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+  .gps-range-shot-log-row-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .gps-range-shot-log-row-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    display: inline-block;
+  }
+  .gps-range-shot-log-row-sep {
+    opacity: 0.4;
+  }
+  .gps-range-shot-log-row-chev {
+    color: var(--text-secondary);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-light);
+    flex-shrink: 0;
+  }
+
+  .gps-range-shot-log-row-delete {
+    width: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms ease-out, color 120ms ease-out;
+  }
+  .gps-range-shot-log-row-delete:active {
+    background: rgba(232, 93, 4, 0.12);
+    color: var(--color-danger, var(--color-accent));
+  }
+
+  .gps-range-shot-log-actions {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4) 0;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+  }
+  .gps-range-shot-log-close-btn {
+    flex: 1;
+    padding: var(--space-3);
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: 1.5px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+  }
+  .gps-range-shot-log-close-btn:active { transform: scale(0.98); }
 
   /* Wind compass — bottom-right floating button. Mirrors the recenter
      button on the bottom-left for visual symmetry. The compass arrow
@@ -28034,6 +28540,12 @@
      metadata (yardage, contact, shape) before committing. Body-level
      for z-index escape from the session shell. -->
 <div id="gps-range-shot-modal-mount"></div>
+
+<!-- GPS Range Session shot LOG modal — list of shots logged this
+     session. Tap a shot to edit; swipe to delete (future). Body-
+     level for z-index escape; sits beneath the per-shot modal so
+     opening edit from log feels like a transition. -->
+<div id="gps-range-shot-log-modal-mount"></div>
 
 <!-- ADD COURSE sheet mount — admin-only flow for searching
      golfcourseapi.com and importing a course into the Firestore
@@ -68274,12 +68786,23 @@
     // the session doc on Finish so historical sessions know which
     // origin their shots are measured against.
     sessionTee: null,          // { lat, lng } or null
+    // Aim point — the user-controlled reticle on the map. Drives
+    // the tee→aim reference line, the midpoint yardage label, and
+    // shot lateral/along math (replacing the old "currentTargetId
+    // is the aim" model). The reticle is draggable; magnetic-snaps
+    // to nearby targets within ~32px on screen. When snapped,
+    // snappedTargetId reflects which target; otherwise null.
+    // currentTargetId mirrors snappedTargetId so legacy code paths
+    // that read currentTargetId still work.
+    aim: null,                 // { lat, lng, snappedTargetId } or null
+    aimMarker: null,           // mapboxgl.Marker (DOM, draggable)
+    aimYardageLabel: null,     // mapboxgl.Marker (DOM) for midpoint pill
     // Setup state — staged values during the 'setup' flow.
     setupDraft: null,          // { name, tee, targets, pendingTargetDistance }
     // Map artifacts (cleaned up on transitions and on close)
     teeMarker: null,
     targetMarkers: {},
-    shotPinMarkers: [],
+    shotPinMarkers: {},        // { shotId: mapboxgl.Marker } — keyed for edit-in-place lookups
     setupHelperLayers: [],     // [{ sourceId, layerId }] — distance ring etc.
     pillRafId: null,
     // User-position tracking for the setup flow. The user is most likely
@@ -68398,12 +68921,34 @@
   ];
   const RANGE_SHOT_DEFAULT_SHAPE = 'straight';
 
+  // Swing percentage — capture intent (full vs. partial swing). Useful
+  // for analyzing distance control: a 75% 8-iron is a different shot
+  // than a 100% 9-iron even if they fly similar distances. Four bands
+  // matches how golfers typically think about partial shots (quarter,
+  // half, three-quarter, full). Default to 100 since most range shots
+  // are full swings; sticky from previous shot when present.
+  const RANGE_SHOT_SWING_PCTS = [
+    { id: 25,  label: '25%'  },
+    { id: 50,  label: '50%'  },
+    { id: 75,  label: '75%'  },
+    { id: 100, label: '100%' },
+  ];
+  const RANGE_SHOT_DEFAULT_SWING_PCT = 100;
+
   // Modal state. Lives outside gpsRangeSessionState because the
   // modal owns its own DOM mount + open/closed lifecycle separate
   // from the session shell. Cleared on close so a stale tap-context
   // can't leak between modal opens.
   const gpsRangeShotModalState = {
     open: false,
+    // When set to an existing shot id, the modal is in EDIT mode:
+    // pre-filled from that shot, save UPDATES the existing record
+    // rather than appending a new one, and the corresponding pin
+    // on the map is hidden while editing (the pending marker shows
+    // the in-flight position; on save, the original pin is removed
+    // and a fresh permanent pin replaces it). null = log-new-shot
+    // (default).
+    editingShotId: null,
     // Captured-at-tap context — fixed for the lifetime of this open
     // even if state shifts (e.g., user changes club via a chip
     // mid-modal — the OPEN modal still records against the club at
@@ -68411,6 +68956,12 @@
     shotLat: null,
     shotLng: null,
     targetId: null,
+    // Aim point captured at tap time — the reticle position when
+    // the user logged the shot. Drives lateral/along projection
+    // and is persisted on the shot record so future replays/edits
+    // can show where the user was pointing.
+    aimLat: null,
+    aimLng: null,
     club: null,
     lateralOffset: null,
     alongShot: null,
@@ -68420,10 +68971,15 @@
     yardageAuto: true,         // true until user edits the field
     contact: RANGE_SHOT_DEFAULT_CONTACT,
     shape: RANGE_SHOT_DEFAULT_SHAPE,
+    swingPct: RANGE_SHOT_DEFAULT_SWING_PCT,
     // The temporary marker shown on the map at the tap location
     // while the modal is open. Removed on cancel; replaced with the
     // permanent shot pin on save.
     pendingMarker: null,
+    // In edit mode, we hide the original shot's permanent pin during
+    // edit — this ref points to the marker so we can restore it
+    // on cancel or remove it on commit.
+    hiddenOriginalMarker: null,
   };
 
   // ──────────────────────────────────────────────────────────
@@ -68440,7 +68996,7 @@
     gpsRangeSessionState.ranges = [];
     gpsRangeSessionState.range = null;
     gpsRangeSessionState.shots = [];
-    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.shotPinMarkers = {};
     gpsRangeSessionState.targetMarkers = {};
     gpsRangeSessionState.teeMarker = null;
     gpsRangeSessionState.setupHelperLayers = [];
@@ -68503,7 +69059,7 @@
     // Stop the user-position watch BEFORE removing the map so a
     // late-arriving fix can't try to setLngLat on a destroyed marker.
     stopGpsRangeSetupWatch();
-    (gpsRangeSessionState.shotPinMarkers || []).forEach(m => {
+    Object.values(gpsRangeSessionState.shotPinMarkers || {}).forEach(m => {
       try { m.remove(); } catch (_) {}
     });
     if (gpsRangeSessionState.teeMarker) {
@@ -68512,11 +69068,22 @@
     Object.values(gpsRangeSessionState.targetMarkers || {}).forEach(m => {
       try { m.remove(); } catch (_) {}
     });
+    // Aim reticle + midpoint yardage label — both DOM markers on the
+    // session map. Removing them before map.remove() lets Mapbox tear
+    // down its drag listeners cleanly.
+    if (gpsRangeSessionState.aimMarker) {
+      try { gpsRangeSessionState.aimMarker.remove(); } catch (_) {}
+      gpsRangeSessionState.aimMarker = null;
+    }
+    if (gpsRangeSessionState.aimYardageLabel) {
+      try { gpsRangeSessionState.aimYardageLabel.remove(); } catch (_) {}
+      gpsRangeSessionState.aimYardageLabel = null;
+    }
     if (gpsRangeSessionState.map) {
       try { gpsRangeSessionState.map.remove(); } catch (_) {}
     }
     gpsRangeSessionState.map = null;
-    gpsRangeSessionState.shotPinMarkers = [];
+    gpsRangeSessionState.shotPinMarkers = {};
     gpsRangeSessionState.targetMarkers = {};
     gpsRangeSessionState.teeMarker = null;
     gpsRangeSessionState.setupHelperLayers = [];
@@ -68541,6 +69108,12 @@
     if (gpsRangeShotModalState.open) {
       closeShotModalState();
     }
+    // Same for the shot log modal — body-level mount, would orphan
+    // visually if the session closed while it's up. No state to
+    // reset (the log is always derived from gpsRangeSessionState.shots),
+    // just clear the DOM.
+    const logMount = document.getElementById('gps-range-shot-log-modal-mount');
+    if (logMount) logMount.innerHTML = '';
     const mount = document.getElementById('gps-range-session-mount');
     gpsRangeSessionState.open = false;
     gpsRangeSessionState.stage = 'loading';
@@ -68555,6 +69128,7 @@
     // at awaiting-tee with no leftover commit.
     gpsRangeSessionState.sessionSubstage = null;
     gpsRangeSessionState.sessionTee = null;
+    gpsRangeSessionState.aim = null;
     document.body.classList.remove('round-gps-open');
     if (mount) mount.innerHTML = '';
   }
@@ -69562,6 +70136,33 @@
     // Drop the session tee marker on the map. Targets layer is
     // already drawn from initGpsRangeSessionMap's load handler.
     drawSessionTeeMarker();
+    // Now that we have a session tee, initialize aim. Default to the
+    // currently-selected target (if any); if there's no current
+    // target (rare — picker should have set one), fall back to a
+    // point ~100 yards north of the tee. Then render reticle + line
+    // + label.
+    const range = gpsRangeSessionState.range;
+    const initialTarget = gpsRangeSessionState.currentTargetId
+      ? (range?.targets || []).find(t => t.id === gpsRangeSessionState.currentTargetId)
+      : null;
+    if (initialTarget) {
+      gpsRangeSessionState.aim = {
+        lat: initialTarget.lat,
+        lng: initialTarget.lng,
+        snappedTargetId: initialTarget.id,
+      };
+    } else if (gpsRangeSessionState.sessionTee) {
+      // Rough default — ~100y north. Convert yards to lat degrees:
+      // 1 yard ≈ 0.0000082135 degrees lat.
+      const tee = gpsRangeSessionState.sessionTee;
+      gpsRangeSessionState.aim = {
+        lat: tee.lat + 0.000821,  // ~100y north
+        lng: tee.lng,
+        snappedTargetId: null,
+      };
+    }
+    refreshGpsRangeAim();
+    refreshGpsRangeChips();
   }
   window.commitSessionTee = commitSessionTee;
 
@@ -69598,6 +70199,17 @@
         }
       }
     }
+    // The wind compass DOM element is in the freshly-rendered live
+    // shell (it's NOT in the awaiting-tee shell). Trigger a paint so
+    // it shows immediately rather than waiting for the next map
+    // event. Map's `rotate` listener was attached at init and still
+    // fires through the same handler ref — no need to re-attach.
+    updateGpsRangeWindOverlay();
+    // Same for the chips refresh — the freshly-rendered shell has
+    // empty pill bodies until refreshGpsRangeChips populates them
+    // (renderGpsRangeCombinedPillBody runs at first render but the
+    // selection state may have changed since then).
+    refreshGpsRangeChips();
   }
 
   // Drop the session tee marker on the map. Same DOM marker pattern
@@ -69704,7 +70316,7 @@
              directly so the three views feel like the same family.
              Three cells: [club] · [avg Ny] · [shot N]. The whole
              pill is non-interactive (taps fall through to map);
-             switching club is via the bottom action bar chip. -->
+             switching club is via the bottom selector pill. -->
         <div class="round-gps-header gps-range-session-header">
           <div class="round-gps-info-bar-wrap">
             <div class="round-gps-info-bar" id="gps-range-info-bar">
@@ -69713,9 +70325,7 @@
           </div>
           <!-- Single exit control — routes through finishGpsRangeSession
                so the user always gets the save/discard prompt when they
-               have shots logged. Replaces the previous "× close + Finish
-               button" duality, which was confusing (both routes exited
-               but only one prompted to save). -->
+               have shots logged. -->
           <button class="round-gps-close round-gps-close-float"
                   onclick="finishGpsRangeSession()"
                   aria-label="Finish session">×</button>
@@ -69724,22 +70334,54 @@
         <!-- Map fills the entire viewport. -->
         <div id="gps-range-map" class="gps-range-map"></div>
 
-        <!-- Bottom action bar — two equal-width chips: Target on the
-             left, Club on the right. No primary CTA in the middle —
-             the actual primary action of this view is "tap the map
-             where the ball landed", which is the entire map surface.
-             The chips are the only button-flavored controls and they
-             share equal weight. -->
-        <div class="gps-range-action-bar">
-          <button class="gps-range-action-chip"
-                  id="gps-range-target-chip"
-                  onclick="openGpsRangeTargetPicker()">
-            ${renderGpsRangeTargetChipBody()}
-          </button>
-          <button class="gps-range-action-chip"
-                  id="gps-range-club-chip"
-                  onclick="openGpsRangeClubPicker()">
-            ${renderGpsRangeClubChipBody()}
+        <!-- Bottom-left button stack: shot log (top), recenter
+             (bottom). 44px circles, dark translucent, blur — matches
+             the round GPS view's button family. Stack stride is 56px
+             (44 + 12 gap). Sit ABOVE the floating selector pills. -->
+        <button class="gps-range-tools-btn gps-range-tools-btn-shotlog"
+                onclick="openShotLogModal()"
+                aria-label="Shot log">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h12"/>
+          </svg>
+          <span class="gps-range-tools-btn-badge" id="gps-range-shotlog-badge">0</span>
+        </button>
+        <button class="gps-range-tools-btn gps-range-tools-btn-recenter"
+                onclick="recenterGpsRangeMap()"
+                aria-label="Recenter">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          </svg>
+        </button>
+
+        <!-- Bottom-right wind compass — same component as the round
+             GPS view's wind indicator, but with a range-specific id
+             so updateGpsRangeWindOverlay can target it independently.
+             Hidden until weather data lands. -->
+        <button class="gps-range-wind is-hidden" id="gps-range-wind"
+                aria-label="Wind">
+          <svg class="gps-range-wind-arrow" id="gps-range-wind-arrow"
+               viewBox="0 0 24 24" width="20" height="20" fill="currentColor"
+               aria-hidden="true">
+            <path d="M12 2 L18 14 L12 11 L6 14 Z"/>
+          </svg>
+          <span class="gps-range-wind-speed" id="gps-range-wind-speed">—</span>
+          <span class="gps-range-wind-unit">MPH</span>
+        </button>
+
+        <!-- Floating combined selector pill — replaces the previous
+             rectangular two-chip action bar. Shows target + club
+             together (target swatch + name + dynamic distance, then
+             a separator, then club). Tap opens a unified chooser
+             with both pickers in a single sheet. Centered horizontally;
+             floats over the map without an opaque action-bar
+             background competing with the satellite tile. -->
+        <div class="gps-range-floating-pills">
+          <button class="gps-range-floating-pill gps-range-combined-pill"
+                  id="gps-range-combined-pill"
+                  onclick="openGpsRangeUnifiedPicker()">
+            ${renderGpsRangeCombinedPillBody()}
           </button>
         </div>
       </div>
@@ -69758,18 +70400,29 @@
     const shotsForClub = gpsRangeSessionState.shots.filter(s => s.club === club);
     const totalCount = gpsRangeSessionState.shots.length;
     let avgYards = null;
-    if (shotsForClub.length > 0 && gpsRangeSessionState.range) {
-      const totalYards = shotsForClub.reduce((sum, s) => {
-        const target = gpsRangeSessionState.range.targets.find(t => t.id === s.targetId);
-        // Distance from session tee to this shot's target — NOT the
-        // static target.distance field, which was set at range setup
-        // and may not reflect the current session tee position.
-        // dynamicTargetYards() falls back to target.distance if the
-        // session tee somehow isn't set.
-        const targetDist = dynamicTargetYards(target);
-        return sum + (targetDist + (s.alongShot || 0));
-      }, 0);
-      avgYards = Math.round(totalYards / shotsForClub.length);
+    if (shotsForClub.length > 0) {
+      // Average actual distance hit, NOT distance-relative-to-target.
+      // shot.yardage is the committed value from the modal — auto-
+      // computed from haversine(tee→shot) or user-edited (launch
+      // monitor). For legacy shots without yardage, fall back to
+      // direct haversine math from the session tee.
+      const sessionTee = gpsRangeSessionState.sessionTee;
+      const range = gpsRangeSessionState.range;
+      const teeLat = (sessionTee && sessionTee.lat) ?? range?.tee?.lat;
+      const teeLng = (sessionTee && sessionTee.lng) ?? range?.tee?.lng;
+      const validShots = shotsForClub.filter(s => {
+        if (Number.isFinite(s.yardage)) return true;
+        return Number.isFinite(teeLat) && Number.isFinite(teeLng)
+            && Number.isFinite(s.lat) && Number.isFinite(s.lng);
+      });
+      if (validShots.length > 0) {
+        const totalYards = validShots.reduce((sum, s) => {
+          if (Number.isFinite(s.yardage)) return sum + s.yardage;
+          // Legacy fallback — direct ground distance from tee to shot.
+          return sum + haversineYards(teeLat, teeLng, s.lat, s.lng);
+        }, 0);
+        avgYards = Math.round(totalYards / validShots.length);
+      }
     }
     const avgValue = avgYards != null ? `${avgYards}` : '—';
     return `
@@ -69824,32 +70477,85 @@
       gpsRangeSessionState.pillRafId = null;
       const el = document.getElementById('gps-range-info-bar');
       if (el) el.innerHTML = renderGpsRangeInfoBarBody();
+      // Shot-log badge sits next to the info bar — stays in sync
+      // via the same RAF-coalesced repaint as the avg / count cells.
+      const badge = document.getElementById('gps-range-shotlog-badge');
+      if (badge) {
+        const n = (gpsRangeSessionState.shots || []).length;
+        badge.textContent = String(n);
+        if (n === 0) badge.classList.add('is-hidden');
+        else badge.classList.remove('is-hidden');
+      }
     });
   }
 
-  function renderGpsRangeTargetChipBody() {
-    const target = currentGpsRangeTarget();
-    if (!target) return `<span class="gps-range-chip-label">No target</span>`;
-    return `
-      <span class="gps-range-chip-eyebrow">TARGET</span>
-      <span class="gps-range-chip-label">${escapeHtml(targetDisplayName(target))}</span>
-    `;
-  }
-
-  function renderGpsRangeClubChipBody() {
+  // Combined pill body — target swatch + name + dynamic distance, a
+  // visual separator, then the club name. Single tap target; opens
+  // the unified picker (target + club in one sheet). When no target
+  // is selected (transient state), shows a friendly placeholder and
+  // hides the swatch.
+  function renderGpsRangeCombinedPillBody() {
     const club = gpsRangeSessionState.currentClub;
-    const label = clubLabelFromKey(club) || 'Pick club';
+    const clubLabel = clubLabelFromKey(club) || 'Pick club';
+    const aim = gpsRangeSessionState.aim;
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    // No aim yet (pre-tee-commit or odd state) — show placeholder.
+    if (!aim || !Number.isFinite(aim.lat) || !Number.isFinite(aim.lng)) {
+      return `
+        <span class="gps-range-floating-pill-text">No aim</span>
+        <span class="gps-range-floating-pill-sep" aria-hidden="true">·</span>
+        <span class="gps-range-floating-pill-text">${escapeHtml(clubLabel)}</span>
+      `;
+    }
+    // Dynamic distance from session tee to aim point — what the
+    // user is currently aiming at, regardless of snap state.
+    const distYards = (sessionTee && Number.isFinite(sessionTee.lat))
+      ? Math.round(haversineYards(sessionTee.lat, sessionTee.lng, aim.lat, aim.lng))
+      : null;
+    const distLabel = distYards != null ? `${distYards}y` : '';
+    // Snapped: show the target's swatch + name. Free-aim: show a
+    // distinct "open ring" swatch and "aim" label so the user can
+    // tell at a glance the reticle is between targets.
+    if (aim.snappedTargetId) {
+      const range = gpsRangeSessionState.range;
+      const target = (range?.targets || []).find(t => t.id === aim.snappedTargetId);
+      if (target) {
+        const swatchHex = targetColor(target);
+        const name = targetDisplayName(target);
+        return `
+          <span class="gps-range-floating-pill-swatch" style="background:${escapeHtml(swatchHex)};" aria-hidden="true"></span>
+          <span class="gps-range-floating-pill-text">${escapeHtml(name)}</span>
+          <span class="gps-range-floating-pill-detail">${distLabel}</span>
+          <span class="gps-range-floating-pill-sep" aria-hidden="true">·</span>
+          <span class="gps-range-floating-pill-text">${escapeHtml(clubLabel)}</span>
+        `;
+      }
+    }
+    // Free-aim — open-ring swatch (transparent fill, white border)
+    // visually distinguishes "between flags" from "on a flag."
     return `
-      <span class="gps-range-chip-eyebrow">CLUB</span>
-      <span class="gps-range-chip-label">${escapeHtml(label)}</span>
+      <span class="gps-range-floating-pill-swatch gps-range-floating-pill-swatch-open" aria-hidden="true"></span>
+      <span class="gps-range-floating-pill-text">Aim</span>
+      <span class="gps-range-floating-pill-detail">${distLabel}</span>
+      <span class="gps-range-floating-pill-sep" aria-hidden="true">·</span>
+      <span class="gps-range-floating-pill-text">${escapeHtml(clubLabel)}</span>
     `;
   }
 
+  // Refresh the combined pill in place. Called on target/club
+  // selection changes. Also keeps the shot-log button badge in sync
+  // (shot count) since the pill refresh runs whenever any session
+  // selection state changes.
   function refreshGpsRangeChips() {
-    const tEl = document.getElementById('gps-range-target-chip');
-    const cEl = document.getElementById('gps-range-club-chip');
-    if (tEl) tEl.innerHTML = renderGpsRangeTargetChipBody();
-    if (cEl) cEl.innerHTML = renderGpsRangeClubChipBody();
+    const pillEl = document.getElementById('gps-range-combined-pill');
+    if (pillEl) pillEl.innerHTML = renderGpsRangeCombinedPillBody();
+    const badge = document.getElementById('gps-range-shotlog-badge');
+    if (badge) {
+      const n = (gpsRangeSessionState.shots || []).length;
+      badge.textContent = String(n);
+      if (n === 0) badge.classList.add('is-hidden');
+      else badge.classList.remove('is-hidden');
+    }
   }
 
   function currentGpsRangeTarget() {
@@ -69857,6 +70563,394 @@
     return gpsRangeSessionState.range.targets.find(
       t => t.id === gpsRangeSessionState.currentTargetId
     );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Map controls — recenter + wind compass.
+  // ──────────────────────────────────────────────────────────
+
+  // Recenter the map to frame the session tee at the bottom and the
+  // furthest target at the top, with breathing room. Mirrors the
+  // round GPS view's recenter (which frames tee+green) — same intent,
+  // just with multi-target generalization. Frames using fitBounds
+  // around the rectangle that contains all interesting points (tee
+  // + targets); padding is asymmetric (more padding at top so the
+  // "furthest target" doesn't bump the close button or info bar).
+  function recenterGpsRangeMap() {
+    const map = gpsRangeSessionState.map;
+    const range = gpsRangeSessionState.range;
+    if (!map || !range) return;
+    // Origin: session tee if set, else range tee fallback. Always
+    // include all targets so the user sees the full range.
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    const teeLat = (sessionTee && sessionTee.lat) ?? range.tee.lat;
+    const teeLng = (sessionTee && sessionTee.lng) ?? range.tee.lng;
+    const points = [
+      [teeLng, teeLat],
+      ...range.targets.map(t => [t.lng, t.lat]),
+    ];
+    const lngs = points.map(p => p[0]);
+    const lats = points.map(p => p[1]);
+    const bounds = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+    // Asymmetric padding so the tee sits visually near the bottom
+    // (less padding on tee side) and the furthest target sits high
+    // (more padding on top side) — but determining "tee side" depends
+    // on which direction the range faces, which we infer from the
+    // bearing of the bearing tee → centroid of targets. Simpler:
+    // just use uniform padding with a slight bottom-heavy bias to
+    // account for the floating pills + bottom buttons taking ~140px
+    // of vertical real estate at the bottom of the screen.
+    map.fitBounds(bounds, {
+      padding: {
+        top: 80,                       // info bar (~64px) + breathing room
+        bottom: 180,                   // floating pills + button stack + safe area
+        left: 80,                      // BL button stack clearance
+        right: 80,                     // BR wind compass clearance
+      },
+      duration: 600,
+      bearing: 0,                      // reset bearing to north-up
+      pitch: 0,                        // reset any tilt
+    });
+  }
+  window.recenterGpsRangeMap = recenterGpsRangeMap;
+
+  // Update the bottom-right wind compass for the GPS Range view.
+  // Reads from the same weatherCache as the round GPS, keyed by
+  // the range's tee location (or session tee if available — same
+  // location physically, just different lat/lng objects). Uses the
+  // shared windArrowRotation helper so wind direction renders
+  // consistently across the in-round and in-range views.
+  function updateGpsRangeWindOverlay() {
+    const el = document.getElementById('gps-range-wind');
+    if (!el) return;
+    const range = gpsRangeSessionState.range;
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    const lat = (sessionTee && sessionTee.lat) ?? range?.tee?.lat;
+    const lng = (sessionTee && sessionTee.lng) ?? range?.tee?.lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      el.classList.add('is-hidden');
+      return;
+    }
+    const cached = weatherCache.get(weatherCacheKey(lat, lng));
+    const cur = cached?.data?.current;
+    if (!cur || cur.wind_speed_10m == null || cur.wind_direction_10m == null) {
+      // No data yet — try to fetch (no-op if already in flight or
+      // fresh), then re-run after it lands. Stays hidden until a
+      // fix arrives. If user closes the session in the meantime,
+      // the next run no-ops via the open check.
+      el.classList.add('is-hidden');
+      try {
+        fetchWeather(lat, lng).then(() => {
+          if (gpsRangeSessionState.open) updateGpsRangeWindOverlay();
+        });
+      } catch (_) {}
+      return;
+    }
+    el.classList.remove('is-hidden');
+    const speedEl = document.getElementById('gps-range-wind-speed');
+    const arrowEl = document.getElementById('gps-range-wind-arrow');
+    if (speedEl) speedEl.textContent = Math.round(cur.wind_speed_10m);
+    if (arrowEl) {
+      // Wind direction is "from"; windArrowRotation flips +180 so
+      // the arrow points where the wind is GOING. Subtract map
+      // bearing so the arrow shows wind RELATIVE to the user's
+      // current view orientation.
+      const map = gpsRangeSessionState.map;
+      const mapBearing = map ? map.getBearing() : 0;
+      const arrowRotation = windArrowRotation(cur.wind_direction_10m) - mapBearing;
+      arrowEl.style.transform = `rotate(${arrowRotation}deg)`;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Shot log modal — review / edit / delete shots logged this
+  // session. Bottom-sheet, tap a row to open the per-shot modal
+  // pre-filled (edit-in-place flow). Delete via per-row trash
+  // button. Empty state if no shots yet.
+  // ──────────────────────────────────────────────────────────
+
+  function openShotLogModal() {
+    const mount = document.getElementById('gps-range-shot-log-modal-mount');
+    if (!mount) return;
+    const shots = gpsRangeSessionState.shots || [];
+    const range = gpsRangeSessionState.range;
+
+    // Empty state — friendly nudge rather than an empty list.
+    if (shots.length === 0) {
+      mount.innerHTML = `
+        <div class="gps-range-shot-log-backdrop opening" onclick="closeShotLogModal()"></div>
+        <div class="gps-range-shot-log-sheet opening">
+          <div class="gps-range-shot-log-handle" aria-hidden="true"></div>
+          <div class="gps-range-shot-log-title">Shot log</div>
+          <div class="gps-range-shot-log-empty">
+            No shots logged yet. Tap the map to log your first shot.
+          </div>
+          <div class="gps-range-shot-log-actions">
+            <button class="gps-range-shot-log-close-btn"
+                    onclick="closeShotLogModal()">Done</button>
+          </div>
+        </div>
+      `;
+      animateShotLogOpen();
+      return;
+    }
+
+    // Reverse order — most-recent shot first. Easier to find the
+    // shot you just logged when you want to edit it.
+    const rows = shots.slice().reverse().map((shot, i) => {
+      const idx = shots.length - i;  // 1-based original index
+      const target = (range?.targets || []).find(t => t.id === shot.targetId);
+      const targetName = target ? targetDisplayName(target) : 'Target';
+      const swatchHex = target ? targetColor(target) : '#888';
+      const club = clubLabelFromKey(shot.club) || '—';
+      const yardageStr = Number.isFinite(shot.yardage)
+        ? `${shot.yardage}y`
+        : (Number.isFinite(shot.alongShot) && Number.isFinite(target?.distance)
+            ? `${Math.round(target.distance + shot.alongShot)}y`
+            : '—');
+      // Contact + shape — em-dash for legacy shots that lack them.
+      const contactLabel = shot.contact
+        ? (RANGE_SHOT_CONTACTS.find(c => c.id === shot.contact)?.label || shot.contact)
+        : '—';
+      const shapeLabel = shot.shape
+        ? (RANGE_SHOT_SHAPES.find(s => s.id === shot.shape)?.label || shot.shape)
+        : '—';
+      // Swing % — shown in headline alongside club + yardage. Only
+      // render if it's NOT 100% (to keep the row clean for the most
+      // common case). Legacy shots without swingPct show as missing.
+      const swingPctLabel = (Number.isFinite(shot.swingPct) && shot.swingPct !== 100)
+        ? `${shot.swingPct}%`
+        : '';
+      return `
+        <div class="gps-range-shot-log-row">
+          <button class="gps-range-shot-log-row-main"
+                  onclick="editShotFromLog('${escapeHtml(shot.id)}')">
+            <div class="gps-range-shot-log-row-num">#${idx}</div>
+            <div class="gps-range-shot-log-row-body">
+              <div class="gps-range-shot-log-row-headline">
+                <span class="gps-range-shot-log-row-club">${escapeHtml(club)}</span>
+                <span class="gps-range-shot-log-row-yardage">${escapeHtml(yardageStr)}</span>
+                ${swingPctLabel ? `<span class="gps-range-shot-log-row-swing">${escapeHtml(swingPctLabel)}</span>` : ''}
+              </div>
+              <div class="gps-range-shot-log-row-meta">
+                <span class="gps-range-shot-log-row-target">
+                  <span class="gps-range-shot-log-row-swatch" style="background:${escapeHtml(swatchHex)};" aria-hidden="true"></span>
+                  ${escapeHtml(targetName)}
+                </span>
+                <span class="gps-range-shot-log-row-sep">·</span>
+                <span>${escapeHtml(contactLabel)}</span>
+                <span class="gps-range-shot-log-row-sep">·</span>
+                <span>${escapeHtml(shapeLabel)}</span>
+              </div>
+            </div>
+            <span class="gps-range-shot-log-row-chev" aria-hidden="true">›</span>
+          </button>
+          <button class="gps-range-shot-log-row-delete"
+                  onclick="deleteShotFromLog('${escapeHtml(shot.id)}')"
+                  aria-label="Delete shot">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    mount.innerHTML = `
+      <div class="gps-range-shot-log-backdrop opening" onclick="closeShotLogModal()"></div>
+      <div class="gps-range-shot-log-sheet opening">
+        <div class="gps-range-shot-log-handle" aria-hidden="true"></div>
+        <div class="gps-range-shot-log-title">Shot log · ${shots.length}</div>
+        <div class="gps-range-shot-log-rows">${rows}</div>
+        <div class="gps-range-shot-log-actions">
+          <button class="gps-range-shot-log-close-btn"
+                  onclick="closeShotLogModal()">Done</button>
+        </div>
+      </div>
+    `;
+    animateShotLogOpen();
+  }
+  window.openShotLogModal = openShotLogModal;
+
+  // Trigger open transition — mirrors the per-shot modal pattern.
+  // Force a reflow before removing .opening so the browser commits
+  // the off-screen state and the slide-up animates rather than
+  // skipping.
+  function animateShotLogOpen() {
+    const mount = document.getElementById('gps-range-shot-log-modal-mount');
+    if (!mount) return;
+    const sheet = mount.querySelector('.gps-range-shot-log-sheet');
+    const backdrop = mount.querySelector('.gps-range-shot-log-backdrop');
+    requestAnimationFrame(() => {
+      if (sheet) {
+        void sheet.offsetHeight;
+        sheet.classList.remove('opening');
+      }
+      if (backdrop) backdrop.classList.remove('opening');
+    });
+  }
+
+  function closeShotLogModal() {
+    animateShotLogClose(() => {
+      const mount = document.getElementById('gps-range-shot-log-modal-mount');
+      if (mount) mount.innerHTML = '';
+    });
+  }
+  window.closeShotLogModal = closeShotLogModal;
+
+  function animateShotLogClose(onDone) {
+    const mount = document.getElementById('gps-range-shot-log-modal-mount');
+    if (!mount) {
+      if (onDone) onDone();
+      return;
+    }
+    const sheet = mount.querySelector('.gps-range-shot-log-sheet');
+    const backdrop = mount.querySelector('.gps-range-shot-log-backdrop');
+    if (!sheet) {
+      if (onDone) onDone();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      sheet.removeEventListener('transitionend', onEnd);
+      if (onDone) onDone();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    sheet.classList.add('closing');
+    if (backdrop) backdrop.classList.add('closing');
+    setTimeout(finish, 320);
+  }
+
+  // Tap a shot row → close shot log → open the per-shot modal in
+  // edit mode pre-filled with that shot's values. The shot's pin on
+  // the map is hidden during edit (a pending marker takes its place
+  // showing the in-flight position). Save-via-modal updates the
+  // existing record in place; cancel restores the original pin.
+  function editShotFromLog(shotId) {
+    const shot = (gpsRangeSessionState.shots || []).find(s => s.id === shotId);
+    if (!shot) {
+      closeShotLogModal();
+      return;
+    }
+    // Close log first — animated. After it dismisses, open the
+    // per-shot modal in edit mode.
+    animateShotLogClose(() => {
+      const mount = document.getElementById('gps-range-shot-log-modal-mount');
+      if (mount) mount.innerHTML = '';
+      openShotModalForEdit(shot);
+    });
+  }
+  window.editShotFromLog = editShotFromLog;
+
+  // Delete a shot — confirms, then removes from session state +
+  // removes its pin. Re-renders the shot log so the row vanishes.
+  // Updates the live header pill (avg + count) and the pill badge.
+  async function deleteShotFromLog(shotId) {
+    const ok = await confirmDialog({
+      title: 'Delete shot?',
+      message: 'This shot will be removed from the session.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    gpsRangeSessionState.shots = (gpsRangeSessionState.shots || [])
+      .filter(s => s.id !== shotId);
+    removeGpsRangeShotPin(shotId);
+    refreshGpsRangePill();
+    refreshGpsRangeChips();
+    // Re-open the shot log modal in its updated form so the user
+    // sees the row disappear. (Could also do an in-place row
+    // removal, but a full re-render is simpler and the modal is
+    // small enough that perf doesn't matter.)
+    openShotLogModal();
+  }
+  window.deleteShotFromLog = deleteShotFromLog;
+
+  // Open the per-shot modal in EDIT mode for an existing shot.
+  // Pre-fills all fields from the shot record. The original pin is
+  // hidden during edit (the pending marker shows the in-flight
+  // position). On Save, the shot is updated in place; on Cancel,
+  // the original pin is restored.
+  function openShotModalForEdit(shot) {
+    if (gpsRangeShotModalState.open) return;
+    const range = gpsRangeSessionState.range;
+    // Target may be null for free-aim shots (no snapped target at log
+    // time). Free-aim shots still have aimLat/aimLng on the record so
+    // we don't need a target to recompute geometry — fall back to the
+    // captured aim point. Only bail if BOTH target and aim are missing
+    // (legacy shot from before the aim model existed).
+    const target = (range?.targets || []).find(t => t.id === shot.targetId);
+    const haveAim = Number.isFinite(shot.aimLat) && Number.isFinite(shot.aimLng);
+    if (!target && !haveAim) {
+      showToast('Aim data missing for this shot', true);
+      return;
+    }
+
+    // Stamp the modal state from the existing shot. autoYardage is
+    // recomputed from the shot's geometry so the "Edited / Auto"
+    // caption logic works correctly even after edit.
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    const teeLat = (sessionTee && sessionTee.lat) ?? range?.tee?.lat;
+    const teeLng = (sessionTee && sessionTee.lng) ?? range?.tee?.lng;
+    // Recompute auto yardage as direct ground distance from tee to
+    // shot — same formula as fresh taps. Used for the "Edited" badge
+    // detection: yardageAuto is true if shot.yardage matches this.
+    const recomputedAutoYardage = Number.isFinite(teeLat) && Number.isFinite(teeLng)
+      ? Math.round(haversineYards(teeLat, teeLng, shot.lat, shot.lng))
+      : (Number.isFinite(shot.yardage) ? shot.yardage : 0);
+
+    gpsRangeShotModalState.editingShotId = shot.id;
+    gpsRangeShotModalState.shotLat = shot.lat;
+    gpsRangeShotModalState.shotLng = shot.lng;
+    gpsRangeShotModalState.targetId = shot.targetId;
+    // Use stored aim coords if available; fall back to the target's
+    // position for legacy shots that pre-date the aim model.
+    gpsRangeShotModalState.aimLat = haveAim ? shot.aimLat : (target ? target.lat : shot.lat);
+    gpsRangeShotModalState.aimLng = haveAim ? shot.aimLng : (target ? target.lng : shot.lng);
+    gpsRangeShotModalState.club = shot.club;
+    gpsRangeShotModalState.lateralOffset = shot.lateralOffset;
+    gpsRangeShotModalState.alongShot = shot.alongShot;
+    gpsRangeShotModalState.autoYardage = recomputedAutoYardage;
+    gpsRangeShotModalState.yardage = Number.isFinite(shot.yardage)
+      ? shot.yardage
+      : recomputedAutoYardage;
+    gpsRangeShotModalState.yardageAuto = Number.isFinite(shot.yardage)
+      ? (shot.yardage === recomputedAutoYardage)
+      : true;
+    gpsRangeShotModalState.contact = shot.contact || RANGE_SHOT_DEFAULT_CONTACT;
+    gpsRangeShotModalState.shape = shot.shape || RANGE_SHOT_DEFAULT_SHAPE;
+    gpsRangeShotModalState.swingPct = Number.isFinite(shot.swingPct)
+      ? shot.swingPct
+      : RANGE_SHOT_DEFAULT_SWING_PCT;
+    gpsRangeShotModalState.open = true;
+
+    // Hide the existing pin while editing — store reference so
+    // cancel can restore it. Map's marker.remove() detaches from
+    // map but the marker object itself is still usable for re-add
+    // (marker.addTo(map) puts it back).
+    const existingMarker = gpsRangeSessionState.shotPinMarkers[shot.id];
+    if (existingMarker) {
+      gpsRangeShotModalState.hiddenOriginalMarker = existingMarker;
+      try { existingMarker.remove(); } catch (_) {}
+      // Don't delete from the shotPinMarkers map yet — the marker
+      // object stays alive until commit (which removes it for real)
+      // or cancel (which re-adds it via addTo).
+    }
+
+    // Drop a pending marker at the existing shot's position. User
+    // can edit yardage to slide it.
+    placePendingShotMarker(shot.lat, shot.lng);
+    renderShotModal({ animate: true });
   }
 
   // ──────────────────────────────────────────────────────────
@@ -69910,6 +71004,13 @@
 
     map.on('load', () => {
       renderGpsRangeMapMarkers();
+      // Initial wind compass paint — fetches weather if needed and
+      // shows the arrow once data lands. Re-paints on map rotation
+      // so the arrow stays oriented to true compass direction
+      // (subtracts map bearing to keep "north" actually pointing
+      // north on the rotated map).
+      updateGpsRangeWindOverlay();
+      map.on('rotate', updateGpsRangeWindOverlay);
     });
 
     // Tap to log shot. Mapbox distinguishes single-tap from drag/pinch
@@ -69987,6 +71088,15 @@
   const GPS_RANGE_TARGET_SOURCE_ID = 'gps-range-targets-src';
   const GPS_RANGE_TARGET_LAYER_ID = 'gps-range-targets-lyr';
   const GPS_RANGE_TARGET_LAYER_RING_ID = 'gps-range-targets-ring-lyr';
+  // Tee→target reference line — drawn from the session tee to the
+  // currently-selected target so the user has a visual aim line on
+  // the satellite tile. Helps with "did the ball go past the flag"
+  // judgment when tapping shot positions. Updates on selection
+  // change AND on session-tee commit; removed when there's no
+  // selection or no session tee.
+  const GPS_RANGE_AIM_LINE_SOURCE_ID = 'gps-range-aim-line-src';
+  const GPS_RANGE_AIM_LINE_LAYER_ID = 'gps-range-aim-line-lyr';
+  const GPS_RANGE_AIM_LINE_HALO_LAYER_ID = 'gps-range-aim-line-halo-lyr';
 
   function ensureTargetMarkerLayer(targets, selectionId) {
     const map = gpsRangeSessionState.map;
@@ -70071,9 +71181,341 @@
     ensureTargetMarkerLayer(range.targets, gpsRangeSessionState.currentTargetId);
   }
 
+  // Draw / update / remove the tee→target reference line. The line
+  // stretches from the SESSION tee to the currently-selected target,
+  // colored to match the target's swatch. Helps the user judge "did
+  // the ball end up past the flag" when tapping shots — the line is
+  // a visible aim reference, distinct from the shot's actual flight
+  // (which we draw via the pending marker).
+  //
+  // Reads from gpsRangeSessionState.aim — set initially on session-
+  // tee commit (snapped to the currently-selected target) and
+  // mutated by the user dragging the reticle. When aim.snappedTargetId
+  // is non-null, the line color matches the snapped target's swatch;
+  // when free-aim, falls back to white.
+  //
+  // Called from refreshGpsRangeAim (the orchestrator that updates
+  // reticle + line + label together). No-ops when sessionTee or
+  // aim is missing — clears any existing line so stale state doesn't
+  // linger after substage transitions.
+  function updateAimLineLayer() {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    if (!map.isStyleLoaded || !map.isStyleLoaded()) return;
+
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    const aim = gpsRangeSessionState.aim;
+    const range = gpsRangeSessionState.range;
+
+    const haveLine = sessionTee
+      && Number.isFinite(sessionTee.lat)
+      && Number.isFinite(sessionTee.lng)
+      && aim
+      && Number.isFinite(aim.lat)
+      && Number.isFinite(aim.lng);
+
+    if (!haveLine) {
+      try {
+        if (map.getLayer(GPS_RANGE_AIM_LINE_LAYER_ID)) {
+          map.removeLayer(GPS_RANGE_AIM_LINE_LAYER_ID);
+        }
+        if (map.getLayer(GPS_RANGE_AIM_LINE_HALO_LAYER_ID)) {
+          map.removeLayer(GPS_RANGE_AIM_LINE_HALO_LAYER_ID);
+        }
+        if (map.getSource(GPS_RANGE_AIM_LINE_SOURCE_ID)) {
+          map.removeSource(GPS_RANGE_AIM_LINE_SOURCE_ID);
+        }
+      } catch (_) {}
+      return;
+    }
+
+    // Line color: match the snapped target's swatch when snapped, or
+    // a neutral white when free-aim. White reads well against satellite
+    // imagery and matches the reticle's visual style.
+    const snappedTarget = aim.snappedTargetId
+      ? (range?.targets || []).find(t => t.id === aim.snappedTargetId)
+      : null;
+    const lineColor = snappedTarget ? targetColor(snappedTarget) : '#ffffff';
+
+    const data = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [sessionTee.lng, sessionTee.lat],
+          [aim.lng, aim.lat],
+        ],
+      },
+      properties: {
+        color: lineColor,
+      },
+    };
+
+    if (!map.getSource(GPS_RANGE_AIM_LINE_SOURCE_ID)) {
+      map.addSource(GPS_RANGE_AIM_LINE_SOURCE_ID, { type: 'geojson', data });
+    } else {
+      const src = map.getSource(GPS_RANGE_AIM_LINE_SOURCE_ID);
+      if (src && src.setData) src.setData(data);
+    }
+
+    // Halo layer first (added BELOW the main line via beforeId of
+    // the targets layer so target rings sit above the line). Halo is
+    // a fatter, semi-transparent black line that improves readability
+    // against satellite imagery — without it, a thin colored line
+    // disappears against busy backgrounds (greens, dirt patches).
+    if (!map.getLayer(GPS_RANGE_AIM_LINE_HALO_LAYER_ID)) {
+      map.addLayer({
+        id: GPS_RANGE_AIM_LINE_HALO_LAYER_ID,
+        type: 'line',
+        source: GPS_RANGE_AIM_LINE_SOURCE_ID,
+        layout: { 'line-cap': 'round' },
+        paint: {
+          'line-color': '#000000',
+          'line-width': 6,
+          'line-opacity': 0.45,
+        },
+      }, GPS_RANGE_TARGET_LAYER_ID);  // place below the target rings
+    }
+    // Main line — colored to match the aim. Dashed gives a subtle
+    // "this is a reference line, not part of the terrain" feel.
+    if (!map.getLayer(GPS_RANGE_AIM_LINE_LAYER_ID)) {
+      map.addLayer({
+        id: GPS_RANGE_AIM_LINE_LAYER_ID,
+        type: 'line',
+        source: GPS_RANGE_AIM_LINE_SOURCE_ID,
+        layout: { 'line-cap': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 2.5,
+          'line-opacity': 0.95,
+          'line-dasharray': [2, 2],
+        },
+      }, GPS_RANGE_TARGET_LAYER_ID);
+    } else {
+      // Color may have changed (different target selected); update
+      // paint property to match.
+      try {
+        map.setPaintProperty(
+          GPS_RANGE_AIM_LINE_LAYER_ID,
+          'line-color',
+          ['get', 'color']
+        );
+      } catch (_) {}
+    }
+  }
+
+  // ─── Reticle ──────────────────────────────────────────────
+  // Snap radius for magnetic-snap to targets. Pixel-space (not
+  // yards) so it feels consistent regardless of zoom level. ~32px
+  // is roughly thumb-diameter on a phone — generous enough to
+  // grab without precision dragging, tight enough that the user
+  // can place the reticle BETWEEN flags if they want.
+  const GPS_RANGE_RETICLE_SNAP_PX = 32;
+
+  // Create the reticle marker if missing, position it at the
+  // current aim. Idempotent — safe to call repeatedly. The
+  // reticle is a draggable Mapbox DOM marker; drift on map pan
+  // is acceptable here because the user interacts WITH the
+  // reticle (so they re-position it themselves if drift happens).
+  function ensureAimMarker() {
+    const map = gpsRangeSessionState.map;
+    const aim = gpsRangeSessionState.aim;
+    if (!map || !aim) return;
+    if (gpsRangeSessionState.aimMarker) {
+      // Just update position.
+      try {
+        gpsRangeSessionState.aimMarker.setLngLat([aim.lng, aim.lat]);
+        // Toggle snap class so the visual changes when snap state
+        // flips during drag.
+        const el = gpsRangeSessionState.aimMarker.getElement();
+        if (el) {
+          if (aim.snappedTargetId) el.classList.add('is-snapped');
+          else el.classList.remove('is-snapped');
+        }
+      } catch (_) {}
+      return;
+    }
+    // Build the reticle SVG: outer ring, crosshair lines, center
+    // dot. White stroke with a thin dark accent so it reads on
+    // both light and dark satellite backgrounds.
+    const el = document.createElement('div');
+    el.className = 'gps-range-aim-reticle';
+    if (aim.snappedTargetId) el.classList.add('is-snapped');
+    el.innerHTML = `
+      <svg viewBox="0 0 48 48" width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer ring -->
+        <circle cx="24" cy="24" r="20" fill="none"
+                stroke="rgba(0,0,0,0.55)" stroke-width="4"/>
+        <circle cx="24" cy="24" r="20" fill="none"
+                stroke="#ffffff" stroke-width="2"/>
+        <!-- Crosshair lines (gap in middle) -->
+        <line x1="24" y1="2"  x2="24" y2="14" stroke="rgba(0,0,0,0.55)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="2"  x2="24" y2="14" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="24" y1="34" x2="24" y2="46" stroke="rgba(0,0,0,0.55)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="34" x2="24" y2="46" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="2"  y1="24" x2="14" y2="24" stroke="rgba(0,0,0,0.55)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="2"  y1="24" x2="14" y2="24" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="34" y1="24" x2="46" y2="24" stroke="rgba(0,0,0,0.55)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="34" y1="24" x2="46" y2="24" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <!-- Center dot -->
+        <circle cx="24" cy="24" r="2.5" fill="#ffffff" stroke="rgba(0,0,0,0.55)" stroke-width="1"/>
+      </svg>
+    `;
+    const marker = new mapboxgl.Marker({
+      element: el,
+      anchor: 'center',
+      draggable: true,
+    }).setLngLat([aim.lng, aim.lat]).addTo(map);
+
+    // Drag handler — runs on every drag tick. Read current marker
+    // position, check pixel distance to each target, snap if any
+    // is within range. Update aim state + redraw line/label.
+    marker.on('drag', () => {
+      const ll = marker.getLngLat();
+      let snappedTo = null;
+      let snappedLat = ll.lat;
+      let snappedLng = ll.lng;
+      // Convert reticle position to screen pixels for distance test.
+      const reticlePx = map.project([ll.lng, ll.lat]);
+      const targets = gpsRangeSessionState.range?.targets || [];
+      let bestDistSq = GPS_RANGE_RETICLE_SNAP_PX * GPS_RANGE_RETICLE_SNAP_PX;
+      for (const t of targets) {
+        const tPx = map.project([t.lng, t.lat]);
+        const dx = tPx.x - reticlePx.x;
+        const dy = tPx.y - reticlePx.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          snappedTo = t.id;
+          snappedLat = t.lat;
+          snappedLng = t.lng;
+        }
+      }
+      // Update aim state. If snapped, override marker position to
+      // the target's exact coords so the reticle visibly clicks
+      // into place. Setting the marker's lngLat during a drag
+      // doesn't break Mapbox's drag tracking — it just teleports
+      // the visual.
+      if (snappedTo) {
+        try { marker.setLngLat([snappedLng, snappedLat]); } catch (_) {}
+      }
+      gpsRangeSessionState.aim = {
+        lat: snappedLat,
+        lng: snappedLng,
+        snappedTargetId: snappedTo,
+      };
+      gpsRangeSessionState.currentTargetId = snappedTo;
+      // Redraw line + label. Don't recreate the reticle marker
+      // (we ARE the reticle marker). Update its snap class only.
+      const elNow = marker.getElement();
+      if (elNow) {
+        if (snappedTo) elNow.classList.add('is-snapped');
+        else elNow.classList.remove('is-snapped');
+      }
+      updateAimLineLayer();
+      updateAimYardageLabel();
+      // Live pill update — distance + snap state change as the
+      // reticle moves. Cheap (innerHTML swap on a small element).
+      refreshGpsRangeChips();
+    });
+    marker.on('dragend', () => {
+      // Final update — refresh target-layer selection (in case
+      // snap state changed; the layer's "is selected" expression
+      // depends on currentTargetId).
+      updateTargetLayerSelection();
+      refreshGpsRangeChips();
+    });
+
+    gpsRangeSessionState.aimMarker = marker;
+  }
+
+  // Position the midpoint yardage label at the half-way point of
+  // the tee→aim line. DOM marker; updates lat/lng via setLngLat
+  // so it tracks the line as it moves. Hidden if no aim/tee.
+  function updateAimYardageLabel() {
+    const map = gpsRangeSessionState.map;
+    const aim = gpsRangeSessionState.aim;
+    const sessionTee = gpsRangeSessionState.sessionTee;
+    if (!map) return;
+    const haveLine = aim
+      && Number.isFinite(aim.lat)
+      && Number.isFinite(aim.lng)
+      && sessionTee
+      && Number.isFinite(sessionTee.lat)
+      && Number.isFinite(sessionTee.lng);
+    if (!haveLine) {
+      if (gpsRangeSessionState.aimYardageLabel) {
+        try { gpsRangeSessionState.aimYardageLabel.remove(); } catch (_) {}
+        gpsRangeSessionState.aimYardageLabel = null;
+      }
+      return;
+    }
+    const midLat = (sessionTee.lat + aim.lat) / 2;
+    const midLng = (sessionTee.lng + aim.lng) / 2;
+    const yards = Math.round(haversineYards(
+      sessionTee.lat, sessionTee.lng,
+      aim.lat, aim.lng
+    ));
+    if (!gpsRangeSessionState.aimYardageLabel) {
+      const el = document.createElement('div');
+      el.className = 'gps-range-aim-yardage-label';
+      el.textContent = `${yards}y`;
+      const labelMarker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      }).setLngLat([midLng, midLat]).addTo(map);
+      gpsRangeSessionState.aimYardageLabel = labelMarker;
+    } else {
+      try {
+        gpsRangeSessionState.aimYardageLabel.setLngLat([midLng, midLat]);
+        const el = gpsRangeSessionState.aimYardageLabel.getElement();
+        if (el) el.textContent = `${yards}y`;
+      } catch (_) {}
+    }
+  }
+
+  // Orchestrator — keeps reticle, line, and label in sync. Call
+  // this after any aim-state change (drag, target tap, init).
+  function refreshGpsRangeAim() {
+    ensureAimMarker();
+    updateAimLineLayer();
+    updateAimYardageLabel();
+  }
+
+  // Haversine distance between two lat/lng points in YARDS.
+  // Used by the midpoint label to show actual ground distance
+  // without depending on flat-plane approximations. Reasonable
+  // for any range-scale distance (tens to hundreds of yards).
+  function haversineYards(lat1, lng1, lat2, lng2) {
+    const R_METERS = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+              * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const meters = R_METERS * c;
+    return meters * 1.0936133;  // 1m = 1.0936133yd
+  }
+
   function selectGpsRangeTarget(targetId) {
     gpsRangeSessionState.currentTargetId = targetId;
+    // Move the reticle to this target — selecting a target via tap
+    // on its on-map ring (or via the unified picker) should snap
+    // the aim to that target. This preserves the old "tap target
+    // to aim there" UX while still allowing free-aim via reticle drag.
+    const range = gpsRangeSessionState.range;
+    const target = (range?.targets || []).find(t => t.id === targetId);
+    if (target) {
+      gpsRangeSessionState.aim = {
+        lat: target.lat,
+        lng: target.lng,
+        snappedTargetId: targetId,
+      };
+    }
     updateTargetLayerSelection();
+    refreshGpsRangeAim();
     refreshGpsRangeChips();
     // Bookkeeping for the general map click handler: a target tap
     // ALSO fires the general `click` (Mapbox doesn't auto-cancel),
@@ -70112,8 +71554,8 @@
     if (gpsRangeShotModalState.open) return;
 
     const range = gpsRangeSessionState.range;
-    const target = currentGpsRangeTarget();
-    if (!range || !target) return;
+    const aim = gpsRangeSessionState.aim;
+    if (!range || !aim) return;
 
     // Origin for the lateral/along projection is the SESSION tee —
     // where the user is actually hitting from this session — NOT
@@ -70124,22 +71566,37 @@
     const teeLat = (gpsRangeSessionState.sessionTee && gpsRangeSessionState.sessionTee.lat) ?? range.tee.lat;
     const teeLng = (gpsRangeSessionState.sessionTee && gpsRangeSessionState.sessionTee.lng) ?? range.tee.lng;
 
+    // Project the shot against the tee→AIM line (not tee→target).
+    // The reticle is the aim point now; lateral/along offsets are
+    // measured against where the user was actually pointing, which
+    // may or may not be a marked target. When aim is snapped to a
+    // target, this matches the legacy tee→target projection
+    // exactly. When free-aim, it captures "how far from where I
+    // intended to hit."
     const offsets = projectShotOntoTargetLine(
       teeLat, teeLng,
-      target.lat, target.lng,
+      aim.lat, aim.lng,
       lat, lng
     );
 
-    // Auto-yardage: distance from session tee to target plus
-    // alongShot (signed, positive past / negative short). Same
-    // computation that the live avg-yards display uses.
-    const targetDist = dynamicTargetYards(target);
-    const autoYardage = Math.round(targetDist + offsets.along);
+    // Auto-yardage = direct ground distance from session tee to
+    // the actual shot landing position. Replaces the legacy
+    // (targetDist + alongShot) formula since alongShot is now
+    // measured against the aim line, not the target. Direct
+    // haversine is what the user actually hit; their meaningful
+    // unit is "how far did the ball go," independent of where
+    // they were aiming.
+    const autoYardage = Math.round(haversineYards(teeLat, teeLng, lat, lng));
 
     openShotModal({
       shotLat: lat,
       shotLng: lng,
-      targetId: target.id,
+      // targetId records the snapped target for grouping/aggregation;
+      // null when free-aim. The shot record will also store
+      // aimLat/aimLng for the actual aim point.
+      targetId: aim.snappedTargetId,
+      aimLat: aim.lat,
+      aimLng: aim.lng,
       club: gpsRangeSessionState.currentClub,
       lateralOffset: offsets.lateral,
       alongShot: offsets.along,
@@ -70223,6 +71680,12 @@
   function addGpsRangeShotPin(shot) {
     const map = gpsRangeSessionState.map;
     if (!map) return;
+    // Defensive: if a marker for this id already exists, remove the
+    // old one before adding the new (covers edit-in-place commit).
+    if (gpsRangeSessionState.shotPinMarkers[shot.id]) {
+      try { gpsRangeSessionState.shotPinMarkers[shot.id].remove(); } catch (_) {}
+      delete gpsRangeSessionState.shotPinMarkers[shot.id];
+    }
     const el = document.createElement('div');
     el.className = 'gps-range-shot-pin';
     el.style.background = colorForClubKey(shot.club);
@@ -70231,7 +71694,19 @@
       element: el,
       anchor: 'center',
     }).setLngLat([shot.lng, shot.lat]).addTo(map);
-    gpsRangeSessionState.shotPinMarkers.push(marker);
+    gpsRangeSessionState.shotPinMarkers[shot.id] = marker;
+  }
+
+  // Remove a shot's pin marker from the map. Used when editing in
+  // place (the original pin gets removed, a fresh pin is added at
+  // the new position) and when the user deletes a shot from the
+  // shot log modal.
+  function removeGpsRangeShotPin(shotId) {
+    const marker = gpsRangeSessionState.shotPinMarkers[shotId];
+    if (marker) {
+      try { marker.remove(); } catch (_) {}
+      delete gpsRangeSessionState.shotPinMarkers[shotId];
+    }
   }
 
   // ──────────────────────────────────────────────────────────
@@ -70251,6 +71726,8 @@
     gpsRangeShotModalState.shotLat = ctx.shotLat;
     gpsRangeShotModalState.shotLng = ctx.shotLng;
     gpsRangeShotModalState.targetId = ctx.targetId;
+    gpsRangeShotModalState.aimLat = ctx.aimLat;
+    gpsRangeShotModalState.aimLng = ctx.aimLng;
     gpsRangeShotModalState.club = ctx.club;
     gpsRangeShotModalState.lateralOffset = ctx.lateralOffset;
     gpsRangeShotModalState.alongShot = ctx.alongShot;
@@ -70259,10 +71736,13 @@
     // Sticky defaults — read from previous shot so a user working on
     // draws-with-clean-contact doesn't have to re-pick those every
     // shot. First shot of the session falls back to the constants'
-    // defaults (clean / straight).
+    // defaults (clean / straight / 100%).
     const lastShot = gpsRangeSessionState.shots[gpsRangeSessionState.shots.length - 1];
     gpsRangeShotModalState.contact = (lastShot && lastShot.contact) || RANGE_SHOT_DEFAULT_CONTACT;
     gpsRangeShotModalState.shape = (lastShot && lastShot.shape) || RANGE_SHOT_DEFAULT_SHAPE;
+    gpsRangeShotModalState.swingPct = (lastShot && Number.isFinite(lastShot.swingPct))
+      ? lastShot.swingPct
+      : RANGE_SHOT_DEFAULT_SWING_PCT;
 
     // Yardage starts as the auto-fill — yardageAuto flips to false
     // the first time the user edits the input.
@@ -70322,6 +71802,14 @@
       </button>
     `).join('');
 
+    const swingPills = RANGE_SHOT_SWING_PCTS.map(s => `
+      <button type="button"
+              class="gps-range-shot-pill ${s.id === gpsRangeShotModalState.swingPct ? 'is-selected' : ''}"
+              onclick="setShotModalSwingPct(${s.id})">
+        ${escapeHtml(s.label)}
+      </button>
+    `).join('');
+
     // Yardage caption — distinguish auto-fill from user-edited so
     // they know whether the value reflects GPS math or their manual
     // entry. Helps catch "wait, the auto-fill said 145, why is the
@@ -70353,6 +71841,11 @@
             <span class="gps-range-shot-modal-yardage-unit">yards</span>
           </div>
           <div class="gps-range-shot-modal-caption">${escapeHtml(yardageCaption)}</div>
+        </div>
+
+        <div class="gps-range-shot-modal-section">
+          <div class="gps-range-shot-modal-label">Swing</div>
+          <div class="gps-range-shot-pill-row">${swingPills}</div>
         </div>
 
         <div class="gps-range-shot-modal-section">
@@ -70457,6 +71950,14 @@
   }
   window.setShotModalShape = setShotModalShape;
 
+  function setShotModalSwingPct(value) {
+    const n = parseInt(value, 10);
+    if (!Number.isFinite(n)) return;
+    gpsRangeShotModalState.swingPct = n;
+    renderShotModal();
+  }
+  window.setShotModalSwingPct = setShotModalSwingPct;
+
   // Derive the shot's effective position + offsets given a candidate
   // yardage. Always recomputes from the ORIGINAL captured tap (state
   // .shotLat / .shotLng), never from a previously-edited position —
@@ -70473,8 +71974,22 @@
     const sessionTee = gpsRangeSessionState.sessionTee;
     const teeLat = (sessionTee && sessionTee.lat) ?? range?.tee?.lat;
     const teeLng = (sessionTee && sessionTee.lng) ?? range?.tee?.lng;
-    const target = (range?.targets || []).find(t => t.id === gpsRangeShotModalState.targetId);
-    if (!Number.isFinite(teeLat) || !Number.isFinite(teeLng) || !target) {
+    // Use the captured aim point (reticle position at tap time) for
+    // projection, not the target. Aim is what the user was pointing
+    // at; offsets measured against aim reflect aim error rather than
+    // distance-from-target. For legacy shots without aimLat/aimLng,
+    // fall back to the target's position.
+    let aimLat = gpsRangeShotModalState.aimLat;
+    let aimLng = gpsRangeShotModalState.aimLng;
+    if (!Number.isFinite(aimLat) || !Number.isFinite(aimLng)) {
+      const target = (range?.targets || []).find(t => t.id === gpsRangeShotModalState.targetId);
+      if (target) {
+        aimLat = target.lat;
+        aimLng = target.lng;
+      }
+    }
+    if (!Number.isFinite(teeLat) || !Number.isFinite(teeLng)
+        || !Number.isFinite(aimLat) || !Number.isFinite(aimLng)) {
       // Defensive fallback — return original tap position untouched.
       return {
         lat: gpsRangeShotModalState.shotLat,
@@ -70501,13 +72016,13 @@
       yardage
     );
     // Reproject to recompute lateralOffset + alongShot relative to
-    // the tee→target line. These have to update because they're
-    // measured against the tee→TARGET vector (not tee→shot), and
+    // the tee→AIM line. These have to update because they're
+    // measured against the tee→AIM vector (not tee→shot), and
     // the perpendicular distance to that line scales with yardage
-    // when the shot bearing differs from the target bearing.
+    // when the shot bearing differs from the aim bearing.
     const offsets = projectShotOntoTargetLine(
       teeLat, teeLng,
-      target.lat, target.lng,
+      aimLat, aimLng,
       slid.lat, slid.lng
     );
     return {
@@ -70527,6 +72042,15 @@
     if (gpsRangeShotModalState.pendingMarker) {
       try { gpsRangeShotModalState.pendingMarker.remove(); } catch (_) {}
       gpsRangeShotModalState.pendingMarker = null;
+    }
+    // Edit-mode cancel: restore the original pin that was hidden at
+    // edit-open. The marker object was kept alive (just detached
+    // from the map); putting it back via .addTo restores it without
+    // having to reconstruct from scratch.
+    const map = gpsRangeSessionState.map;
+    if (gpsRangeShotModalState.hiddenOriginalMarker && map) {
+      try { gpsRangeShotModalState.hiddenOriginalMarker.addTo(map); } catch (_) {}
+      gpsRangeShotModalState.hiddenOriginalMarker = null;
     }
     animateShotModalCloseThen(closeShotModalState);
   }
@@ -70597,27 +72121,74 @@
     // the tee→target line so summaries still aggregate correctly.
     const finalGeom = deriveShotGeometryAtYardage(yardage);
 
-    const shot = {
-      id: 'rs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      club: gpsRangeShotModalState.club,
-      targetId: gpsRangeShotModalState.targetId,
-      lat: finalGeom.lat,
-      lng: finalGeom.lng,
-      // Geometric offsets — same shape as legacy shots. Recomputed
-      // from the (possibly-edited) position so summary builders use
-      // values consistent with the visible pin.
-      lateralOffset: finalGeom.lateralOffset,
-      alongShot: finalGeom.alongShot,
-      // New per-shot fields. yardage may be user-edited (e.g.
-      // launch-monitor truth) or auto-filled. yardageAuto records
-      // which case so future analysis can weight differently.
-      yardage: yardage,
-      yardageAuto: gpsRangeShotModalState.yardageAuto,
-      contact: gpsRangeShotModalState.contact,
-      shape: gpsRangeShotModalState.shape,
-      loggedAt: Date.now(),
-    };
-    gpsRangeSessionState.shots.push(shot);
+    const editingId = gpsRangeShotModalState.editingShotId;
+    const isEdit = !!editingId;
+
+    // Build the shot record. In edit mode, preserve the original id
+    // and loggedAt so we don't shift the shot's identity or its
+    // place in the timeline. New shots get a fresh id and current
+    // timestamp.
+    let shot;
+    if (isEdit) {
+      const existing = (gpsRangeSessionState.shots || []).find(s => s.id === editingId);
+      shot = {
+        ...(existing || {}),
+        id: editingId,
+        club: gpsRangeShotModalState.club,
+        targetId: gpsRangeShotModalState.targetId,
+        aimLat: gpsRangeShotModalState.aimLat,
+        aimLng: gpsRangeShotModalState.aimLng,
+        lat: finalGeom.lat,
+        lng: finalGeom.lng,
+        lateralOffset: finalGeom.lateralOffset,
+        alongShot: finalGeom.alongShot,
+        yardage: yardage,
+        yardageAuto: gpsRangeShotModalState.yardageAuto,
+        contact: gpsRangeShotModalState.contact,
+        shape: gpsRangeShotModalState.shape,
+        swingPct: gpsRangeShotModalState.swingPct,
+        // Keep the original loggedAt — editing doesn't change WHEN
+        // the shot was hit. (existing.loggedAt may be missing for
+        // legacy shots; fall back to Date.now in that case.)
+        loggedAt: (existing && existing.loggedAt) || Date.now(),
+      };
+    } else {
+      shot = {
+        id: 'rs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        club: gpsRangeShotModalState.club,
+        targetId: gpsRangeShotModalState.targetId,
+        aimLat: gpsRangeShotModalState.aimLat,
+        aimLng: gpsRangeShotModalState.aimLng,
+        lat: finalGeom.lat,
+        lng: finalGeom.lng,
+        lateralOffset: finalGeom.lateralOffset,
+        alongShot: finalGeom.alongShot,
+        yardage: yardage,
+        yardageAuto: gpsRangeShotModalState.yardageAuto,
+        contact: gpsRangeShotModalState.contact,
+        shape: gpsRangeShotModalState.shape,
+        swingPct: gpsRangeShotModalState.swingPct,
+        loggedAt: Date.now(),
+      };
+    }
+
+    if (isEdit) {
+      // Replace the existing shot in place — preserve its position
+      // in the timeline so the user's history doesn't get reordered.
+      const idx = (gpsRangeSessionState.shots || []).findIndex(s => s.id === editingId);
+      if (idx >= 0) {
+        gpsRangeSessionState.shots[idx] = shot;
+      } else {
+        // Shouldn't happen — defensive fallback to push as new.
+        gpsRangeSessionState.shots.push(shot);
+      }
+      // The original pin was hidden at edit-open; drop the reference
+      // (we're about to replace it via addGpsRangeShotPin which
+      // de-dupes by shot id).
+      gpsRangeShotModalState.hiddenOriginalMarker = null;
+    } else {
+      gpsRangeSessionState.shots.push(shot);
+    }
 
     // Promote the pending marker → permanent shot pin. We just drop
     // a fresh permanent pin (the pending marker gets removed below);
@@ -70638,6 +72209,7 @@
     // happens immediately so the user sees the new shot count update
     // as the sheet slides away.
     refreshGpsRangePill();
+    refreshGpsRangeChips();
     animateShotModalCloseThen(closeShotModalState);
   }
   window.commitShotFromModal = commitShotFromModal;
@@ -70646,9 +72218,12 @@
   // so both paths leave the state machine in the same place.
   function closeShotModalState() {
     gpsRangeShotModalState.open = false;
+    gpsRangeShotModalState.editingShotId = null;
     gpsRangeShotModalState.shotLat = null;
     gpsRangeShotModalState.shotLng = null;
     gpsRangeShotModalState.targetId = null;
+    gpsRangeShotModalState.aimLat = null;
+    gpsRangeShotModalState.aimLng = null;
     gpsRangeShotModalState.club = null;
     gpsRangeShotModalState.lateralOffset = null;
     gpsRangeShotModalState.alongShot = null;
@@ -70657,12 +72232,17 @@
     gpsRangeShotModalState.yardageAuto = true;
     gpsRangeShotModalState.contact = RANGE_SHOT_DEFAULT_CONTACT;
     gpsRangeShotModalState.shape = RANGE_SHOT_DEFAULT_SHAPE;
+    gpsRangeShotModalState.swingPct = RANGE_SHOT_DEFAULT_SWING_PCT;
     // pendingMarker should already be null by the time we get here
     // (cancel/commit paths both clear it), but be defensive.
     if (gpsRangeShotModalState.pendingMarker) {
       try { gpsRangeShotModalState.pendingMarker.remove(); } catch (_) {}
       gpsRangeShotModalState.pendingMarker = null;
     }
+    // Same for the hidden original marker (edit mode). Should be
+    // null by now (commit clears via promotion, cancel restores it
+    // and clears) but defense-in-depth.
+    gpsRangeShotModalState.hiddenOriginalMarker = null;
     // Clear the DOM mount.
     const mount = document.getElementById('gps-range-shot-modal-mount');
     if (mount) mount.innerHTML = '';
@@ -70758,29 +72338,140 @@
   }
   window.selectFromClubPicker = selectFromClubPicker;
 
+  // Unified picker — one bottom sheet with two stacked sections:
+  // Target rows on top, Club rows below. Selecting EITHER auto-
+  // dismisses the sheet; users who want to change both just re-open
+  // (rare in practice — they typically know what club they're hitting
+  // and only switch targets, or vice versa). This replaces the
+  // previous two-pill layout where each pill opened its own picker.
+  function openGpsRangeUnifiedPicker() {
+    const targets = gpsRangeSessionState.range?.targets || [];
+    const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
+
+    // Build target rows (or an empty-state message if no targets).
+    const currentTargetId = gpsRangeSessionState.currentTargetId;
+    const targetRows = targets.length === 0
+      ? `<div class="gps-range-picker-section-empty">No targets in this range.</div>`
+      : targets.map(t => {
+          const swatchHex = targetColor(t);
+          const displayName = targetDisplayName(t);
+          const showDistance = displayName !== `${t.distance}` && displayName !== `${t.distance}y`;
+          return `
+            <button class="gps-range-picker-row ${t.id === currentTargetId ? 'is-current' : ''}"
+              onclick="selectFromTargetPicker('${escapeHtml(t.id)}')">
+              <div class="gps-range-picker-row-swatch" style="background:${escapeHtml(swatchHex)};" aria-hidden="true"></div>
+              <div class="gps-range-picker-row-label">${escapeHtml(displayName)}</div>
+              ${showDistance ? `<div class="gps-range-picker-row-distance">${t.distance}y</div>` : ''}
+              ${t.id === currentTargetId ? '<span class="gps-range-picker-row-check">✓</span>' : ''}
+            </button>`;
+        }).join('');
+
+    // Build club rows (or an empty-state message if no bag).
+    const currentClubKey = gpsRangeSessionState.currentClub;
+    const clubRows = (!bag || bag.length === 0)
+      ? `<div class="gps-range-picker-section-empty">Add clubs to your bag in Profile first.</div>`
+      : bag.map(c => {
+          const key = makeClubKey(c.name);
+          const isCurrent = key === currentClubKey;
+          return `
+            <button class="gps-range-picker-row ${isCurrent ? 'is-current' : ''}"
+              onclick="selectFromClubPicker('${escapeHtml(key)}')">
+              <div class="gps-range-picker-row-swatch" style="background:${colorForClubKey(key)}"></div>
+              <div class="gps-range-picker-row-label">${escapeHtml(c.name)}</div>
+              ${isCurrent ? '<span class="gps-range-picker-row-check">✓</span>' : ''}
+            </button>`;
+        }).join('');
+
+    // Two sections with section headers; rows scroll within the sheet
+    // when there are many targets/clubs.
+    const body = `
+      <div class="gps-range-picker-section">
+        <div class="gps-range-picker-section-header">Target</div>
+        ${targetRows}
+      </div>
+      <div class="gps-range-picker-section">
+        <div class="gps-range-picker-section-header">Club</div>
+        ${clubRows}
+      </div>
+    `;
+    showGpsRangePicker('Aim & club', body);
+  }
+  window.openGpsRangeUnifiedPicker = openGpsRangeUnifiedPicker;
+
   // Sheet rendering — appended to the shell as an absolute overlay.
-  // Uses inline IDs so we can tear it down without leaving artifacts.
+  // Renders with .opening classes; next-frame removal triggers the
+  // slide-up + fade-in transition. Mirrors the shot modal pattern.
   function showGpsRangePicker(title, rowsHtml) {
     const shell = document.querySelector('.gps-range-shell');
     if (!shell) return;
-    // If a picker is already open, replace its body in place.
+    // If a picker is already open, replace its body in place. The
+    // existing mount comes off without animation since we're about
+    // to render a fresh one — animating two transitions in parallel
+    // would be confusing.
     let existing = document.getElementById('gps-range-picker-mount');
     if (existing) existing.remove();
     const mount = document.createElement('div');
     mount.id = 'gps-range-picker-mount';
     mount.innerHTML = `
-      <div class="gps-range-picker-backdrop" onclick="hideGpsRangePicker()"></div>
-      <div class="gps-range-picker-sheet">
+      <div class="gps-range-picker-backdrop opening" onclick="hideGpsRangePicker()"></div>
+      <div class="gps-range-picker-sheet opening">
         <div class="gps-range-picker-handle" aria-hidden="true"></div>
         <div class="gps-range-picker-title">${escapeHtml(title)}</div>
         <div class="gps-range-picker-rows">${rowsHtml}</div>
       </div>`;
     shell.appendChild(mount);
+    // Trigger transition — force reflow before removing .opening so
+    // the browser commits the off-screen state before transitioning
+    // back to default. Without the reflow the transition is skipped.
+    requestAnimationFrame(() => {
+      const sheet = mount.querySelector('.gps-range-picker-sheet');
+      const backdrop = mount.querySelector('.gps-range-picker-backdrop');
+      if (sheet) {
+        void sheet.offsetHeight;
+        sheet.classList.remove('opening');
+      }
+      if (backdrop) backdrop.classList.remove('opening');
+    });
   }
 
-  function hideGpsRangePicker() {
+  // Hide the picker — animates out then removes from DOM. Used by
+  // the backdrop tap, by the row-select handlers (selectFromTarget/
+  // ClubPicker), and any other dismissal path. No-op if no picker
+  // is open. Pass `immediate: true` to skip the animation (used when
+  // we need a synchronous teardown — e.g., session close).
+  function hideGpsRangePicker(opts) {
     const mount = document.getElementById('gps-range-picker-mount');
-    if (mount) mount.remove();
+    if (!mount) return;
+    const immediate = !!(opts && opts.immediate);
+    if (immediate) {
+      mount.remove();
+      return;
+    }
+    const sheet = mount.querySelector('.gps-range-picker-sheet');
+    const backdrop = mount.querySelector('.gps-range-picker-backdrop');
+    if (!sheet) {
+      mount.remove();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      sheet.removeEventListener('transitionend', onEnd);
+      // Mount may have already been replaced by a new picker open
+      // (e.g., user tapped a different selector mid-close); only
+      // remove if it's still our mount.
+      const stillThere = document.getElementById('gps-range-picker-mount');
+      if (stillThere === mount) mount.remove();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    sheet.classList.add('closing');
+    if (backdrop) backdrop.classList.add('closing');
+    setTimeout(finish, 320);
   }
   window.hideGpsRangePicker = hideGpsRangePicker;
 
