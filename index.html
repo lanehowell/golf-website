@@ -5095,7 +5095,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
+    z-index: 10;
     pointer-events: none;
   }
 
@@ -6859,6 +6859,16 @@
     z-index: 9420; /* sits above gps map content but below sheets */
     pointer-events: none; /* mount itself transparent; chip claims pointer */
     max-width: calc(100vw - 32px);
+    /* Transition + closing class lets the chip fade out in parallel
+       with the GPS panel's slide-down. closeRoundGpsPanelWithTransition
+       toggles this so the chip doesn't appear "orphaned" — left at
+       its fixed position while the panel underneath slides away.
+       Match the panel transition duration so they complete together. */
+    opacity: 1;
+    transition: opacity 280ms ease-out;
+  }
+  #disp-club-chip-mount.is-closing {
+    opacity: 0;
   }
   .disp-chip {
     pointer-events: auto;
@@ -65949,6 +65959,23 @@
       return;
     }
     panel.classList.add('closing');
+    // Start parallel exit animations on dispersion overlays. They're
+    // body-level (position: fixed siblings of the panel) so they
+    // don't follow the panel's transform — without these, the user
+    // sees the chip / picker hanging in place while the panel
+    // slides away. The eventual closeRoundGpsPanel() (called on
+    // transitionend) clears the DOM regardless, so this just
+    // synchronizes the visual exit.
+    const chipMount = document.getElementById('disp-club-chip-mount');
+    if (chipMount) chipMount.classList.add('is-closing');
+    // If the picker bottom-sheet was open, run its own existing exit
+    // animation. This slides it back down + fades the backdrop; the
+    // closeRoundGpsPanel call later wipes the mount's innerHTML so
+    // we don't pass a callback (the picker just needs to animate out).
+    const pickerMount = document.getElementById('disp-club-picker-mount');
+    if (pickerMount && pickerMount.firstChild) {
+      try { closeDispersionClubPicker(); } catch (_) {}
+    }
     const onEnd = () => {
       panel.removeEventListener('transitionend', onEnd);
       closeRoundGpsPanel();
@@ -67860,6 +67887,18 @@
     shotPinMarkers: [],
     setupHelperLayers: [],     // [{ sourceId, layerId }] — distance ring etc.
     pillRafId: null,
+    // User-position tracking for the setup flow. The user is most likely
+    // standing AT the range while creating it, so we drop a blue dot on
+    // the map (same style as the round GPS view) and center on first fix
+    // so they don't have to pan from the fallback location. Only active
+    // during the 'tee' substage — once the tee is committed, position
+    // tracking is no longer useful and would just compete with the
+    // distance-ring UX in the targets substage.
+    setupWatchId: null,        // navigator.geolocation.watchPosition id
+    setupUserMarker: null,     // mapboxgl.Marker for the blue you-are-here dot
+    setupAccuracyCircle: null, // { sourceId, layerId } for the accuracy ring
+    setupHasFirstFix: false,   // true after first GPS fix lands (centers the map once)
+    setupUserPanned: false,    // true after user pans/zooms the map; suppresses auto-center
   };
 
   // ──────────────────────────────────────────────────────────
@@ -67926,6 +67965,9 @@
       cancelAnimationFrame(gpsRangeSessionState.pillRafId);
       gpsRangeSessionState.pillRafId = null;
     }
+    // Stop the user-position watch BEFORE removing the map so a
+    // late-arriving fix can't try to setLngLat on a destroyed marker.
+    stopGpsRangeSetupWatch();
     (gpsRangeSessionState.shotPinMarkers || []).forEach(m => {
       try { m.remove(); } catch (_) {}
     });
@@ -68296,7 +68338,17 @@
       container: 'gps-range-setup-map',
       style: 'mapbox://styles/mapbox/satellite-v9',
       center,
-      zoom: draft.tee ? 18 : 14,
+      // Initial zoom: tight when we have a tee (zoomed in for crosshair
+      // placement / target rings); minimal acceptable when we don't (Dallas
+      // fallback). The fallback is deliberately at minZoom — once the user's
+      // GPS fix lands, the first-fix flyTo will zoom in to 18 anyway.
+      zoom: draft.tee ? 18 : 15,
+      // Match the in-round GPS view's zoom constraints — minZoom prevents
+      // the user from zooming out into the lower tile tier where satellite
+      // tiles look discolored; maxZoom caps at the highest tier with real
+      // imagery (beyond 19, tiles get scaled and look mushy).
+      minZoom: 15,
+      maxZoom: 19,
       bearingSnap: 0,
       attributionControl: false,
     });
@@ -68316,10 +68368,211 @@
           drawSetupDistanceRing(draft.tee, draft.pendingTargetDistance);
         }
       }
+      // Tee substage: track the user's live position so they don't have
+      // to pan from the Dallas fallback. First fix recenters; subsequent
+      // fixes just update the dot. Skipped in targets substage — by then
+      // they've placed the tee and tracking would just compete with the
+      // distance-ring placement UX.
+      if (gpsRangeSessionState.setupStage === 'tee') {
+        startGpsRangeSetupWatch(map);
+      }
     });
 
     // Tap behavior depends on substage.
     map.on('click', (e) => handleSetupMapTap(e.lngLat.lat, e.lngLat.lng));
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // User-position tracking for the setup flow.
+  //
+  // Why setup specifically: the user is most likely standing AT the
+  // range while they create it. A blue dot anchored to where they
+  // actually are gives them immediate context ("yes the tee should be
+  // a few feet to my right") and removes the need to pan from the
+  // Dallas fallback.
+  //
+  // Scope: tee substage only. Once the tee is committed, position
+  // tracking would just compete with the distance-ring placement UX
+  // in the targets substage and isn't useful (the tee is the anchor
+  // for everything from there on).
+  //
+  // Lifecycle: started from initGpsRangeSetupMap's load handler when
+  // setupStage === 'tee'. Stopped from cleanupGpsRangeMap, which is
+  // the central tear-down for every exit path (close, stage transition,
+  // finishRangeSetup → enterLiveSession).
+  //
+  // Style: same blue dot + light-blue accuracy ring as the round GPS
+  // view, for visual consistency. We deliberately skip the smoothing/
+  // accuracy-floor logic from the round path: this is for centering
+  // hint, not measurement, and even a 100m fix beats Dallas-default.
+  // ──────────────────────────────────────────────────────────
+
+  function startGpsRangeSetupWatch(map) {
+    if (!navigator.geolocation || !map) return;
+    if (gpsRangeSessionState.setupWatchId != null) return;  // already running
+
+    // Reset per-session state. Each new map (e.g. re-entering setup
+    // after canceling) gets a fresh chance at the first-fix recenter.
+    gpsRangeSessionState.setupHasFirstFix = false;
+    gpsRangeSessionState.setupUserPanned = false;
+
+    // Suppress the auto-center if the user starts panning before a
+    // fix arrives. dragstart/zoomstart only fire from real user input,
+    // not from programmatic flyTo, so we won't suppress ourselves.
+    const markPanned = () => { gpsRangeSessionState.setupUserPanned = true; };
+    map.on('dragstart', markPanned);
+    map.on('zoomstart', markPanned);
+
+    gpsRangeSessionState.setupWatchId = navigator.geolocation.watchPosition(
+      (pos) => onGpsRangeSetupFix(pos),
+      (err) => {
+        // Permission denied / position unavailable / timeout. Don't
+        // surface — the crosshair-pan-and-tap flow still works fine
+        // from the Dallas fallback, just less convenient. The browser
+        // will only prompt for permission once; subsequent denials
+        // here are silent.
+        console.warn('Range setup geolocation:', err && err.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        // Each callback represents a fresh fix, not a cached one.
+        maximumAge: 0,
+      }
+    );
+  }
+
+  function stopGpsRangeSetupWatch() {
+    if (gpsRangeSessionState.setupWatchId != null && navigator.geolocation) {
+      try {
+        navigator.geolocation.clearWatch(gpsRangeSessionState.setupWatchId);
+      } catch (_) {}
+    }
+    gpsRangeSessionState.setupWatchId = null;
+    if (gpsRangeSessionState.setupUserMarker) {
+      try { gpsRangeSessionState.setupUserMarker.remove(); } catch (_) {}
+    }
+    gpsRangeSessionState.setupUserMarker = null;
+    // Accuracy circle source/layer are owned by the map, which gets
+    // destroyed in cleanupGpsRangeMap right after this. So we don't
+    // need to remove them explicitly — just clear the reference.
+    gpsRangeSessionState.setupAccuracyCircle = null;
+    gpsRangeSessionState.setupHasFirstFix = false;
+    gpsRangeSessionState.setupUserPanned = false;
+  }
+
+  function onGpsRangeSetupFix(pos) {
+    const map = gpsRangeSessionState.map;
+    if (!map) return;
+    // The user could have advanced past the tee substage by the time
+    // a slow fix lands. Bail if we're no longer in tee substage.
+    if (gpsRangeSessionState.setupStage !== 'tee') return;
+
+    const { latitude, longitude, accuracy } = pos.coords;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+    // First-fix recenter: only auto-pan to the user's location if
+    // they haven't started exploring the map themselves. After that,
+    // the dot updates but the camera stays put.
+    if (!gpsRangeSessionState.setupHasFirstFix) {
+      gpsRangeSessionState.setupHasFirstFix = true;
+      if (!gpsRangeSessionState.setupUserPanned) {
+        // Use flyTo (not jumpTo) so the camera glides to the user's
+        // location rather than teleporting — gentler when the fix
+        // arrives a beat after the map has been visible.
+        map.flyTo({
+          center: [longitude, latitude],
+          zoom: 18,
+          duration: 600,
+          essential: true,
+        });
+      }
+    }
+
+    // Drop or move the user marker. Same visual style as the round
+    // GPS view's blue dot for consistency: 18px circle, brand blue,
+    // 3px white border, soft drop shadow.
+    if (!gpsRangeSessionState.setupUserMarker) {
+      const el = document.createElement('div');
+      el.style.cssText = `
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #2E86DE; border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        pointer-events: none;`;
+      gpsRangeSessionState.setupUserMarker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      }).setLngLat([longitude, latitude]).addTo(map);
+    } else {
+      gpsRangeSessionState.setupUserMarker.setLngLat([longitude, latitude]);
+    }
+
+    // Update the accuracy circle. Visually communicates "this fix is
+    // approximate" — important for poor GPS, since otherwise the user
+    // might trust an indoors-grade dot to be where they're literally
+    // standing.
+    updateGpsRangeSetupAccuracyCircle(latitude, longitude, accuracy);
+  }
+
+  // Mirror of updateUserAccuracyCircle from the round GPS view —
+  // a meters-radius circle painted under the user marker, sized to
+  // match the GPS accuracy reading. Translates meters to pixels at
+  // the current zoom level.
+  function updateGpsRangeSetupAccuracyCircle(lat, lng, accuracyM) {
+    const map = gpsRangeSessionState.map;
+    if (!map || !accuracyM || accuracyM <= 0) return;
+
+    const sourceId = 'gps-range-setup-accuracy-src';
+    const layerId = 'gps-range-setup-accuracy-lyr';
+    const feature = {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lng, lat] },
+    };
+
+    if (!gpsRangeSessionState.setupAccuracyCircle) {
+      // First call — add source + layer. Layer goes BELOW any existing
+      // helper layers (distance ring, target markers) so those stay
+      // visually on top.
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: 'geojson', data: feature });
+      }
+      if (!map.getLayer(layerId)) {
+        map.addLayer({
+          id: layerId,
+          type: 'circle',
+          source: sourceId,
+          paint: {
+            'circle-color': '#3b82f6',
+            'circle-opacity': 0.12,
+            'circle-stroke-color': '#3b82f6',
+            'circle-stroke-width': 1,
+            'circle-stroke-opacity': 0.45,
+            // Radius is set dynamically below — placeholder here.
+            'circle-radius': 0,
+          },
+        });
+      }
+      gpsRangeSessionState.setupAccuracyCircle = { sourceId, layerId };
+    } else {
+      const src = map.getSource(sourceId);
+      if (src && src.setData) src.setData(feature);
+    }
+
+    // Convert meters → pixels at this zoom & latitude. The standard
+    // Mapbox identity is metersPerPixel = 40075016.686 * cos(lat) /
+    // 2^(zoom + 8). Then we set up the radius to scale with zoom by
+    // computing it at three breakpoints — same pattern as the round
+    // GPS view's accuracy circle.
+    const zoom = map.getZoom();
+    const metersPerPixel = (40075016.686 * Math.cos(lat * Math.PI / 180)) /
+      Math.pow(2, zoom + 8);
+    const radiusPx = accuracyM / metersPerPixel;
+    map.setPaintProperty(layerId, 'circle-radius', [
+      'interpolate', ['exponential', 2], ['zoom'],
+      Math.max(0, zoom - 1), radiusPx / 2,
+      zoom, radiusPx,
+      Math.min(22, zoom + 1), radiusPx * 2,
+    ]);
   }
 
   function handleSetupMapTap(lat, lng) {
@@ -68640,6 +68893,14 @@
       style: 'mapbox://styles/mapbox/satellite-v9',
       bounds,
       fitBoundsOptions: { padding: 80 },
+      // Match the in-round GPS view's zoom constraints — minZoom prevents
+      // the user from zooming out into the lower tile tier where satellite
+      // tiles look discolored; maxZoom caps at the highest tier with real
+      // imagery. fitBounds at init will respect minZoom — for ranges with
+      // a very long target (300y+) the auto-fit may overflow the viewport
+      // slightly, but that's preferable to discolored tiles.
+      minZoom: 15,
+      maxZoom: 19,
       bearingSnap: 0,
       attributionControl: false,
     });
@@ -69432,12 +69693,19 @@
       mount.id = 'disp-club-chip-mount';
       document.body.appendChild(mount);
     }
+    // Clear any leftover closing-state class from a previous GPS
+    // session — the mount is body-level and persists, so without
+    // this reset the chip would render at opacity 0 next time.
+    mount.classList.remove('is-closing');
     renderDispersionClubChip();
   }
 
   function hideDispersionClubChip() {
     const mount = document.getElementById('disp-club-chip-mount');
-    if (mount) mount.innerHTML = '';
+    if (!mount) return;
+    mount.innerHTML = '';
+    // Reset the closing class too so a future re-show starts clean.
+    mount.classList.remove('is-closing');
   }
 
   function renderDispersionClubChip() {
