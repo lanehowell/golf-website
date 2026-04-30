@@ -67925,8 +67925,8 @@
     document.body.classList.add('round-gps-open');
     renderGpsRangeStage();  // shows loading
 
-    // Load ranges. Anonymous / signed-out users get empty list and go
-    // straight to setup (won't be able to save, but can play around).
+    // Load ranges. Anonymous / signed-out users get empty list and see
+    // the picker's empty state (Create CTA only).
     try {
       if (currentUser && window.fb) {
         const ranges = await window.fb.listDocs(
@@ -67940,15 +67940,25 @@
       gpsRangeSessionState.ranges = [];
     }
 
-    // Branch based on what we found:
-    //   - no ranges  → go straight to setup (first-time UX)
-    //   - has ranges → show picker
-    if (gpsRangeSessionState.ranges.length === 0) {
-      enterRangeSetup();
-    } else {
-      gpsRangeSessionState.stage = 'picker';
-      renderGpsRangeStage();
-    }
+    // Always render the picker — it's the home screen for the GPS range
+    // flow. First-time users see the empty state with a prominent Create
+    // CTA; returning users see their ranges sorted by proximity (if a
+    // GPS fix is available, else by lastUsedAt).
+    gpsRangeSessionState.stage = 'picker';
+    renderGpsRangeStage();
+
+    // Kick off a location request so we can re-sort the picker by
+    // proximity when the fix lands. Reuses the session-cached helper:
+    // if location was already granted earlier in the session (e.g. on
+    // the courses list), this resolves immediately and we never see the
+    // pre-sort flash. Otherwise we'll re-render once the fix arrives.
+    // Permission denial and timeout silently fall through — picker stays
+    // on lastUsedAt order.
+    requestUserLocation().then((status) => {
+      if (status === 'granted' && gpsRangeSessionState.stage === 'picker') {
+        renderGpsRangeStage();
+      }
+    });
   }
   window.openGpsRangeSession = openGpsRangeSession;
 
@@ -68063,18 +68073,117 @@
 
   function renderGpsRangePicker() {
     const ranges = gpsRangeSessionState.ranges || [];
-    const rangesList = ranges.map(r => {
+
+    // Sort + decorate. If we have a GPS fix, sort by distance asc and
+    // attach miles for the card. Without a fix, fall back to the
+    // load-time lastUsedAt order. Decoration is agnostic to the source
+    // of `ranges` — when we eventually merge in shared/community ranges,
+    // this same code path handles them.
+    const decorated = decorateRangesForPicker(ranges);
+
+    // Empty state vs populated state. The empty state has its own copy
+    // — first-time users haven't earned a "pick a range" framing yet.
+    if (decorated.length === 0) {
+      return renderGpsRangePickerEmpty();
+    }
+    return renderGpsRangePickerList(decorated);
+  }
+
+  // Annotate ranges with sort metadata. When a user GPS fix is available,
+  // the array comes back sorted by distance ascending (closest first)
+  // and each entry has a `miles` field; otherwise the array is left in
+  // its original lastUsedAt order with `miles: null`.
+  function decorateRangesForPicker(ranges) {
+    const fixGranted = userLocation.status === 'granted'
+      && Number.isFinite(userLocation.lat)
+      && Number.isFinite(userLocation.lng);
+
+    const annotated = ranges.map(r => {
+      let miles = null;
+      if (fixGranted
+        && r.tee
+        && Number.isFinite(r.tee.lat)
+        && Number.isFinite(r.tee.lng)) {
+        miles = haversineMiles(
+          userLocation.lat, userLocation.lng,
+          r.tee.lat, r.tee.lng);
+      }
+      return { range: r, miles };
+    });
+
+    if (fixGranted) {
+      // Sort by distance asc. Ranges with no usable tee coords (corrupt
+      // legacy data, etc) sink to the bottom — they get miles=null which
+      // we treat as +Infinity for sort purposes.
+      annotated.sort((a, b) => {
+        const da = a.miles == null ? Infinity : a.miles;
+        const db = b.miles == null ? Infinity : b.miles;
+        return da - db;
+      });
+    }
+    return annotated;
+  }
+
+  // Empty state — no saved ranges yet. The Create CTA is the headline,
+  // not a footer afterthought. We deliberately don't show "My Ranges"
+  // eyebrow or a list container at all.
+  function renderGpsRangePickerEmpty() {
+    return `
+      <div class="gps-range-shell gps-range-shell-static">
+        <div class="gps-range-topbar">
+          <button class="gps-range-close" onclick="closeGpsRangeSession()" aria-label="Close">×</button>
+          <div class="gps-range-topbar-title">RANGE SESSION</div>
+          <div></div>
+        </div>
+        <div class="gps-range-picker-body">
+          <div class="gps-range-picker-eyebrow">Get Started</div>
+          <h2 class="gps-range-picker-title">Pin your first range</h2>
+          <p class="gps-range-picker-desc">Drop the tee location and your usual target distances. Once it's saved, you can start a session in two taps.</p>
+          <div class="gps-range-pick-list">
+            <button class="gps-range-pick-card gps-range-pick-card-add" onclick="enterRangeSetup()">
+              <div class="gps-range-pick-card-body">
+                <div class="gps-range-pick-card-name">+ Pin a range</div>
+                <div class="gps-range-pick-card-meta">Pin the tee + your target distances</div>
+              </div>
+              <span class="gps-range-pick-card-chev">→</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Populated picker — saved ranges sorted by proximity (when a fix is
+  // available), with a Create card pinned at the bottom for adding new.
+  function renderGpsRangePickerList(decorated) {
+    const fixGranted = userLocation.status === 'granted';
+    const rangesList = decorated.map(({ range: r, miles }) => {
       const targetCount = (r.targets || []).length;
+      // Build the meta line. With a fix, lead with distance ("2.3 mi ·
+      // 4 targets · 2 days ago"). Without a fix, fall back to the
+      // legacy meta ("4 targets · 2 days ago"). Distance reads first
+      // because that's the new sort key — the user's eye should land
+      // on what's closest immediately.
+      const targetsStr = `${targetCount} target${targetCount === 1 ? '' : 's'}`;
       const lastUsed = r.lastUsedAt ? formatTimeAgo(r.lastUsedAt) : 'Never used';
+      const distanceStr = miles != null ? formatDistance(miles) : null;
+      const metaParts = distanceStr
+        ? [distanceStr, targetsStr, lastUsed]
+        : [targetsStr, lastUsed];
       return `
         <button class="gps-range-pick-card" onclick="pickRangeForSession('${escapeHtml(r.id)}')">
           <div class="gps-range-pick-card-body">
             <div class="gps-range-pick-card-name">${escapeHtml(r.name || 'Untitled range')}</div>
-            <div class="gps-range-pick-card-meta">${targetCount} target${targetCount === 1 ? '' : 's'} · ${escapeHtml(lastUsed)}</div>
+            <div class="gps-range-pick-card-meta">${metaParts.map(escapeHtml).join(' · ')}</div>
           </div>
           <span class="gps-range-pick-card-chev">→</span>
         </button>`;
     }).join('');
+
+    // Eyebrow reflects the sort. "Closest first" reassures the user that
+    // proximity matters here; if we couldn't get a fix, drop back to the
+    // generic "My Ranges" label since they'd be confused by a sort claim
+    // we can't honor.
+    const eyebrow = fixGranted ? 'Closest first' : 'My Ranges';
 
     return `
       <div class="gps-range-shell gps-range-shell-static">
@@ -68084,7 +68193,7 @@
           <div></div>
         </div>
         <div class="gps-range-picker-body">
-          <div class="gps-range-picker-eyebrow">My Ranges</div>
+          <div class="gps-range-picker-eyebrow">${escapeHtml(eyebrow)}</div>
           <h2 class="gps-range-picker-title">Pick a range</h2>
           <p class="gps-range-picker-desc">Tap a range to start a session, or add a new one.</p>
           <div class="gps-range-pick-list">
@@ -68184,15 +68293,14 @@
   window.advanceRangeSetupToTee = advanceRangeSetupToTee;
 
   function cancelRangeSetup() {
-    // If the user has saved ranges, return to picker. Otherwise close.
-    if ((gpsRangeSessionState.ranges || []).length > 0) {
-      gpsRangeSessionState.stage = 'picker';
-      gpsRangeSessionState.setupStage = null;
-      gpsRangeSessionState.setupDraft = null;
-      renderGpsRangeStage();
-    } else {
-      closeGpsRangeSession();
-    }
+    // Always return to the picker. With the always-on picker design,
+    // even an empty range list lands on a sensible screen (the empty
+    // state with a Pin-a-range CTA), so there's no longer a case where
+    // we'd want to close the whole session on cancel.
+    gpsRangeSessionState.stage = 'picker';
+    gpsRangeSessionState.setupStage = null;
+    gpsRangeSessionState.setupDraft = null;
+    renderGpsRangeStage();
   }
   window.cancelRangeSetup = cancelRangeSetup;
 
