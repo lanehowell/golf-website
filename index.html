@@ -80938,6 +80938,49 @@
     const shots = getShotsForHole(holeNum);
     if (!shots || !shots.length) return;
 
+    // Compute "mine-linked" shots — pairs of (team shot, personal
+    // shot) where the team shot's hit-by attribution is the current
+    // user AND a personal shot exists with both endpoints within 3
+    // yards of the team shot's endpoints. Same physical swing logged
+    // twice (once as "the team's chosen ball" and once as "my swing
+    // for stats"). Visually we'll render only the team pin, but with
+    // a blue stroke instead of the default dark one — signals "this
+    // was your swing AND it got picked." Personal pin/line for the
+    // linked shot is suppressed.
+    //
+    // Strict criteria: hit-by MUST be the current user. When two
+    // players hit similar shots and only one gets picked, dedup
+    // would lie about whose swing was picked. Two stacked pins is
+    // the truthful render in that case.
+    const linkedPersonalShotIds = new Set();
+    const linkedTeamShotIds = new Set();
+    if (isGroupRoundActive()
+        && getRoundFormat(groupRoundState.doc) === 'scramble'
+        && shouldShowPersonalShotButton()
+        && currentUser?.uid) {
+      const personalShotsForLink = getPersonalScrambleShotsForHole(holeNum);
+      const myUid = currentUser.uid;
+      const LINK_DIST_YARDS = 3;
+      const teamMineShots = shots.filter(t => t.hitBy === myUid
+        && typeof t.startLat === 'number' && typeof t.startLng === 'number'
+        && typeof t.endLat === 'number' && typeof t.endLng === 'number');
+      for (const ps of personalShotsForLink) {
+        if (typeof ps.startLat !== 'number' || typeof ps.startLng !== 'number'
+            || typeof ps.endLat !== 'number' || typeof ps.endLng !== 'number') continue;
+        // Look for a team shot of mine with matching endpoints.
+        for (const ts of teamMineShots) {
+          if (linkedTeamShotIds.has(ts.id)) continue; // already paired
+          const dStart = haversineYards(ps.startLat, ps.startLng, ts.startLat, ts.startLng);
+          const dEnd   = haversineYards(ps.endLat,   ps.endLng,   ts.endLat,   ts.endLng);
+          if (dStart <= LINK_DIST_YARDS && dEnd <= LINK_DIST_YARDS) {
+            linkedPersonalShotIds.add(ps.id);
+            linkedTeamShotIds.add(ts.id);
+            break;
+          }
+        }
+      }
+    }
+
     // Build a list of one pin per logged shot, at each shot's END
     // position (= where the ball went). This matches the user's
     // mental model — a shot pin represents the result of the swing.
@@ -81054,6 +81097,12 @@
               // expression below — red for shots that ended in a
               // hazard, normal color otherwise.
               endedInTrouble: !!(shot && shot.endedInTrouble),
+              // Mine-linked: this team shot was picked AND it was
+              // the user's own swing (matched against a personal
+              // shot at same coords). Triggers a blue-stroke render
+              // variant on the pin so the user sees "I hit this AND
+              // it got picked" at a glance.
+              mineLinked: !!(shot && linkedTeamShotIds.has(shot.id)),
             },
             geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
           };
@@ -81066,7 +81115,10 @@
           map.getSource(sourceId).setData(featureCollection);
         }
         // Background circle — yellow with thin dark border. Trouble
-        // shots get red instead via the data expression.
+        // shots get red instead via the data expression. Mine-linked
+        // shots (your swing got picked AND you tagged it as personal)
+        // swap the dark stroke for a thicker blue stroke — visual
+        // signal "I hit this and it counts toward my stats too."
         if (!map.getLayer(circleLayerId)) {
           map.addLayer({
             id: circleLayerId,
@@ -81080,8 +81132,16 @@
                 resolveCssColor('--color-danger', '#E8744A'),
                 resolveCssColor('--color-player-you', '#FFD600'),
               ],
-              'circle-stroke-width': 1.5,
-              'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
+              'circle-stroke-width': [
+                'case',
+                ['get', 'mineLinked'], 3,
+                1.5,
+              ],
+              'circle-stroke-color': [
+                'case',
+                ['get', 'mineLinked'], 'rgb(94, 154, 232)',
+                'rgba(0, 0, 0, 0.7)',
+              ],
             },
           });
         }
@@ -81180,6 +81240,11 @@
         const personalPoints = [];
         const personalLineFeatures = [];
         personalShots.forEach(s => {
+          // Skip linked shots — they're rendered as a blue-stroke
+          // ring on the matching team pin instead of as a separate
+          // personal pin/line. Avoids visually-stacked yellow + blue
+          // dots for the same physical swing.
+          if (linkedPersonalShotIds.has(s.id)) return;
           if (s.endLat != null && s.endLng != null) {
             personalPoints.push({
               shotId: s.id,
