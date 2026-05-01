@@ -4177,6 +4177,77 @@
     line-height: 1.4;
   }
 
+  /* Group shot tag — header element in the simplified scramble group
+     shot edit sheet. Uses the warm orange accent (matches the orange
+     "Log Group Shot" button) so the visual association is obvious.
+     Sits at the top of the sheet body to communicate context. */
+  .group-shot-tag {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-accent-pale);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+    border-radius: var(--radius-md);
+  }
+  html.dark .group-shot-tag {
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  .group-shot-tag-icon {
+    flex: 0 0 auto;
+    font-size: var(--text-base);
+    line-height: 1;
+  }
+  .group-shot-tag-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+  }
+  .group-shot-tag-sub {
+    flex: 1 1 100%;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* Group shot readout — read-only distance display in the simplified
+     edit sheet. Mirrors the look of stat tiles elsewhere in the app. */
+  .group-shot-readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .group-shot-readout-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-weight: var(--weight-medium);
+  }
+  .group-shot-readout-value {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .group-shot-readout-unit {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
   /* Scramble GPS hint banner — floats inside the GPS panel above
      the map. Needs high contrast against satellite imagery, so we
      use an opaque elevated background + soft shadow rather than the
@@ -5730,6 +5801,27 @@
     white-space: nowrap;
   }
   .round-gps-mine-btn:active { transform: scale(0.96); }
+
+  /* Paired variant — used in scramble where Group + My Shot sit
+     side by side. Each takes equal flex weight so they read as
+     equally weighted choices, not primary+secondary. Tighter
+     padding so the two-button layout fits comfortably alongside
+     the Tools and Score chips. The label fonts shrink slightly
+     vs. the single-primary look so labels don't truncate on
+     narrow phone widths. */
+  .round-gps-shot-btn-paired,
+  .round-gps-mine-btn-paired {
+    flex: 1;
+    min-width: 0;
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    font-size: var(--text-sm);
+  }
+  .round-gps-shot-btn-paired .round-gps-shot-btn-label,
+  .round-gps-mine-btn-paired .round-gps-mine-btn-label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
   .round-gps-mine-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
@@ -11241,6 +11333,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Compact row variant — used for sparse scramble GROUP shots that
+     don't have club/lie/intent/result/mishit data. Single-line
+     content (hit-by + distance) instead of the two-line full row. */
+  .shot-row.shot-row-compact .shot-row-body {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .shot-row-hitby {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shot-row-unattributed {
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: var(--weight-medium);
+  }
   .shot-row-dist {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -11494,6 +11610,44 @@
     margin-top: var(--space-5);
     padding-top: var(--space-4);
     border-top: 1px solid var(--border-light);
+  }
+
+  /* Team (group shots) section — appears in the Track Shots tool
+     above the personal section in scramble rounds. Visually mirrors
+     the personal section's structure but uses the orange accent
+     (matching the orange Group button) so the two sections feel
+     parallel but clearly distinct. */
+  .shots-team-section {
+    margin-bottom: var(--space-2);
+  }
+  .shots-team-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+  .shots-team-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shots-team-icon {
+    font-size: var(--text-base);
+    line-height: 1;
+  }
+  .shots-team-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shots-add-btn-team {
+    margin-top: var(--space-3);
   }
   .shots-personal-header {
     display: flex;
@@ -35045,74 +35199,23 @@
       }
     }
 
-    // Personal scramble shots — pulled separately because the main
-    // loop above filters out non-counting formats via
-    // roundCountsForStats. Two pools belong in stats from a scramble:
+    // Personal scramble shots — explicit "My Shot" logs from the
+    // user during a scramble round. Pulled separately because the
+    // main loop above filters out non-counting formats via
+    // roundCountsForStats.
     //
-    //   1. Team chain shots where hitBy === currentUser.uid — when
-    //      the team picked YOUR ball, that's a real swing of yours
-    //      with full GPS data already on the round. Including these
-    //      avoids forcing the user to redundantly tap "Mine" after
-    //      every Log Shot they're attributed to.
-    //
-    //   2. round.personalShots — explicit "Mine" logs for swings
-    //      where the team picked someone else's ball.
-    //
-    // Together these reconstruct the user's full swing data from a
-    // scramble. The team scorecard itself stays excluded (it's a
-    // single shared total, not individual scoring stats).
-    const myUid = currentUser?.uid;
+    // Strict separation model: TEAM shots in a scramble do NOT feed
+    // personal stats, even when hitBy === currentUser.uid. Group
+    // shots are just position + attribution markers for the team
+    // scorecard; they don't carry the rich data (club, lie, mishit,
+    // etc.) that stats need anyway. Users who want their swings to
+    // count toward My Bag / dispersion / club averages tap "Log My
+    // Shot" — that's the only path into personal stats from a
+    // scramble. This also gets rid of an entire confusing class of
+    // "team shot vs personal shot" UX questions.
     for (const round of recentRounds || []) {
       if (round.status !== 'completed') continue;
       if (getRoundFormat(round) !== 'scramble') continue;
-      // Pool 1 — team shots attributed to me. Defensive on hitBy
-      // (older scramble rounds might not have it; skip those silently
-      // since we can't know if any given shot was mine).
-      if (myUid) {
-        const teamShotsMap = round.shots || {};
-        for (const holeNum of Object.keys(teamShotsMap)) {
-          for (const shot of teamShotsMap[holeNum] || []) {
-            if (shot.hitBy !== myUid) continue;
-            const name = resolveShotClubName(shot, bagById);
-            if (!name) continue;
-            let gpsYards = null;
-            const isPutt = shot.intent === 'putt' || shot.startLie === 'green';
-            if (!isPutt
-                && typeof shot.actualYards === 'number'
-                && Number.isFinite(shot.actualYards)
-                && shot.actualYards >= 5) {
-              const m = shot.mishit;
-              const isContactMishit = m === 'thin' || m === 'fat'
-                                   || m === 'toe' || m === 'heel';
-              if (!isContactMishit) {
-                gpsYards = shot.actualYards;
-              }
-            }
-            yield {
-              shot,
-              source: 'round',
-              clubName: name,
-              clubKey: makeClubKey(name),
-              carry:     null,
-              gpsYards,
-              direction: resolveShotDirection(shot, 'round'),
-              contact:   resolveShotContact(shot, 'round'),
-              swingPct: null,
-              roundId: round.id,
-              capturedAt: shot.capturedAt || shot.loggedAt || round.endTime || 0,
-              // Tag for diagnostic + future filtering. Distinct from
-              // isPersonalScramble (those are explicit Mine logs);
-              // this one means "team shot the team picked that I hit."
-              isPersonalScrambleAttributed: true,
-            };
-          }
-        }
-      }
-      // Pool 2 — explicit personal (Mine) shots. Don't dedupe against
-      // pool 1: the user shouldn't be logging Mine for shots already
-      // attributed via hitBy (UX guidance below in shouldShowPersonalShotButton),
-      // and if they did, the duplicate is genuinely two separate
-      // records that we'd rather show than silently drop.
       const personalShotsMap = round.personalShots || {};
       for (const holeNum of Object.keys(personalShotsMap)) {
         for (const shot of personalShotsMap[holeNum] || []) {
@@ -35143,9 +35246,6 @@
             swingPct: null,
             roundId: round.id,
             capturedAt: shot.capturedAt || shot.loggedAt || round.endTime || 0,
-            // Tag so downstream consumers can identify these if they
-            // want to filter or treat differently. Default behavior
-            // is to mix them in alongside solo round shots.
             isPersonalScramble: true,
           };
         }
@@ -40937,6 +41037,47 @@
     }
   }
 
+  // Team tee overrides — debounced save path for scramble's
+  // gr.teamTeeOverrides field. Triggered by setTeeAtCurrentPosition
+  // when the active round is a scramble. The 600ms window is shorter
+  // than the shots debouncer's 800ms because Set Tee is a deliberate
+  // single-action commit, not part of a rapid-fire stream — but still
+  // long enough that two near-simultaneous taps from teammates collapse
+  // into a single write.
+  let __scrambleTeamTeeOverridesSaveTimer = null;
+  let __scrambleTeamTeeOverridesInFlight = 0;
+  function queueSaveScrambleTeamTeeOverrides() {
+    if (__scrambleTeamTeeOverridesSaveTimer) {
+      clearTimeout(__scrambleTeamTeeOverridesSaveTimer);
+    }
+    __scrambleTeamTeeOverridesSaveTimer = setTimeout(() => {
+      __scrambleTeamTeeOverridesSaveTimer = null;
+      saveScrambleTeamTeeOverridesNow().catch(err => {
+        console.error('Failed scramble tee override save:', err);
+      });
+    }, 600);
+  }
+
+  async function saveScrambleTeamTeeOverridesNow() {
+    if (!isGroupRoundActive() || !window.fb) return;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return;
+    __scrambleTeamTeeOverridesInFlight++;
+    syncBeginSave();
+    try {
+      await window.fb.updateGroupRoundFields(gr.id, {
+        teamTeeOverrides: gr.teamTeeOverrides || {},
+      });
+      syncEndSave(true);
+    } catch (err) {
+      console.error('Failed to save team tee overrides:', err);
+      syncEndSave(false);
+      showToast('Tee not saved — check connection', true);
+    } finally {
+      __scrambleTeamTeeOverridesInFlight--;
+    }
+  }
+
   // Personal scramble shots — debounced save path. Mirrors the team
   // shots debouncer but writes to me.shots (per-player private data)
   // via updateGroupRoundPlayer rather than the round-level teamShots.
@@ -43103,7 +43244,7 @@
   // by" picker AND from a manual override path (Phase 4). Updates the
   // shot's hitBy/hitByName fields if a shot id is provided.
   function setScrambleHitter(hitterUid, opts = {}) {
-    scrambleLastHitterUid = hitterUid;
+    // Sticky default removed (see pickScrambleHitter rationale).
     const { shotId, holeNum } = opts || {};
     if (!shotId || holeNum == null) return;
     if (!isGroupRoundActive()) return;
@@ -43129,8 +43270,10 @@
   // sets the sticky hitter for subsequent shots logged this session.
   function pickScrambleHitter(hitterUid, shotId, holeNum) {
     if (!hitterUid) return;
-    // Sticky default for next shot.
-    scrambleLastHitterUid = hitterUid;
+    // Note: NOT sticky. Each new group shot defaults to the device
+    // owner; this picker only changes the SPECIFIC shot the user is
+    // editing. Removed the sticky-default behavior so the model stays
+    // simple — one button, one purpose, no carryover surprises.
     // Draft state for the open sheet — keeps the picker re-renders
     // showing the right active pill while the sheet is still open.
     if (shotEditState.draft) {
@@ -43487,6 +43630,15 @@
       clearTimeout(__scrambleTeamShotsSaveTimer);
       __scrambleTeamShotsSaveTimer = null;
       try { await saveScrambleTeamShotsNow(); } catch (_) {}
+    }
+    // Flush pending team tee overrides — last Set Tee tap may still
+    // be in the 600ms debounce window. Without this, a player who
+    // taps Set Tee on the 18th hole then immediately completes the
+    // round could land Firestore without the final tee position.
+    if (__scrambleTeamTeeOverridesSaveTimer) {
+      clearTimeout(__scrambleTeamTeeOverridesSaveTimer);
+      __scrambleTeamTeeOverridesSaveTimer = null;
+      try { await saveScrambleTeamTeeOverridesNow(); } catch (_) {}
     }
     // Flush pending personal-shot save too — me.shots may have edits
     // that haven't reached Firestore yet. Without this, the personal
@@ -45817,6 +45969,12 @@
     // save to me.shots instead of teamShots, hides the hit-by picker,
     // and adds a "Personal" tag in the sheet header. Default false.
     personalShot: false,
+    // True when the sheet is editing a SPARSE scramble GROUP shot.
+    // Renders a minimal form (hit-by picker + small map + delete
+    // button) — no club / lie / mishit / target / result UI. Group
+    // shots in scramble are position + attribution only by design.
+    // Default false (full edit form).
+    groupSimple: false,
   };
 
   // Resolve the round object the edit sheet is currently editing.
@@ -45874,14 +46032,19 @@
           <div class="shots-empty-text">Tap "Add shot" to log your first shot of this hole.</div>
         </div>`;
     } else {
+      // Scramble group shots are sparse (no club / lie / intent /
+      // mishit / result fields). Render a compact row showing just
+      // attribution + distance instead of the full standard row,
+      // which would render placeholder noise ("Set intent", "From
+      // —", "Club") for missing fields. The standard row remains
+      // for solo / standard group rounds AND for scramble rounds
+      // with legacy rich data (since old shots have those fields).
+      const inScramble = isGroupRoundActive()
+        && getRoundFormat(groupRoundState.doc) === 'scramble';
       const rows = shots.map((s, i) => {
-        // Distance display — putts use feet (distanceFeet, manually
-        // entered). For everything else, show actualYards (haversine
-        // of start→end coords; the ball's flight). We don't fall back
-        // to s.distance: that field is "yards to target" at log time
-        // (where the shot was AIMED, not where it went), which would
-        // be misleading. Em dash for shots without GPS-measured
-        // distance — legacy or partial records.
+        // Dispatch: sparse scramble shot (no club) gets compact row.
+        // Rich shot (has club) gets the full row.
+        const isSparseGroup = inScramble && s.club == null;
         let distText = '';
         if (typeof s.distanceFeet === 'number') {
           distText = `<span class="shot-row-dist">${s.distanceFeet}<span class="shot-row-unit">ft</span></span>`;
@@ -45890,6 +46053,35 @@
         } else {
           distText = `<span class="shot-row-dist">—</span>`;
         }
+        if (isSparseGroup) {
+          // Compact row: stroke # + hit-by name + distance. Tap
+          // opens the simple edit sheet (group-shot mode).
+          const strokeNum = getShotStrokeNumber(shots, i);
+          const hitByLabel = s.hitByName
+            ? escapeHtml(s.hitByName)
+            : '<span class="shot-row-unattributed">Unattributed</span>';
+          return `
+            ${s.afterDrop && i > 0 ? `
+              <div class="shot-row-drop-divider" aria-label="Drop occurred between these shots">
+                <span class="shot-row-drop-icon" aria-hidden="true">↳</span>
+                <span class="shot-row-drop-label">${s.penaltyKind === 'stroke-distance' ? 'Re-hit (stroke + distance)' : 'Drop'}</span>
+              </div>
+            ` : ''}
+            <div class="shot-row shot-row-compact" role="button" tabindex="0"
+                 onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')"
+                 onkeydown="if(event.key==='Enter'){openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}')}"
+                 aria-label="Edit group shot ${strokeNum}">
+              <span class="shot-row-num">${strokeNum}</span>
+              <span class="shot-row-body">
+                <span class="shot-row-top">
+                  <span class="shot-row-hitby">${hitByLabel}</span>
+                  ${distText}
+                </span>
+              </span>
+            </div>`;
+        }
+        // Full row for rich shot data (solo / standard group / legacy
+        // scramble shots with club field set).
         const fromLbl = SHOT_LIE_SHORT[s.startLie] || s.startLie || '—';
         const mishitBadge = (s.mishit && s.mishit !== 'clean')
           ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
@@ -46021,7 +46213,7 @@
       }).join('');
       const personalListHtml = personalShots.length === 0
         ? `<div class="shots-personal-empty">
-             For swings the team didn't pick. Use this when you want to track a shot that didn't make the team chain.
+             Track your individual swings here for stats. Tap "My Shot" in the GPS view to log one.
            </div>`
         : `<div class="shots-list">${personalRowsHtml}</div>`;
       personalSectionHtml = `
@@ -46029,7 +46221,7 @@
           <div class="shots-personal-header">
             <div class="shots-personal-title">
               <span class="shots-personal-dot" aria-hidden="true"></span>
-              Personal shots
+              My shots
             </div>
             <div class="shots-personal-count">
               ${personalShots.length} shot${personalShots.length === 1 ? '' : 's'}
@@ -46039,23 +46231,51 @@
           <button class="shots-add-btn shots-add-btn-personal"
                   onclick="addPersonalShotFromTrackTool(${holeNum})">
             <span class="shots-add-icon" aria-hidden="true">+</span>
-            Add personal shot
+            Add my shot
           </button>
         </div>`;
     }
+
+    // Format-aware header for the team-shot list. Solo / standard
+    // group calls them just "shots"; scramble wraps them in a "Group
+    // shots" section so the new "My shots" section below has a
+    // matching parallel structure.
+    const inScramble = isGroupRoundActive()
+      && getRoundFormat(groupRoundState.doc) === 'scramble';
+    const teamSectionHtml = inScramble ? `
+      <div class="shots-team-section">
+        <div class="shots-team-header">
+          <div class="shots-team-title">
+            <span class="shots-team-icon" aria-hidden="true">⛳</span>
+            Group shots
+          </div>
+          <div class="shots-team-count">
+            ${shots.length} shot${shots.length === 1 ? '' : 's'}
+          </div>
+        </div>
+        ${listHtml}
+        <button class="shots-add-btn shots-add-btn-team"
+                onclick="addGroupShotFromTrackTool(${holeNum})">
+          <span class="shots-add-icon" aria-hidden="true">+</span>
+          Add group shot
+        </button>
+      </div>
+    ` : `
+      ${listHtml}
+      <button class="shots-add-btn" onclick="openShotEditSheet(${holeNum}, null)">
+        <span class="shots-add-icon" aria-hidden="true">+</span>
+        Add shot
+      </button>
+    `;
 
     return `
       <div class="round-dock-surface">
         <div class="caddie-header">
           <div class="caddie-eyebrow">Track Shots</div>
-          <div class="caddie-hole-hint">Hole ${holeNum}${parLabel} · ${shots.length} shot${shots.length === 1 ? '' : 's'}</div>
+          <div class="caddie-hole-hint">Hole ${holeNum}${parLabel}</div>
         </div>
         ${bagHint}
-        ${listHtml}
-        <button class="shots-add-btn" onclick="openShotEditSheet(${holeNum}, null)">
-          <span class="shots-add-icon" aria-hidden="true">+</span>
-          Add shot
-        </button>
+        ${teamSectionHtml}
         ${personalSectionHtml}
       </div>`;
   }
@@ -46082,6 +46302,7 @@
       if (!existing) {
         shotEditState.roundId = null;
         shotEditState.personalShot = false;
+        shotEditState.groupSimple = false;
         return;
       }
       draft = { ...existing };
@@ -46103,6 +46324,25 @@
         mishit: 'clean',
       };
     }
+    // groupSimple mode: minimal edit sheet for scramble GROUP shots.
+    // These are sparse records (no club / lie / mishit / target /
+    // miss vector). The simple sheet shows only hit-by picker +
+    // small map + delete. Detected by:
+    //   - personal shot mode is OFF, AND
+    //   - the underlying shot was created by the new sparse path
+    //     (no `club` field — old rich scramble shots have it set).
+    // Replays of historical scramble rounds with rich data still get
+    // the full edit sheet so the user can read what they captured back
+    // then. New v2 scramble rounds always render simple.
+    const isScrambleRound = (() => {
+      if (overrideRound) return getRoundFormat(overrideRound) === 'scramble';
+      if (isGroupRoundActive()) return getRoundFormat(groupRoundState.doc) === 'scramble';
+      return false;
+    })();
+    shotEditState.groupSimple = !shotEditState.personalShot
+                              && isScrambleRound
+                              && draft
+                              && draft.club == null;
     shotEditState.open = true;
     shotEditState.draft = draft;
     shotEditState.editingId = pendingShotId;
@@ -46111,7 +46351,9 @@
     // Log Shot in GPS view)? If so, dismissing the sheet without
     // saving + without a club selected should prompt to discard the
     // shot rather than silently committing an unconfigured stub.
-    shotEditState.isNewStub = !!opts.isNewStub;
+    // Group shots in scramble mode never need this — there's nothing
+    // to "fill in", they're sparse by design.
+    shotEditState.isNewStub = !!opts.isNewStub && !shotEditState.groupSimple;
     acquireScrollLock();
     renderShotEditSheet();
   }
@@ -46599,6 +46841,7 @@
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
       shotEditState.personalShot = false;
+      shotEditState.groupSimple = false;
       shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
@@ -46633,6 +46876,7 @@
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
       shotEditState.personalShot = false;
+      shotEditState.groupSimple = false;
       shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
@@ -47252,6 +47496,15 @@
     const existingBody = mount.querySelector('.shot-edit-body');
     const isAlreadyOpen = !!(existingSheet && existingBody);
 
+    // Group-shot simple mode: render a stripped-down sheet for sparse
+    // scramble GROUP shots. Just hit-by picker + small map + delete.
+    // No club/lie/intent/mishit/target/result UI — those are personal
+    // shot concerns, not team scorecard concerns.
+    if (shotEditState.groupSimple) {
+      renderShotEditSheetGroupSimple(mount, draft, isAlreadyOpen, existingBody);
+      return;
+    }
+
     // Club picker — single-select dropdown native element. Keeps the
     // sheet compact; long bags would otherwise eat all the vertical
     // space with a segmented list.
@@ -47539,7 +47792,7 @@
           <div class="personal-shot-tag">
             <span class="personal-shot-tag-dot" aria-hidden="true"></span>
             <span class="personal-shot-tag-label">Personal shot</span>
-            <span class="personal-shot-tag-sub">For swings the team didn't pick. Team shots attributed to you already count toward your stats.</span>
+            <span class="personal-shot-tag-sub">Counts toward your personal stats. Group shots are tracked separately.</span>
           </div>
         </div>
         ${originPickerHtml}
@@ -47748,6 +48001,159 @@
     // requestAnimationFrame so the slide-up animation gets to start
     // before the heavier Mapbox init kicks in. Skipped silently if
     // the shot lacks coords (no map div was rendered in that case).
+    if (hasMappableCoords) {
+      requestAnimationFrame(() => {
+        try { renderShotEditMap(draft); } catch (_) {}
+      });
+    }
+  }
+
+  // Minimal edit sheet for sparse scramble GROUP shots. Only shows:
+  //   - Hit-by picker (player pills)
+  //   - Small Mapbox map of the shot's start→end (read-only)
+  //   - Delete button
+  //
+  // Group shots in scramble carry only position + attribution data
+  // — there's no club/lie/intent/mishit/target/result UI here because
+  // those fields don't exist on the shot record. Personal data lives
+  // entirely on the Log My Shot path.
+  //
+  // Save semantics: the hit-by picker calls pickScrambleHitter which
+  // writes through to the live shot record immediately. There's no
+  // "Save" button — changes commit on tap. The footer just has a
+  // dismiss action ("Done") because everything else is auto-saved.
+  function renderShotEditSheetGroupSimple(mount, draft, isAlreadyOpen, existingBody) {
+    // Build hit-by picker. Same logic as the rich form's picker but
+    // standalone — no surrounding fields, no rich-form context.
+    let hitByPickerHtml = '';
+    if (isGroupRoundActive()) {
+      const __gr = groupRoundState.doc;
+      if (__gr && getRoundFormat(__gr) === 'scramble') {
+        const players = (__gr.players || []).filter(p => p.status !== 'left');
+        const currentHitter = draft.hitBy || currentUser?.uid;
+        const jsLit = (val) => {
+          if (val == null) return 'null';
+          if (typeof val === 'number') return String(val);
+          const s = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `'${s}'`;
+        };
+        const pills = players.map(p => {
+          const label = p.usernameDisplay || p.username || p.displayName || 'Player';
+          const isMe = p.uid === currentUser?.uid;
+          const isActive = p.uid === currentHitter;
+          const shotIdJs = jsLit(draft.id || shotEditState.editingId || null);
+          const holeJs = jsLit(shotEditState.holeNumber);
+          const uidJs = jsLit(p.uid);
+          return `<button type="button"
+                          class="hit-by-pill${isActive ? ' is-active' : ''}"
+                          onclick="pickScrambleHitter(${uidJs}, ${shotIdJs}, ${holeJs})"
+                          aria-pressed="${isActive}">
+                    <span class="hit-by-pill-label">${escapeHtml(label)}${isMe ? ' (you)' : ''}</span>
+                  </button>`;
+        }).join('');
+        hitByPickerHtml = `
+          <div class="shot-edit-section">
+            <label class="shot-edit-label">Whose ball was this?</label>
+            <div class="hit-by-pills">${pills}</div>
+          </div>
+        `;
+      }
+    }
+
+    // Yards readout — simple display of the GPS-measured shot
+    // distance. Read-only; user has no way to edit (and shouldn't —
+    // it's derived from the captured start/end coords). Hidden if
+    // we don't have actualYards on the shot.
+    let yardsReadoutHtml = '';
+    if (typeof draft.actualYards === 'number' && Number.isFinite(draft.actualYards)) {
+      const unit = distanceUnit();
+      yardsReadoutHtml = `
+        <div class="shot-edit-section">
+          <div class="group-shot-readout">
+            <span class="group-shot-readout-label">Distance</span>
+            <span class="group-shot-readout-value">
+              ${distanceToDisplay(draft.actualYards)}<span class="group-shot-readout-unit">${unit}</span>
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Map section — read-only Mapbox of start→end pins. Same render
+    // pipeline as the rich sheet. Always rendered when coords exist;
+    // group shots always have coords (logged at GPS tap), so this
+    // should always show in practice.
+    const hasMappableCoords = (typeof draft.startLat === 'number'
+      && typeof draft.startLng === 'number'
+      && typeof draft.endLat === 'number'
+      && typeof draft.endLng === 'number');
+    const mapSectionHtml = hasMappableCoords
+      ? `<div class="shot-edit-section shot-edit-map-section">
+           <label class="shot-edit-label">Where it landed</label>
+           <div class="shot-edit-map" id="shot-edit-map"></div>
+         </div>`
+      : '';
+
+    const isEditing = !!shotEditState.editingId;
+    const bodyHtml = `
+      <div class="group-shot-tag">
+        <span class="group-shot-tag-icon" aria-hidden="true">⛳</span>
+        <span class="group-shot-tag-label">Group shot</span>
+        <span class="group-shot-tag-sub">Marks the team's ball position. Tap a player to change attribution.</span>
+      </div>
+      ${hitByPickerHtml}
+      ${yardsReadoutHtml}
+      ${mapSectionHtml}
+    `;
+
+    if (isAlreadyOpen) {
+      // In-place body update — preserves slide-up state. Strip the
+      // map section before swap so we don't destroy the live Mapbox
+      // instance, then re-attach it (same trick the rich sheet uses).
+      const bodyHtmlNoMap = bodyHtml.replace(mapSectionHtml, '');
+      const existingMapSection = existingBody.querySelector('.shot-edit-map-section');
+      existingBody.innerHTML = bodyHtmlNoMap;
+      if (existingMapSection) {
+        existingBody.appendChild(existingMapSection);
+      }
+      // Footer might need updating if isEditing changed (rare for
+      // group simple — sheet only opens for committed shots, never
+      // for pending stubs).
+      const existingFooter = mount.querySelector('.shot-edit-footer');
+      if (existingFooter) {
+        existingFooter.innerHTML = `
+          ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
+          <button class="shot-edit-save" onclick="closeShotEditSheet()">Done</button>`;
+      }
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="shot-edit-backdrop opening" onclick="dismissShotEditSheet()" aria-hidden="true"></div>
+      <div class="shot-edit-sheet opening" role="dialog" aria-modal="true" aria-label="Edit group shot">
+        <div class="shot-edit-header">
+          <div class="shot-edit-eyebrow">Group Shot</div>
+          <button class="shot-edit-close" onclick="dismissShotEditSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="shot-edit-body">${bodyHtml}</div>
+        <div class="shot-edit-footer">
+          ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
+          <button class="shot-edit-save" onclick="closeShotEditSheet()">Done</button>
+        </div>
+      </div>`;
+
+    // Slide-up animation kickoff — same dance as the rich sheet.
+    const sheet = mount.querySelector('.shot-edit-sheet.opening');
+    const backdrop = mount.querySelector('.shot-edit-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    // Init the small map after slide-up.
     if (hasMappableCoords) {
       requestAnimationFrame(() => {
         try { renderShotEditMap(draft); } catch (_) {}
@@ -53935,6 +54341,20 @@
             teamCurrentHoleIdx: groupRoundState.doc.teamCurrentHoleIdx,
           };
         }
+        // Team tee overrides — guarded by both the debounce timer
+        // (a write is queued) and the in-flight counter (a write is
+        // mid-flight). Same shape as the other guards: preserve local
+        // state through the snapshot echo so the user's just-tapped
+        // Set Tee position doesn't briefly revert before the write
+        // confirms server-side.
+        const hasPendingTeeOverrides = !!__scrambleTeamTeeOverridesSaveTimer
+          || __scrambleTeamTeeOverridesInFlight > 0;
+        if (hasPendingTeeOverrides && groupRoundState.doc.teamTeeOverrides) {
+          mergedDoc = {
+            ...mergedDoc,
+            teamTeeOverrides: groupRoundState.doc.teamTeeOverrides,
+          };
+        }
       }
     }
 
@@ -54069,6 +54489,53 @@
     const __gpsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
     if (__gpsOpen && typeof renderRoundGpsShotMarkers === 'function') {
       try { renderRoundGpsShotMarkers(); } catch (_) {}
+    }
+    // Scramble team tee — when another teammate taps Set Tee, the
+    // snapshot brings us a new gr.teamTeeOverrides for our current
+    // hole. Sync the cached teeLat/teeLng AND visually move the tee
+    // marker so the user sees the team consensus arrive in real
+    // time. Skip during MY OWN in-flight write (race-guard window
+    // already preserves local state via the guard above; the
+    // server-side state we're reading here would just bounce back
+    // to where we set it).
+    if (__gpsOpen
+        && getRoundFormat(mergedDoc) === 'scramble'
+        && roundGpsState.holeNumber != null
+        && __scrambleTeamTeeOverridesInFlight === 0
+        && !__scrambleTeamTeeOverridesSaveTimer) {
+      const teamOv = mergedDoc.teamTeeOverrides?.[roundGpsState.holeNumber];
+      if (teamOv && typeof teamOv.lat === 'number' && typeof teamOv.lng === 'number') {
+        const moved = roundGpsState.teeLat !== teamOv.lat
+                   || roundGpsState.teeLng !== teamOv.lng;
+        if (moved) {
+          roundGpsState.teeLat = teamOv.lat;
+          roundGpsState.teeLng = teamOv.lng;
+          // Also bump lastShotEnd if no shots yet — that's the
+          // anchor for the "from tee" tracker pill, and stale
+          // start position would send the next Log shot from the
+          // wrong spot if the user were to tap it without a
+          // separate position update.
+          const __holeShots = (typeof getShotsForHole === 'function')
+            ? getShotsForHole(roundGpsState.holeNumber)
+            : [];
+          if (!__holeShots || __holeShots.length === 0) {
+            roundGpsState.lastShotEnd = { lat: teamOv.lat, lng: teamOv.lng };
+          }
+          // Move the visual tee marker to match.
+          if (roundGpsState.teeMarker) {
+            try { roundGpsState.teeMarker.setLngLat([teamOv.lng, teamOv.lat]); } catch (_) {}
+          }
+          // Refresh derived UI: action button label may need to
+          // flip (Set tee → Log shot once team has set it), the
+          // tracker pill should update.
+          if (typeof refreshRoundGpsActionButton === 'function') {
+            try { refreshRoundGpsActionButton(); } catch (_) {}
+          }
+          if (typeof updateShotTrackerReadout === 'function') {
+            try { updateShotTrackerReadout(); } catch (_) {}
+          }
+        }
+      }
     }
     // If the manage sheet is open over the round, refresh it too so
     // a newly-joined player shows up in real time.
@@ -79406,6 +79873,15 @@
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return;
 
+    // Scramble group shot: minimal data path. A group shot only needs
+    // position + hit-by attribution — the team scorecard tracks total
+    // strokes, not per-shot details. Skipping the target/club/intent/
+    // miss-vector capture means tap-to-log is a one-tap commit (no edit
+    // sheet auto-opens; user can tap the pin if they need to change
+    // hit-by). Personal stats live entirely on the Log My Shot path.
+    const __activeGr = isGroupRoundActive() ? groupRoundState.doc : null;
+    const isScrambleGroupShot = !!(__activeGr && getRoundFormat(__activeGr) === 'scramble');
+
     // Scramble dup-shot warning. Multiple players will tap to log the
     // same shot independently if we don't gate it. Conditions: another
     // shot exists within 15y of this position AND was logged within
@@ -79514,9 +79990,12 @@
     // Determine target. Priority:
     //   1. Committed target (set via "Set as target" button on reticle)
     //   2. Intent-aware default applied below after intent is inferred
+    // Skipped for scramble group shots — they're sparse, target/miss
+    // data isn't tracked. Personal shots (Log My Shot) capture target
+    // via their own path.
     let targetLat = null;
     let targetLng = null;
-    if (roundGpsState.committedTarget) {
+    if (!isScrambleGroupShot && roundGpsState.committedTarget) {
       targetLat = roundGpsState.committedTarget.lat;
       targetLng = roundGpsState.committedTarget.lng;
     }
@@ -79525,16 +80004,19 @@
     // committed target is set, distance from start to that. Otherwise
     // distance from start to the effective pin (custom pin if user
     // dropped one, else green center). Matches the on-screen TO PIN
-    // reading the user sees in playing mode.
+    // reading the user sees in playing mode. Skipped for scramble
+    // group shots since they don't carry distance/target metadata.
     let yardsToTarget = null;
-    if (targetLat != null) {
-      yardsToTarget = Math.round(haversineYards(
-        startLat, startLng, targetLat, targetLng));
-    } else {
-      const effectivePin = getEffectivePinLatLng();
-      if (effectivePin) {
+    if (!isScrambleGroupShot) {
+      if (targetLat != null) {
         yardsToTarget = Math.round(haversineYards(
-          startLat, startLng, effectivePin.lat, effectivePin.lng));
+          startLat, startLng, targetLat, targetLng));
+      } else {
+        const effectivePin = getEffectivePinLatLng();
+        if (effectivePin) {
+          yardsToTarget = Math.round(haversineYards(
+            startLat, startLng, effectivePin.lat, effectivePin.lng));
+        }
       }
     }
 
@@ -79627,58 +80109,84 @@
       if (distToPin <= 12) inferredResult = 'green';
     }
 
-    // Create the complete shot record. All fields set at tap time.
-    // Pre-feature shot records (created by the old lazy-end model)
-    // can still exist; the rendering code handles their null endLat
-    // gracefully (just doesn't render a pin).
+    // Create the shot record.
+    //
+    // Scramble group shots are SPARSE: only what the team scorecard +
+    // GPS visualization need (position, attribution, result for putt
+    // mode trigger, penalty plumbing). Personal data lives entirely
+    // on the Log My Shot path. Skipping rich fields keeps the model
+    // crisp — group = where + who, personal = the swing details.
+    //
+    // Solo and standard group shots are FULL: club, lie, intent,
+    // mishit, target, miss vector — all the fields stats and stats
+    // displays use. The auto-opened edit sheet asks for refinement.
     const shots = ensureShotsForHole(holeNum);
-    const newShot = {
-      id: newShotId(),
-      club: defaultClub,
-      distance: yardsToTarget,
-      distanceFeet: null,  // putts handled separately via score sheet
-      // Chip proximity — manually entered in edit sheet for chips.
-      proximityFt: null,
-      startLie,
-      intent,
-      mishit: 'clean',
-      result: inferredResult,
-      // GPS coords. Both start AND end set immediately.
-      startLat,
-      startLng,
-      endLat,
-      endLng,
-      // Aim point — committed target OR intent-aware default OR null.
-      targetLat,
-      targetLng,
-      // Computed metrics — actualYards always set, miss vector set
-      // only when a target exists.
-      actualYards,
-      // alongShot: + = past target, − = short of target
-      // lateralOffset: + = right of target line, − = left
-      alongShot,
-      lateralOffset,
-      loggedAt: Date.now(),
-    };
-    // Scramble: tag the shot with who hit it. Default to the most
-    // recently picked hitter (sticky across shots within a session)
-    // so when one player is on a hot streak, every successive log
-    // doesn't require re-picking. First shot of a session defaults
-    // to the device owner. Also stamp loggedBy = the device owner
-    // so we can tell who tapped (may differ from who hit it, e.g.
-    // someone passing the phone around).
-    if (isGroupRoundActive()) {
+    let newShot;
+    if (isScrambleGroupShot) {
+      // SHARED FIELDS: needed by both paths but sparse-only set here.
+      // Scramble does NOT use:
+      //   - club, mishit, intent (no per-shot personal data)
+      //   - distance / distanceFeet / proximityFt (no target tracking)
+      //   - targetLat / targetLng (target capture skipped above)
+      //   - lateralOffset / alongShot (miss vector requires target)
+      //   - startLie (no lie tracking; visualization doesn't need it)
+      newShot = {
+        id: newShotId(),
+        // GPS coords + actualYards — these drive the map render +
+        // tracker pill ("100y from prev").
+        startLat,
+        startLng,
+        endLat,
+        endLng,
+        actualYards,
+        // result kept for putt-mode trigger ('green' inferred above).
+        result: inferredResult,
+        loggedAt: Date.now(),
+      };
+    } else {
+      // Solo / standard group: full record.
+      newShot = {
+        id: newShotId(),
+        club: defaultClub,
+        distance: yardsToTarget,
+        distanceFeet: null,  // putts handled separately via score sheet
+        // Chip proximity — manually entered in edit sheet for chips.
+        proximityFt: null,
+        startLie,
+        intent,
+        mishit: 'clean',
+        result: inferredResult,
+        // GPS coords. Both start AND end set immediately.
+        startLat,
+        startLng,
+        endLat,
+        endLng,
+        // Aim point — committed target OR intent-aware default OR null.
+        targetLat,
+        targetLng,
+        // Computed metrics — actualYards always set, miss vector set
+        // only when a target exists.
+        actualYards,
+        // alongShot: + = past target, − = short of target
+        // lateralOffset: + = right of target line, − = left
+        alongShot,
+        lateralOffset,
+        loggedAt: Date.now(),
+      };
+    }
+    // Scramble: tag the shot with who hit it. Hit-by attribution is
+    // NOT sticky (per design discussion) — each group shot defaults
+    // to the device owner; the user taps the pin to change.
+    if (isScrambleGroupShot) {
       const __gr = groupRoundState.doc;
-      if (__gr && getRoundFormat(__gr) === 'scramble') {
-        const hitterUid = scrambleLastHitterUid || currentUser?.uid || null;
-        const hitter = (__gr.players || []).find(p => p.uid === hitterUid);
-        const hitterName = hitter
-          ? (hitter.usernameDisplay || hitter.username || hitter.displayName || 'Player')
-          : null;
-        newShot.hitBy = hitterUid;
-        newShot.hitByName = hitterName;
-        newShot.loggedBy = currentUser?.uid || null;
-      }
+      const hitterUid = currentUser?.uid || null;
+      const hitter = (__gr.players || []).find(p => p.uid === hitterUid);
+      const hitterName = hitter
+        ? (hitter.usernameDisplay || hitter.username || hitter.displayName || 'Player')
+        : null;
+      newShot.hitBy = hitterUid;
+      newShot.hitByName = hitterName;
+      newShot.loggedBy = currentUser?.uid || null;
     }
     // afterDrop flag — set when this shot started from a drop area
     // rather than the previous shot's end. Read by chain propagation
@@ -79779,7 +80287,21 @@
     // The isNewStub flag tells dismissShotEditSheet to prompt for
     // discard if the user closes without picking a club — prevents
     // clubless stubs from polluting the array.
-    openShotEditSheet(holeNum, newShot.id, { isNewStub: true });
+    //
+    // Scramble group shots SKIP this. They're sparse one-tap commits;
+    // there's nothing to fill in. User can tap the pin later if they
+    // need to change attribution. A quick toast confirms the log so
+    // the user knows the tap registered.
+    if (isScrambleGroupShot) {
+      const myName = (() => {
+        const __gr = groupRoundState.doc;
+        const me = (__gr?.players || []).find(p => p.uid === currentUser?.uid);
+        return me ? (me.usernameDisplay || me.username || me.displayName || 'You') : 'You';
+      })();
+      showToast(`Group shot logged · attributed to ${myName}`, false);
+    } else {
+      openShotEditSheet(holeNum, newShot.id, { isNewStub: true });
+    }
   }
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
   window.getShotMissContext = getShotMissContext;
@@ -79816,42 +80338,6 @@
     if (!gr) return;
     const course = getCourse(gr.courseId);
     if (!course) return;
-
-    // Already-counted check. If the user just logged a team shot
-    // attributed to themselves (hitBy === currentUser.uid) within
-    // 15y AND 90s of the current position, that swing is already in
-    // their stats — tapping Mine on top would double-count. Surface
-    // a confirm so the user can either skip ("don't add") or proceed
-    // ("really was a separate shot, e.g., from same spot but
-    // different swing"). Runs BEFORE the personal-vs-personal dup
-    // check since this is the more common confusion.
-    const myUid = currentUser?.uid;
-    if (myUid) {
-      const teamShots = (gr.teamShots && gr.teamShots[holeNum]) || [];
-      const now0 = Date.now();
-      const ATTRIB_DIST_YARDS = 15;
-      const ATTRIB_TIME_MS = 90 * 1000;
-      const attribDup = teamShots.find(s => {
-        if (s.hitBy !== myUid) return false;
-        if (s.endLat == null || s.endLng == null || s.loggedAt == null) return false;
-        const d = haversineYards(s.endLat, s.endLng, userPos.lat, userPos.lng);
-        if (d > ATTRIB_DIST_YARDS) return false;
-        const ageMs = now0 - s.loggedAt;
-        if (ageMs < 0 || ageMs > ATTRIB_TIME_MS) return false;
-        return true;
-      });
-      if (attribDup) {
-        const ok = await confirmDialog({
-          eyebrow: 'Already counted',
-          title: 'You already logged this swing',
-          message: `The team's last shot was attributed to you and already counts in your stats. Add a separate personal shot anyway?`,
-          confirmText: 'Add Anyway',
-          cancelText: 'Skip',
-          destructive: false,
-        });
-        if (!ok) return;
-      }
-    }
 
     // Personal-vs-personal dup warning. Fires when this user has
     // logged a personal shot within 15y AND 90s of the current
@@ -80002,6 +80488,56 @@
   }
   window.addPersonalShotFromTrackTool = addPersonalShotFromTrackTool;
 
+  // Manual scramble GROUP shot add — invoked from the Track Shots
+  // tool's "Add group shot" button when no GPS context is available
+  // (e.g., backfilling at the desk). Creates a sparse shot record
+  // (the same shape the GPS Log Group Shot button creates) with
+  // null coords; the user can refine via the edit sheet's map +
+  // change attribution. Routes into the simplified group-shot edit
+  // sheet.
+  function addGroupShotFromTrackTool(holeNum) {
+    if (!isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return;
+    const shots = ensureShotsForHole(holeNum);
+    if (!shots) {
+      showToast("Couldn't add group shot", true);
+      return;
+    }
+    // Default attribution to the device owner — same default as the
+    // GPS log path. User can change via the edit sheet.
+    const meUid = currentUser?.uid || null;
+    const me = (gr.players || []).find(p => p.uid === meUid);
+    const meName = me
+      ? (me.usernameDisplay || me.username || me.displayName || 'Player')
+      : null;
+    const newShot = {
+      id: (typeof newShotId === 'function')
+        ? newShotId()
+        : `s${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      // Sparse — no coords, no club, no result. User fills via edit
+      // sheet (or just attributes hit-by and dismisses).
+      startLat: null,
+      startLng: null,
+      endLat: null,
+      endLng: null,
+      actualYards: null,
+      result: null,
+      hitBy: meUid,
+      hitByName: meName,
+      loggedBy: meUid,
+      loggedAt: Date.now(),
+    };
+    shots.push(newShot);
+    persistShotChanges();
+    haptic('light');
+    // Open the simplified group-shot edit sheet. openShotEditSheet
+    // detects the sparse shot (no club field) and routes to the
+    // groupSimple render path automatically.
+    openShotEditSheet(holeNum, newShot.id);
+  }
+  window.addGroupShotFromTrackTool = addGroupShotFromTrackTool;
+
   // Refresh the Mine button's count badge + planning-mode visual.
   // Mirrors refreshRoundGpsActionButton's role for the primary button
   // but keeps personal-shot-button concerns isolated.
@@ -80098,8 +80634,21 @@
   // True if the user has captured a Set Tee position for this hole in
   // the active round. Reads from solo or group round state depending
   // on which is active. Same source of truth as getEffectiveTeePosition.
+  //
+  // Scramble special case: Set Tee is a TEAM operation — anyone in
+  // the team setting it benefits everyone (one team, one tee position).
+  // So we check the round-level teamTeeOverrides first, falling back
+  // to the per-player override for backward compat with rounds that
+  // pre-date the team-tee field.
   function hasTeeOverrideForHole(holeNumber) {
     if (isGroupRoundActive()) {
+      const gr = groupRoundState.doc;
+      if (gr && getRoundFormat(gr) === 'scramble') {
+        const teamOv = gr.teamTeeOverrides?.[holeNumber];
+        if (teamOv && typeof teamOv.lat === 'number' && typeof teamOv.lng === 'number') {
+          return true;
+        }
+      }
       const me = getMyGroupRoundPlayer();
       const ov = me?.teeOverrides?.[holeNumber];
       return !!(ov && typeof ov.lat === 'number' && typeof ov.lng === 'number');
@@ -80113,10 +80662,26 @@
   // Returns { lat, lng } or null. The "effective" position is what the
   // user has functionally committed to for this round — either a
   // crowd-sourced course pin or their own Set Tee capture.
+  //
+  // Lookup order for scramble: team override (anyone on the team) →
+  // per-player override (legacy / forward-tee exception) → course pin.
+  // For solo and standard group rounds: per-player override → course pin.
   function getEffectiveTeePosition(course, holeNumber, teeName) {
-    // Round-scoped override — captured via Set Tee. Per-round, per-
-    // player. Read from the active round (solo or group).
     if (isGroupRoundActive()) {
+      const gr = groupRoundState.doc;
+      // Scramble: team override wins. One team, one tee position
+      // — the first player to tap Set Tee establishes it for
+      // everyone, and subsequent taps update it. Avoids redundant
+      // taps and inconsistent personal-shot start positions.
+      if (gr && getRoundFormat(gr) === 'scramble') {
+        const teamOv = gr.teamTeeOverrides?.[holeNumber];
+        if (teamOv && typeof teamOv.lat === 'number' && typeof teamOv.lng === 'number') {
+          return { lat: teamOv.lat, lng: teamOv.lng };
+        }
+      }
+      // Per-player override — primary path for standard group rounds,
+      // fallback for scramble (a player who genuinely needs to play
+      // forward tees can still set their own override).
       const me = getMyGroupRoundPlayer();
       const ov = me?.teeOverrides?.[holeNumber];
       if (ov && typeof ov.lat === 'number' && typeof ov.lng === 'number') {
@@ -80160,13 +80725,33 @@
     roundGpsState.teeManuallySetHoles.add(holeNum);
 
     // PERSIST: write to round state's teeOverrides so the position
-    // survives exit/resume. Per-round, per-player. The round doc
-    // gets the field on the next debounced autosave.
+    // survives exit/resume. For scramble, write to the round-level
+    // teamTeeOverrides so all players inherit; for standard group
+    // rounds, write to per-player; for solo, to roundState. Each
+    // path persists via its own debouncer below.
+    let isScrambleTeamWrite = false;
     if (isGroupRoundActive()) {
-      const me = getMyGroupRoundPlayer();
-      if (me) {
-        if (!me.teeOverrides) me.teeOverrides = {};
-        me.teeOverrides[holeNum] = { lat: userPos.lat, lng: userPos.lng };
+      const gr = groupRoundState.doc;
+      if (gr && getRoundFormat(gr) === 'scramble') {
+        // Team override — applies to all players. setBy/setAt for
+        // future audit ("which teammate's GPS captured this?") and
+        // for future "Reset team tee" UX (e.g., a player walking
+        // far up could accidentally re-set; we may want to show who
+        // set it last).
+        if (!gr.teamTeeOverrides) gr.teamTeeOverrides = {};
+        gr.teamTeeOverrides[holeNum] = {
+          lat: userPos.lat,
+          lng: userPos.lng,
+          setBy: currentUser?.uid || null,
+          setAt: Date.now(),
+        };
+        isScrambleTeamWrite = true;
+      } else {
+        const me = getMyGroupRoundPlayer();
+        if (me) {
+          if (!me.teeOverrides) me.teeOverrides = {};
+          me.teeOverrides[holeNum] = { lat: userPos.lat, lng: userPos.lng };
+        }
       }
     } else {
       if (!roundState.teeOverrides) roundState.teeOverrides = {};
@@ -80175,8 +80760,12 @@
     // Trigger a debounced save so the override hits Firestore. Same
     // helper used by shot-track persistence — it knows whether this is
     // a solo round (queueAutoSaveRound) or a group round
-    // (queueSaveMyGroupScores) and writes accordingly.
-    if (typeof persistShotChanges === 'function') {
+    // (queueSaveMyGroupScores) and writes accordingly. For scramble
+    // team writes, we route through the dedicated team-tee debouncer
+    // since the field lives on the round doc, not on me.
+    if (isScrambleTeamWrite) {
+      queueSaveScrambleTeamTeeOverrides();
+    } else if (typeof persistShotChanges === 'function') {
       try { persistShotChanges(); } catch (_) {}
     }
     // Tracker now has lastShotEnd set to the tee — refresh so the pill
@@ -80220,7 +80809,13 @@
     // that we have a tee set.
     refreshRoundGpsActionButton();
 
-    showToast('Tee set at your position', false);
+    // Format-aware confirmation. For scramble, communicate that the
+    // tee position is now shared with the team — they don't each
+    // need to repeat the action. For solo / standard group, the
+    // generic confirmation suffices.
+    showToast(isScrambleTeamWrite
+      ? 'Team tee set — applies to everyone'
+      : 'Tee set at your position', false);
     haptic('light');
   }
   window.setTeeAtCurrentPosition = setTeeAtCurrentPosition;
@@ -81472,7 +82067,7 @@
           <div class="scramble-gps-hint-banner">
             <div class="scramble-gps-hint-banner-title">Scramble tip</div>
             <div class="scramble-gps-hint-banner-body">
-              Log only the chosen ball — not every player's swing. The "Hit by" picker tracks who hit each shot.
+              Tap <strong>Group</strong> for the team's chosen ball position. Tap <strong>My Shot</strong> to log your own swing for personal stats.
             </div>
             <button class="scramble-gps-hint-banner-dismiss" onclick="dismissScrambleHint()" aria-label="Dismiss tip">×</button>
           </div>
@@ -81655,22 +82250,37 @@
                   aria-label="Open tools">
             <span class="round-tools-btn-label">Tools</span>
           </button>
-          <button class="round-gps-shot-btn"
-                  id="round-gps-shot-btn"
-                  onclick="logShotAtCurrentPosition()"
-                  aria-label="Log shot at current position">
-            <span class="round-gps-shot-btn-label">Log shot</span>
-            <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
-          </button>
           ${shouldShowPersonalShotButton() ? `
-            <button class="round-gps-mine-btn"
+            <!-- Scramble: paired equal-weight Group/My Shot buttons.
+                 Group (orange primary) marks the team's chosen ball
+                 position; that's what feeds the team scorecard. My
+                 Shot (blue secondary) logs a personal swing for stats.
+                 Strict separation — no implicit mirroring between
+                 the two paths. -->
+            <button class="round-gps-shot-btn round-gps-shot-btn-paired"
+                    id="round-gps-shot-btn"
+                    onclick="logShotAtCurrentPosition()"
+                    aria-label="Log group shot — marks the team's ball position">
+              <span class="round-gps-shot-btn-label">Group</span>
+              <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
+            </button>
+            <button class="round-gps-mine-btn round-gps-mine-btn-paired"
                     id="round-gps-mine-btn"
                     onclick="logPersonalShotAtCurrentPosition()"
-                    aria-label="Log my personal shot — separate from the team's chosen ball">
-              <span class="round-gps-mine-btn-label">Mine</span>
+                    aria-label="Log my shot — counts toward your personal stats">
+              <span class="round-gps-mine-btn-label">My Shot</span>
               <span class="round-gps-mine-btn-count" id="round-gps-mine-btn-count"></span>
             </button>
-          ` : ''}
+          ` : `
+            <!-- Solo / standard group: single primary log button. -->
+            <button class="round-gps-shot-btn"
+                    id="round-gps-shot-btn"
+                    onclick="logShotAtCurrentPosition()"
+                    aria-label="Log shot at current position">
+              <span class="round-gps-shot-btn-label">Log shot</span>
+              <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
+            </button>
+          `}
           ${roundGpsState.previewMode ? '' : `
             <button class="round-tools-btn round-tools-btn-compact"
                     onclick="openGpsScoreSheet()"
