@@ -16689,6 +16689,96 @@
     color: var(--text-muted);
     line-height: 1.4;
   }
+
+  /* ── Scramble attribution card (round summary) ─────────────────
+     "Whose ball got picked most" leaderboard. Renders only on
+     scramble rounds with at least one logged shot. Shape mirrors
+     sg-card so visual rhythm of the summary is consistent. */
+  .scramble-attr-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .scramble-attr-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .scramble-attr-header-phrase {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .scramble-attr-header-total {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .scramble-attr-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* Each row: name | bar track | count. Mirrors sg-bar-row but
+     name column is wider (player names) and the bar uses the
+     accent palette. */
+  .scramble-attr-row {
+    display: grid;
+    grid-template-columns: minmax(80px, 1fr) 2fr 38px;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .scramble-attr-name {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scramble-attr-name.is-leader {
+    color: var(--color-accent);
+    font-weight: var(--weight-semibold);
+  }
+  .scramble-attr-track {
+    height: 8px;
+    background: var(--bg-page);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .scramble-attr-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 999px;
+    transition: width 240ms ease-out;
+  }
+  .scramble-attr-fill.is-zero {
+    background: var(--border-light);
+  }
+  .scramble-attr-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .scramble-attr-empty {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-align: center;
+    padding: var(--space-2) 0;
+  }
   /* Format badge in the summary meta line — visible only for non-
      standard formats (scramble, etc.). Tappable to open the format
      editor. Visually distinct from the rest of the meta line so the
@@ -30086,7 +30176,10 @@
     },
 
     // Update top-level fields on a group round (status transitions,
-    // endTime, etc). Caller must be in the playerUids array.
+    // endTime, format, teamScores, teamShots, etc). Caller must be in
+    // the playerUids array. No transaction needed — these are simple
+    // field overwrites and last-write-wins is acceptable per the
+    // app's small-trusted-friend-group threat model.
     updateGroupRoundFields: async (groupRoundId, fields) => {
       await updateDoc(doc(db, `groupRounds/${groupRoundId}`), fields);
     },
@@ -30108,18 +30201,6 @@
         );
         tx.update(ref, { players });
       });
-    },
-
-    // Update top-level fields on a group round doc. Use for fields
-    // that aren't player-specific (format, startingHoleIndex, etc.).
-    // No transaction needed — these are simple field overwrites,
-    // last-write-wins is acceptable since only the organizer (or
-    // any player on shared-state fields like format) edits them
-    // pre-round, and the realtime subscription distributes the
-    // change to everyone.
-    updateGroupRound: async (groupRoundId, patch) => {
-      const ref = doc(db, `groupRounds/${groupRoundId}`);
-      await updateDoc(ref, patch);
     },
 
     // Add a player to the round. If a record for this uid already
@@ -38412,11 +38493,6 @@
   // Keyed by course id so each course remembers its last-viewed tee
   // independently. Defaults to the first tee in the course's tees[] array.
   //
-  // `pickMode` controls what the Start button does — 'solo' kicks off
-  // a regular round, 'group' creates a group round lobby. Set by the
-  // navigation path (Play → "Start Round" → solo; Play → "Play Together"
-  // → group).
-  //
   // `startingHoleIndexByCourse` lets the user start at a non-hole-1 hole
   // (common at busy courses with shotgun starts or split tees). 0-based
   // index. Defaults to 0 (hole 1). Persisted per-course via key so
@@ -38424,7 +38500,6 @@
   const courseDetailState = {
     selectedTeeByCourse: {},
     activeCourseId: null,
-    pickMode: 'solo',
     startingHoleIndexByCourse: {},
   };
 
@@ -38994,66 +39069,12 @@
   // Group round flow (Play Together) — Layer B
   // ─────────────────────────────────────────────────────────────
 
-  // Unified Start a Round entry. Always lands on the course picker
-  // in solo mode — the mode toggle lives on the course detail itself,
-  // so users can change their mind without backtracking. The friends
-  // gate (sign-in required, username required, at least one friend)
-  // is deferred until the user actually flips the toggle to "With
-  // Friends" — see ensureGroupModeAllowed().
+  // Unified Start a Round entry. Always lands on the course picker.
+  // From the course detail screen the user picks tee + tappable Set
+  // Up Round, which always routes to the lobby (createGroupRoundFromCourse)
+  // — solo rounds are just team-of-1 in the lobby flow.
   function startRoundFlow() {
-    courseDetailState.pickMode = 'solo';
     showPanel('courses', null);
-  }
-
-  // Toggle between solo and group modes on the course detail screen.
-  // When flipping to group, runs the friends-gate checks first — if
-  // any fails, the mode stays on solo and the user sees the relevant
-  // prompt. When flipping to solo, no gate; just swap and re-render.
-  async function setRoundPickMode(mode) {
-    if (mode !== 'solo' && mode !== 'group') return;
-    if (courseDetailState.pickMode === mode) return;
-    if (mode === 'group') {
-      const ok = await ensureGroupModeAllowed();
-      if (!ok) return;
-    }
-    courseDetailState.pickMode = mode;
-    renderCourseDetail();
-  }
-
-  // Gate that must pass before a round can be created in group mode.
-  // Factored out so both the course-detail mode toggle and the legacy
-  // startPlayTogether entry can share the same requirements. Returns
-  // true if the user is allowed to continue in group mode; false
-  // otherwise (and shows the relevant toast/prompt).
-  async function ensureGroupModeAllowed() {
-    if (!currentUser) {
-      showToast('Sign in to play with friends', true);
-      return false;
-    }
-    if (!prefsLoaded) {
-      showToast('Still loading, try again in a moment', true);
-      return false;
-    }
-    if (!prefs.username) {
-      showToast('Set a username in Profile first', true);
-      return false;
-    }
-    if (!friendsLoaded) {
-      showToast('Still loading friends, try again in a moment', true);
-      return false;
-    }
-    if ((friendsList || []).length === 0) {
-      const goFind = await confirmDialog({
-        eyebrow: 'No Friends Yet',
-        title: 'Find friends first?',
-        message: "Playing together needs at least one friend to invite. Head to Social to find and add friends, then come back.",
-        confirmText: 'Go to Social',
-        cancelText: 'Not now'
-      });
-      if (goFind) showPanel('social', null);
-      return false;
-    }
-    return true;
   }
 
   // Build the "player" record for the current user. Used when creating
@@ -39128,60 +39149,6 @@
   window.previewCourseFromCourseDetail = previewCourseFromCourseDetail;
 
   // Begin a new round from Course Detail's "Start a Round Here" button.
-  // Creates a new Firestore doc immediately so resume detection works
-  // even if the user navigates away before logging hole 1.
-  async function startRoundFromCourse(courseId, teeName) {
-    const course = getCourse(courseId);
-    if (!course) return;
-    // Block starting a second round if one's already in progress
-    if (isRoundActive()) {
-      const cont = await confirmDialog({
-        eyebrow: 'Round In Progress',
-        eyebrowStyle: 'warning',
-        title: 'Discard current round?',
-        message: 'Starting a new round will permanently delete the one you already have going.',
-        confirmText: 'Discard & Start New',
-        cancelText: 'Resume Current',
-        destructive: true,
-      });
-      if (!cont) {
-        showPanel('round', null);
-        return;
-      }
-      await abandonCurrentRound();
-    }
-    const startMs = Date.now();
-    const d = new Date(startMs);
-    const pad = (n) => String(n).padStart(2, '0');
-    roundState.dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    roundState.docId = newRoundId(courseId, startMs);
-    roundState.courseId = courseId;
-    roundState.teeName = teeName;
-    // Reset format to standard at every round start. State is module-
-    // scoped and persists between rounds, so without this a scramble
-    // followed by a fresh round would start tagged as scramble.
-    // User can change to scramble/etc via the round summary edit.
-    roundState.format = 'standard';
-    // Starting hole — user's pick from the course detail page stepper.
-    // Defaults to 0 (hole 1) when they haven't touched it. This is the
-    // hole they land on first; saveAndNext handles wrap-around to play
-    // any unplayed holes until the round is complete.
-    roundState.holeIndex = getStartingHoleIndex(courseId);
-    roundState.scores = {};
-    roundState.shots = {};
-    roundState.started = startMs;
-    // Persist the cursor to localStorage right away — establishes the
-    // initial value so close-and-reopen before any nav lands correctly.
-    saveSoloRoundCursor();
-    // Initial save so an in-progress doc exists for resume detection
-    await autoSaveRound();
-    // Snapshot weather to the round — non-blocking. Captures wind +
-    // temp + conditions at round-start so we have rich data for
-    // post-round insights ("you scored 3 worse in 15+ mph wind").
-    captureWeatherForLiveRound();
-    showPanel('round', null);
-  }
-
   // Resume an in-progress round (called from the resume prompt or auto-detect).
   function resumeRound(roundDoc) {
     if (!roundDoc) return;
@@ -39411,7 +39378,6 @@
       groupRoundState.docId = id;
       groupRoundState.doc = { id, ...payload };
       myGroupRounds = [groupRoundState.doc, ...myGroupRounds];
-      courseDetailState.pickMode = 'solo'; // reset for next entry
       // Clear the per-session "already invited" tracker so friends from
       // a previous lobby can be invited again. Tracker is session-level
       // and scoped to the current active round; a fresh lobby means a
@@ -39796,7 +39762,7 @@
     gr.format = format;
     renderGroupLobby();
     try {
-      await window.fb.updateGroupRound(gr.id, { format });
+      await window.fb.updateGroupRoundFields(gr.id, { format });
     } catch (err) {
       console.error('Failed to update format:', err);
       // Rollback the optimistic update on failure
@@ -39859,10 +39825,17 @@
       return;
     }
     try {
-      await window.fb.updateGroupRoundFields(gr.id, { status: 'in-progress' });
+      // Initialize team-shared cursor for scramble. Without this,
+      // the scramble panel would default everyone to hole 0
+      // regardless of organizer's starting-hole pick.
+      const startPatch = { status: 'in-progress' };
+      if (getRoundFormat(gr) === 'scramble') {
+        startPatch.teamCurrentHoleIdx = startIdx;
+      }
+      await window.fb.updateGroupRoundFields(gr.id, startPatch);
       // Optimistically mutate the local copy so the next render
       // picks up the new status without waiting for the snapshot.
-      groupRoundState.doc = { ...gr, status: 'in-progress' };
+      groupRoundState.doc = { ...gr, ...startPatch };
       groupRoundState.yourHoleIndex = startIdx;
 
       // Cancel any outstanding invites we sent for this round — the
@@ -40633,7 +40606,7 @@
       // auto-bumps would only live in local memory until a manual score
       // edit happened to flush them. Cheap to write both — they're
       // small maps and tied to the same logical event.
-      await window.fb.updateGroupRound(gr.id, {
+      await window.fb.updateGroupRoundFields(gr.id, {
         teamShots: gr.teamShots || {},
         teamScores: gr.teamScores || {},
       });
@@ -41692,9 +41665,31 @@
   // leaps through the course in animation terms.
   function holePickerJumpTo(holeIdx) {
     if (isGroupRoundActive()) {
-      const course = getCourse(groupRoundState.doc.courseId);
+      const gr = groupRoundState.doc;
+      const course = getCourse(gr.courseId);
       if (!course) return;
       if (holeIdx < 0 || holeIdx >= course.holes.length) return;
+
+      // Scramble branch: hole picker jumps the LOCAL view only.
+      // Doesn't advance the team, doesn't flush per-player state
+      // (scramble has none), doesn't animate hole transitions
+      // (scramble panel is one shared scorecard). If the user picks
+      // the team's current hole, clear the override so they follow
+      // the team again; otherwise set the override.
+      if (getRoundFormat(gr) === 'scramble') {
+        const teamIdx = typeof gr.teamCurrentHoleIdx === 'number' ? gr.teamCurrentHoleIdx : 0;
+        scrambleRoundState.viewingHoleIdx = holeIdx === teamIdx ? null : holeIdx;
+        closeHolePicker();
+        renderGroupRoundPanel();
+        // GPS still tracks per-hole — mirror the jump there too.
+        if (roundGpsState.open
+            && typeof transitionRoundGpsToHole === 'function') {
+          transitionRoundGpsToHole(holeIdx);
+        }
+        return;
+      }
+
+      // Standard group round path — flush dirty hole, animate, advance.
       // Nav flush — only if the current hole is dirty. Players often
       // jump around to inspect other holes (check a past score, peek
       // at the par of an upcoming hole) without editing. Those jumps
@@ -42816,17 +42811,22 @@
 
   function dismissScrambleHint() {
     __scrambleHintDismissed = true;
-    // Re-render whichever surface the user is on — banner lives in
-    // GPS view, but defensively re-render the group panel too in
-    // case the hint is shown elsewhere later.
-    if (typeof renderRoundGpsPanel === 'function') {
-      try { renderRoundGpsPanel(); } catch (_) {}
-    }
+    // Remove just the banner element — calling renderRoundGpsPanel()
+    // would tear down + rebuild the entire GPS panel including the
+    // map, re-running the open animation. Surgical removal is the
+    // right call for a single dismissable element. Add a quick fade-
+    // out for polish; element removed when transition completes.
+    const banner = document.querySelector('.scramble-gps-hint-banner');
+    if (!banner) return;
+    banner.style.transition = 'opacity 180ms ease, transform 180ms ease';
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(-6px)';
+    setTimeout(() => banner.remove(), 200);
   }
   window.dismissScrambleHint = dismissScrambleHint;
 
   // ── Scramble score mutators ────────────────────────────────────
-  // All write to round.teamScores[holeNum] via updateGroupRound.
+  // All write to round.teamScores[holeNum] via updateGroupRoundFields.
   // Optimistic local update for snappy UI; snapshot will reconcile
   // on remote echo. Last-write-wins per user spec — no transactional
   // merge.
@@ -42850,6 +42850,14 @@
     };
   }
 
+  // Scramble team-score in-flight counter — incremented when a
+  // persistTeamScore call starts, decremented when it resolves. The
+  // snapshot race-guard reads this to know whether to preserve local
+  // teamScores against an incoming server echo. Since persistTeamScore
+  // writes are immediate (no debouncer like shots have), this counter
+  // is the only signal we have for "score change in flight."
+  let __scrambleTeamScoreInFlight = 0;
+
   async function persistTeamScore(holeNum, scoreObj) {
     if (!isGroupRoundActive() || !window.fb) return;
     const gr = groupRoundState.doc;
@@ -42860,11 +42868,15 @@
     newTeamScores[holeNum] = scoreObj;
     gr.teamScores = newTeamScores;
     renderGroupRoundPanel();
+    __scrambleTeamScoreInFlight++;
     try {
-      await window.fb.updateGroupRound(gr.id, { teamScores: newTeamScores });
+      await window.fb.updateGroupRoundFields(gr.id, { teamScores: newTeamScores });
     } catch (err) {
       console.error('Failed to save scramble score:', err);
       showToast('Score not saved — check connection', true);
+    } finally {
+      __scrambleTeamScoreInFlight--;
+      if (__scrambleTeamScoreInFlight < 0) __scrambleTeamScoreInFlight = 0;
     }
   }
 
@@ -42998,7 +43010,7 @@
       gr.teamCurrentHoleIdx = newTeamIdx;
       scrambleRoundState.viewingHoleIdx = null;
       renderGroupRoundPanel();
-      window.fb.updateGroupRound(gr.id, { teamCurrentHoleIdx: newTeamIdx })
+      window.fb.updateGroupRoundFields(gr.id, { teamCurrentHoleIdx: newTeamIdx })
         .catch(err => {
           console.error('Failed to advance team hole:', err);
           // Roll back on failure
@@ -43034,23 +43046,249 @@
   // just call the existing per-player completion as a stub so the
   // exit path works.
   async function confirmCompleteScrambleRound() {
+    if (!isGroupRoundActive() || !currentUser || !window.fb) return;
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const course = getCourse(gr.courseId);
+    if (!course) {
+      showToast('Course not found', true);
+      return;
+    }
+
+    // Compute team totals up-front for the confirm message.
+    const teamScores = gr.teamScores || {};
+    const playedNums = Object.keys(teamScores).map(Number);
+    const totals = computeGroupPlayerTotals(teamScores, course);
+    const holesUnplayed = course.holes.length - totals.holesPlayed;
+
+    // Confirm — give the user a heads-up if they're finishing
+    // partial. Same friendly nudge the standard completion has.
+    const partialNote = holesUnplayed > 0
+      ? ` ${holesUnplayed} hole${holesUnplayed === 1 ? '' : 's'} unscored.`
+      : '';
     const ok = await confirmDialog({
       eyebrow: 'Finish Scramble',
       title: 'Finish this round?',
-      message: 'The team scorecard will be saved and the round will close.',
+      message: `Team finished ${totals.holesPlayed} hole${totals.holesPlayed === 1 ? '' : 's'}.${partialNote} Each player gets a copy of the team scorecard in their history.`,
       confirmText: 'Finish',
       cancelText: 'Keep Going',
       destructive: false,
     });
     if (!ok) return;
-    // Phase 2: fall through to existing completion. Phase 4 will
-    // build a scramble-specific completion handler with team
-    // attribution stats etc.
-    if (typeof completeMyGroupRound === 'function') {
-      await completeMyGroupRound();
-    }
+
+    await completeScrambleRoundForMe(gr, course, totals);
   }
   window.confirmCompleteScrambleRound = confirmCompleteScrambleRound;
+
+  // The actual completion work — split out so it can be called
+  // without re-prompting (e.g. final-hole auto-finish path).
+  // Mirrors completeMyGroupRound's flow but reads from team-level
+  // fields (teamScores, teamShots) instead of per-player ones,
+  // and writes a "team scorecard" to each finishing player's
+  // personal history.
+  async function completeScrambleRoundForMe(gr, course, totalsArg) {
+    const me = getMyGroupRoundPlayer();
+    if (!me) return;
+
+    // Flush any pending shot save first so the personal snapshot
+    // captures the latest team data.
+    if (__scrambleTeamShotsSaveTimer) {
+      clearTimeout(__scrambleTeamShotsSaveTimer);
+      __scrambleTeamShotsSaveTimer = null;
+      try { await saveScrambleTeamShotsNow(); } catch (_) {}
+    }
+
+    const teamScores = gr.teamScores || {};
+    const teamShots = gr.teamShots || {};
+    const totals = totalsArg || computeGroupPlayerTotals(teamScores, course);
+
+    // Compute "whose ball got picked most" — count hitBy occurrences
+    // across all team shots. This is the headline scramble stat for
+    // the round summary. Stored on the personal snapshot under
+    // scrambleAttribution so the summary card can render it without
+    // re-deriving.
+    const hitCounts = {};
+    for (const holeShots of Object.values(teamShots)) {
+      if (!Array.isArray(holeShots)) continue;
+      for (const s of holeShots) {
+        if (!s.hitBy) continue;
+        hitCounts[s.hitBy] = (hitCounts[s.hitBy] || 0) + 1;
+      }
+    }
+    const totalShotsLogged = Object.values(hitCounts).reduce((a, b) => a + b, 0);
+    // Build attribution objects keyed by uid with display name +
+    // count. Sorted descending so the summary shows the leader first.
+    const attribution = (gr.players || [])
+      .map(p => ({
+        uid: p.uid,
+        name: p.usernameDisplay || p.username || p.displayName || 'Player',
+        count: hitCounts[p.uid] || 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Snapshot pins for replay support — same logic as the standard
+    // group completion. Pins are scoped to the round's docId in
+    // localStorage; capture before clearing.
+    const pinsForSnapshot = (typeof readPinsForRoundId === 'function')
+      ? readPinsForRoundId(gr.id)
+      : {};
+    if (typeof clearPinsForRound === 'function') {
+      clearPinsForRound(gr.id);
+    }
+
+    const endMs = Date.now();
+    const personalRoundId = `gr_${gr.id}_${currentUser.uid.slice(0, 8)}`;
+
+    // Other players denormalized for the history card (same as
+    // standard group completion).
+    const otherPlayers = (gr.players || [])
+      .filter(p => p.uid !== currentUser.uid)
+      .map(p => ({
+        uid: p.uid,
+        username: p.username || null,
+        usernameDisplay: p.usernameDisplay || p.username || null,
+        displayName: p.displayName || null,
+        photoURL: p.photoURL || null,
+      }));
+
+    // Personal payload — note that scores + shots come from TEAM
+    // fields, not me.scores / me.shots (those are empty for scramble).
+    // Each player gets the same team scorecard in their personal
+    // history. countsForStats=false on scramble (per ROUND_FORMATS
+    // catalog) means stats consumers will exclude this round.
+    const personalPayload = {
+      courseId: gr.courseId,
+      courseName: course.name,
+      teeName: me.tee,
+      format: 'scramble',
+      startTime: gr.startTime,
+      endTime: endMs,
+      dateKey: gr.dateKey,
+      status: 'completed',
+      currentHoleIndex: Math.max(0, Object.keys(teamScores).length - 1),
+      // Team scorecard — same data on every player's history card
+      // (intentionally; scramble is a shared experience).
+      scores: teamScores,
+      shots: teamShots,
+      totals,
+      // Scramble attribution — sorted player→count list for "who hit
+      // the most" stat on the round summary.
+      scrambleAttribution: attribution,
+      scrambleTotalShots: totalShotsLogged,
+      // Group backreferences (same as standard completion)
+      groupRoundId: gr.id,
+      groupPlayerUids: gr.playerUids || [],
+      groupOthers: otherPlayers,
+    };
+    if (gr.weather) personalPayload.weather = gr.weather;
+    if (me.teeOverrides && Object.keys(me.teeOverrides).length > 0) {
+      personalPayload.teeOverrides = me.teeOverrides;
+    }
+    if (pinsForSnapshot && Object.keys(pinsForSnapshot).length > 0) {
+      personalPayload.pins = pinsForSnapshot;
+    }
+
+    // Compute bestType — scramble doesn't count for stats per the
+    // ROUND_FORMATS catalog, but the bestType helpers gracefully
+    // handle that (computeBestTypeForRound only looks at countsForStats
+    // rounds when ranking; scramble rounds get null bestType).
+    const candidateForBest = { id: personalRoundId, ...personalPayload };
+    const historyWithThis = [
+      ...(recentRounds || []).filter(r => r.id !== personalRoundId),
+      candidateForBest,
+    ];
+    const bestType = computeBestTypeForRound(candidateForBest, historyWithThis);
+    const displaced = findDisplacedBestRounds(candidateForBest, historyWithThis);
+    personalPayload.bestType = bestType;
+
+    try {
+      await window.fb.setDoc(`users/${currentUser.uid}/rounds/${personalRoundId}`, personalPayload);
+      const cachedRound = { id: personalRoundId, ...personalPayload };
+      const idx = recentRounds.findIndex(r => r.id === personalRoundId);
+      if (idx >= 0) recentRounds[idx] = cachedRound;
+      else recentRounds.unshift(cachedRound);
+      await reconcileDisplacedBestRounds(displaced);
+      // Mirror to public + refresh profile (same as standard completion).
+      // Scramble rounds DO surface in the social feed — friends should
+      // see "you played a scramble at X" — but they're tagged as such
+      // via the format field so display can differentiate.
+      syncRoundToPublic(cachedRound);
+      syncPublicProfile();
+      if (typeof socialState !== 'undefined') socialState.feedLoaded = false;
+    } catch (err) {
+      console.error('Failed to write scramble personal snapshot:', err);
+      showToast('Save failed — see console', true);
+      return;
+    }
+
+    // Mirror my totals to the group round's results subcollection so
+    // OTHER players can see the team result on their leaderboard
+    // (which is just one entry in scramble — the team).
+    try {
+      const profile = (typeof buildPublicProfileDoc === 'function') ? buildPublicProfileDoc() : {};
+      await window.fb.writeGroupRoundResult(gr.id, currentUser.uid, {
+        completedAt: endMs,
+        username: profile.username || null,
+        usernameDisplay: profile.usernameDisplay || profile.username || null,
+        displayName: profile.displayName || null,
+        photoURL: profile.photoURL || null,
+        tee: me.tee,
+        totals,
+        // Per-hole scores = team scorecard (same for all players).
+        scores: teamScores,
+      });
+    } catch (err) {
+      console.error('Failed to write scramble result mirror:', err);
+    }
+
+    // Mark me finished on the round doc — same pattern as standard.
+    try {
+      await window.fb.updateGroupRoundPlayer(gr.id, currentUser.uid, {
+        status: 'finished',
+        finishedAt: endMs,
+      });
+      const myIdx = (gr.players || []).findIndex(p => p.uid === currentUser.uid);
+      if (myIdx >= 0) {
+        gr.players[myIdx] = { ...gr.players[myIdx], status: 'finished', finishedAt: endMs };
+      }
+    } catch (err) {
+      console.error('Failed to mark scramble player finished:', err);
+    }
+
+    // If everyone's finished or left, mark the round itself completed.
+    const stillPlaying = (gr.players || []).filter(p => p.status !== 'finished');
+    if (stillPlaying.length === 0 && gr.status !== 'completed') {
+      try {
+        await window.fb.updateGroupRoundFields(gr.id, {
+          status: 'completed',
+          endTime: endMs,
+        });
+        gr.status = 'completed';
+        gr.endTime = endMs;
+      } catch (err) {
+        console.error('Failed to mark scramble round completed:', err);
+      }
+    }
+
+    // Tear down local state — round is done from MY perspective.
+    const completedId = gr.id;
+    groupRoundState.docId = null;
+    groupRoundState.doc = null;
+    if (groupRoundState.unsubscribe) {
+      try { groupRoundState.unsubscribe(); } catch (_) {}
+      groupRoundState.unsubscribe = null;
+    }
+    myGroupRounds = myGroupRounds.filter(r => r.id !== completedId);
+    // Clear scramble local view state too — fresh state for next round.
+    scrambleRoundState.viewingHoleIdx = null;
+    scrambleLastHitterUid = null;
+    try { localStorage.removeItem(`golfapp.grCursor.${completedId}`); } catch (_) {}
+    clearScoreScratchpad(completedId);
+
+    updateRoundBanner();
+    renderPlayLanding();
+    openRoundSummary(personalRoundId);
+  }
 
 
   // Toggle the .has-overflow / .at-end classes on the players row
@@ -46418,6 +46656,19 @@
       if (__gr && getRoundFormat(__gr) === 'scramble') {
         const players = (__gr.players || []).filter(p => p.status !== 'left');
         const currentHitter = draft.hitBy || scrambleLastHitterUid || currentUser?.uid;
+        // Build JS literals safely for embedding inside an onclick="..."
+        // attribute. Using JSON.stringify produces double-quoted strings,
+        // which break the HTML attribute parser when nested inside
+        // onclick="...". escapeAttr-ing the quotes would work but
+        // single-quoting the JS literals (and escaping any inner
+        // single quotes) is cleaner and reads better in DevTools.
+        const jsLit = (val) => {
+          if (val == null) return 'null';
+          if (typeof val === 'number') return String(val);
+          // Escape backslashes + single quotes for JS string literal.
+          const s = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `'${s}'`;
+        };
         const pills = players.map(p => {
           const label = p.usernameDisplay || p.username || p.displayName || 'Player';
           const isMe = p.uid === currentUser?.uid;
@@ -46425,11 +46676,12 @@
           // The shot's id may be in draft.id (existing) or
           // shotEditState.editingId (set by openShotEditSheet for
           // editing existing); use whichever is non-null.
-          const shotIdJs = JSON.stringify(draft.id || shotEditState.editingId || null);
-          const holeJs = JSON.stringify(shotEditState.holeNumber);
+          const shotIdJs = jsLit(draft.id || shotEditState.editingId || null);
+          const holeJs = jsLit(shotEditState.holeNumber);
+          const uidJs = jsLit(p.uid);
           return `<button type="button"
                           class="hit-by-pill${isActive ? ' is-active' : ''}"
-                          onclick="pickScrambleHitter(${JSON.stringify(p.uid)}, ${shotIdJs}, ${holeJs})"
+                          onclick="pickScrambleHitter(${uidJs}, ${shotIdJs}, ${holeJs})"
                           aria-pressed="${isActive}">
                     <span class="hit-by-pill-label">${escapeHtml(label)}${isMe ? ' (you)' : ''}</span>
                   </button>`;
@@ -52745,33 +52997,36 @@
       // Scramble race-guard — same idea as the per-player guard above
       // but for shared team state. While I'm mid-tap on a stepper or
       // mid-shot-log on the GPS view, my local gr.teamScores and
-      // gr.teamShots may be ahead of what's in Firestore (the writes
-      // are debounced). Without this, an incoming snapshot would
-      // overwrite my local edits with stale server data — a small
-      // window but actively visible (score flips back, shots vanish).
-      // For scramble, we trust LOCAL state for the scores/shots fields
-      // and merge the rest of the doc fresh from server.
-      // CAVEAT: this also means OTHER players' edits to teamScores/
-      // teamShots that landed in this snapshot will be DROPPED if I
-      // had local edits in flight. Last-write-wins per the spec; the
-      // alternative (deep merge) would be more complex and still
-      // wrong sometimes. v1 acceptable risk; revisit if conflicts
-      // become common.
+      // gr.teamShots may be ahead of what's in Firestore. Without this,
+      // an incoming snapshot would overwrite my local edits with stale
+      // server data — a small window but actively visible (score flips
+      // back, shots vanish).
+      //
+      // Two write paths to guard:
+      //   - Shots: debounced via __scrambleTeamShotsSaveTimer. The
+      //     timer being set means a write is queued.
+      //   - Scores: immediate via persistTeamScore. The
+      //     __scrambleTeamScoreInFlight counter tracks how many
+      //     concurrent score writes are still resolving.
+      //
+      // CAVEAT: preserving local state means OTHER players' edits to
+      // teamScores/teamShots that landed in this snapshot will be
+      // DROPPED if I had local edits in flight. Last-write-wins per
+      // the spec; the alternative (deep merge) would be more complex
+      // and still wrong sometimes. v1 acceptable risk; revisit if
+      // conflicts become common.
       if (groupRoundState.doc && getRoundFormat(groupRoundState.doc) === 'scramble') {
-        // Only preserve local if a save is pending (timer set) — when
-        // no writes are in flight, server is authoritative.
         const hasPendingShots = !!__scrambleTeamShotsSaveTimer;
-        // Score writes through persistTeamScore are immediate (no
-        // debounce timer), so a guard window is hard to detect
-        // generically. We err on the side of accepting server state
-        // for teamScores when no shot save is queued; if you tap a
-        // stepper and the snapshot races back instantly, the next
-        // local re-render after the snapshot will reflect server
-        // (which is correct since persistTeamScore wrote it).
+        const hasPendingScores = __scrambleTeamScoreInFlight > 0;
         if (hasPendingShots) {
           mergedDoc = {
             ...mergedDoc,
             teamShots: groupRoundState.doc.teamShots || {},
+          };
+        }
+        if (hasPendingScores) {
+          mergedDoc = {
+            ...mergedDoc,
             teamScores: groupRoundState.doc.teamScores || {},
           };
         }
@@ -52900,6 +53155,16 @@
     if (currentPanelId === 'group-lobby') renderGroupLobby();
     else if (currentPanelId === 'group-round') renderGroupRoundPanel();
     else renderPlayLanding();
+    // If the GPS panel is open over the round, refresh its shot
+    // markers so other players' just-logged shots appear on the map
+    // in real time. The data is already updated in groupRoundState.doc;
+    // we just need the renderer to pull the new teamShots and redraw.
+    // Safe across stroke + scramble — getShotsForHole branches on
+    // format and returns the right source for each.
+    const __gpsOpen = typeof roundGpsState !== 'undefined' && roundGpsState && roundGpsState.open;
+    if (__gpsOpen && typeof renderRoundGpsShotMarkers === 'function') {
+      try { renderRoundGpsShotMarkers(); } catch (_) {}
+    }
     // If the manage sheet is open over the round, refresh it too so
     // a newly-joined player shows up in real time.
     if (managePlayersState.open) renderManagePlayersSheet();
@@ -52929,11 +53194,17 @@
       const course = getCourse(gr.courseId);
       const courseName = course ? course.name : 'Round';
       const playerCount = (gr.players || []).length;
+      // Format-aware eyebrow + subtitle. Scramble rounds get the
+      // format label up front ("Scramble · Round in Progress") so
+      // returning to the round from the Play landing makes the mode
+      // obvious; standard rounds keep the generic "Group" label.
+      const fmt = getRoundFormat(gr);
+      const fmtLabel = fmt === 'standard' ? 'Group' : getRoundFormatLabel(gr);
       const statusLabel = gr.status === 'lobby' ? 'Assembling players' : 'Round in Progress';
       const actionLabel = gr.status === 'lobby' ? 'Open Lobby →' : 'Continue Round →';
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
-          <div class="play-hero-eyebrow">Group · ${escapeHtml(statusLabel)}</div>
+          <div class="play-hero-eyebrow">${escapeHtml(fmtLabel)} · ${escapeHtml(statusLabel)}</div>
           <h2 class="play-hero-title">${gr.status === 'lobby' ? 'Waiting to Start' : 'Continue <em>Round</em>'}</h2>
           <p class="play-hero-sub">${escapeHtml(courseName)} · ${playerCount} player${playerCount === 1 ? '' : 's'}</p>
           <div class="play-hero-actions">
@@ -53450,21 +53721,32 @@
       const course = getCourse(gr.courseId);
       const courseName = course ? course.name : (gr.courseName || 'Round');
       const me = getMyGroupRoundPlayer();
-      const myScores = me?.scores || {};
-      const holesPlayed = Object.keys(myScores).length;
+      // Hole-played count: scramble reads from team-shared scores;
+      // standard reads from my per-player scores.
+      const fmt = getRoundFormat(gr);
+      const isScramble = fmt === 'scramble';
+      const scoresMap = isScramble
+        ? (gr.teamScores || {})
+        : (me?.scores || {});
+      const holesPlayed = Object.keys(scoresMap).length;
       const totalHoles = course ? course.holes.length : 18;
       if (gr.status === 'lobby') {
         // Pre-start state: different label + Open button so the user
         // understands this is a lobby, not a live round. No End button
         // because "ending" a not-yet-started round is really just
         // leaving the lobby — which they do from inside the lobby UI.
-        if (labelEl) labelEl.textContent = 'Group round lobby';
+        if (labelEl) labelEl.textContent = isScramble
+          ? 'Scramble lobby'
+          : 'Group round lobby';
         titleEl.textContent = courseName;
         progressEl.textContent = 'Waiting to start';
         setButtons('lobby');
       } else {
         if (labelEl) labelEl.textContent = 'Round in progress';
-        titleEl.textContent = `Group · ${courseName}`;
+        // Format-aware title prefix — matches play hero treatment so
+        // the banner reads "Scramble · Course Name" for scramble.
+        const prefix = isScramble ? 'Scramble' : 'Group';
+        titleEl.textContent = `${prefix} · ${courseName}`;
         progressEl.textContent = `${holesPlayed}/${totalHoles}`;
         setButtons('active');
       }
@@ -57375,10 +57657,18 @@
     // off (restoring scores AND shots) or start fresh. This is the only
     // way to preserve progress across leave-and-rejoin in the simplified
     // model — the group doc itself doesn't keep ex-players' data.
+    //
+    // Scramble exception: scramble rounds keep all data on the round
+    // doc (teamScores / teamShots), so leaving and rejoining doesn't
+    // lose anything — the round doc itself preserves everything. The
+    // prior personal record is a snapshot of the team scorecard, not
+    // user-specific progress, so prompting "continue your saved round"
+    // is misleading. Skip the prompt entirely for scramble.
     let prefillScores = {};
     let prefillShots = {};
+    const isScrambleRound = getRoundFormat(round) === 'scramble';
     const priorRound = (recentRounds || []).find(r => r.groupRoundId === groupRoundId);
-    if (priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
+    if (!isScrambleRound && priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
       const holesPlayed = Object.keys(priorRound.scores).length;
       const choice = await confirmDialog({
         eyebrow: 'Continue Round?',
@@ -62400,6 +62690,65 @@
             </div>`;
         }
         return renderSGBlock(sg);
+      })()}
+
+      ${(() => {
+        // Scramble attribution card — "whose ball got picked most"
+        // leaderboard. Renders only on scramble rounds. The data
+        // (scrambleAttribution + scrambleTotalShots) is denormalized
+        // onto the personal round snapshot at completion time, so we
+        // just read it off the round here.
+        if (getRoundFormat(round) !== 'scramble') return '';
+        const attr = Array.isArray(round.scrambleAttribution) ? round.scrambleAttribution : [];
+        const total = round.scrambleTotalShots || 0;
+        if (attr.length === 0) {
+          return `
+            <div class="round-summary-section-label">Hit Attribution</div>
+            <div class="scramble-attr-card">
+              <div class="scramble-attr-empty">
+                No shots were logged with player attribution.
+              </div>
+            </div>`;
+        }
+        // The leader (most shots picked) sets the bar scale. Tie-breaks
+        // share leader color since attr is sorted descending.
+        const maxCount = attr[0].count || 1;
+        const leaderCount = attr[0].count;
+        const rowsHtml = attr.map(row => {
+          const pct = maxCount > 0 ? Math.round((row.count / maxCount) * 100) : 0;
+          const isLeader = row.count === leaderCount && row.count > 0;
+          const isZero = row.count === 0;
+          return `
+            <div class="scramble-attr-row">
+              <div class="scramble-attr-name${isLeader ? ' is-leader' : ''}">
+                ${escapeHtml(row.name)}
+              </div>
+              <div class="scramble-attr-track">
+                <div class="scramble-attr-fill${isZero ? ' is-zero' : ''}"
+                     style="width: ${pct}%;"></div>
+              </div>
+              <div class="scramble-attr-count">${row.count}</div>
+            </div>`;
+        }).join('');
+        // Header phrase — playful but informative. If everyone tied,
+        // skip the leader callout in favor of a neutral phrase.
+        const allTied = attr.every(r => r.count === leaderCount);
+        const headerPhrase = (leaderCount === 0)
+          ? 'Hit attribution'
+          : (allTied
+              ? `Even ball picks — ${total} shot${total === 1 ? '' : 's'} tracked`
+              : `${escapeHtml(attr[0].name)} carried the team`);
+        return `
+          <div class="round-summary-section-label">Hit Attribution</div>
+          <div class="scramble-attr-card">
+            <div class="scramble-attr-header">
+              <div class="scramble-attr-header-phrase">${headerPhrase}</div>
+              <div class="scramble-attr-header-total">
+                ${total} shot${total === 1 ? '' : 's'}
+              </div>
+            </div>
+            <div class="scramble-attr-rows">${rowsHtml}</div>
+          </div>`;
       })()}
 
       ${(() => {
@@ -68891,16 +69240,45 @@
     // picker + auto-advance paths already update the cursor before
     // calling here, so this branch no-ops in those cases.
     if (isGroupRoundActive()) {
-      if (groupRoundState.yourHoleIndex !== holeIndex) {
-        groupRoundState.yourHoleIndex = holeIndex;
-        if (typeof saveGroupRoundCursor === 'function') {
-          try { saveGroupRoundCursor(); } catch (_) {}
+      const gr = groupRoundState.doc;
+      const isScramble = gr && getRoundFormat(gr) === 'scramble';
+      if (isScramble) {
+        // Scramble: cursor lives on the round doc as teamCurrentHoleIdx.
+        // Auto-advance from GPS bumps it for the team (this device is
+        // the one doing the work; everyone else snaps via snapshot).
+        // Clear any local viewing override so the panel follows the
+        // team's new position when the user closes GPS.
+        if (gr.teamCurrentHoleIdx !== holeIndex) {
+          const oldTeamIdx = typeof gr.teamCurrentHoleIdx === 'number' ? gr.teamCurrentHoleIdx : 0;
+          gr.teamCurrentHoleIdx = holeIndex;
+          scrambleRoundState.viewingHoleIdx = null;
+          if (typeof renderGroupRoundPanel === 'function') {
+            try { renderGroupRoundPanel(); } catch (_) {}
+          }
+          if (window.fb) {
+            window.fb.updateGroupRoundFields(gr.id, { teamCurrentHoleIdx: holeIndex })
+              .catch(err => {
+                console.error('Failed to advance team via GPS:', err);
+                gr.teamCurrentHoleIdx = oldTeamIdx;
+                if (typeof renderGroupRoundPanel === 'function') {
+                  try { renderGroupRoundPanel(); } catch (_) {}
+                }
+              });
+          }
         }
-        // Re-render the panel underneath so when the user closes GPS
-        // they land on the correct hole's scoring view. Render is
-        // cheap and the user can't see it (GPS is full-screen).
-        if (typeof renderGroupRoundPanel === 'function') {
-          try { renderGroupRoundPanel(); } catch (_) {}
+      } else {
+        // Standard group round: per-player cursor.
+        if (groupRoundState.yourHoleIndex !== holeIndex) {
+          groupRoundState.yourHoleIndex = holeIndex;
+          if (typeof saveGroupRoundCursor === 'function') {
+            try { saveGroupRoundCursor(); } catch (_) {}
+          }
+          // Re-render the panel underneath so when the user closes GPS
+          // they land on the correct hole's scoring view. Render is
+          // cheap and the user can't see it (GPS is full-screen).
+          if (typeof renderGroupRoundPanel === 'function') {
+            try { renderGroupRoundPanel(); } catch (_) {}
+          }
         }
       }
     } else {
@@ -69459,31 +69837,57 @@
     const isGroup = isGroupRoundActiveForGps();
     // Determine the save button label. Mirrors the logic in renderRoundDock
     // for the bottom action bar so the modal reads the same.
+    // Scramble override (mirrors the same branch in renderRoundDock):
+    // when the active group round is scramble, the save action becomes
+    // "Next Hole" routing through scrambleNext() with team-aware label.
+    const isScramble = isGroup
+      && groupRoundState.doc
+      && getRoundFormat(groupRoundState.doc) === 'scramble';
+    let saveFn = 'gpsScoreSheetSaveAndNext()';
     let saveLabel = 'Save & Next →';
     let isFinalHole = false;
-    try {
-      if (isGroup && groupRoundState.doc) {
-        const course = getCourse(groupRoundState.doc.courseId);
-        const me = getMyGroupRoundPlayer();
-        if (course && me) {
-          const myScores = me.scores || {};
-          const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
-          const currentAlreadyScored = currentHoleNum != null && !!myScores[currentHoleNum];
-          const scoredCount = Object.keys(myScores).length + (currentAlreadyScored ? 0 : 1);
-          isFinalHole = scoredCount >= course.holes.length;
-          saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
+    if (isScramble) {
+      // Scramble Score sheet save = scramble nav. Close the sheet
+      // first so the nav happens against the underlying view, not
+      // with a modal blocking it. Wrapped inline so we don't need a
+      // separate handler.
+      saveFn = 'closeGpsScoreSheet(); scrambleNext();';
+      const gr = groupRoundState.doc;
+      const teamIdx = typeof gr.teamCurrentHoleIdx === 'number' ? gr.teamCurrentHoleIdx : 0;
+      const viewIdx = getScrambleViewingHoleIdx(gr);
+      const course = getCourse(gr.courseId);
+      const lastIdx = course ? course.holes.length - 1 : 17;
+      const isOnTeamHole = viewIdx === teamIdx;
+      const willFinish = isOnTeamHole && teamIdx >= lastIdx;
+      saveLabel = willFinish
+        ? 'Finish Round →'
+        : (isOnTeamHole ? 'Next Hole · Advances Team →' : 'Next Hole →');
+      isFinalHole = willFinish;
+    } else {
+      try {
+        if (isGroup && groupRoundState.doc) {
+          const course = getCourse(groupRoundState.doc.courseId);
+          const me = getMyGroupRoundPlayer();
+          if (course && me) {
+            const myScores = me.scores || {};
+            const currentHoleNum = course.holes[groupRoundState.yourHoleIndex]?.number;
+            const currentAlreadyScored = currentHoleNum != null && !!myScores[currentHoleNum];
+            const scoredCount = Object.keys(myScores).length + (currentAlreadyScored ? 0 : 1);
+            isFinalHole = scoredCount >= course.holes.length;
+            saveLabel = isFinalHole ? 'Save Final Hole →' : 'Save & Next →';
+          }
+        } else {
+          const course = getCourse(roundState.courseId);
+          if (course) {
+            const currentHoleNum = course.holes[roundState.holeIndex]?.number;
+            const currentAlreadyScored = currentHoleNum != null && !!roundState.scores[currentHoleNum];
+            const scoredCount = Object.keys(roundState.scores).length + (currentAlreadyScored ? 0 : 1);
+            isFinalHole = scoredCount >= course.holes.length;
+            saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
+          }
         }
-      } else {
-        const course = getCourse(roundState.courseId);
-        if (course) {
-          const currentHoleNum = course.holes[roundState.holeIndex]?.number;
-          const currentAlreadyScored = currentHoleNum != null && !!roundState.scores[currentHoleNum];
-          const scoredCount = Object.keys(roundState.scores).length + (currentAlreadyScored ? 0 : 1);
-          isFinalHole = scoredCount >= course.holes.length;
-          saveLabel = isFinalHole ? 'Save & Finish →' : 'Save & Next →';
-        }
-      }
-    } catch (_) { /* defensive — fall through with default label */ }
+      } catch (_) { /* defensive — fall through with default label */ }
+    }
 
     return `
       <div class="gps-score-backdrop opening" onclick="closeGpsScoreSheet()" aria-hidden="true"></div>
@@ -69498,7 +69902,7 @@
             <span class="round-tools-btn-label">Close</span>
           </button>
           <button class="round-save-btn${isFinalHole ? ' is-final' : ''}"
-                  onclick="gpsScoreSheetSaveAndNext()">
+                  onclick="${saveFn}">
             ${escapeHtml(saveLabel)}
           </button>
         </div>
@@ -79991,6 +80395,22 @@
     };
     if (map.loaded() && !map.isMoving()) dropTarget();
     else map.once('idle', dropTarget);
+
+    // Render any existing shots on the map as soon as it's ready —
+    // independent of GPS mode (planning vs playing). Previously
+    // markers only painted on the planning→playing transition, which
+    // meant a user opening GPS mid-hole (or any user without a GPS
+    // fix yet) saw no shot pins until either the transition happened
+    // or someone ELSE logged a shot (which trip-wired the snapshot's
+    // marker refresh). For scramble specifically this was a common
+    // case: a non-logging player opening GPS to spectate.
+    const drawInitialShots = () => {
+      if (typeof renderRoundGpsShotMarkers === 'function') {
+        try { renderRoundGpsShotMarkers(); } catch (_) {}
+      }
+    };
+    if (map.loaded() && !map.isMoving()) drawInitialShots();
+    else map.once('idle', drawInitialShots);
 
     // Wind overlay setup. Initial render once map is ready (so we can
     // read its bearing for the arrow rotation), plus a 'rotate'
