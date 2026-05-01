@@ -4140,6 +4140,43 @@
     transform: scale(0.97);
   }
 
+  /* Personal-shot tag — replaces the hit-by picker when the shot
+     edit sheet is in personal-shot mode. Reads as a small badge with
+     a sub-line explanation, communicating "this is yours alone, not
+     part of the team chain." Distinct color from team accent so the
+     mode is unambiguous at a glance. */
+  .personal-shot-tag {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(94, 154, 232, 0.10);
+    border: 1px solid rgba(94, 154, 232, 0.35);
+    border-radius: var(--radius-md);
+  }
+  .personal-shot-tag-dot {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgb(94, 154, 232);
+  }
+  .personal-shot-tag-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+  }
+  .personal-shot-tag-sub {
+    flex: 1 1 100%;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
   /* Scramble GPS hint banner — floats inside the GPS panel above
      the map. Needs high contrast against satellite imagery, so we
      use an opaque elevated background + soft shadow rather than the
@@ -5661,6 +5698,69 @@
       background var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
+  }
+
+  /* Log Mine — secondary "log my personal scramble shot" action.
+     Visible only in scramble rounds when track-personal-shots pref
+     is on. Outlined accent-blue style: visually subordinate to the
+     primary Log shot button (which is solid-fill team) but clearly
+     present and tappable. Smaller than primary but the same min-
+     height for thumb consistency. */
+  .round-gps-mine-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--space-3) var(--space-3);
+    background: rgba(0, 0, 0, 0.55);
+    color: var(--color-white);
+    border: 2px solid rgba(94, 154, 232, 0.85);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    cursor: pointer;
+    min-height: 52px;
+    backdrop-filter: blur(10px);
+    transition: transform var(--transition-spring),
+                background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .round-gps-mine-btn:active { transform: scale(0.96); }
+  .round-gps-mine-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .round-gps-mine-btn-label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
+  .round-gps-mine-btn-count {
+    background: rgba(94, 154, 232, 0.85);
+    color: var(--color-white);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    min-width: 20px;
+    text-align: center;
+  }
+  .round-gps-mine-btn-count:empty {
+    display: none;
+  }
+  /* In planning mode (no GPS lock yet), match the muted treatment of
+     the primary button so the bar reads consistently. */
+  .round-gps-mine-btn.is-planning {
+    border-color: rgba(255, 253, 247, 0.18);
+    color: rgba(255, 253, 247, 0.5);
+    cursor: default;
+  }
+  .round-gps-mine-btn.is-planning .round-gps-mine-btn-count {
+    display: none;
   }
   @media (hover: hover) {
     .round-gps-shot-btn:hover {
@@ -33828,6 +33928,16 @@
     //   - At least one tool must remain visible (UI enforces this).
     toolsConfig: null,
 
+    // Track personal shots in scramble rounds. When true, the GPS
+    // view in a scramble round shows a second "Log Mine" button next
+    // to the team-shot button, letting the user log their own shots
+    // alongside the team's chosen ball. Personal shots are stored
+    // privately on the user's player record (me.shots) and roll up
+    // into stats (My Bag, dispersion, club averages) so a scramble
+    // doesn't black-hole personal data. Default true — opt OUT for
+    // users who don't want the extra button.
+    trackPersonalScrambleShots: true,
+
     // ─── Social ──────────────────────────────────────────────
     // Social identity. All fields default empty/private — users opt IN
     // to social presence by setting a username and flipping visibility.
@@ -34840,6 +34950,56 @@
             swingPct: null, // round shots don't track swing %
             roundId: round.id,
             capturedAt: shot.capturedAt || round.endTime || 0,
+          };
+        }
+      }
+    }
+
+    // Personal scramble shots — pulled separately because the main
+    // loop above filters out non-counting formats via
+    // roundCountsForStats. Scrambles are excluded for the team
+    // scorecard (a scramble's "shots" represent the chosen ball, not
+    // any single player's data), but personalShots ARE individual
+    // measured swings: the user explicitly logged them via "Log Mine"
+    // to capture their own data even when the team picked someone
+    // else's ball. Those belong in stats.
+    for (const round of recentRounds || []) {
+      if (round.status !== 'completed') continue;
+      if (getRoundFormat(round) !== 'scramble') continue;
+      const personalShotsMap = round.personalShots || {};
+      for (const holeNum of Object.keys(personalShotsMap)) {
+        for (const shot of personalShotsMap[holeNum] || []) {
+          const name = resolveShotClubName(shot, bagById);
+          if (!name) continue;
+          let gpsYards = null;
+          const isPutt = shot.intent === 'putt' || shot.startLie === 'green';
+          if (!isPutt
+              && typeof shot.actualYards === 'number'
+              && Number.isFinite(shot.actualYards)
+              && shot.actualYards >= 5) {
+            const m = shot.mishit;
+            const isContactMishit = m === 'thin' || m === 'fat'
+                                 || m === 'toe' || m === 'heel';
+            if (!isContactMishit) {
+              gpsYards = shot.actualYards;
+            }
+          }
+          yield {
+            shot,
+            source: 'round',
+            clubName: name,
+            clubKey: makeClubKey(name),
+            carry:     null,
+            gpsYards,
+            direction: resolveShotDirection(shot, 'round'),
+            contact:   resolveShotContact(shot, 'round'),
+            swingPct: null,
+            roundId: round.id,
+            capturedAt: shot.capturedAt || shot.loggedAt || round.endTime || 0,
+            // Tag so downstream consumers can identify these if they
+            // want to filter or treat differently. Default behavior
+            // is to mix them in alongside solo round shots.
+            isPersonalScramble: true,
           };
         }
       }
@@ -40556,12 +40716,24 @@
       if (isGroupRoundActive()) {
         const gr = groupRoundState.doc;
         if (gr && getRoundFormat(gr) === 'scramble') {
-          // Scramble: shots live on the round doc's teamShots field
-          // (NOT per-player). Use a separate debounced save that
-          // writes the whole teamShots map. Last-write-wins is fine
-          // here for the same reasons as teamScores — small group,
-          // edits are usually serialized through "we just hit a shot."
-          queueSaveScrambleTeamShots();
+          // Scramble has TWO independent shot streams — team (shared)
+          // and personal (per-player). Route based on which one the
+          // edit sheet is currently working on. shotEditState.personalShot
+          // is set by openShotEditSheet when invoked via Log Mine.
+          // When the call comes from outside the edit sheet (e.g. a
+          // direct shot save somewhere), we default to team — that's
+          // the path log-shot-from-GPS uses.
+          if (shotEditState.personalShot) {
+            queueSavePersonalScrambleShots();
+          } else {
+            // Scramble team: shots live on the round doc's teamShots
+            // field (NOT per-player). Use a separate debounced save
+            // that writes the whole teamShots map. Last-write-wins is
+            // fine here for the same reasons as teamScores — small
+            // group, edits are usually serialized through "we just
+            // hit a shot."
+            queueSaveScrambleTeamShots();
+          }
         } else {
           queueSaveMyGroupScores();
         }
@@ -40615,6 +40787,46 @@
       console.error('Failed to save team shots:', err);
       syncEndSave(false);
       showToast('Shot not saved — check connection', true);
+    }
+  }
+
+  // Personal scramble shots — debounced save path. Mirrors the team
+  // shots debouncer but writes to me.shots (per-player private data)
+  // via updateGroupRoundPlayer rather than the round-level teamShots.
+  // Personal shots roll up into stats (My Bag, dispersion) so we want
+  // them durable, not held only in memory.
+  let __scramblePersonalShotsSaveTimer = null;
+  let __scramblePersonalShotsInFlight = 0;
+  function queueSavePersonalScrambleShots() {
+    if (__scramblePersonalShotsSaveTimer) clearTimeout(__scramblePersonalShotsSaveTimer);
+    __scramblePersonalShotsSaveTimer = setTimeout(() => {
+      __scramblePersonalShotsSaveTimer = null;
+      savePersonalScrambleShotsNow().catch(err => {
+        console.error('Failed personal shots save:', err);
+      });
+    }, 800);
+  }
+
+  async function savePersonalScrambleShotsNow() {
+    if (!isGroupRoundActive() || !window.fb || !currentUser) return;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return;
+    const me = getMyGroupRoundPlayer();
+    if (!me) return;
+    syncBeginSave();
+    __scramblePersonalShotsInFlight++;
+    try {
+      await window.fb.updateGroupRoundPlayer(gr.id, currentUser.uid, {
+        shots: me.shots || {},
+      });
+      syncEndSave(true);
+    } catch (err) {
+      console.error('Failed to save personal shots:', err);
+      syncEndSave(false);
+      showToast('Personal shot not saved — check connection', true);
+    } finally {
+      __scramblePersonalShotsInFlight--;
+      if (__scramblePersonalShotsInFlight < 0) __scramblePersonalShotsInFlight = 0;
     }
   }
 
@@ -42858,6 +43070,16 @@
   // is the only signal we have for "score change in flight."
   let __scrambleTeamScoreInFlight = 0;
 
+  // Same idea but for teamCurrentHoleIdx — incremented when a write to
+  // the team cursor starts (from scrambleNext, hole picker, GPS
+  // auto-advance), decremented when it resolves. Without this, an
+  // incoming snapshot during the optimistic-write window would echo
+  // the OLD cursor value and rubber-band the user back to the previous
+  // hole. Worst case the user advances, sees Save & Next, and then a
+  // benign snapshot (e.g. another player joining or any unrelated
+  // round-doc field changing) reverts them to the old hole.
+  let __scrambleTeamCursorInFlight = 0;
+
   async function persistTeamScore(holeNum, scoreObj) {
     if (!isGroupRoundActive() || !window.fb) return;
     const gr = groupRoundState.doc;
@@ -42985,6 +43207,41 @@
 
   // ── Scramble navigation ─────────────────────────────────────────
 
+  // Advance the team cursor to a specific hole index. Optimistic local
+  // update + Firestore write with rollback. Used by:
+  //   - scrambleNext (when user advances from team's current hole)
+  //   - GPS auto-advance prompt (user walked to next tee, accepted)
+  // The hole picker does NOT use this — picker is local-view-only.
+  // No-op if the cursor is already at the requested index.
+  function scrambleAdvanceTeamTo(newTeamIdx) {
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const course = getCourse(gr.courseId);
+    if (!course) return;
+    if (newTeamIdx < 0 || newTeamIdx >= course.holes.length) return;
+    const oldTeamIdx = typeof gr.teamCurrentHoleIdx === 'number' ? gr.teamCurrentHoleIdx : 0;
+    if (oldTeamIdx === newTeamIdx) return;
+    // Optimistic — bump local cursor + clear local viewing override
+    // so the user follows the team to the new hole.
+    gr.teamCurrentHoleIdx = newTeamIdx;
+    scrambleRoundState.viewingHoleIdx = null;
+    renderGroupRoundPanel();
+    if (!window.fb) return;
+    __scrambleTeamCursorInFlight++;
+    window.fb.updateGroupRoundFields(gr.id, { teamCurrentHoleIdx: newTeamIdx })
+      .catch(err => {
+        console.error('Failed to advance team hole:', err);
+        gr.teamCurrentHoleIdx = oldTeamIdx;
+        renderGroupRoundPanel();
+        showToast('Could not advance — check connection', true);
+      })
+      .finally(() => {
+        __scrambleTeamCursorInFlight--;
+        if (__scrambleTeamCursorInFlight < 0) __scrambleTeamCursorInFlight = 0;
+      });
+  }
+  window.scrambleAdvanceTeamTo = scrambleAdvanceTeamTo;
+
   function scrambleNext() {
     const gr = groupRoundState.doc;
     if (!gr) return;
@@ -43004,20 +43261,7 @@
         confirmCompleteScrambleRound();
         return;
       }
-      const newTeamIdx = teamIdx + 1;
-      // Optimistic — bump local cursor + clear local viewing override
-      // so the user follows the team forward.
-      gr.teamCurrentHoleIdx = newTeamIdx;
-      scrambleRoundState.viewingHoleIdx = null;
-      renderGroupRoundPanel();
-      window.fb.updateGroupRoundFields(gr.id, { teamCurrentHoleIdx: newTeamIdx })
-        .catch(err => {
-          console.error('Failed to advance team hole:', err);
-          // Roll back on failure
-          gr.teamCurrentHoleIdx = teamIdx;
-          renderGroupRoundPanel();
-          showToast('Could not advance — check connection', true);
-        });
+      scrambleAdvanceTeamTo(teamIdx + 1);
     } else {
       // Viewing a past hole — just navigate the LOCAL view forward.
       // Doesn't affect anyone else.
@@ -43097,9 +43341,22 @@
       __scrambleTeamShotsSaveTimer = null;
       try { await saveScrambleTeamShotsNow(); } catch (_) {}
     }
+    // Flush pending personal-shot save too — me.shots may have edits
+    // that haven't reached Firestore yet. Without this, the personal
+    // snapshot below could miss the last few personal shots.
+    if (__scramblePersonalShotsSaveTimer) {
+      clearTimeout(__scramblePersonalShotsSaveTimer);
+      __scramblePersonalShotsSaveTimer = null;
+      try { await savePersonalScrambleShotsNow(); } catch (_) {}
+    }
 
     const teamScores = gr.teamScores || {};
     const teamShots = gr.teamShots || {};
+    // Personal shots — only present when the user logged any during
+    // the round (Log Mine button). Stored on me.shots.
+    const personalShotsByHole = (me.shots && Object.keys(me.shots).length > 0)
+      ? me.shots
+      : null;
     const totals = totalsArg || computeGroupPlayerTotals(teamScores, course);
 
     // Compute "whose ball got picked most" — count hitBy occurrences
@@ -43186,6 +43443,16 @@
     }
     if (pinsForSnapshot && Object.keys(pinsForSnapshot).length > 0) {
       personalPayload.pins = pinsForSnapshot;
+    }
+    // Personal shots from Log Mine — saved as a separate field so
+    // they don't conflict with the team's `shots` field. Stat
+    // consumers (My Bag, dispersion, club averages) will read from
+    // both `shots` (team chosen-ball shots that were attributed to
+    // this user via hitBy) AND `personalShots` (independently logged
+    // personal shots) to get a complete picture of the user's
+    // individual data from this scramble round.
+    if (personalShotsByHole) {
+      personalPayload.personalShots = personalShotsByHole;
     }
 
     // Compute bestType — scramble doesn't count for stats per the
@@ -44157,6 +44424,140 @@
     if (!roundState.shots) roundState.shots = {};
     if (!roundState.shots[holeNumber]) roundState.shots[holeNumber] = [];
     return roundState.shots[holeNumber];
+  }
+
+  // ── Personal scramble shots ─────────────────────────────────────
+  //
+  // In a scramble, the team picks one ball per swing-round and
+  // everyone hits the next shot from there. Personal shots let a
+  // player ALSO log their own swing (regardless of whether the team
+  // picked it) so their individual data — clubs, distances,
+  // dispersion — keeps accumulating during scrambles.
+  //
+  // Personal shots live on me.shots[holeNum] (same shape as standard
+  // round shots, isolated per-player on the round doc). They never
+  // affect team scoring or the team's shot chain. Tagged
+  // `personalOnly: true` and `fromScramble: true` to distinguish from
+  // the team's chosen shots and from solo round shots.
+
+  // Should the GPS view show the "Log Mine" button? True only when:
+  //   - Active round is a scramble
+  //   - User has the pref enabled (default true)
+  //   - Currently on a hole that's the team's actual position (not
+  //     viewing a past hole — personal shots only get logged in real
+  //     time during the team's current swing-round)
+  function shouldShowPersonalShotButton() {
+    if (!isGroupRoundActive()) return false;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return false;
+    if (prefs.trackPersonalScrambleShots === false) return false;
+    return true;
+  }
+
+  // Get the array of personal shots for a hole. Always reads from
+  // me.shots — independent of the team chain. Returns empty array if
+  // round isn't a live scramble or me record is missing.
+  function getPersonalScrambleShotsForHole(holeNumber) {
+    if (!isGroupRoundActive()) return [];
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return [];
+    const me = getMyGroupRoundPlayer();
+    if (!me || !me.shots) return [];
+    return me.shots[holeNumber] || [];
+  }
+
+  // Initialize me.shots[holeNum] for mutation if needed and return it.
+  // Used by addPersonalScrambleShot to push a new shot.
+  function ensurePersonalScrambleShotsForHole(holeNumber) {
+    if (!isGroupRoundActive()) return null;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return null;
+    const me = getMyGroupRoundPlayer();
+    if (!me) return null;
+    if (!me.shots) me.shots = {};
+    if (!me.shots[holeNumber]) me.shots[holeNumber] = [];
+    return me.shots[holeNumber];
+  }
+
+  // Compute the start position for a fresh personal shot. Personal
+  // shots don't chain to each other — instead each one starts from
+  // wherever the TEAM is hitting from on this swing-round:
+  //   - First shot of hole (no team shots yet) → tee position
+  //     (everyone tees off from their own tee)
+  //   - Otherwise → last team shot's end position (the chosen ball
+  //     location everyone hits their next shot from)
+  // Returns { lat, lng } or null if neither position is available
+  // (e.g. course has no tee coords for this hole).
+  function computePersonalShotStartPosition(holeNumber, course) {
+    if (!isGroupRoundActive() || !course) return null;
+    const gr = groupRoundState.doc;
+    if (!gr) return null;
+    const teamShots = gr.teamShots?.[holeNumber] || [];
+    if (teamShots.length > 0) {
+      // Use the most recent team shot's end position. afterDrop and
+      // endedInTrouble shots count: if the team's last action moved
+      // the ball, that's where everyone is now hitting from.
+      const last = teamShots[teamShots.length - 1];
+      if (last && typeof last.endLat === 'number' && typeof last.endLng === 'number') {
+        return { lat: last.endLat, lng: last.endLng };
+      }
+      // Fallback: last shot has no end yet — use its start.
+      if (last && typeof last.startLat === 'number' && typeof last.startLng === 'number') {
+        return { lat: last.startLat, lng: last.startLng };
+      }
+    }
+    // No team shots yet → tee shot. Use the user's tee for THIS hole
+    // (per-player tee in scramble — each plays from their own tees).
+    const me = getMyGroupRoundPlayer();
+    const teeName = me?.tee
+      || (gr.players || []).find(p => p.uid === gr.organizerUid)?.tee
+      || course.tees?.[0]?.name;
+    const teePos = (typeof getEffectiveTeePosition === 'function')
+      ? getEffectiveTeePosition(course, holeNumber, teeName)
+      : null;
+    if (teePos && typeof teePos.lat === 'number' && typeof teePos.lng === 'number') {
+      return { lat: teePos.lat, lng: teePos.lng };
+    }
+    return null;
+  }
+
+  // Add a personal shot to me.shots[holeNum]. shotData should include
+  // at least { startLat, startLng, endLat, endLng } — the rest is
+  // populated to defaults and refined via the shot edit sheet that
+  // opens after this returns. Persists via debouncer. Returns the
+  // newly-added shot (with id assigned) so the caller can navigate
+  // straight to editing it.
+  function addPersonalScrambleShot(holeNumber, shotData) {
+    const shots = ensurePersonalScrambleShotsForHole(holeNumber);
+    if (!shots) return null;
+    const id = (typeof newShotId === 'function') ? newShotId() : `s${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const newShot = {
+      id,
+      // Position: caller-provided start (computed via
+      // computePersonalShotStartPosition) and end (current GPS at tap).
+      startLat: shotData.startLat ?? null,
+      startLng: shotData.startLng ?? null,
+      endLat: shotData.endLat ?? null,
+      endLng: shotData.endLng ?? null,
+      // actualYards: derived from start/end if both present.
+      actualYards: shotData.actualYards ?? null,
+      // Standard shot fields default empty — user fills in via edit sheet.
+      club: shotData.club || null,
+      distance: shotData.distance ?? null,
+      startLie: shotData.startLie || null,
+      intent: shotData.intent || null,
+      mishit: shotData.mishit || null,
+      result: shotData.result || null,
+      // Tags that mark this as a personal-only scramble shot. Read by
+      // stat consumers (My Bag, dispersion) to roll up correctly, and
+      // by the map renderer to draw a distinct pin style.
+      personalOnly: true,
+      fromScramble: true,
+      loggedAt: Date.now(),
+    };
+    shots.push(newShot);
+    queueSavePersonalScrambleShots();
+    return newShot;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -45251,6 +45652,11 @@
     // Used by the round replay feature — tap a shot pin to edit it
     // post-round. Null/undefined = live-round editing (default).
     roundId: null,
+    // True when the sheet is editing a PERSONAL scramble shot (one
+    // logged via "Log Mine" in scramble mode). Routes shot lookup +
+    // save to me.shots instead of teamShots, hides the hit-by picker,
+    // and adds a "Personal" tag in the sheet header. Default false.
+    personalShot: false,
   };
 
   // Resolve the round object the edit sheet is currently editing.
@@ -45425,16 +45831,23 @@
   // opts.roundId — when set, the sheet edits a HISTORICAL round (used by
   // round replay's tap-to-edit). When null, defaults to live-round editing.
   function openShotEditSheet(holeNumber, pendingShotId, opts = {}) {
-    // Set roundId BEFORE looking up shots so getEditingRoundOverride
-    // works inside helpers called below.
+    // Set roundId + personalShot BEFORE looking up shots so the
+    // helpers below route correctly.
     shotEditState.roundId = opts.roundId || null;
+    shotEditState.personalShot = !!opts.personalShot;
     const overrideRound = getEditingRoundOverride();
-    const shots = getShotsForHole(holeNumber, overrideRound);
+    // For personal scramble shots, look up from me.shots instead of
+    // the team-shot stream. Personal shots live on the player record,
+    // independent of the team chain.
+    const shots = shotEditState.personalShot
+      ? getPersonalScrambleShotsForHole(holeNumber)
+      : getShotsForHole(holeNumber, overrideRound);
     let draft;
     if (pendingShotId) {
       const existing = shots.find(s => s.id === pendingShotId);
       if (!existing) {
         shotEditState.roundId = null;
+        shotEditState.personalShot = false;
         return;
       }
       draft = { ...existing };
@@ -45951,6 +46364,7 @@
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
+      shotEditState.personalShot = false;
       shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
@@ -45984,6 +46398,7 @@
       shotEditState.editingId = null;
       shotEditState.holeNumber = null;
       shotEditState.roundId = null;
+      shotEditState.personalShot = false;
       shotEditState.isNewStub = false;
       releaseScrollLock();
       const mount = document.getElementById('shot-edit-sheet-mount');
@@ -46207,7 +46622,16 @@
     const isReplayEdit = !!overrideRound;
     const replayRoundId = shotEditState.roundId; // capture before close
 
-    const shots = ensureShotsForHole(holeNumber, overrideRound);
+    // Personal scramble shots live on me.shots, NOT teamShots — use
+    // the personal helper to get the live array. Replay-edit mode
+    // never overlaps with personalShot, so the replay path stays put.
+    const shots = shotEditState.personalShot
+      ? ensurePersonalScrambleShotsForHole(holeNumber)
+      : ensureShotsForHole(holeNumber, overrideRound);
+    if (!shots) {
+      showToast('Could not save shot', true);
+      return;
+    }
     // Track penalty state transitions for reconciliation below. We
     // need to know whether the user just toggled the result onto or
     // off of 'penalty' so we can update entry.penalties + the
@@ -46328,7 +46752,10 @@
     }
     // Reconcile entry.penalties + maybe kick off the drop flow.
     // Driven by the penaltyTransition computed before the merge.
-    if (penaltyTransition && !isReplayEdit) {
+    // Skipped for personal shots — they don't affect the team
+    // scorecard and don't drive penalty flows.
+    const isPersonalSave = shotEditState.personalShot;
+    if (penaltyTransition && !isReplayEdit && !isPersonalSave) {
       const entry = ensureEntryForHole(holeNumber);
       if (entry) {
         if (penaltyTransition === 'now-penalty') {
@@ -46366,9 +46793,10 @@
     // Recompute strokes after any shot OR penalty change. Without
     // this, a retroactive penalty mark could leave entry.strokes
     // unchanged even though tracked count grew. Skipped for replay
-    // edits — historical rounds shouldn't have stroke totals
-    // mutated by edit-shot operations.
-    if (!isReplayEdit) {
+    // edits (historical rounds shouldn't have stroke totals
+    // mutated by edit-shot operations) AND for personal shots
+    // (they're side-channel, not part of the team scorecard).
+    if (!isReplayEdit && !isPersonalSave) {
       recomputeStrokesFromTracked(holeNumber);
       autoFillStatsFromShots(holeNumber);
     }
@@ -46408,8 +46836,13 @@
     }
     // Persist via the right path: live round → debounced autosave;
     // historical round → direct Firestore write at the round's doc.
+    // Personal scramble shots route through their own debouncer
+    // (state was already reset by closeShotEditSheet, so we use the
+    // captured isPersonalSave flag).
     if (isReplayEdit) {
       persistShotChangesForReplay(replayRoundId);
+    } else if (isPersonalSave) {
+      queueSavePersonalScrambleShots();
     } else {
       persistShotChanges();
     }
@@ -46431,10 +46864,19 @@
       destructive: true,
     });
     if (!ok) return;
+    // Capture personal-shot flag before close resets state.
+    const isPersonalDelete = shotEditState.personalShot;
     const overrideRound = getEditingRoundOverride();
     const isReplayEdit = !!overrideRound;
     const replayRoundId = shotEditState.roundId;
-    const shots = ensureShotsForHole(holeNumber, overrideRound);
+    // Personal shots live on me.shots, not teamShots — branch lookup.
+    const shots = isPersonalDelete
+      ? ensurePersonalScrambleShotsForHole(holeNumber)
+      : ensureShotsForHole(holeNumber, overrideRound);
+    if (!shots) {
+      showToast('Could not delete shot', true);
+      return;
+    }
     const idx = shots.findIndex(s => s.id === editingId);
     if (idx !== -1) shots.splice(idx, 1);
     closeShotEditSheet();
@@ -46444,12 +46886,12 @@
     }
     // If GPS is open and deleting a shot for the current hole,
     // re-init shot tracking (recomputes lastShotEnd from the now-shorter
-    // shots array) and re-render pins. Without this, lastShotEnd
-    // would still reference the deleted shot's end position.
+    // shots array) and re-render pins. For personal-shot deletes,
+    // skip initShotTrackingForHole (it tracks team chain, not personal).
     if (typeof renderRoundGpsShotMarkers === 'function'
         && roundGpsState.open
         && roundGpsState.holeNumber === holeNumber) {
-      initShotTrackingForHole();
+      if (!isPersonalDelete) initShotTrackingForHole();
       renderRoundGpsShotMarkers();
       refreshRoundGpsActionButton();
     }
@@ -46460,6 +46902,8 @@
     // Persist via the right path.
     if (isReplayEdit) {
       persistShotChangesForReplay(replayRoundId);
+    } else if (isPersonalDelete) {
+      queueSavePersonalScrambleShots();
     } else {
       persistShotChanges();
     }
@@ -46646,12 +47090,22 @@
       : '';
 
     // Scramble "Hit by" picker — only shown when the active round is
-    // a scramble. Pill row of player names so picks are one tap. The
-    // active player is highlighted; tapping a different player updates
-    // the shot's hitBy AND becomes the new sticky default for the
-    // next shot logged this session.
+    // a scramble AND this is a TEAM shot. Personal scramble shots are
+    // implicitly self (the user logged them via Log Mine), so no
+    // picker is needed; instead we render a small "Personal" badge
+    // so the user can see which mode the sheet is in.
     let hitByPickerHtml = '';
-    if (isGroupRoundActive()) {
+    if (shotEditState.personalShot) {
+      hitByPickerHtml = `
+        <div class="shot-edit-section">
+          <div class="personal-shot-tag">
+            <span class="personal-shot-tag-dot" aria-hidden="true"></span>
+            <span class="personal-shot-tag-label">Personal shot</span>
+            <span class="personal-shot-tag-sub">Counts toward your stats only — not the team scorecard</span>
+          </div>
+        </div>
+      `;
+    } else if (isGroupRoundActive()) {
       const __gr = groupRoundState.doc;
       if (__gr && getRoundFormat(__gr) === 'scramble') {
         const players = (__gr.players || []).filter(p => p.status !== 'left');
@@ -53002,22 +53456,28 @@
       // server data — a small window but actively visible (score flips
       // back, shots vanish).
       //
-      // Two write paths to guard:
+      // Three write paths to guard:
       //   - Shots: debounced via __scrambleTeamShotsSaveTimer. The
       //     timer being set means a write is queued.
       //   - Scores: immediate via persistTeamScore. The
       //     __scrambleTeamScoreInFlight counter tracks how many
       //     concurrent score writes are still resolving.
+      //   - Cursor (teamCurrentHoleIdx): immediate via
+      //     scrambleAdvanceTeamTo. The __scrambleTeamCursorInFlight
+      //     counter prevents an in-flight write from being snapshot-
+      //     reverted (rubber-band back to old hole) by an unrelated
+      //     server echo.
       //
       // CAVEAT: preserving local state means OTHER players' edits to
-      // teamScores/teamShots that landed in this snapshot will be
-      // DROPPED if I had local edits in flight. Last-write-wins per
-      // the spec; the alternative (deep merge) would be more complex
-      // and still wrong sometimes. v1 acceptable risk; revisit if
-      // conflicts become common.
+      // teamScores/teamShots/teamCurrentHoleIdx that landed in this
+      // snapshot will be DROPPED if I had local edits in flight.
+      // Last-write-wins per the spec; the alternative (deep merge)
+      // would be more complex and still wrong sometimes. v1
+      // acceptable risk; revisit if conflicts become common.
       if (groupRoundState.doc && getRoundFormat(groupRoundState.doc) === 'scramble') {
         const hasPendingShots = !!__scrambleTeamShotsSaveTimer;
         const hasPendingScores = __scrambleTeamScoreInFlight > 0;
+        const hasPendingCursor = __scrambleTeamCursorInFlight > 0;
         if (hasPendingShots) {
           mergedDoc = {
             ...mergedDoc,
@@ -53028,6 +53488,12 @@
           mergedDoc = {
             ...mergedDoc,
             teamScores: groupRoundState.doc.teamScores || {},
+          };
+        }
+        if (hasPendingCursor && typeof groupRoundState.doc.teamCurrentHoleIdx === 'number') {
+          mergedDoc = {
+            ...mergedDoc,
+            teamCurrentHoleIdx: groupRoundState.doc.teamCurrentHoleIdx,
           };
         }
       }
@@ -57658,17 +58124,27 @@
     // way to preserve progress across leave-and-rejoin in the simplified
     // model — the group doc itself doesn't keep ex-players' data.
     //
-    // Scramble exception: scramble rounds keep all data on the round
+    // Scramble exception: scramble rounds keep team data on the round
     // doc (teamScores / teamShots), so leaving and rejoining doesn't
-    // lose anything — the round doc itself preserves everything. The
-    // prior personal record is a snapshot of the team scorecard, not
-    // user-specific progress, so prompting "continue your saved round"
-    // is misleading. Skip the prompt entirely for scramble.
+    // lose the team scorecard. The prompt to continue is misleading
+    // for scramble (their team scorecard isn't user-specific). BUT
+    // personalShots ARE user-specific — those vanish on leave because
+    // they live on the player record. Silently restore them on rejoin
+    // from the prior personal history record so the user doesn't lose
+    // shots they tagged via Log Mine.
     let prefillScores = {};
     let prefillShots = {};
     const isScrambleRound = getRoundFormat(round) === 'scramble';
     const priorRound = (recentRounds || []).find(r => r.groupRoundId === groupRoundId);
-    if (!isScrambleRound && priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
+    if (isScrambleRound) {
+      // Scramble: skip the prompt, but DO restore personalShots if
+      // any were saved on the prior personal record. Maps to me.shots
+      // on the new player entry (where logPersonalShotAtCurrentPosition
+      // also writes). Personal shots survive the round-trip silently.
+      if (priorRound && priorRound.personalShots && Object.keys(priorRound.personalShots).length > 0) {
+        prefillShots = { ...priorRound.personalShots };
+      }
+    } else if (priorRound && priorRound.scores && Object.keys(priorRound.scores).length > 0) {
       const holesPlayed = Object.keys(priorRound.scores).length;
       const choice = await confirmDialog({
         eyebrow: 'Continue Round?',
@@ -66188,6 +66664,8 @@
     const toolsSummary = effective.length === DOCK_TOOLS.length
       ? `${effective.length} tools`
       : `${effective.length} of ${DOCK_TOOLS.length} tools`;
+    // Read with default-true semantics — undefined treated as on.
+    const trackPersonalScrambleShots = prefs.trackPersonalScrambleShots !== false;
     return `
       <div class="settings-section">
         <div class="settings-section-title">Your Game</div>
@@ -66210,6 +66688,16 @@
             <button class="${gender === 'male' ? 'active' : ''}" onclick="setGender('male')">Men's</button>
             <button class="${gender === 'female' ? 'active' : ''}" onclick="setGender('female')">Women's</button>
             <button class="${gender === null ? 'active' : ''}" onclick="setGender(null)">All</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Track personal shots in scrambles</div>
+            <div class="settings-row-sub">Adds a "Log Mine" button in the GPS view during scramble rounds, so your individual shots roll up into your stats even when the team picked someone else's ball.</div>
+          </div>
+          <div class="seg-control">
+            <button class="${trackPersonalScrambleShots ? 'active' : ''}" onclick="setTrackPersonalScrambleShots(true)">On</button>
+            <button class="${!trackPersonalScrambleShots ? 'active' : ''}" onclick="setTrackPersonalScrambleShots(false)">Off</button>
           </div>
         </div>
         <button class="settings-row settings-row-link" onclick="openToolsEditorSheet()">
@@ -66235,6 +66723,19 @@
     savePreferences();
     renderProfile();
   }
+
+  // Toggle scramble personal shot tracking. Writes to prefs, persists,
+  // and re-renders Profile. The GPS view reads this on render, so a
+  // mid-round flip takes effect on the next GPS open. Default true:
+  // most users probably want personal data preserved during scrambles.
+  function setTrackPersonalScrambleShots(val) {
+    const next = !!val;
+    if ((prefs.trackPersonalScrambleShots !== false) === next) return;
+    prefs.trackPersonalScrambleShots = next;
+    savePreferences();
+    renderProfile();
+  }
+  window.setTrackPersonalScrambleShots = setTrackPersonalScrambleShots;
 
   // Set tee gender pref. 'male' | 'female' | null. null means "show all
   // tees" — a useful explicit choice for users who don't want to specify,
@@ -68931,6 +69432,11 @@
     // for the connecting line between consecutive shots.
     shotMarkers: {},               // legacy DOM markers; kept for cleanup of old state during transition
     shotMarkerLayers: null,        // { sourceId, layerIds, clickHandler, ... } | null — new symbol/circle layer approach
+    // Personal scramble shots are rendered as a separate layer so
+    // they don't tangle with the team chain visually. Same shape as
+    // shotMarkerLayers but independent — torn down + rebuilt in the
+    // same render pass.
+    personalShotMarkerLayers: null,
     shotLine: null,                // { sourceId, layerId } | null
     // Holes where the user has manually set the tee position via the
     // "Set tee" action button. Once set, the button stays in 'log'
@@ -69176,6 +69682,7 @@
     // tear-down happens via map.remove() above.
     roundGpsState.shotMarkers = {};
     roundGpsState.shotMarkerLayers = null;
+    roundGpsState.personalShotMarkerLayers = null;
     roundGpsState.shotLine = null;
     roundGpsState.lastShotEnd = null;
     // Committed target — same story; clear on full re-mount.
@@ -69243,29 +69750,13 @@
       const gr = groupRoundState.doc;
       const isScramble = gr && getRoundFormat(gr) === 'scramble';
       if (isScramble) {
-        // Scramble: cursor lives on the round doc as teamCurrentHoleIdx.
-        // Auto-advance from GPS bumps it for the team (this device is
-        // the one doing the work; everyone else snaps via snapshot).
-        // Clear any local viewing override so the panel follows the
-        // team's new position when the user closes GPS.
-        if (gr.teamCurrentHoleIdx !== holeIndex) {
-          const oldTeamIdx = typeof gr.teamCurrentHoleIdx === 'number' ? gr.teamCurrentHoleIdx : 0;
-          gr.teamCurrentHoleIdx = holeIndex;
-          scrambleRoundState.viewingHoleIdx = null;
-          if (typeof renderGroupRoundPanel === 'function') {
-            try { renderGroupRoundPanel(); } catch (_) {}
-          }
-          if (window.fb) {
-            window.fb.updateGroupRoundFields(gr.id, { teamCurrentHoleIdx: holeIndex })
-              .catch(err => {
-                console.error('Failed to advance team via GPS:', err);
-                gr.teamCurrentHoleIdx = oldTeamIdx;
-                if (typeof renderGroupRoundPanel === 'function') {
-                  try { renderGroupRoundPanel(); } catch (_) {}
-                }
-              });
-          }
-        }
+        // Scramble: this function is a GPS-view-only operation. The
+        // team cursor (teamCurrentHoleIdx) is not touched here —
+        // callers decide whether to advance the team. The hole picker
+        // calls us to peek (no team change) while the GPS auto-advance
+        // prompt advances the team explicitly via scrambleAdvanceTeamTo
+        // before calling us. This separation prevents picker-jumps from
+        // accidentally moving everyone.
       } else {
         // Standard group round: per-player cursor.
         if (groupRoundState.yourHoleIndex !== holeIndex) {
@@ -69743,6 +70234,7 @@
     roundGpsState.lastShotEnd = null;
     roundGpsState.shotMarkers = {};
     roundGpsState.shotMarkerLayers = null;
+    roundGpsState.personalShotMarkerLayers = null;
     roundGpsState.shotLine = null;
     roundGpsState.teeManuallySetHoles = new Set();
     // Committed target is GPS-session-scoped; cleared on close. The
@@ -77755,9 +78247,19 @@
   function acceptRoundGpsAdvance() {
     const idx = roundGpsState.advancePromptHoleIndex;
     hideRoundGpsAdvancePrompt();
-    if (typeof idx === 'number') {
-      transitionRoundGpsToHole(idx);
+    if (typeof idx !== 'number') return;
+    // Scramble: this is a real "I walked to the next tee" event so
+    // it advances the TEAM cursor, not just my local GPS view. Other
+    // players see the team move via the realtime snapshot. Standard
+    // group rounds + solo just sync the GPS hole; team has no
+    // shared cursor to move.
+    if (isGroupRoundActive()) {
+      const gr = groupRoundState.doc;
+      if (gr && getRoundFormat(gr) === 'scramble') {
+        scrambleAdvanceTeamTo(idx);
+      }
     }
+    transitionRoundGpsToHole(idx);
   }
   window.acceptRoundGpsAdvance = acceptRoundGpsAdvance;
 
@@ -78843,6 +79345,133 @@
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
   window.getShotMissContext = getShotMissContext;
 
+  // Log a personal scramble shot at the user's current GPS position.
+  // Independent flow from team-shot logging:
+  //   - Doesn't touch teamShots / teamScores
+  //   - Doesn't auto-bump strokes (personal shots are private practice
+  //     data, not part of the team scorecard)
+  //   - Start position derives from the team's chain (last team shot
+  //     end OR tee) — see computePersonalShotStartPosition
+  //   - End position is current GPS at tap time
+  //   - Has its own dup-shot warning (personal-vs-personal, not
+  //     personal-vs-team) so accidental double-taps still get caught
+  //
+  // After logging, opens the shot edit sheet so the user fills in
+  // club, distance, intent, mishit, etc. The hit-by picker is hidden
+  // for personal shots (implicitly self).
+  async function logPersonalShotAtCurrentPosition() {
+    if (!roundGpsState.open) return;
+    if (roundGpsState.mode !== 'playing') {
+      showToast("GPS hasn't found you yet — wait a moment", true);
+      return;
+    }
+    if (!shouldShowPersonalShotButton()) return;
+    const userPos = getRoundGpsUserPos();
+    if (!userPos) {
+      showToast("No GPS fix — can't log shot position", true);
+      return;
+    }
+    const holeNum = roundGpsState.holeNumber;
+    if (holeNum == null) return;
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const course = getCourse(gr.courseId);
+    if (!course) return;
+
+    // Personal-vs-personal dup warning. Fires when this user has
+    // logged a personal shot within 15y AND 90s of the current
+    // position. Doesn't consider team shots — personal flow has its
+    // own guardrails. Doesn't consider OTHER players' personal shots
+    // either (those are private to them; they wouldn't be in our
+    // me.shots).
+    const personalShots = getPersonalScrambleShotsForHole(holeNum);
+    const now = Date.now();
+    const DUP_DIST_YARDS = 15;
+    const DUP_TIME_MS = 90 * 1000;
+    const dup = personalShots.find(s => {
+      if (s.endLat == null || s.endLng == null || s.loggedAt == null) return false;
+      const d = haversineYards(s.endLat, s.endLng, userPos.lat, userPos.lng);
+      if (d > DUP_DIST_YARDS) return false;
+      const ageMs = now - s.loggedAt;
+      if (ageMs < 0 || ageMs > DUP_TIME_MS) return false;
+      return true;
+    });
+    if (dup) {
+      const dupDistance = Math.round(haversineYards(
+        dup.endLat, dup.endLng, userPos.lat, userPos.lng));
+      const ageSec = Math.max(1, Math.round((now - dup.loggedAt) / 1000));
+      const ageStr = ageSec >= 60
+        ? `${Math.round(ageSec / 60)}m ago`
+        : `${ageSec}s ago`;
+      const ok = await confirmDialog({
+        eyebrow: 'Possible duplicate',
+        title: 'Add this personal shot anyway?',
+        message: `You logged a personal shot ${dupDistance}y from here ${ageStr}. Add another?`,
+        confirmText: 'Add Anyway',
+        cancelText: 'Cancel',
+        destructive: false,
+      });
+      if (!ok) return;
+    }
+
+    // Compute start position — see fn comment for the rule.
+    const startPos = computePersonalShotStartPosition(holeNum, course);
+    const startLat = startPos ? startPos.lat : userPos.lat;
+    const startLng = startPos ? startPos.lng : userPos.lng;
+    const endLat = userPos.lat;
+    const endLng = userPos.lng;
+    const actualYards = (typeof haversineYards === 'function')
+      ? Math.round(haversineYards(startLat, startLng, endLat, endLng) * 10) / 10
+      : null;
+
+    // Add the shot — addPersonalScrambleShot persists via debouncer.
+    const newShot = addPersonalScrambleShot(holeNum, {
+      startLat, startLng, endLat, endLng, actualYards,
+    });
+    if (!newShot) {
+      showToast("Couldn't log personal shot", true);
+      return;
+    }
+    haptic('light');
+
+    // Refresh map markers — personal shots get distinct visual style
+    // (drawn alongside team shots).
+    if (typeof renderRoundGpsShotMarkers === 'function') {
+      try { renderRoundGpsShotMarkers(); } catch (_) {}
+    }
+    // Refresh the Mine button count badge.
+    refreshRoundGpsMineButton();
+
+    // Open the shot edit sheet for refinement. The sheet detects
+    // personalOnly:true and hides the hit-by picker.
+    openShotEditSheet(holeNum, newShot.id, { isNewStub: true, personalShot: true });
+  }
+  window.logPersonalShotAtCurrentPosition = logPersonalShotAtCurrentPosition;
+
+  // Refresh the Mine button's count badge + planning-mode visual.
+  // Mirrors refreshRoundGpsActionButton's role for the primary button
+  // but keeps personal-shot-button concerns isolated.
+  function refreshRoundGpsMineButton() {
+    const btn = document.getElementById('round-gps-mine-btn');
+    if (!btn) return;
+    if (roundGpsState.mode === 'planning') {
+      btn.classList.add('is-planning');
+      btn.removeAttribute('onclick');
+      btn.setAttribute('disabled', 'disabled');
+    } else {
+      btn.classList.remove('is-planning');
+      btn.removeAttribute('disabled');
+      btn.setAttribute('onclick', 'logPersonalShotAtCurrentPosition()');
+    }
+    const countEl = document.getElementById('round-gps-mine-btn-count');
+    if (countEl) {
+      const holeNum = roundGpsState.holeNumber;
+      const n = holeNum != null ? getPersonalScrambleShotsForHole(holeNum).length : 0;
+      countEl.textContent = n > 0 ? String(n) : '';
+    }
+  }
+  window.refreshRoundGpsMineButton = refreshRoundGpsMineButton;
+
   // Distance threshold for showing "Set tee" mode on the action button.
   // Generous enough to cover multi-tee complexes — including forward
   // tees that skip hazards on long par 4s, which can sit 100+ yards
@@ -79100,6 +79729,9 @@
       if (labelEl) labelEl.textContent = 'Log shot';
     }
     updateShotBtnCount();
+    // Personal-shot Mine button shares the same bar — refresh it
+    // here so callers don't have to remember a second function.
+    refreshRoundGpsMineButton();
   }
 
   // Update the count badge on the Log Shot button so the user can
@@ -79338,6 +79970,86 @@
     if (roundGpsState.layers && roundGpsState.layers.trail === false) {
       applyRoundGpsLayerVisibility('trail');
     }
+
+    // ── Personal scramble shots layer ────────────────────────────
+    // Personal shots are rendered as smaller blue dots (no number,
+    // no connecting line) so they're visually subordinate to the
+    // team chain but still tappable for editing. Drawn AFTER the
+    // team layers so they appear on top — but small enough that
+    // they don't crowd team pins. Independent click handler that
+    // opens the edit sheet in personal-shot mode.
+    if (shouldShowPersonalShotButton()) {
+      const personalShots = getPersonalScrambleShotsForHole(holeNum);
+      if (personalShots && personalShots.length > 0) {
+        const personalPoints = [];
+        personalShots.forEach(s => {
+          if (s.endLat != null && s.endLng != null) {
+            personalPoints.push({
+              shotId: s.id,
+              lat: s.endLat,
+              lng: s.endLng,
+            });
+          }
+        });
+        if (personalPoints.length > 0) {
+          const psSourceId = 'round-gps-personal-pins-src';
+          const psCircleId = 'round-gps-personal-pins-circle';
+          const personalFc = {
+            type: 'FeatureCollection',
+            features: personalPoints.map(p => ({
+              type: 'Feature',
+              properties: { shotId: p.shotId },
+              geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+            })),
+          };
+          try {
+            if (!map.getSource(psSourceId)) {
+              map.addSource(psSourceId, { type: 'geojson', data: personalFc });
+            } else {
+              map.getSource(psSourceId).setData(personalFc);
+            }
+            if (!map.getLayer(psCircleId)) {
+              map.addLayer({
+                id: psCircleId,
+                type: 'circle',
+                source: psSourceId,
+                paint: {
+                  // Smaller than team pins (radius 11 → 7) so the
+                  // visual hierarchy reads "team primary, personal
+                  // secondary." Blue fill matches the dispersion +
+                  // user-position colors used elsewhere in GPS view.
+                  'circle-radius': 7,
+                  'circle-color': 'rgb(94, 154, 232)',
+                  'circle-stroke-width': 1.5,
+                  'circle-stroke-color': 'rgba(0, 0, 0, 0.7)',
+                },
+              });
+            }
+            const psClickHandler = (e) => {
+              const feature = e.features && e.features[0];
+              if (!feature) return;
+              const shotId = feature.properties && feature.properties.shotId;
+              if (shotId) openShotEditSheet(holeNum, shotId, { personalShot: true });
+            };
+            map.on('click', psCircleId, psClickHandler);
+            const psEnter = () => { map.getCanvas().style.cursor = 'pointer'; };
+            const psLeave = () => { map.getCanvas().style.cursor = ''; };
+            map.on('mouseenter', psCircleId, psEnter);
+            map.on('mouseleave', psCircleId, psLeave);
+            roundGpsState.personalShotMarkerLayers = {
+              sourceId: psSourceId,
+              layerIds: [psCircleId],
+              clickHandler: psClickHandler,
+              enterHandler: psEnter,
+              leaveHandler: psLeave,
+              clickLayerId: psCircleId,
+            };
+          } catch (err) {
+            console.warn('Failed to render personal shot pin layer:', err);
+          }
+        }
+      }
+    }
   }
 
   // Tear down all shot pins and the connecting line. Called when
@@ -79359,6 +80071,20 @@
       try { if (map.getSource(m.sourceId)) map.removeSource(m.sourceId); } catch (_) {}
     }
     roundGpsState.shotMarkerLayers = null;
+    // Same teardown for personal-shot layers (separate source +
+    // single circle layer). Independent so the team layer can
+    // re-render without disturbing personal markers and vice versa.
+    if (map && roundGpsState.personalShotMarkerLayers) {
+      const m = roundGpsState.personalShotMarkerLayers;
+      try { map.off('click', m.clickLayerId, m.clickHandler); } catch (_) {}
+      try { map.off('mouseenter', m.clickLayerId, m.enterHandler); } catch (_) {}
+      try { map.off('mouseleave', m.clickLayerId, m.leaveHandler); } catch (_) {}
+      (m.layerIds || []).forEach(layerId => {
+        try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
+      });
+      try { if (map.getSource(m.sourceId)) map.removeSource(m.sourceId); } catch (_) {}
+    }
+    roundGpsState.personalShotMarkerLayers = null;
     // Legacy: tear down any DOM markers from a previous version's
     // render. Harmless if shotMarkers is empty (the new code path
     // doesn't populate it). Kept so users transitioning from an old
@@ -80271,6 +80997,15 @@
             <span class="round-gps-shot-btn-label">Log shot</span>
             <span class="round-gps-shot-btn-count" id="round-gps-shot-btn-count"></span>
           </button>
+          ${shouldShowPersonalShotButton() ? `
+            <button class="round-gps-mine-btn"
+                    id="round-gps-mine-btn"
+                    onclick="logPersonalShotAtCurrentPosition()"
+                    aria-label="Log my personal shot — separate from the team's chosen ball">
+              <span class="round-gps-mine-btn-label">Mine</span>
+              <span class="round-gps-mine-btn-count" id="round-gps-mine-btn-count"></span>
+            </button>
+          ` : ''}
           ${roundGpsState.previewMode ? '' : `
             <button class="round-tools-btn round-tools-btn-compact"
                     onclick="openGpsScoreSheet()"
