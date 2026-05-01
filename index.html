@@ -80288,20 +80288,11 @@
     // discard if the user closes without picking a club — prevents
     // clubless stubs from polluting the array.
     //
-    // Scramble group shots SKIP this. They're sparse one-tap commits;
-    // there's nothing to fill in. User can tap the pin later if they
-    // need to change attribution. A quick toast confirms the log so
-    // the user knows the tap registered.
-    if (isScrambleGroupShot) {
-      const myName = (() => {
-        const __gr = groupRoundState.doc;
-        const me = (__gr?.players || []).find(p => p.uid === currentUser?.uid);
-        return me ? (me.usernameDisplay || me.username || me.displayName || 'You') : 'You';
-      })();
-      showToast(`Group shot logged · attributed to ${myName}`, false);
-    } else {
-      openShotEditSheet(holeNum, newShot.id, { isNewStub: true });
-    }
+    // Open the shot edit sheet so the user can fill in club / details
+    // (solo / standard group) or just confirm hit-by attribution
+    // (scramble group, which routes to the simplified sheet via the
+    // sparse-shot detection in openShotEditSheet).
+    openShotEditSheet(holeNum, newShot.id, { isNewStub: true });
   }
   window.logShotAtCurrentPosition = logShotAtCurrentPosition;
   window.getShotMissContext = getShotMissContext;
