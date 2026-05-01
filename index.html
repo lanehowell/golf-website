@@ -35047,15 +35047,72 @@
 
     // Personal scramble shots — pulled separately because the main
     // loop above filters out non-counting formats via
-    // roundCountsForStats. Scrambles are excluded for the team
-    // scorecard (a scramble's "shots" represent the chosen ball, not
-    // any single player's data), but personalShots ARE individual
-    // measured swings: the user explicitly logged them via "Log Mine"
-    // to capture their own data even when the team picked someone
-    // else's ball. Those belong in stats.
+    // roundCountsForStats. Two pools belong in stats from a scramble:
+    //
+    //   1. Team chain shots where hitBy === currentUser.uid — when
+    //      the team picked YOUR ball, that's a real swing of yours
+    //      with full GPS data already on the round. Including these
+    //      avoids forcing the user to redundantly tap "Mine" after
+    //      every Log Shot they're attributed to.
+    //
+    //   2. round.personalShots — explicit "Mine" logs for swings
+    //      where the team picked someone else's ball.
+    //
+    // Together these reconstruct the user's full swing data from a
+    // scramble. The team scorecard itself stays excluded (it's a
+    // single shared total, not individual scoring stats).
+    const myUid = currentUser?.uid;
     for (const round of recentRounds || []) {
       if (round.status !== 'completed') continue;
       if (getRoundFormat(round) !== 'scramble') continue;
+      // Pool 1 — team shots attributed to me. Defensive on hitBy
+      // (older scramble rounds might not have it; skip those silently
+      // since we can't know if any given shot was mine).
+      if (myUid) {
+        const teamShotsMap = round.shots || {};
+        for (const holeNum of Object.keys(teamShotsMap)) {
+          for (const shot of teamShotsMap[holeNum] || []) {
+            if (shot.hitBy !== myUid) continue;
+            const name = resolveShotClubName(shot, bagById);
+            if (!name) continue;
+            let gpsYards = null;
+            const isPutt = shot.intent === 'putt' || shot.startLie === 'green';
+            if (!isPutt
+                && typeof shot.actualYards === 'number'
+                && Number.isFinite(shot.actualYards)
+                && shot.actualYards >= 5) {
+              const m = shot.mishit;
+              const isContactMishit = m === 'thin' || m === 'fat'
+                                   || m === 'toe' || m === 'heel';
+              if (!isContactMishit) {
+                gpsYards = shot.actualYards;
+              }
+            }
+            yield {
+              shot,
+              source: 'round',
+              clubName: name,
+              clubKey: makeClubKey(name),
+              carry:     null,
+              gpsYards,
+              direction: resolveShotDirection(shot, 'round'),
+              contact:   resolveShotContact(shot, 'round'),
+              swingPct: null,
+              roundId: round.id,
+              capturedAt: shot.capturedAt || shot.loggedAt || round.endTime || 0,
+              // Tag for diagnostic + future filtering. Distinct from
+              // isPersonalScramble (those are explicit Mine logs);
+              // this one means "team shot the team picked that I hit."
+              isPersonalScrambleAttributed: true,
+            };
+          }
+        }
+      }
+      // Pool 2 — explicit personal (Mine) shots. Don't dedupe against
+      // pool 1: the user shouldn't be logging Mine for shots already
+      // attributed via hitBy (UX guidance below in shouldShowPersonalShotButton),
+      // and if they did, the duplicate is genuinely two separate
+      // records that we'd rather show than silently drop.
       const personalShotsMap = round.personalShots || {};
       for (const holeNum of Object.keys(personalShotsMap)) {
         for (const shot of personalShotsMap[holeNum] || []) {
@@ -45964,7 +46021,7 @@
       }).join('');
       const personalListHtml = personalShots.length === 0
         ? `<div class="shots-personal-empty">
-             No personal shots yet on this hole. Tap "Mine" in the GPS view, or add one below.
+             For swings the team didn't pick. Use this when you want to track a shot that didn't make the team chain.
            </div>`
         : `<div class="shots-list">${personalRowsHtml}</div>`;
       personalSectionHtml = `
@@ -47482,7 +47539,7 @@
           <div class="personal-shot-tag">
             <span class="personal-shot-tag-dot" aria-hidden="true"></span>
             <span class="personal-shot-tag-label">Personal shot</span>
-            <span class="personal-shot-tag-sub">Counts toward your stats only — not the team scorecard</span>
+            <span class="personal-shot-tag-sub">For swings the team didn't pick. Team shots attributed to you already count toward your stats.</span>
           </div>
         </div>
         ${originPickerHtml}
@@ -79759,6 +79816,42 @@
     if (!gr) return;
     const course = getCourse(gr.courseId);
     if (!course) return;
+
+    // Already-counted check. If the user just logged a team shot
+    // attributed to themselves (hitBy === currentUser.uid) within
+    // 15y AND 90s of the current position, that swing is already in
+    // their stats — tapping Mine on top would double-count. Surface
+    // a confirm so the user can either skip ("don't add") or proceed
+    // ("really was a separate shot, e.g., from same spot but
+    // different swing"). Runs BEFORE the personal-vs-personal dup
+    // check since this is the more common confusion.
+    const myUid = currentUser?.uid;
+    if (myUid) {
+      const teamShots = (gr.teamShots && gr.teamShots[holeNum]) || [];
+      const now0 = Date.now();
+      const ATTRIB_DIST_YARDS = 15;
+      const ATTRIB_TIME_MS = 90 * 1000;
+      const attribDup = teamShots.find(s => {
+        if (s.hitBy !== myUid) return false;
+        if (s.endLat == null || s.endLng == null || s.loggedAt == null) return false;
+        const d = haversineYards(s.endLat, s.endLng, userPos.lat, userPos.lng);
+        if (d > ATTRIB_DIST_YARDS) return false;
+        const ageMs = now0 - s.loggedAt;
+        if (ageMs < 0 || ageMs > ATTRIB_TIME_MS) return false;
+        return true;
+      });
+      if (attribDup) {
+        const ok = await confirmDialog({
+          eyebrow: 'Already counted',
+          title: 'You already logged this swing',
+          message: `The team's last shot was attributed to you and already counts in your stats. Add a separate personal shot anyway?`,
+          confirmText: 'Add Anyway',
+          cancelText: 'Skip',
+          destructive: false,
+        });
+        if (!ok) return;
+      }
+    }
 
     // Personal-vs-personal dup warning. Fires when this user has
     // logged a personal shot within 15y AND 90s of the current
