@@ -31638,6 +31638,8 @@
   const ADMIN_UIDS = new Set([
     // Lane's UID
     'LldPjvPzC6aASDfyfDaBRsYVIBr2',
+    // Lane's friend
+    'S5JxUSJ6TXRUvf5cteaCA6GERSB3',
   ]);
 
   // Helper: is the current signed-in user an admin?
@@ -47122,7 +47124,13 @@
     if (!draft || holeNumber == null) return;
     // Minimal validation: just need a club. Start lie has a smart
     // default so it's always set; everything else is optional.
-    if (!draft.club) {
+    //
+    // Skipped for scramble GROUP shots (groupSimple mode) — those are
+    // sparse by design (no club, no lie, no intent), so requiring a
+    // club would be impossible to satisfy. The simple sheet routes
+    // here only when the user has dragged a pin on the small map and
+    // we need to persist the new coords.
+    if (!draft.club && !shotEditState.groupSimple) {
       // Visual error: highlight the club field, scroll it into view,
       // show inline "Required" label, fire a shake animation. Toast is
       // a secondary signal — the field-level state is the primary cue
@@ -48150,7 +48158,7 @@
       if (existingFooter) {
         existingFooter.innerHTML = `
           ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
-          <button class="shot-edit-save" onclick="closeShotEditSheet()">Done</button>`;
+          <button class="shot-edit-save" onclick="saveShotDraft()">Save</button>`;
       }
       return;
     }
@@ -48165,7 +48173,7 @@
         <div class="shot-edit-body">${bodyHtml}</div>
         <div class="shot-edit-footer">
           ${isEditing ? `<button class="shot-edit-delete" onclick="deleteShotDraft()" aria-label="Delete shot">Delete</button>` : ''}
-          <button class="shot-edit-save" onclick="closeShotEditSheet()">Done</button>
+          <button class="shot-edit-save" onclick="saveShotDraft()">Save</button>
         </div>
       </div>`;
 
