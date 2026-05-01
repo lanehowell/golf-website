@@ -47253,16 +47253,25 @@
       // sync (from edits made before propagation was implemented, or
       // from any other path that mutated one boundary without the
       // other). Cheap to do; ensures the invariant holds.
+      //
+      // SKIPPED for personal shots. Personal scramble shots are
+      // INDEPENDENT swings — each is its own start→end pair, not
+      // links in a chain. Shot N's end has nothing to do with shot
+      // N+1's start. Propagating would clobber Shot N's end position
+      // when the user re-anchors Shot N+1's origin via the picker.
       const newEndLat = shots[idx].endLat;
       const newEndLng = shots[idx].endLng;
       const newStartLat = shots[idx].startLat;
       const newStartLng = shots[idx].startLng;
+      const skipChainPropagation = shotEditState.personalShot;
 
       // End → next shot's start (if any). Skipped when the next shot
       // is afterDrop — that boundary is intentionally broken because
       // the ball moved from previous shot's end to the drop position
       // without a swing. Syncing would corrupt the drop position.
-      if (typeof newEndLat === 'number' && typeof newEndLng === 'number'
+      // Also skipped entirely for personal shots (see flag above).
+      if (!skipChainPropagation
+          && typeof newEndLat === 'number' && typeof newEndLng === 'number'
           && idx < shots.length - 1
           && !shots[idx + 1].afterDrop) {
         const next = shots[idx + 1];
@@ -47290,7 +47299,9 @@
       // Start → previous shot's end (if any). Mirror logic — and same
       // afterDrop guard: if THIS shot is afterDrop, don't propagate
       // backward (its start is the drop, not the previous shot's end).
-      if (typeof newStartLat === 'number' && typeof newStartLng === 'number'
+      // Also skipped entirely for personal shots (see flag above).
+      if (!skipChainPropagation
+          && typeof newStartLat === 'number' && typeof newStartLng === 'number'
           && idx > 0
           && !shots[idx].afterDrop) {
         const prev = shots[idx - 1];
@@ -47488,20 +47499,36 @@
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
     const unit = distanceUnit();
 
-    // If the sheet is already mounted, just update the body in place
-    // — rebuilding the wrapper would re-trigger the slide-up animation
-    // on every chip tap. Header + footer don't change between renders,
-    // so leaving them alone keeps the open state stable.
+    // Detect mode of any currently-mounted sheet. If we're about to
+    // render in a different mode, blow away the mount so we get a
+    // clean rebuild — header/footer differ between modes (different
+    // eyebrow text, different save button) and an in-place body swap
+    // would leave the header from the old mode showing.
+    //
+    // This bug surfaces when overlapping shot pins fire two click
+    // handlers in sequence (e.g. a personal pin sitting on top of a
+    // team pin — the team click opens the simple sheet, then the
+    // personal click tries to switch to the rich sheet via in-place
+    // update, leaving the "GROUP SHOT" header above a personal-shot
+    // form body).
     const existingSheet = mount.querySelector('.shot-edit-sheet');
     const existingBody = mount.querySelector('.shot-edit-body');
-    const isAlreadyOpen = !!(existingSheet && existingBody);
+    const existingMode = existingSheet?.dataset?.editMode;
+    const desiredMode = shotEditState.groupSimple ? 'simple' : 'rich';
+    const modeMismatch = existingSheet && existingMode && existingMode !== desiredMode;
+    if (modeMismatch) {
+      mount.innerHTML = '';
+    }
+    const isAlreadyOpen = !modeMismatch
+      && !!(mount.querySelector('.shot-edit-sheet') && mount.querySelector('.shot-edit-body'));
 
     // Group-shot simple mode: render a stripped-down sheet for sparse
     // scramble GROUP shots. Just hit-by picker + small map + delete.
     // No club/lie/intent/mishit/target/result UI — those are personal
     // shot concerns, not team scorecard concerns.
     if (shotEditState.groupSimple) {
-      renderShotEditSheetGroupSimple(mount, draft, isAlreadyOpen, existingBody);
+      renderShotEditSheetGroupSimple(
+        mount, draft, isAlreadyOpen, mount.querySelector('.shot-edit-body'));
       return;
     }
 
@@ -47974,7 +48001,7 @@
 
     mount.innerHTML = `
       <div class="shot-edit-backdrop opening" onclick="dismissShotEditSheet()" aria-hidden="true"></div>
-      <div class="shot-edit-sheet opening" role="dialog" aria-modal="true" aria-label="${isEditing ? 'Edit shot' : 'Add shot'}">
+      <div class="shot-edit-sheet opening" data-edit-mode="rich" role="dialog" aria-modal="true" aria-label="${isEditing ? 'Edit shot' : 'Add shot'}">
         <div class="shot-edit-header">
           <div class="shot-edit-eyebrow">${isEditing ? 'Edit Shot' : 'Add Shot'}</div>
           <button class="shot-edit-close" onclick="dismissShotEditSheet()" aria-label="Close">×</button>
@@ -48130,7 +48157,7 @@
 
     mount.innerHTML = `
       <div class="shot-edit-backdrop opening" onclick="dismissShotEditSheet()" aria-hidden="true"></div>
-      <div class="shot-edit-sheet opening" role="dialog" aria-modal="true" aria-label="Edit group shot">
+      <div class="shot-edit-sheet opening" data-edit-mode="simple" role="dialog" aria-modal="true" aria-label="Edit group shot">
         <div class="shot-edit-header">
           <div class="shot-edit-eyebrow">Group Shot</div>
           <button class="shot-edit-close" onclick="dismissShotEditSheet()" aria-label="Close">×</button>
@@ -81080,9 +81107,31 @@
         }
         // Click handling — register once per render cycle. Stored on
         // state so we can detach in clearRoundGpsShotMarkers().
+        //
+        // Overlap defense: when personal-shot pins are on top of
+        // team-shot pins (same coords), Mapbox fires BOTH layers'
+        // click handlers. The team handler runs first (older layer);
+        // the personal handler runs second. Without this guard the
+        // sequence opens the simple sheet, then re-opens as the rich
+        // sheet — visible to the user as a flicker, plus state churn.
+        // queryRenderedFeatures lets us check whether a personal pin
+        // is also under the click point and bail in that case so the
+        // personal handler "wins."
         const clickHandler = (e) => {
           const feature = e.features && e.features[0];
           if (!feature) return;
+          const personalLayerId = 'round-gps-personal-pins-circle';
+          if (map.getLayer(personalLayerId)) {
+            const overlapping = map.queryRenderedFeatures(e.point, {
+              layers: [personalLayerId],
+            });
+            if (overlapping && overlapping.length > 0) {
+              // Personal pin under the same tap — let its handler
+              // open the rich sheet instead of opening the simple
+              // sheet here.
+              return;
+            }
+          }
           const shotId = feature.properties && feature.properties.shotId;
           if (shotId) openShotEditSheet(holeNum, shotId);
         };
