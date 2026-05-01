@@ -11486,6 +11486,85 @@
     font-weight: var(--weight-regular);
   }
 
+  /* Personal shots section — appears below the team shot list in
+     scramble rounds when the personal-shots pref is on. Subtle blue
+     visual treatment so it reads as "secondary, side-channel data"
+     vs. the primary team trail. */
+  .shots-personal-section {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-light);
+  }
+  .shots-personal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+  .shots-personal-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shots-personal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgb(94, 154, 232);
+  }
+  .shots-personal-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .shots-personal-empty {
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: rgba(94, 154, 232, 0.06);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-align: center;
+    line-height: 1.4;
+  }
+  /* Personal shot rows — same layout as team rows but with a blue
+     left edge accent so they're visually distinct in a glance. The
+     numbered marker is replaced by a small dot since personal shots
+     don't have stroke numbers (they're not part of the team chain). */
+  .shot-row-personal {
+    border-left: 3px solid rgb(94, 154, 232);
+    padding-left: calc(var(--space-3) - 3px);
+  }
+  .shot-row-num-personal {
+    background: rgb(94, 154, 232);
+    color: var(--color-white);
+    font-size: var(--text-lg);
+    line-height: 0;
+  }
+  .shots-add-btn-personal {
+    margin-top: var(--space-3);
+    background: rgba(94, 154, 232, 0.10);
+    border-color: rgba(94, 154, 232, 0.55);
+    color: rgb(60, 110, 200);
+  }
+  html.dark .shots-add-btn-personal {
+    background: rgba(94, 154, 232, 0.14);
+    color: rgb(140, 180, 245);
+    border-color: rgba(94, 154, 232, 0.55);
+  }
+  @media (hover: hover) {
+    .shots-add-btn-personal:hover {
+      background: rgba(94, 154, 232, 0.18);
+      border-color: rgb(94, 154, 232);
+    }
+  }
+
   /* ── Shot edit sheet — bottom sheet for adding/editing an individual
      shot. Same architecture as recovery-sheet/finish-sheet. Needs to
      sit above the tools sheet (which is opened when this fires),
@@ -11737,6 +11816,17 @@
     color: var(--color-accent);
     cursor: pointer;
     font-weight: var(--weight-semibold);
+  }
+
+  /* Origin picker hint — small explanatory text under the dropdown
+     in the personal-shot edit sheet. Tells the user what changing
+     this affects. Muted so it doesn't compete with the field itself. */
+  .shot-edit-origin-hint {
+    margin-top: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
   }
 
   /* Inline hint inside a shot-edit section — soft tip / suggestion.
@@ -44541,6 +44631,19 @@
       endLng: shotData.endLng ?? null,
       // actualYards: derived from start/end if both present.
       actualYards: shotData.actualYards ?? null,
+      // Target — captured at log time from the user's committed target
+      // (the explicit aim point set via the reticle's Set as Target
+      // button) or the effective pin (custom-dropped pin or green
+      // center). Powers dispersion math and miss-vector reporting.
+      // Editable via the edit sheet's draggable target marker.
+      targetLat: shotData.targetLat ?? null,
+      targetLng: shotData.targetLng ?? null,
+      // Miss vector — perpendicular (lateralOffset) and along-shot
+      // (alongShot) components of where the ball ended relative to
+      // the start→target line. Re-derived on every shot edit save
+      // (saveShotDraft does this) so manual target tweaks update it.
+      lateralOffset: shotData.lateralOffset ?? null,
+      alongShot: shotData.alongShot ?? null,
       // Standard shot fields default empty — user fills in via edit sheet.
       club: shotData.club || null,
       distance: shotData.distance ?? null,
@@ -45811,6 +45914,79 @@
     // Hole + par summary in the header
     const parLabel = (hole.par != null) ? ` · Par ${hole.par}` : '';
 
+    // Personal shots section — only shown in scramble + opt-in mode.
+    // Mirrors the team section's row format but uses smaller blue
+    // visual treatment and routes clicks to the personal-shot edit
+    // sheet (no hit-by picker, side-channel persistence).
+    let personalSectionHtml = '';
+    if (shouldShowPersonalShotButton()) {
+      const personalShots = getPersonalScrambleShotsForHole(holeNum);
+      const personalRowsHtml = personalShots.map((s, i) => {
+        let distText = '';
+        if (typeof s.actualYards === 'number') {
+          distText = `<span class="shot-row-dist">${distanceToDisplay(s.actualYards)}<span class="shot-row-unit">${unit}</span></span>`;
+        } else {
+          distText = `<span class="shot-row-dist">—</span>`;
+        }
+        const fromLbl = SHOT_LIE_SHORT[s.startLie] || s.startLie || '—';
+        const mishitBadge = (s.mishit && s.mishit !== 'clean')
+          ? `<span class="shot-row-mishit">${escapeHtml(SHOT_MISHITS.find(m => m.id === s.mishit)?.label || s.mishit)}</span>`
+          : '';
+        const resultMeta = s.result ? SHOT_RESULTS.find(r => r.id === s.result) : null;
+        const POSITIVE_RESULTS = new Set([
+          'on', 'good', 'fairway', 'green', 'fringe',
+        ]);
+        const isPositiveResult = POSITIVE_RESULTS.has(s.result);
+        const resultBadge = resultMeta
+          ? `<span class="shot-row-result shot-row-result-${isPositiveResult ? 'on' : 'miss'}">${escapeHtml(resultMeta.short)}</span>`
+          : '';
+        const intentLbl = s.intent ? (SHOT_INTENT_SHORT[s.intent] || s.intent) : 'Set intent';
+        const intentClass = s.intent ? '' : ' is-empty';
+        return `
+          <div class="shot-row shot-row-personal" role="button" tabindex="0"
+               onclick="openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}', { personalShot: true })"
+               onkeydown="if(event.key==='Enter'){openShotEditSheet(${holeNum}, '${escapeAttr(s.id)}', { personalShot: true })}"
+               aria-label="Edit personal shot ${i + 1}">
+            <span class="shot-row-num shot-row-num-personal" aria-hidden="true">·</span>
+            <span class="shot-row-body">
+              <span class="shot-row-top">
+                <span class="shot-row-club">${escapeHtml(s.club || 'Club')}</span>
+                ${distText}
+              </span>
+              <span class="shot-row-bottom">
+                <span class="shot-row-path">From ${fromLbl}</span>
+                ${resultBadge}
+                ${mishitBadge}
+              </span>
+            </span>
+            <span class="shot-row-intent${intentClass}">${escapeHtml(intentLbl)}</span>
+          </div>`;
+      }).join('');
+      const personalListHtml = personalShots.length === 0
+        ? `<div class="shots-personal-empty">
+             No personal shots yet on this hole. Tap "Mine" in the GPS view, or add one below.
+           </div>`
+        : `<div class="shots-list">${personalRowsHtml}</div>`;
+      personalSectionHtml = `
+        <div class="shots-personal-section">
+          <div class="shots-personal-header">
+            <div class="shots-personal-title">
+              <span class="shots-personal-dot" aria-hidden="true"></span>
+              Personal shots
+            </div>
+            <div class="shots-personal-count">
+              ${personalShots.length} shot${personalShots.length === 1 ? '' : 's'}
+            </div>
+          </div>
+          ${personalListHtml}
+          <button class="shots-add-btn shots-add-btn-personal"
+                  onclick="addPersonalShotFromTrackTool(${holeNum})">
+            <span class="shots-add-icon" aria-hidden="true">+</span>
+            Add personal shot
+          </button>
+        </div>`;
+    }
+
     return `
       <div class="round-dock-surface">
         <div class="caddie-header">
@@ -45823,6 +45999,7 @@
           <span class="shots-add-icon" aria-hidden="true">+</span>
           Add shot
         </button>
+        ${personalSectionHtml}
       </div>`;
   }
 
@@ -46482,6 +46659,98 @@
     renderShotEditSheet();
   }
 
+  // Re-anchor a personal shot's start position. Called by the origin
+  // picker dropdown in the edit sheet for personal scramble shots.
+  // optionId is one of:
+  //   'tee'       — snap start to the tee position for this hole
+  //   'team:<id>' — snap start to team shot <id>'s end position
+  // After snapping, recompute actualYards (start→end) and the miss
+  // vector if a target is set. Re-render the sheet so the embedded
+  // small map reflects the new start position.
+  function setPersonalShotOrigin(optionId) {
+    if (!shotEditState.draft) return;
+    if (!shotEditState.personalShot) return;
+    if (!optionId) return;
+    if (!isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const course = getCourse(gr.courseId);
+    if (!course) return;
+    const holeNum = shotEditState.holeNumber;
+    if (holeNum == null) return;
+
+    // Resolve the option back to lat/lng. Mirrors the resolution
+    // logic in renderShotEditSheet — kept in sync because that
+    // function builds the picker and we trust its option IDs here.
+    let newLat = null;
+    let newLng = null;
+    if (optionId === 'tee') {
+      const myPlayer = (gr.players || []).find(p => p.uid === currentUser?.uid);
+      const teeName = myPlayer?.tee
+        || (gr.players || []).find(p => p.uid === gr.organizerUid)?.tee
+        || course.tees?.[0]?.name;
+      const teePos = (typeof getEffectiveTeePosition === 'function')
+        ? getEffectiveTeePosition(course, holeNum, teeName)
+        : null;
+      if (teePos) {
+        newLat = teePos.lat;
+        newLng = teePos.lng;
+      }
+    } else if (optionId.startsWith('team:')) {
+      const teamShotId = optionId.slice('team:'.length);
+      const teamShots = (gr.teamShots && gr.teamShots[holeNum]) || [];
+      const teamShot = teamShots.find(s => s.id === teamShotId);
+      if (teamShot && teamShot.endLat != null && teamShot.endLng != null) {
+        newLat = teamShot.endLat;
+        newLng = teamShot.endLng;
+      }
+    }
+    if (newLat == null || newLng == null) {
+      showToast("Couldn't resolve that origin", true);
+      return;
+    }
+
+    // Apply to the draft. Only the start position changes; end stays
+    // put. actualYards re-derives from the new start to existing end.
+    const draft = shotEditState.draft;
+    draft.startLat = newLat;
+    draft.startLng = newLng;
+    if (typeof draft.endLat === 'number' && typeof draft.endLng === 'number'
+        && typeof haversineYards === 'function') {
+      draft.actualYards = Math.round(haversineYards(
+        draft.startLat, draft.startLng,
+        draft.endLat, draft.endLng) * 10) / 10;
+    }
+    // If a target is set, re-derive the miss vector since start moved.
+    // Without this, the new start could fall on the wrong side of the
+    // start→target line and the dispersion scatter would point the
+    // wrong way.
+    if (typeof draft.targetLat === 'number' && typeof draft.targetLng === 'number'
+        && typeof draft.endLat === 'number' && typeof draft.endLng === 'number'
+        && typeof computeShotMissVector === 'function') {
+      const miss = computeShotMissVector(
+        draft.startLat, draft.startLng,
+        draft.targetLat, draft.targetLng,
+        draft.endLat, draft.endLng);
+      if (miss) {
+        draft.lateralOffset = miss.lateralOffset;
+        draft.alongShot = miss.alongShot;
+      }
+    }
+    // Distance-to-target — yards from start to target. Re-derive
+    // from the new start so the displayed "yards to pin" reflects
+    // the picked origin, not the old one.
+    if (typeof draft.targetLat === 'number' && typeof draft.targetLng === 'number'
+        && typeof haversineYards === 'function') {
+      draft.distance = Math.round(haversineYards(
+        draft.startLat, draft.startLng,
+        draft.targetLat, draft.targetLng));
+    }
+    haptic('light');
+    renderShotEditSheet();
+  }
+  window.setPersonalShotOrigin = setPersonalShotOrigin;
+
   function updateShotDraftDistance(displayValue) {
     if (!shotEditState.draft) return;
     const yards = distanceFromInput(displayValue);
@@ -47096,6 +47365,118 @@
     // so the user can see which mode the sheet is in.
     let hitByPickerHtml = '';
     if (shotEditState.personalShot) {
+      // Build the origin picker — lets the user re-anchor a personal
+      // shot's start position when they logged it in the wrong order
+      // (e.g., logged a personal approach BEFORE the team shot it
+      // chains off of, or two personal shots for the same swing-round
+      // and the second one inherited the first's start instead of the
+      // team's chosen ball). Options: Tee + each existing team shot
+      // by stroke number ("After team shot 1", "After team shot 2",
+      // etc.). Picking one snaps the personal shot's start to that
+      // position and re-derives actualYards.
+      //
+      // Selection-detection strategy: the dropdown has no concept of
+      // "which option is currently selected" stored on the shot —
+      // there's no draft.startOrigin field, just startLat/startLng.
+      // So we resolve the current selection by comparing draft.startLat/
+      // /startLng against tee + each team shot's end. If it matches
+      // one within 1 yard, that's the active option; if no match
+      // ("custom" — user dragged the start pin manually on the small
+      // map), show "Custom position" as a non-selectable hint.
+      let originPickerHtml = '';
+      if (isGroupRoundActive() && shotEditState.holeNumber != null) {
+        const gr = groupRoundState.doc;
+        const course = getCourse(gr.courseId);
+        if (course) {
+          const holeNum = shotEditState.holeNumber;
+          // Tee position for THIS hole using the user's tee selection
+          // (per-player in scramble — same logic as
+          // computePersonalShotStartPosition uses).
+          const myPlayer = (gr.players || []).find(p => p.uid === currentUser?.uid);
+          const teeName = myPlayer?.tee
+            || (gr.players || []).find(p => p.uid === gr.organizerUid)?.tee
+            || course.tees?.[0]?.name;
+          const teePos = (typeof getEffectiveTeePosition === 'function')
+            ? getEffectiveTeePosition(course, holeNum, teeName)
+            : null;
+          // Team shots for this hole — each one's end is a possible
+          // origin for a subsequent personal shot.
+          const teamShots = (gr.teamShots && gr.teamShots[holeNum]) || [];
+          // Build the option list. Each entry: { id, label, lat, lng }.
+          // id is a stable string we use to dispatch the change.
+          const options = [];
+          if (teePos) {
+            options.push({
+              id: 'tee',
+              label: 'Tee',
+              lat: teePos.lat,
+              lng: teePos.lng,
+            });
+          }
+          teamShots.forEach((s, i) => {
+            if (s.endLat == null || s.endLng == null) return;
+            const strokeNum = (typeof getShotStrokeNumber === 'function')
+              ? getShotStrokeNumber(teamShots, i)
+              : (i + 1);
+            options.push({
+              id: `team:${s.id}`,
+              label: `After team shot ${strokeNum}`,
+              lat: s.endLat,
+              lng: s.endLng,
+            });
+          });
+          // Resolve current selection by proximity. 1-yard tolerance
+          // is enough for "snapped to this anchor" vs "user dragged
+          // somewhere else on the map." haversineYards may not be
+          // available in unusual environments — fall back to a tight
+          // lat/lng equality check.
+          let currentOptionId = null;
+          if (typeof draft.startLat === 'number' && typeof draft.startLng === 'number') {
+            for (const opt of options) {
+              let d;
+              if (typeof haversineYards === 'function') {
+                d = haversineYards(opt.lat, opt.lng, draft.startLat, draft.startLng);
+              } else {
+                const dlat = Math.abs(opt.lat - draft.startLat);
+                const dlng = Math.abs(opt.lng - draft.startLng);
+                d = (dlat < 0.00001 && dlng < 0.00001) ? 0 : 999;
+              }
+              if (d < 1) { currentOptionId = opt.id; break; }
+            }
+          }
+          // Build the select. If options is empty (no tee coords AND
+          // no team shots — unusual), skip the picker altogether
+          // since there's nothing useful to pick.
+          if (options.length > 0) {
+            const optionsHtml = options.map(opt =>
+              `<option value="${escapeAttr(opt.id)}" ${opt.id === currentOptionId ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
+            ).join('');
+            // "Custom position" disabled option appears at the top
+            // when the current start doesn't match any anchor — tells
+            // the user "your start was placed manually, pick an anchor
+            // here to reset it."
+            const customOption = currentOptionId === null
+              ? `<option value="" selected disabled>Custom position</option>`
+              : '';
+            originPickerHtml = `
+              <div class="shot-edit-section">
+                <label class="shot-edit-label" for="shot-edit-origin-select">
+                  Shot origin
+                </label>
+                <select class="shot-edit-club-select"
+                        id="shot-edit-origin-select"
+                        onchange="setPersonalShotOrigin(this.value)">
+                  ${customOption}
+                  ${optionsHtml}
+                </select>
+                <div class="shot-edit-origin-hint">
+                  Where this shot started from. Change if you logged it in the wrong order.
+                </div>
+              </div>
+            `;
+          }
+        }
+      }
       hitByPickerHtml = `
         <div class="shot-edit-section">
           <div class="personal-shot-tag">
@@ -47104,6 +47485,7 @@
             <span class="personal-shot-tag-sub">Counts toward your stats only — not the team scorecard</span>
           </div>
         </div>
+        ${originPickerHtml}
       `;
     } else if (isGroupRoundActive()) {
       const __gr = groupRoundState.doc;
@@ -69457,7 +69839,7 @@
     // Default true (visible). New layers can be added by extending
     // this object plus the popup markup. Reset to defaults on
     // closeRoundGpsPanel.
-    layers: { trail: true },
+    layers: { trail: true, personalShots: true },
     // Preview mode — GPS was opened from a course's detail page to
     // study the layout without an active round. previewMode locks the
     // panel to planning mode (no auto-upgrade to playing on GPS fix),
@@ -70245,7 +70627,7 @@
     // Reset Layers toggles to defaults so a new GPS session starts
     // with everything visible. Also close the popup if it was open
     // and detach its outside-click handler.
-    roundGpsState.layers = { trail: true };
+    roundGpsState.layers = { trail: true, personalShots: true };
     if (typeof closeRoundGpsLayersPopup === 'function') {
       try { closeRoundGpsLayersPopup(); } catch (_) {}
     }
@@ -79424,9 +79806,57 @@
       ? Math.round(haversineYards(startLat, startLng, endLat, endLng) * 10) / 10
       : null;
 
+    // Capture target — same priority as team shot logging:
+    //   1. Committed target (user dragged the reticle + tapped "Set
+    //      as target") wins
+    //   2. Otherwise default to effective pin (custom dropped pin
+    //      or green center)
+    // The target lives on the shot for dispersion math, miss-vector,
+    // and "yards to target" reporting. Personal shot logging does
+    // NOT clear the committed target afterward — that belongs to the
+    // team's planning state, not personal flow. User can refine via
+    // the edit sheet's drag-target affordance if needed.
+    let targetLat = null;
+    let targetLng = null;
+    if (roundGpsState.committedTarget) {
+      targetLat = roundGpsState.committedTarget.lat;
+      targetLng = roundGpsState.committedTarget.lng;
+    } else {
+      const effectivePin = (typeof getEffectivePinLatLng === 'function')
+        ? getEffectivePinLatLng()
+        : null;
+      if (effectivePin) {
+        targetLat = effectivePin.lat;
+        targetLng = effectivePin.lng;
+      }
+    }
+    // Distance to the target — yards from start to target. Lets the
+    // edit sheet show "yards to pin" without re-deriving.
+    let distance = null;
+    if (targetLat != null) {
+      distance = Math.round(haversineYards(startLat, startLng, targetLat, targetLng));
+    }
+    // Miss vector — only meaningful when both target AND end are set.
+    // Same helper team shots use; lateralOffset (perpendicular to the
+    // start→target line) and alongShot (parallel) feed the dispersion
+    // scatter and miss-direction stats.
+    let lateralOffset = null;
+    let alongShot = null;
+    if (targetLat != null
+        && typeof computeShotMissVector === 'function') {
+      const miss = computeShotMissVector(
+        startLat, startLng, targetLat, targetLng, endLat, endLng);
+      if (miss) {
+        lateralOffset = miss.lateralOffset;
+        alongShot = miss.alongShot;
+      }
+    }
+
     // Add the shot — addPersonalScrambleShot persists via debouncer.
     const newShot = addPersonalScrambleShot(holeNum, {
       startLat, startLng, endLat, endLng, actualYards,
+      targetLat, targetLng, distance,
+      lateralOffset, alongShot,
     });
     if (!newShot) {
       showToast("Couldn't log personal shot", true);
@@ -79447,6 +79877,37 @@
     openShotEditSheet(holeNum, newShot.id, { isNewStub: true, personalShot: true });
   }
   window.logPersonalShotAtCurrentPosition = logPersonalShotAtCurrentPosition;
+
+  // Manual personal-shot add — invoked from the Track Shots tool's
+  // "Add personal shot" button, NOT from GPS Log Mine. Difference:
+  // no GPS reading required (might not have a fix; might be at desk
+  // backfilling). Creates a stub with start defaulted from team
+  // chain (or tee) but no end position — the user fills end + all
+  // other fields via the edit sheet's drag-target affordance.
+  function addPersonalShotFromTrackTool(holeNum) {
+    if (!isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (!gr || getRoundFormat(gr) !== 'scramble') return;
+    const course = getCourse(gr.courseId);
+    if (!course) return;
+    const startPos = computePersonalShotStartPosition(holeNum, course);
+    // No end position yet — user will set via the edit sheet's
+    // small map (drag the end pin) or it stays null until edited.
+    const newShot = addPersonalScrambleShot(holeNum, {
+      startLat: startPos ? startPos.lat : null,
+      startLng: startPos ? startPos.lng : null,
+      endLat: null,
+      endLng: null,
+      actualYards: null,
+    });
+    if (!newShot) {
+      showToast("Couldn't add personal shot", true);
+      return;
+    }
+    haptic('light');
+    openShotEditSheet(holeNum, newShot.id, { isNewStub: true, personalShot: true });
+  }
+  window.addPersonalShotFromTrackTool = addPersonalShotFromTrackTool;
 
   // Refresh the Mine button's count badge + planning-mode visual.
   // Mirrors refreshRoundGpsActionButton's role for the primary button
@@ -79981,7 +80442,15 @@
     if (shouldShowPersonalShotButton()) {
       const personalShots = getPersonalScrambleShotsForHole(holeNum);
       if (personalShots && personalShots.length > 0) {
+        // Build pin features (one per shot end) AND line features
+        // (one per shot, start→end). Personal shots don't chain
+        // through the hole — each one stands alone — so each line
+        // is its own LineString instead of a polyline like team
+        // shots use. This also visually distinguishes personal
+        // (independent dotted blue strikes) from team (chained
+        // continuous yellow trail).
         const personalPoints = [];
+        const personalLineFeatures = [];
         personalShots.forEach(s => {
           if (s.endLat != null && s.endLng != null) {
             personalPoints.push({
@@ -79990,10 +80459,31 @@
               lng: s.endLng,
             });
           }
+          // Line: only if BOTH start and end are valid. Skips shots
+          // that lack a start (shouldn't happen in normal flow but
+          // be defensive — addPersonalScrambleShot can produce a
+          // shot with null start if no team shot exists AND the
+          // course lacks tee coords).
+          if (s.startLat != null && s.startLng != null
+              && s.endLat != null && s.endLng != null) {
+            personalLineFeatures.push({
+              type: 'Feature',
+              properties: { shotId: s.id },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [s.startLng, s.startLat],
+                  [s.endLng, s.endLat],
+                ],
+              },
+            });
+          }
         });
         if (personalPoints.length > 0) {
           const psSourceId = 'round-gps-personal-pins-src';
           const psCircleId = 'round-gps-personal-pins-circle';
+          const psLineSourceId = 'round-gps-personal-lines-src';
+          const psLineLayerId = 'round-gps-personal-lines-layer';
           const personalFc = {
             type: 'FeatureCollection',
             features: personalPoints.map(p => ({
@@ -80002,7 +80492,41 @@
               geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
             })),
           };
+          const personalLineFc = {
+            type: 'FeatureCollection',
+            features: personalLineFeatures,
+          };
           try {
+            // ── Lines first, drawn UNDER pins ──
+            if (personalLineFeatures.length > 0) {
+              if (!map.getSource(psLineSourceId)) {
+                map.addSource(psLineSourceId, { type: 'geojson', data: personalLineFc });
+              } else {
+                map.getSource(psLineSourceId).setData(personalLineFc);
+              }
+              if (!map.getLayer(psLineLayerId)) {
+                map.addLayer({
+                  id: psLineLayerId,
+                  type: 'line',
+                  source: psLineSourceId,
+                  layout: {
+                    'line-cap': 'round',
+                    'line-join': 'round',
+                  },
+                  paint: {
+                    // Slightly thinner than team line (which uses 3),
+                    // dashed instead of solid so the visual reads as
+                    // "side channel data" rather than "primary chain."
+                    // Same blue as the dot for cohesion.
+                    'line-color': 'rgb(94, 154, 232)',
+                    'line-width': 2.5,
+                    'line-opacity': 0.85,
+                    'line-dasharray': [2, 1.5],
+                  },
+                });
+              }
+            }
+            // ── Pins ── (drawn after so they sit on top of lines)
             if (!map.getSource(psSourceId)) {
               map.addSource(psSourceId, { type: 'geojson', data: personalFc });
             } else {
@@ -80036,14 +80560,27 @@
             const psLeave = () => { map.getCanvas().style.cursor = ''; };
             map.on('mouseenter', psCircleId, psEnter);
             map.on('mouseleave', psCircleId, psLeave);
+            // Track ALL layers + sources for cleanup. Lines may not
+            // have rendered (no valid start+end), so include them
+            // conditionally — clearRoundGpsShotMarkers tolerates
+            // missing layers via try/catch.
+            const layerIds = [psCircleId];
+            if (personalLineFeatures.length > 0) layerIds.push(psLineLayerId);
             roundGpsState.personalShotMarkerLayers = {
               sourceId: psSourceId,
-              layerIds: [psCircleId],
+              lineSourceId: personalLineFeatures.length > 0 ? psLineSourceId : null,
+              layerIds,
               clickHandler: psClickHandler,
               enterHandler: psEnter,
               leaveHandler: psLeave,
               clickLayerId: psCircleId,
             };
+            // Honor current toggle — re-renders should preserve user's
+            // hidden state for personal shots.
+            if (roundGpsState.layers
+                && roundGpsState.layers.personalShots === false) {
+              applyRoundGpsLayerVisibility('personalShots');
+            }
           } catch (err) {
             console.warn('Failed to render personal shot pin layer:', err);
           }
@@ -80083,6 +80620,11 @@
         try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch (_) {}
       });
       try { if (map.getSource(m.sourceId)) map.removeSource(m.sourceId); } catch (_) {}
+      // Line source is conditional — only present when at least one
+      // shot had valid start+end. Remove if it exists.
+      if (m.lineSourceId) {
+        try { if (map.getSource(m.lineSourceId)) map.removeSource(m.lineSourceId); } catch (_) {}
+      }
     }
     roundGpsState.personalShotMarkerLayers = null;
     // Legacy: tear down any DOM markers from a previous version's
@@ -80231,6 +80773,27 @@
             'visibility',
             visible ? 'visible' : 'none');
         } catch (_) {}
+      }
+    } else if (layerId === 'personalShots') {
+      // Personal shots — toggle via Mapbox layout property on the
+      // pins + lines layers. Cheaper than a full re-render and feels
+      // instant. If the layers aren't currently mounted (layer was
+      // hidden when shots first existed, then no shots have been
+      // logged since), trigger a render so the layers get added in
+      // their correct visibility state.
+      const map = roundGpsState.map;
+      const m = roundGpsState.personalShotMarkerLayers;
+      if (map && m) {
+        (m.layerIds || []).forEach(layerId => {
+          try {
+            if (map.getLayer(layerId)) {
+              map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+            }
+          } catch (_) {}
+        });
+      } else if (visible && typeof renderRoundGpsShotMarkers === 'function') {
+        // Re-render to materialize personal layers from data.
+        try { renderRoundGpsShotMarkers(); } catch (_) {}
       }
     }
   }
@@ -80959,6 +81522,15 @@
             <span class="round-gps-layers-popup-label">Shot trail</span>
             <span class="round-gps-layers-popup-toggle" aria-hidden="true"></span>
           </button>
+          ${shouldShowPersonalShotButton() ? `
+            <button class="round-gps-layers-popup-row"
+                    id="round-gps-layers-personalShots-row"
+                    onclick="toggleRoundGpsLayer('personalShots')"
+                    aria-pressed="${roundGpsState.layers && roundGpsState.layers.personalShots !== false ? 'true' : 'false'}">
+              <span class="round-gps-layers-popup-label">Personal shots</span>
+              <span class="round-gps-layers-popup-toggle" aria-hidden="true"></span>
+            </button>
+          ` : ''}
         </div>
 
         <!-- Bottom action bar — mirrors the round screen's bar. Tools
