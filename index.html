@@ -1494,6 +1494,304 @@
     margin-inline: 0;
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     TRAIN PAGE — hero, today card, up-next, library nav
+     ══════════════════════════════════════════════════════════════
+     Mirrors the Play tab's editorial pattern (top bar with greeting +
+     avatar, pill eyebrow, serif headline, sub) but scaled smaller and
+     with single-line headline since Train is a secondary destination.
+     Below the hero comes the week strip (page anchor), then a focused
+     "TODAY" card, then a quiet "UP NEXT" preview, then library nav. */
+
+  /* Train hero — same chrome as Play, smaller title + inline em
+     (single line "This Week" rather than two-line stack). The
+     bottom margin is tight so the week strip sits directly under
+     the headline as the page's primary anchor. */
+  .train-hero {
+    margin-bottom: var(--space-3);
+  }
+  .train-hero .play-hero-title {
+    font-size: clamp(40px, 10vw, 56px);
+  }
+  .train-hero .play-hero-title em {
+    display: inline;
+  }
+
+  /* TODAY card — focused, single-action. Lighter than the old giant
+     black hero card; this card is a discrete element below the page
+     anchor (week strip), not the hero itself. Filled cream-tinted
+     background to feel grounded; primary CTA front-and-center. */
+  .train-today-card {
+    background: var(--color-accent-pale);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    /* No bottom margin — the next section's prominent label has its
+       own top margin (var(--space-8)) which provides the rhythm. */
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  /* Rest-day variant — quieter, no accent-pale wash. Daily Stretch
+     is a routine-completion action, not a "you have a workout to
+     hit" action; the card chrome reads accordingly. */
+  .train-today-card-rest {
+    background: var(--bg-elevated);
+    border-color: var(--border-light);
+  }
+  .train-today-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+    line-height: 1;
+    margin-bottom: var(--space-1);
+  }
+  .train-today-title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.15;
+    letter-spacing: var(--tracking-tight);
+  }
+  .train-today-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+  }
+  /* Primary CTA — full-width brand button on the today card. Same
+     visual weight as the Play hero's primary button so the call to
+     action reads consistently across landings. */
+  .train-today-cta {
+    margin-top: var(--space-3);
+    width: 100%;
+    background: var(--color-accent);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-today-cta:hover {
+      background: var(--color-accent-light);
+    }
+  }
+  .train-today-cta:active {
+    transform: scale(0.98);
+  }
+  /* Secondary text-only action — small, accent color, underlined on
+     hover. "Choose a different workout" sits below the primary CTA. */
+  .train-today-secondary {
+    background: transparent;
+    border: none;
+    padding: var(--space-2) 0 0;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .train-today-secondary:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+  /* Train today card hosts the swap section (renderSwapSection) which
+     was originally styled for the old dark hero. The toggle's default
+     cream-200 color is invisible on a light card; remap to accent and
+     muted variants so it reads as a quiet text link. */
+  .train-today-card .swap-wrap {
+    margin-top: var(--space-2);
+    margin-bottom: 0;
+  }
+  .train-today-card .swap-toggle {
+    color: var(--color-accent);
+    width: 100%;
+    justify-content: center;
+  }
+  @media (hover: hover) {
+    .train-today-card .swap-toggle:hover {
+      color: var(--color-accent-light);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+  .train-today-card .swap-option-btn {
+    background: var(--bg-elevated);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+  }
+  @media (hover: hover) {
+    .train-today-card .swap-option-btn:hover {
+      background: var(--color-accent-pale);
+      border-color: var(--color-accent);
+    }
+  }
+  .train-today-card .swap-option-btn.current {
+    border-color: var(--color-accent);
+  }
+
+  /* UP NEXT card — quieter chrome than today's card. No filled
+     background, no big CTA. Just a tappable row with eyebrow,
+     title, sub, and a chevron indicating tap-to-preview. The
+     hierarchy is intentional: today is loud, next is quiet. */
+  .train-upnext-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    /* No bottom margin — Library label below has its own top margin. */
+    margin-bottom: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-upnext-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .train-upnext-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .train-upnext-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .train-upnext-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .train-upnext-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .train-upnext-chev {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-upnext-card:hover .train-upnext-chev {
+      color: var(--color-accent);
+      transform: translateX(3px);
+    }
+  }
+
+  /* Library section — compact navigation rows. Mirrors the
+     "Browse Courses" pattern from the Play screen: circular icon
+     left, title + meta center, chevron right. Lower visual weight
+     than the today card. */
+  .train-library-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .train-lib-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-lib-row:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .train-lib-row-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent-pale);
+    color: var(--color-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .train-lib-row-icon svg { width: 20px; height: 20px; }
+  .train-lib-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .train-lib-row-title {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+  .train-lib-row-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .train-lib-row-chev {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-lib-row:hover .train-lib-row-chev {
+      color: var(--color-accent);
+      transform: translateX(3px);
+    }
+  }
+
   /* ── Week strip ───────────────────────────────────────────── */
   .week-strip {
     display: grid;
@@ -1624,22 +1922,272 @@
     text-transform: none;
     color: var(--text-muted);
   }
-  /* Today */
+  /* Today (week strip) — filled dark blue, white text. Switched from
+     --color-black to --color-accent-dark so today reads as "the day
+     the app is highlighting" in the brand color, matching the new
+     hero treatment. */
   .week-day.today {
-    background: var(--color-black);
-    border-color: var(--color-black);
+    background: var(--color-accent-dark);
+    border-color: var(--color-accent-dark);
   }
-  .week-day.today .week-day-name { color: var(--color-accent-light); }
+  .week-day.today .week-day-name { color: var(--color-cream-50); }
   .week-day.today .week-day-label { color: var(--color-cream-50); }
-  .week-day.today .week-day-dot { background: var(--color-accent-light); width: 7px; height: 7px; }
-  /* Dark card: invert the status-missed "skipped" suffix color for readability */
+  .week-day.today .week-day-dot { background: var(--color-cream-50); width: 7px; height: 7px; }
   .week-day.today.status-missed { opacity: 1; }
   .week-day.today.status-missed .week-day-label::after { color: var(--color-cream-300); }
-  /* Dark card: make the completed checkmark use the lighter orange accent
-     to maintain contrast against the dark background. */
   .week-day.today .week-day-status-done {
-    background: var(--color-accent-light);
+    background: var(--color-cream-50);
+    color: var(--color-accent-dark);
   }
+
+  /* Train hero — small bottom margin since the week strip sits
+     directly under it as the page anchor. The Play hero gets a
+     larger margin because its CTA block needs breathing room from
+     the stats section; the train hero's purpose is to set up the
+     week strip immediately below. */
+  .train-hero {
+    margin-bottom: var(--space-3);
+  }
+  /* Tighter sub margin on the train hero — the progress summary is
+     a single short line, not the multi-line marketing sub of the
+     Play hero. */
+  .train-hero .play-hero-sub {
+    margin-bottom: 0;
+  }
+
+  /* TODAY card — single focused card that replaces the old giant
+     hero. Eyebrow → title → sub → primary CTA → secondary text
+     button. Filled accent-pale background distinguishes it as the
+     day's primary action without going as loud as the old black
+     hero. The rest-day variant uses the same chrome — copy
+     differentiation alone (REST DAY eyebrow + DAILY STRETCH title)
+     handles the state difference. */
+  .train-today-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-5);
+    /* Larger bottom margin so the next prominent section label
+       ("Up Next") sits with clear breathing room below the card. */
+    margin-bottom: var(--space-10);
+  }
+  .train-today-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: var(--space-2);
+  }
+  .train-today-title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
+  }
+  .train-today-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin: 0 0 var(--space-5);
+  }
+  .train-today-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-accent);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-today-cta:hover {
+      background: var(--color-accent-light);
+    }
+  }
+  .train-today-cta:active {
+    transform: scale(0.99);
+  }
+  .train-today-secondary {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-2);
+    background: transparent;
+    border: none;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .train-today-secondary:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  /* UP NEXT card — quieter sibling of the today card. Lighter
+     background, no big CTA, just a tappable preview row that opens
+     the routine. Two-tier hierarchy: today is loud, next is quiet. */
+  .train-upnext-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    margin-bottom: var(--space-7);
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-upnext-card:hover {
+      border-color: var(--color-accent);
+      background: var(--bg-elevated);
+    }
+  }
+  .train-upnext-card:active {
+    transform: scale(0.995);
+  }
+  .train-upnext-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .train-upnext-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-1);
+  }
+  .train-upnext-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: var(--space-1);
+  }
+  .train-upnext-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+  .train-upnext-chev {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    flex-shrink: 0;
+    transition: color var(--transition-fast), transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-upnext-card:hover .train-upnext-chev {
+      color: var(--color-accent);
+      transform: translateX(3px);
+    }
+  }
+
+  /* LIBRARY rows — compact navigation rows with circular icons +
+     chevrons. Mirrors the "Browse Courses" pattern from the Play
+     screen so the navigation language is consistent across tabs. */
+  .train-library-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .train-lib-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-lib-row:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+    }
+  }
+  .train-lib-row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-accent-pale);
+    color: var(--color-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .train-lib-row-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .train-lib-row-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .train-lib-row-title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .train-lib-row-sub {
+    font-family: var(--body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+  .train-lib-row-chev {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    flex-shrink: 0;
+    transition: color var(--transition-fast), transform var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .train-lib-row:hover .train-lib-row-chev {
+      color: var(--color-accent);
+      transform: translateX(3px);
+    }
+  }
+
   @media (max-width: 560px) {
     .week-day { padding: var(--space-3) var(--space-1); min-height: 64px; }
     .week-day-label { display: none; }
@@ -1940,6 +2488,24 @@
     justify-content: space-between;
     gap: var(--space-3);
     margin-bottom: var(--space-5);
+  }
+
+  /* Eyebrow row — used by the Practice and Train heroes when there's
+     no greeting (avatar sits on the same row as the section pill).
+     The pill keeps its inline-flex sizing on the left; the avatar
+     pushes to the right via space-between. Vertically centered so
+     the pill text and avatar share a common visual midline. */
+  .play-hero-eyebrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  /* Pill inside the eyebrow row — drop the standalone bottom margin
+     since the row wrapper now controls vertical rhythm. */
+  .play-hero-eyebrow-row .play-hero-eyebrow {
+    margin-bottom: 0;
   }
 
   /* Personalized greeting — tracked-caps, transparent. Inside the
@@ -11218,6 +11784,209 @@
     justify-content: flex-start;
   }
 
+  /* ── Routine picker bottom sheet ────────────────────────────
+     Same chrome architecture as the tee picker (backdrop fade +
+     sheet slide via .opening/.closing class toggles, drag-to-dismiss
+     on the header). Lists routines as full-width tappable rows. */
+  .routine-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8800;
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .routine-picker-backdrop.opening,
+  .routine-picker-backdrop.closing {
+    opacity: 0;
+  }
+  .routine-picker-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8801;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .routine-picker-sheet.opening,
+  .routine-picker-sheet.closing {
+    transform: translateY(100%);
+  }
+  .routine-picker-sheet.is-dragging { transition: none; }
+  .routine-picker-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-5) var(--space-5) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .routine-picker-sheet.is-dragging .routine-picker-header { cursor: grabbing; }
+  .routine-picker-grabber {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+  }
+  .routine-picker-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .routine-picker-close {
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-30%);
+    background: transparent;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .routine-picker-close:hover {
+      background: var(--color-cream-100);
+      color: var(--text-primary);
+    }
+  }
+  .routine-picker-body {
+    padding: var(--space-2) var(--space-5) var(--space-6);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  /* Routine row — full width, tappable. Title + sub on the left,
+     optional "Today" tag and chevron on the right. */
+  .routine-picker-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-4);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .routine-picker-row:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .routine-picker-row.is-current {
+    border-color: var(--color-accent);
+    background: var(--color-accent-pale);
+  }
+  .routine-picker-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .routine-picker-row-name {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .routine-picker-row-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .routine-picker-row-tag {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    background: var(--color-accent);
+    color: var(--color-white);
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+  .routine-picker-row-chev {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+  }
+  /* Empty state — when the user hasn't built any routines yet, link
+     them to the routine builder via a clear CTA. */
+  .routine-picker-empty {
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  .routine-picker-empty-cta {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .routine-picker-empty-cta:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
   /* ── Edit-score sheet — opens when you tap another player's cell in
      the group scorecard. Lightweight strokes/putts editor. Same
      chrome architecture as the other bottom sheets (handle + drag-
@@ -14810,6 +15579,142 @@
     border-left-color: var(--color-accent);
   }
 
+  /* Swing-thoughts surface inside the Pre-Shot tool. Sits at the top
+     of the body, ABOVE the static PRESHOT_TIPS sections. Distinct
+     visual treatment from the static tips: accent-pale background
+     so it reads as "your stuff" vs. the generic catalog tips below. */
+  .preshot-swing-section {
+    background: var(--color-accent-pale);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .preshot-swing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .preshot-swing-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  /* Category chips — wrap row, scrollable if too many. Active chip
+     gets accent-fill treatment (same as composer pattern for
+     consistency). Inactive chips show count when > 0. */
+  .preshot-swing-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .preshot-swing-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    padding: 6px var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-secondary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  }
+  .preshot-swing-chip.is-active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-white);
+  }
+  .preshot-swing-chip-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    padding: 1px 5px;
+    background: var(--bg-page);
+    color: var(--text-muted);
+    border-radius: var(--radius-pill);
+  }
+  .preshot-swing-chip.is-active .preshot-swing-chip-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: var(--color-white);
+  }
+  /* Thoughts list — clean stack, no bullet points. Each thought
+     reads as a single short cue with subtle leading dot. */
+  .preshot-swing-thoughts-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .preshot-swing-thought {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.35;
+    padding: var(--space-2) 0 var(--space-2) var(--space-4);
+    position: relative;
+  }
+  .preshot-swing-thought::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+  /* Empty state when the active category has no thoughts saved. */
+  .preshot-swing-empty {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+  .preshot-swing-empty-copy {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .preshot-swing-empty-cta {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .preshot-swing-empty-cta:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+  html.dark .preshot-swing-section {
+    background: rgba(91, 130, 232, 0.08);
+    border-color: rgba(91, 130, 232, 0.25);
+  }
+
   /* ══════════════════════════════════════════════════════════════
      WEATHER — landing widget + dock tool
      ══════════════════════════════════════════════════════════════ */
@@ -15945,18 +16850,6 @@
     gap: var(--space-3);
     margin-bottom: var(--space-1);
   }
-  /* Scoped override — when the head wraps a course title (i.e. it's
-     a recent-rounds list card), strip the bottom border + tighten
-     spacing so the meta row sits close under the course name. The
-     unscoped .round-card-head rule earlier in this file gives the
-     in-round hole card a divider, which we need to keep there but
-     drop here. :has() scopes by content type instead of by parent. */
-  .round-card-head:has(.round-card-course) {
-    border-bottom: none;
-    padding-bottom: 0;
-    text-align: left;
-    margin-bottom: 0;
-  }
   .round-card-course {
     display: flex;
     align-items: center;
@@ -16183,15 +17076,6 @@
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--text-muted);
-  }
-  /* Best-round badge slot — pushed to the right side of the score
-     row via margin-left: auto so the badge always lands at the far
-     right of the card regardless of what's on the left (score +
-     vs-par for solo, score + format-tag for alt-format). */
-  .round-card-score-badge-slot {
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
   }
 
   /* "See all rounds →" footer link under the recent-rounds list on the
@@ -20767,6 +21651,584 @@
     .practice-empty-cta:hover {
       border-color: var(--color-accent);
       background: var(--color-accent-pale);
+    }
+  }
+
+  /* ── Journal — practice landing section + full panel ─────────
+     Cards are quiet by default (cream-100 bg, no border) so a stack
+     of 3 doesn't compete with the more interactive Recent Sessions
+     cards above. The composer is a bottom sheet so capture is fast
+     from anywhere it's opened. */
+  .journal-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .journal-card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .journal-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .journal-card-date {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .journal-card-body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.5;
+    /* Single-line preview by default; full panel relaxes this. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .journal-card-body-full {
+    -webkit-line-clamp: 4;
+  }
+  /* "+ New entry" button — outlined, accent, full-width row that
+     reads as a primary capture affordance below the entries list. */
+  .journal-new-entry-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    background: transparent;
+    border: 1px dashed color-mix(in srgb, var(--color-accent) 50%, transparent);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .journal-new-entry-btn:hover {
+      background: var(--color-accent-pale);
+      border-color: var(--color-accent);
+      border-style: solid;
+    }
+  }
+  .journal-new-entry-btn-full {
+    /* On the full panel, give the button its own breathing room
+       above the entries list. */
+    margin-bottom: var(--space-5);
+  }
+  .journal-new-entry-plus {
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+  }
+  .journal-empty-state {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .journal-empty-copy {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 36ch;
+  }
+  .journal-see-all-row {
+    margin-top: var(--space-3);
+    text-align: right;
+  }
+  .journal-see-all-link {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-accent);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .journal-see-all-link:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  /* ── Journal composer bottom sheet ──────────────────────────
+     Same animation chrome as the tee/routine pickers. Header has
+     Cancel (left) + title (center) + Save (right). Body has a
+     textarea + an optional Delete button when editing. */
+  .journal-composer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8800;
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .journal-composer-backdrop.opening,
+  .journal-composer-backdrop.closing {
+    opacity: 0;
+  }
+  .journal-composer-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8801;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    /* Tall enough for a real writing surface. Composer benefits
+       from being most of the screen, unlike tee/routine pickers. */
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .journal-composer-sheet.opening,
+  .journal-composer-sheet.closing {
+    transform: translateY(100%);
+  }
+  .journal-composer-sheet.is-dragging { transition: none; }
+  .journal-composer-header {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .journal-composer-sheet.is-dragging .journal-composer-header { cursor: grabbing; }
+  .journal-composer-grabber {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+  }
+  .journal-composer-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .journal-composer-cancel,
+  .journal-composer-save {
+    background: transparent;
+    border: none;
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: var(--radius-md);
+  }
+  .journal-composer-cancel {
+    justify-self: start;
+    color: var(--text-muted);
+  }
+  .journal-composer-save {
+    justify-self: end;
+    color: var(--color-accent);
+    font-weight: var(--weight-bold);
+  }
+  @media (hover: hover) {
+    .journal-composer-cancel:hover { color: var(--text-primary); }
+    .journal-composer-save:hover { background: var(--color-accent-pale); }
+  }
+  .journal-composer-body {
+    padding: var(--space-3) var(--space-5) var(--space-6);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .journal-composer-textarea {
+    flex: 1;
+    min-height: 200px;
+    width: 100%;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: 1.5;
+    resize: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--transition-fast);
+  }
+  .journal-composer-textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+  .journal-composer-textarea::placeholder {
+    color: var(--text-muted);
+  }
+  .journal-composer-delete {
+    align-self: center;
+    background: transparent;
+    border: none;
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-danger, #c0392b);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .journal-composer-delete:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  /* ── Swing thoughts — landing preview + panel + composer ──── */
+
+  /* Landing preview: row of category chips with counts. Tappable —
+     each opens the full management panel. Wraps naturally; the
+     "+ New thought" + Manage link sit below. */
+  .swing-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .swing-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-4);
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .swing-chip:hover {
+      border-color: var(--color-accent);
+      background: var(--color-accent-pale);
+    }
+  }
+  .swing-chip-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+  }
+  .swing-chip-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    color: var(--text-muted);
+    background: var(--bg-page);
+    padding: 1px 7px;
+    border-radius: var(--radius-pill);
+    line-height: 1.4;
+  }
+
+  /* Reuses the journal "+ New entry" pattern via a shared class but
+     with its own modifier so we can adjust spacing independently. */
+  .swing-new-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    background: transparent;
+    border: 1px dashed color-mix(in srgb, var(--color-accent) 50%, transparent);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .swing-new-btn:hover {
+      background: var(--color-accent-pale);
+      border-color: var(--color-accent);
+      border-style: solid;
+    }
+  }
+  .swing-new-btn-full { margin-bottom: var(--space-5); }
+
+  .swing-empty-state {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .swing-empty-copy {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 36ch;
+  }
+
+  /* Full panel: category sections, each with a quiet header + cards. */
+  .swing-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  .swing-cat-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .swing-cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .swing-cat-name {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .swing-cat-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+  }
+  .swing-cat-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .swing-card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .swing-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+  .swing-card-text {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: 1.45;
+  }
+  .swing-card-also {
+    margin-top: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Composer bottom sheet — same chrome as journal but with text
+     INPUT (single-line) instead of textarea, plus a chip grid for
+     category selection below it. */
+  .swing-composer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8800;
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .swing-composer-backdrop.opening,
+  .swing-composer-backdrop.closing { opacity: 0; }
+  .swing-composer-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8801;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .swing-composer-sheet.opening,
+  .swing-composer-sheet.closing { transform: translateY(100%); }
+  .swing-composer-sheet.is-dragging { transition: none; }
+  .swing-composer-header {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .swing-composer-sheet.is-dragging .swing-composer-header { cursor: grabbing; }
+  /* Save button is disabled until text + at least one category is set.
+     Visual treatment: muted color + reduced opacity, no hover effect. */
+  .swing-composer-save.is-disabled {
+    color: var(--text-muted);
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+  }
+  .swing-composer-body {
+    padding: var(--space-3) var(--space-5) var(--space-6);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .swing-composer-text {
+    width: 100%;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--transition-fast);
+  }
+  .swing-composer-text:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+  .swing-composer-text::placeholder { color: var(--text-muted); }
+  .swing-composer-cats-label {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .swing-composer-cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  /* Category chip — toggles between unselected (default outline) and
+     selected (accent fill). data-selected attribute drives the swap
+     so we can flip individual chips without re-rendering the sheet. */
+  .swing-cat-chip {
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  }
+  .swing-cat-chip[data-selected="true"] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-white);
+  }
+  @media (hover: hover) {
+    .swing-cat-chip:hover {
+      border-color: var(--color-accent);
+    }
+    .swing-cat-chip[data-selected="true"]:hover {
+      background: var(--color-accent-light);
     }
   }
 
@@ -29857,6 +31319,8 @@
     /* "Back" button only shows on panels that aren't top-level tabs */
     body[data-current-panel="workout"] .mobile-topbar-back,
     body[data-current-panel="history"] .mobile-topbar-back,
+    body[data-current-panel="journal"] .mobile-topbar-back,
+    body[data-current-panel="swing-thoughts"] .mobile-topbar-back,
     body[data-current-panel="stretch"] .mobile-topbar-back,
     body[data-current-panel="library"] .mobile-topbar-back,
     body[data-current-panel="exercise-library"] .mobile-topbar-back,
@@ -30206,28 +31670,59 @@
            round invites. Renders a tappable card pointing to Social. -->
       <div id="round-invite-banner-mount"></div>
 
-      <!-- Today / Up Next card — rendered dynamically by JS -->
-      <div id="today-card-mount"></div>
+      <!-- Editorial hero — mirrors the Play tab pattern. Top bar with
+           greeting + avatar, TRAIN pill, "This Week" headline, progress
+           summary subhead. Rendered dynamically by renderTrainHero(). -->
+      <div id="train-hero-mount"></div>
 
-      <div class="home-section-label">This Week</div>
+      <!-- Week strip — promoted directly under the headline as the page's
+           primary anchor. Answers "where am I in the week" before
+           anything else. -->
       <div class="week-strip" id="week-strip"></div>
 
-      <div class="home-section-label">Jump To</div>
-      <div class="jump-grid">
-        <button class="jump-card" onclick="showPanel('stretch', null)">
-          <span class="jump-card-label">Every Day · 8–10 min</span>
-          <span class="jump-card-title">Daily Stretch Routine</span>
-          <span class="jump-card-meta">8 stretches — hip, T-spine, hamstrings, wrists</span>
+      <!-- TODAY section — section label + today's focused card. The
+           card is loud (filled background, primary CTA). -->
+      <div class="home-section-label home-section-label-prominent" id="train-today-label"></div>
+      <div id="today-card-mount"></div>
+
+      <!-- UP NEXT section — section label + low-weight preview card
+           for the next scheduled workout. Quiet by design so today's
+           card stays the visual focal point. Hidden when there's no
+           future workout to preview. -->
+      <div id="train-up-next-section-mount"></div>
+
+      <!-- LIBRARY — navigation rows for the workout library and history.
+           Compact rows with circular icons, mirrors the "Browse Courses"
+           pattern from the Play screen. Daily Stretch removed from this
+           section since it's already today's recommended action. -->
+      <div class="home-section-label home-section-label-prominent">Library</div>
+      <div class="train-library-list">
+        <button class="train-lib-row" onclick="showPanel('library', null)">
+          <span class="train-lib-row-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </span>
+          <div class="train-lib-row-body">
+            <div class="train-lib-row-title">Workout Library</div>
+            <div class="train-lib-row-sub">Routines, exercises, and the daily stretch</div>
+          </div>
+          <span class="train-lib-row-chev" aria-hidden="true">→</span>
         </button>
-        <button class="jump-card" onclick="showPanel('library', null)">
-          <span class="jump-card-label">Browse All</span>
-          <span class="jump-card-title">Workout Library</span>
-          <span class="jump-card-meta">Routines, exercises, and the daily stretch</span>
-        </button>
-        <button class="jump-card" onclick="showPanel('history', null)">
-          <span class="jump-card-label">Past Sessions</span>
-          <span class="jump-card-title">Workout History</span>
-          <span class="jump-card-meta">Every workout you've completed</span>
+        <button class="train-lib-row" onclick="showPanel('history', null)">
+          <span class="train-lib-row-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          </span>
+          <div class="train-lib-row-body">
+            <div class="train-lib-row-title">Workout History</div>
+            <div class="train-lib-row-sub">Every workout you've completed</div>
+          </div>
+          <span class="train-lib-row-chev" aria-hidden="true">→</span>
         </button>
       </div>
     </section>
@@ -30328,6 +31823,32 @@
         <p class="panel-desc">Every workout you've completed, most recent first. Tap a session to see what you logged.</p>
       </div>
       <div id="history-mount"></div>
+    </section>
+
+    <!-- ═══════════════ JOURNAL ═══════════════ -->
+    <!-- Full list view of all journal entries. Tap an entry to edit
+         it in the composer sheet; tap "+ New entry" to create one.
+         Rendered by renderJournalPanel(). -->
+    <section class="panel" id="panel-journal">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div class="panel-head panel-head-compact">
+        <span class="accent-line"></span>
+        <span class="label">Journal</span>
+      </div>
+      <div id="journal-list-mount"></div>
+    </section>
+
+    <!-- ═══════════════ SWING THOUGHTS ═══════════════ -->
+    <!-- Full management view — all thoughts grouped by category.
+         Tap a thought to edit; tap "+ New thought" to create.
+         Rendered by renderSwingThoughtsPanel(). -->
+    <section class="panel" id="panel-swing-thoughts">
+      <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
+      <div class="panel-head panel-head-compact">
+        <span class="accent-line"></span>
+        <span class="label">Swing Thoughts</span>
+      </div>
+      <div id="swing-thoughts-list-mount"></div>
     </section>
 
     <!-- ═══════════════ PLAY ═══════════════ -->
@@ -30484,16 +32005,12 @@
     <section class="panel" id="panel-practice">
       <!-- Editorial hero — mirrors the Play tab pattern but a touch
            smaller (Practice is a secondary destination, not the
-           primary one). PRACTICE pill eyebrow, single-line headline
-           ("Skill" black + "Building" accent italic, inline so it
-           reads as one phrase), and a one-line subhead. The
-           .practice-hero modifier scopes the size overrides without
-           touching the Play hero. -->
-      <div class="play-hero practice-hero">
-        <span class="play-hero-eyebrow">Practice</span>
-        <h1 class="play-hero-title">Skill <em>Building</em></h1>
-        <p class="play-hero-sub">Range sessions, drills, and skill work.</p>
-      </div>
+           primary one). PRACTICE pill + avatar inline on the eyebrow
+           row, single-line headline ("Skill" black + "Building"
+           accent italic), one-line subhead. Rendered by
+           renderPracticeHero() so the avatar can populate after auth
+           resolves. -->
+      <div id="practice-hero-mount"></div>
       <!-- In-progress practice session resume banner — surfaced via
            renderPracticeLanding when isAnyPracticeSessionActive(). -->
       <div id="practice-resume-mount"></div>
@@ -30519,6 +32036,19 @@
            link routes to the unified history page. -->
       <div class="home-section-label home-section-label-prominent">Recent Sessions</div>
       <div id="practice-recent-mount"></div>
+
+      <!-- JOURNAL — free-form notes. Up to 3 most recent entries
+           shown as cards + "+ New entry" button + "See all →" link.
+           Rendered by renderPracticeJournalSection(). -->
+      <div class="home-section-label home-section-label-prominent">Journal</div>
+      <div id="practice-journal-mount"></div>
+
+      <!-- SWING THOUGHTS — short reusable cues categorized by shot
+           type. Preview shows category counts as chips + new + manage
+           links. Full management lives in panel-swing-thoughts.
+           Rendered by renderPracticeSwingThoughtsSection(). -->
+      <div class="home-section-label home-section-label-prominent">Swing Thoughts</div>
+      <div id="practice-swing-thoughts-mount"></div>
     </section>
 
     <!-- ═══════════════ RANGE SESSION ═══════════════ -->
@@ -30928,6 +32458,26 @@
      constrained by the panel's transform-based slide-in (transforms
      create a containing block, breaking position: fixed). -->
 <div id="tee-picker-mount"></div>
+
+<!-- ROUTINE PICKER sheet mount — populated by renderRoutinePicker()
+     when the user taps "Choose a different workout" on the train
+     today card. Bottom sheet listing all of the user's routines as
+     tappable rows; tapping opens the routine preview. Body-level
+     for the same reason as the tee picker above. -->
+<div id="routine-picker-mount"></div>
+
+<!-- JOURNAL COMPOSER sheet mount — populated by renderJournalComposer()
+     when the user taps "+ New entry" or an existing entry to edit it.
+     Bottom sheet with a textarea for fast capture. Body-level so the
+     slide-up animation works regardless of which panel triggered it
+     (Practice landing OR the Journal panel both call into it). -->
+<div id="journal-composer-mount"></div>
+
+<!-- SWING THOUGHT COMPOSER sheet mount — populated by
+     renderSwingThoughtComposer() when the user creates or edits a
+     thought. Bottom sheet with text input + multi-select category
+     chips. Body-level for the same reason as the journal composer. -->
+<div id="swing-thought-composer-mount"></div>
 
 <!-- MANAGE PLAYERS sheet mount — populated by renderManagePlayersSheet()
      when the user taps the manage button on the round panel's "Playing
@@ -31635,6 +33185,88 @@
     // explicit delete from session history.
     deletePracticeSession: async (myUid, sessionId) => {
       await deleteDoc(doc(db, `users/${myUid}/practiceSessions/${sessionId}`));
+    },
+
+    // ── Journal entries ────────────────────────────────────────
+    // Free-form notes the user keeps under the Practice tab. Plain
+    // text body + timestamps. Lives at users/{uid}/journalEntries
+    // and is owned exclusively by the user (no sharing model).
+    listJournalEntries: async (myUid) => {
+      const ref = collection(db, `users/${myUid}/journalEntries`);
+      const q = query(ref, orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+
+    // Create a new entry. Server-resolved ids are fine — entries are
+    // listed by createdAt, not by id, so no need for human-readable
+    // keys. Returns the created doc id so the client can update its
+    // in-memory cache without a refetch.
+    createJournalEntry: async (myUid, body) => {
+      const ref = collection(db, `users/${myUid}/journalEntries`);
+      const now = Date.now();
+      // Use setDoc with a deterministic id we generate client-side so
+      // we don't need addDoc (not in the current import list). Cheap
+      // and works fine — collisions are astronomically unlikely.
+      const id = `j_${now}_${Math.random().toString(36).slice(2, 8)}`;
+      const entry = {
+        body: body || '',
+        createdAt: now,
+        updatedAt: now,
+      };
+      await setDoc(doc(db, `users/${myUid}/journalEntries/${id}`), entry);
+      return { id, ...entry };
+    },
+
+    // Update an existing entry's body. Bumps updatedAt so the list
+    // can re-sort if we ever switch to "most recently edited" order.
+    updateJournalEntry: async (myUid, entryId, body) => {
+      await updateDoc(doc(db, `users/${myUid}/journalEntries/${entryId}`), {
+        body: body || '',
+        updatedAt: Date.now(),
+      });
+    },
+
+    // Delete an entry. Hard delete — no soft-delete / archive yet.
+    deleteJournalEntry: async (myUid, entryId) => {
+      await deleteDoc(doc(db, `users/${myUid}/journalEntries/${entryId}`));
+    },
+
+    // ── Swing thoughts ─────────────────────────────────────────
+    // Short reusable cues categorized by shot type (off the tee,
+    // mid approach, chipping, etc.). Multi-category — a thought
+    // like "smooth tempo" can apply to several shot types. Lives
+    // at users/{uid}/swingThoughts/{id}.
+    listSwingThoughts: async (myUid) => {
+      const ref = collection(db, `users/${myUid}/swingThoughts`);
+      const q = query(ref, orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+
+    createSwingThought: async (myUid, { text, categories }) => {
+      const now = Date.now();
+      const id = `st_${now}_${Math.random().toString(36).slice(2, 8)}`;
+      const thought = {
+        text: text || '',
+        categories: Array.isArray(categories) ? categories : [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      await setDoc(doc(db, `users/${myUid}/swingThoughts/${id}`), thought);
+      return { id, ...thought };
+    },
+
+    updateSwingThought: async (myUid, thoughtId, { text, categories }) => {
+      await updateDoc(doc(db, `users/${myUid}/swingThoughts/${thoughtId}`), {
+        text: text || '',
+        categories: Array.isArray(categories) ? categories : [],
+        updatedAt: Date.now(),
+      });
+    },
+
+    deleteSwingThought: async (myUid, thoughtId) => {
+      await deleteDoc(doc(db, `users/${myUid}/swingThoughts/${thoughtId}`));
     },
 
 
@@ -33821,83 +35453,307 @@
     });
   }
 
-  function renderTodayCard() {
+  // Train hero v1 was a duplicate definition; the canonical implementation
+  // lives below, alongside computeWeekProgressLine. Removed to avoid
+  // confusion — JS defaults to using the second def regardless.
+
+  // Compute the week-progress summary line — "3 of 4 lifts complete ·
+  // 2 days remaining" or similar. Uses the same effective schedule +
+  // recentSessions data the week strip pulls from. Falls back to a
+  // sensible neutral message when there's no schedule yet.
+  function computeWeekProgressSummary() {
+    const effective = getEffectiveScheduleByWeekday();
+    const today = new Date().getDay();
+    const now = new Date();
+    const sundayOfThisWeek = new Date(now);
+    sundayOfThisWeek.setDate(now.getDate() - now.getDay());
+    sundayOfThisWeek.setHours(0, 0, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    // Sessions completed THIS week, keyed by date string.
+    const sessionByDate = {};
+    for (const sess of (recentSessions || [])) {
+      if (sess.dateKey) sessionByDate[sess.dateKey] = true;
+    }
+    let scheduledTotal = 0;
+    let completedSoFar = 0;
+    let remainingSchedDays = 0;
+    for (const d of WEEK) {
+      const workouts = effective[d.dow] || [];
+      if (workouts.length === 0) continue;
+      scheduledTotal++;
+      const dayDate = new Date(sundayOfThisWeek);
+      dayDate.setDate(sundayOfThisWeek.getDate() + d.dow);
+      const dateKey = `${dayDate.getFullYear()}-${pad(dayDate.getMonth() + 1)}-${pad(dayDate.getDate())}`;
+      if (sessionByDate[dateKey]) completedSoFar++;
+      else if (d.dow >= today) remainingSchedDays++;
+    }
+    if (scheduledTotal === 0) {
+      return 'No workouts scheduled this week.';
+    }
+    const liftWord = scheduledTotal === 1 ? 'lift' : 'lifts';
+    const dayWord = remainingSchedDays === 1 ? 'day' : 'days';
+    if (remainingSchedDays === 0 && completedSoFar === scheduledTotal) {
+      return `${completedSoFar} of ${scheduledTotal} ${liftWord} complete · week wrapped`;
+    }
+    if (remainingSchedDays === 0) {
+      return `${completedSoFar} of ${scheduledTotal} ${liftWord} complete · no more this week`;
+    }
+    return `${completedSoFar} of ${scheduledTotal} ${liftWord} complete · ${remainingSchedDays} ${dayWord} remaining`;
+  }
+
+  // "TODAY · SATURDAY" section label rendered above the today card.
+  // Lives in its own mount so it can be updated independently of the
+  // card body during partial re-renders.
+  function renderTrainTodayLabel() {
+    const el = document.getElementById('train-today-label');
+    if (!el) return;
+    const todayName = weekdayName(new Date().getDay());
+    el.textContent = `Today · ${todayName}`;
+  }
+
+  // UP NEXT section — renders ONLY when there's a future scheduled
+  // workout to preview. Hidden on rest days when "today" is already
+  // showing the same upcoming preview, and hidden when the user has
+  // no schedule at all.
+  function renderTrainUpNextSection() {
+    const mount = document.getElementById('train-up-next-section-mount');
+    if (!mount) return;
+    const next = findNextScheduledWorkout();
     const resolution = resolveToday();
+    // Skip if today IS a workout day (no need for "up next" — today
+    // is the up-next), or there's nothing next.
+    if (!next || (resolution && resolution.isToday)) {
+      mount.innerHTML = '';
+      return;
+    }
+    const dayName = weekdayName(next.dow);
+    const w = next.workout;
+    const title = w.title || `Day ${w.number || ''}`.trim();
+    const eyebrow = w.number
+      ? `Day ${String(w.number).padStart(2, '0')} · ${w.minutes || '—'} min`
+      : `${w.minutes || '—'} min`;
+    const sub = w.sub || `${w.exercises || '—'} exercises`;
+    mount.innerHTML = `
+      <div class="home-section-label home-section-label-prominent">Up Next · ${escapeHtml(dayName)}</div>
+      <button class="train-upnext-card" onclick="openRoutineForWorkout('${escapeAttr(w.routineId || w.dayId)}')">
+        <div class="train-upnext-body">
+          <div class="train-upnext-eyebrow">${escapeHtml(eyebrow)}</div>
+          <div class="train-upnext-title">${escapeHtml(stripHtml(title))}</div>
+          <div class="train-upnext-sub">${escapeHtml(stripHtml(sub))}</div>
+        </div>
+        <span class="train-upnext-chev" aria-hidden="true">→</span>
+      </button>`;
+  }
+
+  // Find the next scheduled workout starting from tomorrow forward
+  // through the rest of this week. Returns { dow, workout } or null
+  // if nothing is scheduled in the remainder of the week. Uses the
+  // same effective schedule the week strip + today resolver use.
+  function findNextScheduledWorkout() {
+    const effective = getEffectiveScheduleByWeekday();
+    const today = new Date().getDay();
+    // Walk forward from tomorrow through Saturday, then loop Sun→today
+    // so we catch next week's Monday if Saturday is rest, etc.
+    for (let offset = 1; offset <= 7; offset++) {
+      const dow = (today + offset) % 7;
+      const workouts = effective[dow] || [];
+      if (workouts.length > 0) {
+        return { dow, workout: workouts[0] };
+      }
+    }
+    return null;
+  }
+
+  // Train landing orchestrator — called from anywhere that wants to
+  // refresh the Train tab. Fires all the sub-renders (hero, today,
+  // up next, label) which fill their own mounts. Existing call sites
+  // that called renderTodayCard() still work; this just expanded
+  // what that name means.
+  function renderTodayCard() {
+    renderTrainHero();
+    renderTrainTodayLabel();
+    renderTrainTodayCard();
+    renderTrainUpNextCard();
+  }
+
+  // Editorial hero — top bar (greeting + avatar) above the TRAIN
+  // pill, then "This Week" headline + a one-line progress summary
+  // ("3 of 4 lifts complete · 2 days remaining"). Mirrors the Play
+  // tab pattern; shares its CSS scaffolding via .play-hero classes.
+  function renderTrainHero() {
+    const mount = document.getElementById('train-hero-mount');
+    if (!mount) return;
+
+    // Avatar — tap → profile, hidden when no photoURL. On the train
+    // hero we drop the greeting line entirely (Play tab keeps the
+    // greeting; Train is enough screens in that the user has already
+    // been welcomed). Avatar sits inline with the TRAIN pill on a
+    // single eyebrow row.
+    const avatarHtml = currentUser?.photoURL ? `
+      <button class="play-hero-avatar" onclick="showPanel('profile', null)" aria-label="Open profile">
+        <img src="${escapeAttr(currentUser.photoURL)}" alt="" referrerpolicy="no-referrer" />
+      </button>
+    ` : '';
+
+    // Progress summary — count completed-this-week sessions vs
+    // scheduled. Reads the same data the week strip uses so the two
+    // surfaces stay consistent. Falls back to the daily-stretch line
+    // when there's no schedule at all.
+    const sub = computeWeekProgressLine();
+
+    mount.innerHTML = `
+      <div class="play-hero train-hero">
+        <div class="play-hero-eyebrow-row">
+          <div class="play-hero-eyebrow">Train</div>
+          ${avatarHtml}
+        </div>
+        <h2 class="play-hero-title">This <em>Week</em></h2>
+        <p class="play-hero-sub">${escapeHtml(sub)}</p>
+      </div>`;
+  }
+
+  // Compute "3 of 4 lifts complete · 2 days remaining" for the hero
+  // sub. Counts weekday-scheduled workouts, how many have been
+  // completed (via recentSessions dateKey lookup), and how many days
+  // remain in the current Sun→Sat week.
+  function computeWeekProgressLine() {
+    const effective = getEffectiveScheduleByWeekday();
+    let scheduled = 0;
+    for (let dow = 0; dow < 7; dow++) {
+      if ((effective[dow] || []).length > 0) scheduled += 1;
+    }
+    if (scheduled === 0) {
+      return 'No workouts scheduled. Daily stretch keeps you loose.';
+    }
+    // Build a date-keyed completion lookup matching the week strip's
+    // logic. Same Sun→Sat anchor.
+    const now = new Date();
+    const sundayOfThisWeek = new Date(now);
+    sundayOfThisWeek.setDate(now.getDate() - now.getDay());
+    sundayOfThisWeek.setHours(0, 0, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    const sessionByDate = {};
+    for (const s of (recentSessions || [])) {
+      if (s.dateKey) sessionByDate[s.dateKey] = true;
+    }
+    let completed = 0;
+    for (let dow = 0; dow < 7; dow++) {
+      const isWorkoutDay = (effective[dow] || []).length > 0;
+      if (!isWorkoutDay) continue;
+      const dayDate = new Date(sundayOfThisWeek);
+      dayDate.setDate(sundayOfThisWeek.getDate() + dow);
+      const key = `${dayDate.getFullYear()}-${pad(dayDate.getMonth() + 1)}-${pad(dayDate.getDate())}`;
+      if (sessionByDate[key]) completed += 1;
+    }
+    const today = new Date().getDay();
+    const daysRemaining = 6 - today; // days after today through Saturday
+    const liftsRemaining = Math.max(0, scheduled - completed);
+    if (liftsRemaining === 0) {
+      return `${completed} of ${scheduled} lifts complete. Week wrapped.`;
+    }
+    const remainCopy = daysRemaining === 0
+      ? 'one day left'
+      : daysRemaining === 1 ? '1 day remaining' : `${daysRemaining} days remaining`;
+    return `${completed} of ${scheduled} lifts complete · ${remainCopy}`;
+  }
+
+  // Section label above today's card — "TODAY · SATURDAY". Only
+  // renders when there's a schedule resolution; null when the user
+  // has no schedule at all (today card itself shows the "set up"
+  // state).
+  function renderTrainTodayLabel() {
+    const el = document.getElementById('train-today-label');
+    if (!el) return;
+    const todayName = weekdayName(new Date().getDay());
+    el.textContent = `Today · ${todayName}`;
+  }
+
+  // Today card — single focused surface. Eyebrow (REST DAY / DAY 02 /
+  // etc.) + title + one-line description + primary CTA + swap link.
+  // Replaces the old multi-section hero card. Per spec:
+  //   - rest day: eyebrow "REST DAY", title "Daily Stretch", primary
+  //     CTA "Start Stretch →"
+  //   - workout day: eyebrow "DAY N · X MIN", title "<routine name>",
+  //     primary CTA "Start Workout →"
+  function renderTrainTodayCard() {
     const mount = document.getElementById('today-card-mount');
     if (!mount) return;
+    const resolution = resolveToday();
+
+    // Truly empty schedule — no workouts ever. Show a setup prompt.
     if (!resolution) {
-      // No workouts scheduled at all — show a fallback explaining this and
-      // pointing to settings so the user can re-add days.
-      const todayName = weekdayName(new Date().getDay());
-      const swapSection = renderSwapSection(null);
       mount.innerHTML = `
-        <div class="today-card rest" data-bg-num="—">
-          <div class="today-eyebrow">Today · ${todayName}</div>
-          <h2 class="today-title">No <em>Schedule</em> Set</h2>
-          <p class="today-sub">You haven't set any workout days. Open Settings to assign Day 1, 2, and 3 to days of the week — or pick a workout below to do today.</p>
-          <div class="today-actions">
-            <button class="today-btn today-btn-primary" onclick="showPanel('profile', null)">Open Profile →</button>
-            <button class="today-btn today-btn-ghost" onclick="showPanel('stretch', null)">Daily Stretch</button>
-          </div>
-          ${swapSection}
+        <div class="train-today-card train-today-card-rest">
+          <div class="train-today-eyebrow">No Schedule</div>
+          <div class="train-today-title">Set up your week</div>
+          <p class="train-today-sub">Pick the days you'll lift. We'll handle the rest.</p>
+          <button class="train-today-cta" onclick="showPanel('profile', null)">Open Profile →</button>
+          <button class="train-today-secondary" onclick="showPanel('stretch', null)">Daily Stretch instead</button>
         </div>`;
       return;
     }
+
     const { isToday, dow, workout } = resolution;
-    const todayName = weekdayName(new Date().getDay());
-    const scheduledName = weekdayName(dow);
-    // Build the swap section once, shared across both card variants.
-    const swapSection = renderSwapSection(isToday ? (workout.routineId || workout.dayId) : null);
 
     if (isToday) {
-      // If there are 2+ workouts scheduled today, surface the others as a hint.
-      const others = (resolution.allWorkouts || []).slice(1);
-      const otherNote = others.length > 0
-        ? `<div class="today-eyebrow" style="color: var(--text-muted); margin-top: var(--space-3);">Also scheduled today: ${others.map(w => w.number ? `Day ${w.number}` : stripHtml(w.title)).join(', ')}</div>`
-        : '';
-      // Title format: "Day 01 — Power & Rotation" for starter routines;
-      // just the title for user routines (which have no day number).
-      const titleText = workout.number
-        ? `Day ${workout.number} — ${workout.title}`
-        : workout.title;
+      // Workout day — eyebrow "DAY N · X MIN", title is routine name.
+      const eyebrowParts = [];
+      if (workout.number) eyebrowParts.push(`Day ${String(workout.number).padStart(2, '0')}`);
+      if (workout.minutes) eyebrowParts.push(`${workout.minutes} min`);
+      const eyebrow = eyebrowParts.join(' · ');
       mount.innerHTML = `
-        <div class="today-card" data-bg-num="${workout.number || '•'}">
-          <div class="today-eyebrow">Today · ${todayName}</div>
-          <h2 class="today-title">${titleText}</h2>
-          <p class="today-sub">${workout.sub}</p>
-          ${otherNote}
-          <div class="today-actions">
-            <button class="today-btn today-btn-primary" onclick="startWorkout('${workout.dayId}')">Start Workout →</button>
-            <button class="today-btn today-btn-ghost" onclick="openRoutineForWorkout('${workout.routineId || workout.dayId}')">Preview</button>
-          </div>
-          ${swapSection}
-          <div class="today-stats">
-            <div class="today-stat"><span class="today-stat-value">${workout.exercises}</span><span class="today-stat-label">Exercises</span></div>
-            <div class="today-stat"><span class="today-stat-value">${workout.minutes}</span><span class="today-stat-label">Minutes</span></div>
-            <div class="today-stat"><span class="today-stat-value">${workout.focus}</span><span class="today-stat-label">Session Focus</span></div>
-          </div>
+        <div class="train-today-card">
+          <div class="train-today-eyebrow">${escapeHtml(eyebrow)}</div>
+          <div class="train-today-title">${escapeHtml(stripHtml(workout.title))}</div>
+          <p class="train-today-sub">${escapeHtml(stripHtml(workout.sub || ''))}</p>
+          <button class="train-today-cta" onclick="startWorkout('${escapeAttr(workout.dayId)}')">Start Workout →</button>
+          <button class="train-today-secondary" onclick="openRoutinePicker()">Choose a different workout</button>
         </div>`;
     } else {
-      const nextTitleText = workout.number
-        ? `Day ${workout.number} — ${stripHtml(workout.title)}`
-        : stripHtml(workout.title);
+      // Rest day — surface the daily stretch as the primary action.
+      // Workout preview moves to its own "Up Next" card below.
       mount.innerHTML = `
-        <div class="today-card rest" data-bg-num="—">
-          <div class="today-eyebrow">Today · ${todayName} · Rest Day</div>
-          <h2 class="today-title">Rest Day — Play <em>Golf</em></h2>
-          <p class="today-sub">No lifting today. Get 18 in if you can, and do the Daily Stretch routine. Next workout: <strong>${nextTitleText}</strong> on ${scheduledName}.</p>
-          <div class="today-actions">
-            <button class="today-btn today-btn-primary" onclick="showPanel('stretch', null)">Daily Stretch →</button>
-            <button class="today-btn today-btn-ghost" onclick="openRoutineForWorkout('${workout.routineId || workout.dayId}')">Preview ${scheduledName}'s Workout</button>
-          </div>
-          ${swapSection}
-          <div class="today-stats">
-            <div class="today-stat"><span class="today-stat-value">${scheduledName}</span><span class="today-stat-label">Next Workout</span></div>
-            <div class="today-stat"><span class="today-stat-value">8–10</span><span class="today-stat-label">Min Stretch</span></div>
-            <div class="today-stat"><span class="today-stat-value">${workout.focus}</span><span class="today-stat-label">Up Next</span></div>
-          </div>
+        <div class="train-today-card train-today-card-rest">
+          <div class="train-today-eyebrow">Rest Day</div>
+          <div class="train-today-title">Daily Stretch</div>
+          <p class="train-today-sub">8 stretches · 8–10 min · hip, T-spine, hamstrings, wrists</p>
+          <button class="train-today-cta" onclick="showPanel('stretch', null)">Start Stretch →</button>
+          <button class="train-today-secondary" onclick="openRoutinePicker()">Choose a different workout</button>
         </div>`;
     }
+  }
+
+  // Up Next card — quieter preview of the next scheduled workout.
+  // Lower visual weight than today's card (lighter background, no
+  // big button). Hidden when today IS a workout day (the today card
+  // already covers what matters most). Includes its own section
+  // label "UP NEXT · MONDAY".
+  function renderTrainUpNextCard() {
+    const mount = document.getElementById('train-up-next-section-mount');
+    if (!mount) return;
+    const resolution = resolveToday();
+    if (!resolution || resolution.isToday) {
+      // No future preview when today IS the workout (today card has it)
+      // or when there's no schedule at all (handled in today card).
+      mount.innerHTML = '';
+      return;
+    }
+    const { dow, workout } = resolution;
+    const dayName = weekdayName(dow);
+    const eyebrowParts = [];
+    if (workout.number) eyebrowParts.push(`Day ${String(workout.number).padStart(2, '0')}`);
+    if (workout.minutes) eyebrowParts.push(`${workout.minutes} min`);
+    const eyebrow = eyebrowParts.join(' · ');
+    mount.innerHTML = `
+      <div class="home-section-label home-section-label-prominent">Up Next · ${escapeHtml(dayName)}</div>
+      <button class="train-upnext-card" onclick="openRoutineForWorkout('${escapeAttr(workout.routineId || workout.dayId)}')">
+        <div class="train-upnext-body">
+          <div class="train-upnext-eyebrow">${escapeHtml(eyebrow)}</div>
+          <div class="train-upnext-title">${escapeHtml(stripHtml(workout.title))}</div>
+          <div class="train-upnext-sub">${escapeHtml(stripHtml(workout.sub || ''))}</div>
+        </div>
+        <div class="train-upnext-chev" aria-hidden="true">→</div>
+      </button>`;
   }
 
   // Quick-swap section: collapsed link that expands to show three workout
@@ -34073,6 +35929,8 @@
     if (id === 'routines')       return 'My Routines';
     if (id === 'routine-builder') return builderState.editingId ? 'Edit Routine' : 'New Routine';
     if (id === 'history')        return 'History';
+    if (id === 'journal')        return 'Journal';
+    if (id === 'swing-thoughts') return 'Swing Thoughts';
     if (id === 'play')           return 'Play';
     if (id === 'practice')       return 'Practice';
     if (id === 'range-session')  return 'Range Session';
@@ -34123,7 +35981,8 @@
         id === 'range-session-club-detail' ||
         id === 'shortgame-setup' || id === 'shortgame-session' ||
         id === 'shortgame-history' || id === 'shortgame-session-detail' ||
-        id === 'course-practice-setup' || id === 'course-practice-session') return 'practice';
+        id === 'course-practice-setup' || id === 'course-practice-session' ||
+        id === 'journal' || id === 'swing-thoughts') return 'practice';
     if (id === 'social' || id === 'user-profile' || id === 'public-round')  return 'social';
     if (id === 'profile' || id === 'bag' || id === 'club-data' || id === 'club-data-detail') return 'profile';
     return 'train';
@@ -34134,7 +35993,7 @@
   // A simple ordered list defines the visual hierarchy for deciding direction.
   // Train sub-pages come first (today is the Train landing), then the other
   // top-level tabs in left-to-right nav order. Play sub-pages slot after Play.
-  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'round-shot-category', 'rounds', 'my-stats', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'social', 'user-profile', 'public-round', 'profile', 'bag', 'club-data', 'club-data-detail'];
+  const PANEL_ORDER = ['today', 'stretch', 'library', 'exercise-library', 'routines', 'routine-builder', 'history', 'workout', 'play', 'courses', 'course-detail', 'round', 'round-summary', 'round-shot-category', 'rounds', 'my-stats', 'quick-score', 'group-lobby', 'group-round', 'practice', 'range-session', 'range-history', 'range-session-detail', 'range-session-club-detail', 'shortgame-setup', 'shortgame-session', 'shortgame-history', 'shortgame-session-detail', 'course-practice-setup', 'course-practice-session', 'journal', 'swing-thoughts', 'social', 'user-profile', 'public-round', 'profile', 'bag', 'club-data', 'club-data-detail'];
   function slideDirection(fromId, toId) {
     const fromIdx = PANEL_ORDER.indexOf(fromId);
     const toIdx = PANEL_ORDER.indexOf(toId);
@@ -34342,6 +36201,8 @@
             await Promise.all([
               loadRangeSessionsHistory(),
               loadShortGameSessionsHistory(),
+              loadJournalEntries(),
+              loadSwingThoughts(),
             ]);
           } catch (err) {
             console.error('Failed to load practice histories:', err);
@@ -34360,6 +36221,29 @@
     if (id === 'shortgame-session-detail') renderShortGameSessionDetail();
     if (id === 'course-practice-setup') renderCoursePracticeSetup();
     if (id === 'course-practice-session') renderCoursePracticeSession();
+
+    // Journal panel — render whatever's in the cache, then trigger a
+    // fresh load if signed in. Re-render when load completes so
+    // entries created on another device show up.
+    if (id === 'journal') {
+      renderJournalPanel();
+      if (currentUser && window.fb) {
+        (async () => {
+          await loadJournalEntries();
+          if (currentPanelId === 'journal') renderJournalPanel();
+        })();
+      }
+    }
+
+    if (id === 'swing-thoughts') {
+      renderSwingThoughtsPanel();
+      if (currentUser && window.fb) {
+        (async () => {
+          await loadSwingThoughts();
+          if (currentPanelId === 'swing-thoughts') renderSwingThoughtsPanel();
+        })();
+      }
+    }
 
     // Phase 2: live subscription lifecycle. Start the onSnapshot listener
     // when entering a group panel; tear it down when leaving. Idempotent
@@ -40096,6 +41980,8 @@
             await Promise.all([
               loadRangeSessionsHistory(),
               loadShortGameSessionsHistory(),
+              loadJournalEntries(),
+              loadSwingThoughts(),
             ]);
           } catch (err) {
             console.error('Failed to load practice histories:', err);
@@ -41652,6 +43538,156 @@
       backdropSelector: '.tee-picker-backdrop',
       ignoreSelector: '.tee-picker-close',
       closeFn: closeTeePicker,
+    });
+  }
+
+  // ── Routine picker bottom sheet ──────────────────────────────
+  // Slides up when the user taps "Choose a different workout" on the
+  // train today card. Lists every routine the user has built; tapping
+  // a row opens the routine preview (NOT starts it — preview is the
+  // safer default since the user is browsing, not committing).
+  // Mirrors the tee picker's animation + drag-to-dismiss + scroll-lock
+  // pattern.
+  const routinePickerSheetState = { open: false };
+
+  function openRoutinePicker() {
+    if (routinePickerSheetState.open) return;
+    routinePickerSheetState.open = true;
+    acquireScrollLock();
+    renderRoutinePicker();
+  }
+  window.openRoutinePicker = openRoutinePicker;
+
+  function closeRoutinePicker() {
+    if (!routinePickerSheetState.open) return;
+    const el = document.querySelector('.routine-picker-sheet');
+    const backdrop = document.querySelector('.routine-picker-backdrop');
+    if (!el || !backdrop) {
+      routinePickerSheetState.open = false;
+      releaseScrollLock();
+      renderRoutinePicker();
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      routinePickerSheetState.open = false;
+      releaseScrollLock();
+      renderRoutinePicker();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+  window.closeRoutinePicker = closeRoutinePicker;
+
+  // Tapping a routine row opens its preview and closes the sheet.
+  // Preview navigation is intentional — user is browsing, not
+  // committing to start. From the preview they can tap the start
+  // CTA there if they want to actually run it.
+  function previewRoutineFromPicker(routineId) {
+    closeRoutinePicker();
+    // Navigate after the close animation kicks off so the panel
+    // change isn't visible behind a still-open sheet for a frame.
+    setTimeout(() => openRoutineForWorkout(routineId), 50);
+  }
+  window.previewRoutineFromPicker = previewRoutineFromPicker;
+
+  function renderRoutinePicker() {
+    const mount = document.getElementById('routine-picker-mount');
+    if (!mount) return;
+    if (!routinePickerSheetState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const list = (routines || []).slice();
+    // Identify today's scheduled routine so we can mark it as the
+    // current one (subtle "Today" tag on its row).
+    const resolution = (typeof resolveToday === 'function') ? resolveToday() : null;
+    const scheduledRoutineId = (resolution && resolution.isToday)
+      ? (resolution.workout.routineId || resolution.workout.dayId)
+      : null;
+
+    let rowsHtml;
+    if (list.length === 0) {
+      rowsHtml = `
+        <div class="routine-picker-empty">
+          You haven't built any routines yet.
+          <button class="routine-picker-empty-cta" onclick="closeRoutinePicker(); setTimeout(() => showPanel('routines', null), 50);">
+            Build your first routine →
+          </button>
+        </div>`;
+    } else {
+      rowsHtml = list.map(r => {
+        const isCurrent = r.id === scheduledRoutineId;
+        const exCount = Array.isArray(r.exercises) ? r.exercises.length : 0;
+        const minLabel = r.minutes ? `${r.minutes} min` : '';
+        const subParts = [];
+        if (exCount > 0) subParts.push(`${exCount} exercise${exCount === 1 ? '' : 's'}`);
+        if (minLabel) subParts.push(minLabel);
+        const sub = subParts.join(' · ');
+        return `
+          <button class="routine-picker-row${isCurrent ? ' is-current' : ''}"
+                  onclick="previewRoutineFromPicker('${escapeAttr(r.id)}')">
+            <div class="routine-picker-row-body">
+              <div class="routine-picker-row-name">${escapeHtml(r.name)}</div>
+              ${sub ? `<div class="routine-picker-row-sub">${escapeHtml(sub)}</div>` : ''}
+            </div>
+            ${isCurrent ? '<span class="routine-picker-row-tag">Today</span>' : ''}
+            <span class="routine-picker-row-chev" aria-hidden="true">→</span>
+          </button>`;
+      }).join('');
+    }
+
+    // First render — build full sheet + trigger open animation. On
+    // re-renders (rare for this sheet — routines list doesn't change
+    // while the sheet is open), refresh body only.
+    const existingSheet = mount.querySelector('.routine-picker-sheet');
+    if (existingSheet && !existingSheet.classList.contains('closing')) {
+      const body = existingSheet.querySelector('.routine-picker-body');
+      if (body) body.innerHTML = rowsHtml;
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="routine-picker-backdrop opening" onclick="closeRoutinePicker()" aria-hidden="true"></div>
+      <div class="routine-picker-sheet opening" role="dialog" aria-modal="true" aria-label="Choose a workout">
+        <div class="routine-picker-header">
+          <div class="routine-picker-grabber" aria-hidden="true"></div>
+          <div class="routine-picker-title">Choose a Workout</div>
+          <button class="routine-picker-close" onclick="closeRoutinePicker()" aria-label="Close">×</button>
+        </div>
+        <div class="routine-picker-body">${rowsHtml}</div>
+      </div>
+    `;
+
+    const sheet = mount.querySelector('.routine-picker-sheet.opening');
+    const backdrop = mount.querySelector('.routine-picker-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    const fullSheet = mount.querySelector('.routine-picker-sheet');
+    const header = fullSheet?.querySelector('.routine-picker-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.routine-picker-backdrop',
+      ignoreSelector: '.routine-picker-close',
+      closeFn: closeRoutinePicker,
     });
   }
 
@@ -50695,6 +52731,68 @@
     }).join('');
 
     const handednessLabel = isLefty ? 'Left-handed' : 'Right-handed';
+
+    // Swing-thoughts section — only shown when the user has saved
+    // any thoughts. Pre-selects the inferred category for their
+    // current shot situation; chips let them switch. Tapping the
+    // empty-state CTA opens the composer with that category pre-
+    // selected so the user lands ready to type.
+    const hasAnyThoughts = Array.isArray(swingThoughts) && swingThoughts.length > 0;
+    let swingThoughtsHtml = '';
+    if (hasAnyThoughts) {
+      const inferred = inferSwingThoughtCategory();
+      const activeCat = preShotCategoryOverride || inferred;
+      const grouped = groupSwingThoughtsByCategory();
+      // Only show chips for categories that have at least one thought
+      // OR for the inferred category (so user can land on it even if
+      // empty and see the "add a thought" CTA).
+      const chipsToShow = SWING_THOUGHT_CATEGORIES.filter(cat =>
+        grouped[cat.id].length > 0 || cat.id === inferred
+      );
+      const chipsHtml = chipsToShow.map(cat => {
+        const isActive = cat.id === activeCat;
+        const count = grouped[cat.id].length;
+        return `
+          <button class="preshot-swing-chip${isActive ? ' is-active' : ''}"
+                  onclick="setPreShotCategory('${escapeAttr(cat.id)}')">
+            ${escapeHtml(cat.label)}${count > 0 ? `<span class="preshot-swing-chip-count">${count}</span>` : ''}
+          </button>`;
+      }).join('');
+
+      const activeThoughts = activeCat ? (grouped[activeCat] || []) : [];
+      let thoughtsListHtml;
+      if (activeThoughts.length > 0) {
+        thoughtsListHtml = `
+          <ul class="preshot-swing-thoughts-list">
+            ${activeThoughts.map(t => `<li class="preshot-swing-thought">${escapeHtml(t.text)}</li>`).join('')}
+          </ul>`;
+      } else if (activeCat) {
+        // Active category has no thoughts — empty state with CTA to
+        // create one. Closes the dock + opens the composer pre-set
+        // to this category so the user can capture and come back.
+        thoughtsListHtml = `
+          <div class="preshot-swing-empty">
+            <p class="preshot-swing-empty-copy">No thoughts saved for ${escapeHtml(swingThoughtCategoryLabel(activeCat))} yet.</p>
+            <button class="preshot-swing-empty-cta"
+                    onclick="closeToolsSheet(); openSwingThoughtComposerWithCategory('${escapeAttr(activeCat)}')">
+              Add one →
+            </button>
+          </div>`;
+      } else {
+        thoughtsListHtml = '';
+      }
+
+      swingThoughtsHtml = `
+        <div class="preshot-swing-section">
+          <div class="preshot-swing-header">
+            <span class="preshot-swing-eyebrow">Your Swing Thoughts</span>
+          </div>
+          <div class="preshot-swing-chips">${chipsHtml}</div>
+          ${thoughtsListHtml}
+        </div>
+      `;
+    }
+
     return `
       <div class="round-dock-surface preshot-surface">
         <div class="preshot-header">
@@ -50708,11 +52806,48 @@
           </button>
         </div>
         <div class="preshot-body">
+          ${swingThoughtsHtml}
           ${sectionsHtml}
         </div>
       </div>
     `;
   }
+
+  // Toggle handler for Pre-Shot category chips. Sets the override and
+  // re-renders the tool body in place (keeps the dock sheet open).
+  function setPreShotCategory(catId) {
+    preShotCategoryOverride = catId;
+    // Re-render JUST the active tool's body so we don't restart the
+    // dock animation. The tool surface lives in .tools-sheet-body;
+    // we replace its content with the freshly rendered tool.
+    const body = document.querySelector('.tools-sheet-body');
+    if (body) {
+      body.innerHTML = renderPreShotTool();
+    } else if (typeof renderToolsSheet === 'function') {
+      // Fallback — full sheet re-render. Animation might restart but
+      // the user gets the right content.
+      const mount = document.getElementById('tools-sheet-mount');
+      if (mount) mount.innerHTML = renderToolsSheet();
+    }
+  }
+  window.setPreShotCategory = setPreShotCategory;
+
+  // Open the swing thought composer with a category pre-selected.
+  // Used by the Pre-Shot tool's empty-state CTA so the user lands
+  // ready to type for the right shot type.
+  function openSwingThoughtComposerWithCategory(catId) {
+    openSwingThoughtComposer();
+    if (catId) {
+      swingThoughtComposerState.categorySet = new Set([catId]);
+      // Re-render the chips to reflect the pre-selection. The
+      // composer's open path already rendered once with empty set;
+      // we patch it by toggling the chip's data-selected attr.
+      const chip = document.querySelector(`.swing-cat-chip[data-cat-id="${catId}"]`);
+      if (chip) chip.setAttribute('data-selected', 'true');
+      if (typeof syncSwingComposerSaveBtn === 'function') syncSwingComposerSaveBtn();
+    }
+  }
+  window.openSwingThoughtComposerWithCategory = openSwingThoughtComposerWithCategory;
 
   function renderDockScorecard() {
     const ctx = getCurrentRoundContext();
@@ -52665,10 +54800,35 @@
     // Composed of independent sub-renders, mirroring renderPlayLanding.
     // Each sub-render targets its own mount and bails gracefully if
     // the mount isn't there (panel may not be mounted yet).
+    renderPracticeHero();
     renderPracticeResumeBanner();
     renderPracticeStats();
     renderRecentPracticeSessions();
     renderPracticeModes();
+    renderPracticeJournalSection();
+    renderPracticeSwingThoughtsSection();
+  }
+
+  // Practice hero — PRACTICE pill + avatar inline, "Skill Building"
+  // headline, one-line subhead. Avatar populates after auth resolves
+  // (renderPracticeLanding is re-called from the auth-resolved batch).
+  function renderPracticeHero() {
+    const mount = document.getElementById('practice-hero-mount');
+    if (!mount) return;
+    const avatarHtml = currentUser?.photoURL ? `
+      <button class="play-hero-avatar" onclick="showPanel('profile', null)" aria-label="Open profile">
+        <img src="${escapeAttr(currentUser.photoURL)}" alt="" referrerpolicy="no-referrer" />
+      </button>
+    ` : '';
+    mount.innerHTML = `
+      <div class="play-hero practice-hero">
+        <div class="play-hero-eyebrow-row">
+          <div class="play-hero-eyebrow">Practice</div>
+          ${avatarHtml}
+        </div>
+        <h1 class="play-hero-title">Skill <em>Building</em></h1>
+        <p class="play-hero-sub">Range sessions, drills, and skill work.</p>
+      </div>`;
   }
 
   // In-progress session resume card. Same logic as the old inline
@@ -53016,6 +55176,707 @@
   }
 
   // ─────────────────────────────────────────────────────────────
+  // Journal — free-form notes under the Practice tab
+  // ─────────────────────────────────────────────────────────────
+  // Surfaces:
+  //   - Practice landing: 3-most-recent preview cards + composer entry
+  //   - Full journal panel: complete chronological list, tap to edit
+  //   - Composer bottom sheet: textarea + Save/Cancel/Delete actions
+  //
+  // Storage: Firestore subcollection users/{uid}/journalEntries.
+  // Cache lives in `journalEntries` array (sorted createdAt desc).
+  // Lazy-loaded with the rest of practice data on Practice tab show.
+
+  // Format an entry's createdAt as a relative-or-absolute date string
+  // for display. Today: "today at 3:45 PM". Yesterday: "yesterday".
+  // Within 7 days: "3 days ago". Older: short formatted date.
+  function formatJournalDate(ms) {
+    if (!ms) return '';
+    const now = Date.now();
+    const d = new Date(ms);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const startOfEntry = new Date(d); startOfEntry.setHours(0, 0, 0, 0);
+    const dayDelta = Math.round((startOfToday - startOfEntry) / dayMs);
+    const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (dayDelta === 0) return `Today at ${timeStr}`;
+    if (dayDelta === 1) return 'Yesterday';
+    if (dayDelta > 1 && dayDelta < 7) return `${dayDelta} days ago`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  }
+
+  // Truncate a body for preview cards. Splits on first newline and
+  // caps at ~140 chars so a long entry doesn't blow out the card.
+  function previewJournalBody(body, max = 140) {
+    if (!body) return '';
+    const firstLine = body.split('\n')[0].trim();
+    if (firstLine.length <= max) return firstLine;
+    return firstLine.slice(0, max - 1) + '…';
+  }
+
+  // Practice landing JOURNAL section — 3 most recent entries as
+  // preview cards, "+ New entry" button, "See all →" link when
+  // there are more than 3 entries. Empty state CTA when none yet.
+  function renderPracticeJournalSection() {
+    const mount = document.getElementById('practice-journal-mount');
+    if (!mount) return;
+    const entries = journalEntries || [];
+    const newBtn = `
+      <button class="journal-new-entry-btn" onclick="openJournalComposer()">
+        <span class="journal-new-entry-plus" aria-hidden="true">+</span>
+        <span>New entry</span>
+      </button>`;
+    if (entries.length === 0) {
+      mount.innerHTML = `
+        <div class="journal-empty-state">
+          <p class="journal-empty-copy">Capture swing thoughts, lesson notes, gear changes — anything you want to remember.</p>
+          ${newBtn}
+        </div>`;
+      return;
+    }
+    const top = entries.slice(0, 3);
+    const cards = top.map(e => `
+      <button class="journal-card" onclick="openJournalComposer('${escapeAttr(e.id)}')">
+        <div class="journal-card-date">${escapeHtml(formatJournalDate(e.createdAt))}</div>
+        <div class="journal-card-body">${escapeHtml(previewJournalBody(e.body))}</div>
+      </button>
+    `).join('');
+    const seeAll = entries.length > 3 ? `
+      <div class="journal-see-all-row">
+        <a class="journal-see-all-link" role="button" tabindex="0"
+           onclick="showPanel('journal', null)"
+           onkeydown="if(event.key==='Enter'){showPanel('journal', null)}">
+          See all ${entries.length} entries →
+        </a>
+      </div>
+    ` : '';
+    mount.innerHTML = `
+      <div class="journal-list">${cards}</div>
+      ${newBtn}
+      ${seeAll}
+    `;
+  }
+
+  // Full Journal panel — every entry, chronological, tap to edit.
+  function renderJournalPanel() {
+    const mount = document.getElementById('journal-list-mount');
+    if (!mount) return;
+    const entries = journalEntries || [];
+    const newBtn = `
+      <button class="journal-new-entry-btn journal-new-entry-btn-full" onclick="openJournalComposer()">
+        <span class="journal-new-entry-plus" aria-hidden="true">+</span>
+        <span>New entry</span>
+      </button>`;
+    if (entries.length === 0) {
+      mount.innerHTML = `
+        ${newBtn}
+        <div class="journal-empty-state">
+          <p class="journal-empty-copy">No entries yet. Tap "New entry" above to capture your first note.</p>
+        </div>`;
+      return;
+    }
+    const cards = entries.map(e => `
+      <button class="journal-card journal-card-full" onclick="openJournalComposer('${escapeAttr(e.id)}')">
+        <div class="journal-card-date">${escapeHtml(formatJournalDate(e.createdAt))}</div>
+        <div class="journal-card-body journal-card-body-full">${escapeHtml(previewJournalBody(e.body, 280))}</div>
+      </button>
+    `).join('');
+    mount.innerHTML = `
+      ${newBtn}
+      <div class="journal-list">${cards}</div>
+    `;
+  }
+
+  // ── Journal composer bottom sheet ────────────────────────────
+  // Slide-up sheet with a textarea. Open in two modes:
+  //   - new: no entryId, blank textarea, Save creates a new entry
+  //   - edit: entryId provided, textarea pre-filled, Save updates +
+  //     a Delete button appears alongside Save/Cancel
+  //
+  // Mirrors the tee/routine picker animation pattern (backdrop fade +
+  // sheet slide via .opening/.closing class toggles, drag-to-dismiss).
+  // No autosave — Save is explicit. Closing without saving discards
+  // the draft (acceptable for MVP; can add autosave later if needed).
+  const journalComposerState = {
+    open: false,
+    entryId: null,    // null when composing a new entry
+    busy: false,      // true while save/delete is in flight
+  };
+
+  function openJournalComposer(entryId) {
+    if (journalComposerState.open) return;
+    journalComposerState.open = true;
+    journalComposerState.entryId = entryId || null;
+    journalComposerState.busy = false;
+    acquireScrollLock();
+    renderJournalComposer();
+    // Focus the textarea after a frame so the keyboard pops on iOS.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const ta = document.getElementById('journal-composer-textarea');
+        if (ta) {
+          ta.focus();
+          // Place caret at end (better than start when editing).
+          const len = ta.value.length;
+          try { ta.setSelectionRange(len, len); } catch (_) {}
+        }
+      });
+    });
+  }
+  window.openJournalComposer = openJournalComposer;
+
+  function closeJournalComposer() {
+    if (!journalComposerState.open) return;
+    const el = document.querySelector('.journal-composer-sheet');
+    const backdrop = document.querySelector('.journal-composer-backdrop');
+    if (!el || !backdrop) {
+      journalComposerState.open = false;
+      releaseScrollLock();
+      renderJournalComposer();
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      journalComposerState.open = false;
+      journalComposerState.entryId = null;
+      releaseScrollLock();
+      renderJournalComposer();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+  window.closeJournalComposer = closeJournalComposer;
+
+  async function saveJournalEntryFromComposer() {
+    if (journalComposerState.busy) return;
+    if (!currentUser || !window.fb) {
+      showToast('Sign in to save entries', true);
+      return;
+    }
+    const ta = document.getElementById('journal-composer-textarea');
+    const body = (ta?.value || '').trim();
+    if (!body) {
+      // No-op if empty — also delete on save-empty for existing entry.
+      if (journalComposerState.entryId) {
+        // User cleared the body — treat as delete.
+        await deleteJournalEntryFromComposer({ skipConfirm: true });
+        return;
+      }
+      closeJournalComposer();
+      return;
+    }
+    journalComposerState.busy = true;
+    try {
+      if (journalComposerState.entryId) {
+        // Edit existing — update Firestore + patch local cache.
+        const id = journalComposerState.entryId;
+        await window.fb.updateJournalEntry(currentUser.uid, id, body);
+        const idx = journalEntries.findIndex(e => e.id === id);
+        if (idx >= 0) {
+          journalEntries[idx] = { ...journalEntries[idx], body, updatedAt: Date.now() };
+        }
+      } else {
+        // Create new — push to top of cache.
+        const created = await window.fb.createJournalEntry(currentUser.uid, body);
+        journalEntries.unshift(created);
+      }
+      closeJournalComposer();
+      // Re-render any visible surface that lists entries.
+      renderJournalSurfaces();
+    } catch (err) {
+      console.error('Failed to save journal entry:', err);
+      showToast('Could not save entry', true);
+    } finally {
+      journalComposerState.busy = false;
+    }
+  }
+  window.saveJournalEntryFromComposer = saveJournalEntryFromComposer;
+
+  async function deleteJournalEntryFromComposer({ skipConfirm = false } = {}) {
+    if (journalComposerState.busy) return;
+    if (!journalComposerState.entryId) return;  // can't delete unsaved draft
+    if (!currentUser || !window.fb) return;
+    if (!skipConfirm) {
+      const ok = await confirmDialog({
+        title: 'Delete this entry?',
+        message: 'This can\'t be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Keep',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    journalComposerState.busy = true;
+    try {
+      const id = journalComposerState.entryId;
+      await window.fb.deleteJournalEntry(currentUser.uid, id);
+      journalEntries = journalEntries.filter(e => e.id !== id);
+      closeJournalComposer();
+      renderJournalSurfaces();
+    } catch (err) {
+      console.error('Failed to delete journal entry:', err);
+      showToast('Could not delete entry', true);
+    } finally {
+      journalComposerState.busy = false;
+    }
+  }
+  window.deleteJournalEntryFromComposer = deleteJournalEntryFromComposer;
+
+  // Re-render any panel/section currently showing entries. Called
+  // after CRUD ops so the visible state refreshes without forcing a
+  // full panel re-render.
+  function renderJournalSurfaces() {
+    if (currentPanelId === 'practice') renderPracticeJournalSection();
+    if (currentPanelId === 'journal') renderJournalPanel();
+  }
+
+  function renderJournalComposer() {
+    const mount = document.getElementById('journal-composer-mount');
+    if (!mount) return;
+    if (!journalComposerState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const isEdit = !!journalComposerState.entryId;
+    const entry = isEdit ? journalEntries.find(e => e.id === journalComposerState.entryId) : null;
+    const initialBody = entry?.body || '';
+    const title = isEdit ? 'Edit Entry' : 'New Entry';
+    const deleteBtn = isEdit
+      ? `<button class="journal-composer-delete" onclick="deleteJournalEntryFromComposer()">Delete</button>`
+      : '';
+
+    // First render — build full sheet + trigger open animation. We
+    // don't re-render on textarea input (would lose focus/caret).
+    const existingSheet = mount.querySelector('.journal-composer-sheet');
+    if (existingSheet && !existingSheet.classList.contains('closing')) {
+      // Already open — no-op (state changes are reflected on close+reopen).
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="journal-composer-backdrop opening" onclick="closeJournalComposer()" aria-hidden="true"></div>
+      <div class="journal-composer-sheet opening" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}">
+        <div class="journal-composer-header">
+          <div class="journal-composer-grabber" aria-hidden="true"></div>
+          <button class="journal-composer-cancel" onclick="closeJournalComposer()">Cancel</button>
+          <div class="journal-composer-title">${escapeHtml(title)}</div>
+          <button class="journal-composer-save" onclick="saveJournalEntryFromComposer()">Save</button>
+        </div>
+        <div class="journal-composer-body">
+          <textarea id="journal-composer-textarea"
+                    class="journal-composer-textarea"
+                    placeholder="What's on your mind?"
+                    maxlength="5000"
+                    rows="10">${escapeHtml(initialBody)}</textarea>
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+
+    const sheet = mount.querySelector('.journal-composer-sheet.opening');
+    const backdrop = mount.querySelector('.journal-composer-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    const fullSheet = mount.querySelector('.journal-composer-sheet');
+    const header = fullSheet?.querySelector('.journal-composer-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.journal-composer-backdrop',
+      ignoreSelector: '.journal-composer-cancel, .journal-composer-save',
+      closeFn: closeJournalComposer,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Swing thoughts — short reusable cues by shot type
+  // ─────────────────────────────────────────────────────────────
+  // Surfaces:
+  //   - Practice landing: counts-by-category preview chips +
+  //     "+ New thought" + "Manage all →" link
+  //   - Full swing thoughts panel: thoughts grouped by category
+  //   - Composer bottom sheet: text input + multi-select category chips
+  //
+  // Storage: users/{uid}/swingThoughts. Cache in `swingThoughts`,
+  // sorted createdAt desc on the server side.
+  // Phase 3 will surface these inline during round shot logging via
+  // a club/distance → category mapping.
+
+  // Group the cache by category id. Returns a map of catId → thought[].
+  // A thought with multiple categories appears under each one.
+  function groupSwingThoughtsByCategory() {
+    const grouped = {};
+    for (const cat of SWING_THOUGHT_CATEGORIES) grouped[cat.id] = [];
+    for (const t of (swingThoughts || [])) {
+      const cats = Array.isArray(t.categories) ? t.categories : [];
+      for (const cid of cats) {
+        if (grouped[cid]) grouped[cid].push(t);
+      }
+    }
+    return grouped;
+  }
+
+  // Practice landing SWING THOUGHTS section. Empty state when no
+  // thoughts yet; otherwise a strip of category chips showing counts
+  // + "+ New thought" button + "Manage all" link.
+  function renderPracticeSwingThoughtsSection() {
+    const mount = document.getElementById('practice-swing-thoughts-mount');
+    if (!mount) return;
+    const newBtn = `
+      <button class="swing-new-btn" onclick="openSwingThoughtComposer()">
+        <span class="journal-new-entry-plus" aria-hidden="true">+</span>
+        <span>New thought</span>
+      </button>`;
+    if (!swingThoughts || swingThoughts.length === 0) {
+      mount.innerHTML = `
+        <div class="swing-empty-state">
+          <p class="swing-empty-copy">Save short cues like "smooth tempo" or "head still" by shot type. They'll surface during scoring soon.</p>
+          ${newBtn}
+        </div>`;
+      return;
+    }
+    const grouped = groupSwingThoughtsByCategory();
+    const chips = SWING_THOUGHT_CATEGORIES
+      .map(cat => ({ cat, count: grouped[cat.id].length }))
+      .filter(x => x.count > 0)
+      .map(({ cat, count }) => `
+        <button class="swing-chip" onclick="showPanel('swing-thoughts', null)">
+          <span class="swing-chip-label">${escapeHtml(cat.label)}</span>
+          <span class="swing-chip-count">${count}</span>
+        </button>`)
+      .join('');
+    mount.innerHTML = `
+      <div class="swing-chips">${chips}</div>
+      ${newBtn}
+      <div class="journal-see-all-row">
+        <a class="journal-see-all-link" role="button" tabindex="0"
+           onclick="showPanel('swing-thoughts', null)"
+           onkeydown="if(event.key==='Enter'){showPanel('swing-thoughts', null)}">
+          Manage all →
+        </a>
+      </div>
+    `;
+  }
+
+  // Full swing-thoughts panel — thoughts grouped by category.
+  // Each category section is hidden when empty (no zero-state per
+  // category — too noisy with 7 categories).
+  function renderSwingThoughtsPanel() {
+    const mount = document.getElementById('swing-thoughts-list-mount');
+    if (!mount) return;
+    const newBtn = `
+      <button class="swing-new-btn swing-new-btn-full" onclick="openSwingThoughtComposer()">
+        <span class="journal-new-entry-plus" aria-hidden="true">+</span>
+        <span>New thought</span>
+      </button>`;
+    if (!swingThoughts || swingThoughts.length === 0) {
+      mount.innerHTML = `
+        ${newBtn}
+        <div class="swing-empty-state">
+          <p class="swing-empty-copy">No swing thoughts yet. Tap "New thought" above to add your first cue.</p>
+        </div>`;
+      return;
+    }
+    const grouped = groupSwingThoughtsByCategory();
+    const sections = SWING_THOUGHT_CATEGORIES
+      .filter(cat => grouped[cat.id].length > 0)
+      .map(cat => {
+        const cards = grouped[cat.id].map(t => {
+          // Show "Also in: Tee, Mid approach" if this thought is in
+          // multiple categories — helps user recognize when editing
+          // here will affect surfacing elsewhere.
+          const others = (t.categories || []).filter(c => c !== cat.id);
+          const alsoLine = others.length > 0
+            ? `<div class="swing-card-also">Also in: ${others.map(swingThoughtCategoryLabel).map(escapeHtml).join(', ')}</div>`
+            : '';
+          return `
+            <button class="swing-card" onclick="openSwingThoughtComposer('${escapeAttr(t.id)}')">
+              <div class="swing-card-text">${escapeHtml(t.text)}</div>
+              ${alsoLine}
+            </button>`;
+        }).join('');
+        return `
+          <div class="swing-cat-section">
+            <div class="swing-cat-head">
+              <span class="swing-cat-name">${escapeHtml(cat.label)}</span>
+              <span class="swing-cat-count">${grouped[cat.id].length}</span>
+            </div>
+            <div class="swing-cat-cards">${cards}</div>
+          </div>`;
+      }).join('');
+    mount.innerHTML = `
+      ${newBtn}
+      <div class="swing-cat-list">${sections}</div>
+    `;
+  }
+
+  // ── Swing thought composer bottom sheet ──────────────────────
+  // Slide-up sheet with text input + category multi-select chips.
+  // Modes: new (empty) | edit (pre-filled, with delete button).
+  // Validation: must have non-empty text AND at least one category
+  // selected. Save button is disabled until both are met.
+  const swingThoughtComposerState = {
+    open: false,
+    thoughtId: null,
+    busy: false,
+    // Working state — mirrors the textarea + selected category set
+    // since the textarea isn't re-rendered on every chip toggle.
+    text: '',
+    categorySet: new Set(),
+  };
+
+  function openSwingThoughtComposer(thoughtId) {
+    if (swingThoughtComposerState.open) return;
+    swingThoughtComposerState.open = true;
+    swingThoughtComposerState.thoughtId = thoughtId || null;
+    swingThoughtComposerState.busy = false;
+    const existing = thoughtId ? (swingThoughts.find(t => t.id === thoughtId) || null) : null;
+    swingThoughtComposerState.text = existing?.text || '';
+    swingThoughtComposerState.categorySet = new Set(existing?.categories || []);
+    acquireScrollLock();
+    renderSwingThoughtComposer();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const inp = document.getElementById('swing-thought-composer-text');
+        if (inp) {
+          inp.focus();
+          const len = inp.value.length;
+          try { inp.setSelectionRange(len, len); } catch (_) {}
+        }
+      });
+    });
+  }
+  window.openSwingThoughtComposer = openSwingThoughtComposer;
+
+  function closeSwingThoughtComposer() {
+    if (!swingThoughtComposerState.open) return;
+    const el = document.querySelector('.swing-composer-sheet');
+    const backdrop = document.querySelector('.swing-composer-backdrop');
+    if (!el || !backdrop) {
+      swingThoughtComposerState.open = false;
+      releaseScrollLock();
+      renderSwingThoughtComposer();
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      swingThoughtComposerState.open = false;
+      swingThoughtComposerState.thoughtId = null;
+      swingThoughtComposerState.text = '';
+      swingThoughtComposerState.categorySet = new Set();
+      releaseScrollLock();
+      renderSwingThoughtComposer();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+  window.closeSwingThoughtComposer = closeSwingThoughtComposer;
+
+  // Toggle a category in the working set. Doesn't re-render the whole
+  // sheet — just flips the chip's data-selected attribute and syncs
+  // the Save button's disabled state. Avoids losing text input focus.
+  function toggleSwingThoughtCategory(catId) {
+    if (swingThoughtComposerState.categorySet.has(catId)) {
+      swingThoughtComposerState.categorySet.delete(catId);
+    } else {
+      swingThoughtComposerState.categorySet.add(catId);
+    }
+    const chip = document.querySelector(`.swing-cat-chip[data-cat-id="${catId}"]`);
+    if (chip) {
+      chip.setAttribute('data-selected', swingThoughtComposerState.categorySet.has(catId) ? 'true' : 'false');
+    }
+    syncSwingComposerSaveBtn();
+  }
+  window.toggleSwingThoughtCategory = toggleSwingThoughtCategory;
+
+  // Mirror the live text into state so save uses the latest value
+  // even when input events are flying. Also runs save-button enable/
+  // disable check.
+  function onSwingThoughtTextInput(value) {
+    swingThoughtComposerState.text = value || '';
+    syncSwingComposerSaveBtn();
+  }
+  window.onSwingThoughtTextInput = onSwingThoughtTextInput;
+
+  function syncSwingComposerSaveBtn() {
+    const saveBtn = document.querySelector('.swing-composer-save');
+    if (!saveBtn) return;
+    const validText = swingThoughtComposerState.text.trim().length > 0;
+    const validCats = swingThoughtComposerState.categorySet.size > 0;
+    const ok = validText && validCats;
+    saveBtn.disabled = !ok;
+    saveBtn.classList.toggle('is-disabled', !ok);
+  }
+
+  async function saveSwingThoughtFromComposer() {
+    if (swingThoughtComposerState.busy) return;
+    if (!currentUser || !window.fb) {
+      showToast('Sign in to save thoughts', true);
+      return;
+    }
+    const text = swingThoughtComposerState.text.trim();
+    const categories = Array.from(swingThoughtComposerState.categorySet);
+    if (!text || categories.length === 0) return; // validated by button state
+    swingThoughtComposerState.busy = true;
+    try {
+      if (swingThoughtComposerState.thoughtId) {
+        const id = swingThoughtComposerState.thoughtId;
+        await window.fb.updateSwingThought(currentUser.uid, id, { text, categories });
+        const idx = swingThoughts.findIndex(t => t.id === id);
+        if (idx >= 0) {
+          swingThoughts[idx] = { ...swingThoughts[idx], text, categories, updatedAt: Date.now() };
+        }
+      } else {
+        const created = await window.fb.createSwingThought(currentUser.uid, { text, categories });
+        swingThoughts.unshift(created);
+      }
+      closeSwingThoughtComposer();
+      renderSwingThoughtSurfaces();
+    } catch (err) {
+      console.error('Failed to save swing thought:', err);
+      showToast('Could not save thought', true);
+    } finally {
+      swingThoughtComposerState.busy = false;
+    }
+  }
+  window.saveSwingThoughtFromComposer = saveSwingThoughtFromComposer;
+
+  async function deleteSwingThoughtFromComposer() {
+    if (swingThoughtComposerState.busy) return;
+    if (!swingThoughtComposerState.thoughtId) return;
+    if (!currentUser || !window.fb) return;
+    const ok = await confirmDialog({
+      title: 'Delete this thought?',
+      message: "This can't be undone.",
+      confirmText: 'Delete',
+      cancelText: 'Keep',
+      destructive: true,
+    });
+    if (!ok) return;
+    swingThoughtComposerState.busy = true;
+    try {
+      const id = swingThoughtComposerState.thoughtId;
+      await window.fb.deleteSwingThought(currentUser.uid, id);
+      swingThoughts = swingThoughts.filter(t => t.id !== id);
+      closeSwingThoughtComposer();
+      renderSwingThoughtSurfaces();
+    } catch (err) {
+      console.error('Failed to delete swing thought:', err);
+      showToast('Could not delete thought', true);
+    } finally {
+      swingThoughtComposerState.busy = false;
+    }
+  }
+  window.deleteSwingThoughtFromComposer = deleteSwingThoughtFromComposer;
+
+  function renderSwingThoughtSurfaces() {
+    if (currentPanelId === 'practice') renderPracticeSwingThoughtsSection();
+    if (currentPanelId === 'swing-thoughts') renderSwingThoughtsPanel();
+  }
+
+  function renderSwingThoughtComposer() {
+    const mount = document.getElementById('swing-thought-composer-mount');
+    if (!mount) return;
+    if (!swingThoughtComposerState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const isEdit = !!swingThoughtComposerState.thoughtId;
+    const title = isEdit ? 'Edit Thought' : 'New Thought';
+    const initialText = swingThoughtComposerState.text || '';
+    const selectedSet = swingThoughtComposerState.categorySet;
+    const chips = SWING_THOUGHT_CATEGORIES.map(cat => {
+      const selected = selectedSet.has(cat.id);
+      return `
+        <button class="swing-cat-chip"
+                data-cat-id="${escapeAttr(cat.id)}"
+                data-selected="${selected ? 'true' : 'false'}"
+                onclick="toggleSwingThoughtCategory('${escapeAttr(cat.id)}')">
+          ${escapeHtml(cat.label)}
+        </button>`;
+    }).join('');
+    const deleteBtn = isEdit
+      ? `<button class="journal-composer-delete" onclick="deleteSwingThoughtFromComposer()">Delete</button>`
+      : '';
+    const existingSheet = mount.querySelector('.swing-composer-sheet');
+    if (existingSheet && !existingSheet.classList.contains('closing')) return;
+
+    mount.innerHTML = `
+      <div class="swing-composer-backdrop opening" onclick="closeSwingThoughtComposer()" aria-hidden="true"></div>
+      <div class="swing-composer-sheet opening" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}">
+        <div class="swing-composer-header">
+          <div class="journal-composer-grabber" aria-hidden="true"></div>
+          <button class="journal-composer-cancel swing-composer-cancel" onclick="closeSwingThoughtComposer()">Cancel</button>
+          <div class="journal-composer-title">${escapeHtml(title)}</div>
+          <button class="journal-composer-save swing-composer-save is-disabled" disabled onclick="saveSwingThoughtFromComposer()">Save</button>
+        </div>
+        <div class="swing-composer-body">
+          <input id="swing-thought-composer-text"
+                 class="swing-composer-text"
+                 type="text"
+                 placeholder="e.g. smooth tempo, full turn"
+                 maxlength="200"
+                 value="${escapeAttr(initialText)}"
+                 oninput="onSwingThoughtTextInput(this.value)" />
+          <div class="swing-composer-cats-label">Show for</div>
+          <div class="swing-composer-cats">${chips}</div>
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+
+    const sheet = mount.querySelector('.swing-composer-sheet.opening');
+    const backdrop = mount.querySelector('.swing-composer-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    syncSwingComposerSaveBtn();
+
+    const fullSheet = mount.querySelector('.swing-composer-sheet');
+    const header = fullSheet?.querySelector('.swing-composer-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.swing-composer-backdrop',
+      ignoreSelector: '.swing-composer-cancel, .swing-composer-save',
+      closeFn: closeSwingThoughtComposer,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // Range session — state + persistence + UI
   // ─────────────────────────────────────────────────────────────
   // State shape:
@@ -53062,6 +55923,140 @@
   // live as separate pages, filtered by type client-side.
   let shortGameSessionsHistory = [];
   let shortGameSessionsHistoryLoaded = false;
+
+  // Journal entries — free-form notes the user keeps under the
+  // Practice tab. Loaded lazily on first Practice tab visit; refreshed
+  // after create/update/delete. Sorted by createdAt desc on the
+  // server side, so the cache is already in the right order.
+  let journalEntries = [];
+  let journalEntriesLoaded = false;
+
+  async function loadJournalEntries() {
+    if (!currentUser || !window.fb) return;
+    try {
+      journalEntries = await window.fb.listJournalEntries(currentUser.uid);
+      journalEntriesLoaded = true;
+    } catch (err) {
+      console.error('Failed to load journal entries:', err);
+      journalEntries = [];
+    }
+  }
+
+  // Swing thoughts — short reusable cues categorized by shot type.
+  // Same lazy-load + cache pattern as journal entries.
+  let swingThoughts = [];
+  let swingThoughtsLoaded = false;
+
+  async function loadSwingThoughts() {
+    if (!currentUser || !window.fb) return;
+    try {
+      swingThoughts = await window.fb.listSwingThoughts(currentUser.uid);
+      swingThoughtsLoaded = true;
+    } catch (err) {
+      console.error('Failed to load swing thoughts:', err);
+      swingThoughts = [];
+    }
+  }
+
+  // Canonical taxonomy. Order here drives display order in lists and
+  // chips (rough flow of a hole — tee → green). `id` is what's stored
+  // on the swing thought doc; `label` is what's shown to the user.
+  // Keep this list stable — changing an id will orphan existing data.
+  // Phase 3 (surface during round) will use the same ids to map a
+  // selected club/distance to one of these categories.
+  const SWING_THOUGHT_CATEGORIES = [
+    { id: 'tee',           label: 'Off the tee' },
+    { id: 'longApproach',  label: 'Long approach' },
+    { id: 'midApproach',   label: 'Mid approach' },
+    { id: 'shortApproach', label: 'Short approach' },
+    { id: 'chipping',      label: 'Chipping' },
+    { id: 'bunker',        label: 'Bunker' },
+    { id: 'putting',       label: 'Putting' },
+  ];
+
+  function swingThoughtCategoryLabel(id) {
+    const cat = SWING_THOUGHT_CATEGORIES.find(c => c.id === id);
+    return cat ? cat.label : id;
+  }
+
+  // Infer the most relevant swing-thought category for the user's
+  // current shot situation. Best-effort — returns the category id, or
+  // null if there's no useful inference (no round, no GPS data, etc.).
+  // Used by the Pre-Shot tool to pre-select a chip; the user can
+  // override by tapping a different chip.
+  //
+  // Logic, in priority order:
+  //   1. Last shot landed on green → putting
+  //   2. Last shot's end lie was sand → bunker
+  //   3. No shots logged on this hole AND par >= 4 → tee
+  //   4. Distance to pin (from current GPS pos):
+  //        <= 50y not on green → chipping
+  //        50–120 → shortApproach
+  //        120–175 → midApproach
+  //        175+ → longApproach
+  //   5. Default: midApproach (most common neutral case)
+  function inferSwingThoughtCategory() {
+    const ctx = (typeof getCurrentRoundContext === 'function')
+      ? getCurrentRoundContext() : null;
+    if (!ctx) return null;
+    const holeNum = (typeof roundGpsState !== 'undefined' && roundGpsState.holeNumber != null)
+      ? roundGpsState.holeNumber
+      : (ctx.currentHoleIndex != null ? ctx.currentHoleIndex + 1 : null);
+    if (!holeNum) return null;
+
+    const course = (typeof getCourse === 'function') ? getCourse(ctx.courseId) : null;
+    const hole = course?.holes?.[holeNum - 1];
+    const par = hole?.par;
+
+    const shots = (typeof getShotsForHole === 'function')
+      ? (getShotsForHole(holeNum) || [])
+      : [];
+    const lastShot = shots.length > 0 ? shots[shots.length - 1] : null;
+
+    // 1. On the green? Last shot's result was 'green' or its end is
+    //    near the pin. Bias toward the explicit lie tag when present.
+    if (lastShot) {
+      const endLie = lastShot.result || lastShot.endLie;
+      if (endLie === 'green') return 'putting';
+    }
+
+    // 2. Bunker? End lie of last shot was sand.
+    if (lastShot) {
+      const endLie = lastShot.result || lastShot.endLie;
+      if (endLie === 'sand' || endLie === 'bunker') return 'bunker';
+    }
+
+    // 3. Tee shot — no shots yet AND par allows it (par 3s aren't
+    //    "tee shots" in the swing-thought sense; they're approaches).
+    if (shots.length === 0 && par && par >= 4) {
+      return 'tee';
+    }
+
+    // 4. Distance-based for everything else. Use GPS distance to pin
+    //    if we can compute it; otherwise fall back to midApproach.
+    let distToPin = null;
+    try {
+      const userPos = (typeof getRoundGpsUserPos === 'function') ? getRoundGpsUserPos() : null;
+      const pin = (typeof getEffectivePinLatLng === 'function') ? getEffectivePinLatLng() : null;
+      if (userPos && pin && typeof haversineYards === 'function') {
+        distToPin = haversineYards(userPos.lat, userPos.lng, pin.lat, pin.lng);
+      }
+    } catch (_) {}
+
+    if (distToPin == null) {
+      // No GPS context — par 3 default to mid; otherwise mid.
+      return 'midApproach';
+    }
+    if (distToPin <= 50) return 'chipping';
+    if (distToPin <= 120) return 'shortApproach';
+    if (distToPin <= 175) return 'midApproach';
+    return 'longApproach';
+  }
+
+  // In-memory state for the Pre-Shot tool's category override. Reset
+  // when the user changes hole or logs a shot (so inference re-runs
+  // for the new situation). Null = use inferred category.
+  let preShotCategoryOverride = null;
 
   // Which session's detail view is currently being shown. Set when the
   // user taps a history card; cleared on panel exit.
@@ -65435,20 +68430,18 @@
       // Runs in microtask after the current render so it doesn't block.
       Promise.resolve().then(() => ensureGroupRoundStatus(r.groupRoundId));
     }
-    // Best-round badge. Rendered inline with the score row, pushed
-    // to the right side of the card. Sits opposite the score numeral
-    // so it reads as "this score earned this distinction." For solo
-    // rounds it appears next to the vs-par chip; for alt-format it
-    // appears next to the format tag.
+    // Best-round badge. Now rendered INLINE in the meta row (vs. its
+    // own line previously) so each card reads as 3 horizontal bands
+    // instead of 4 — lets more cards fit on screen without losing info.
     const bests = window.__bestRoundsCache || computeMyBestRounds(recentRounds || []);
     let bestBadge = '';
     if (r.id === bests.globalBestId) {
-      bestBadge = '<span class="round-card-best-badge round-card-best-global" title="Your best round ever">★ Best Round</span>';
+      bestBadge = ' · <span class="round-card-best-badge round-card-best-global" title="Your best round ever">★ Best Round</span>';
     } else if (bests.courseBestIds && bests.courseBestIds.has(r.id)) {
-      bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
+      bestBadge = ' · <span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
     }
 
-    // Meta row: date · tee · (partial holes) — clean, no badge.
+    // Meta row: date · tee · (partial holes) · (best badge inline).
     // Format pill is no longer rendered here for non-standard rounds —
     // those rounds now show the format label on the score side as
     // the score replacement, so doubling it up in meta would be
@@ -65458,21 +68451,18 @@
     // Score side. Standard rounds: big serif strokes + vs-par chip.
     // Alt-format rounds: gray strokes + uppercase format label (no
     // vs-par, since it's not meaningful for scramble/etc.).
-    // Best badge (when present) lives at the far right of this row.
     let scoreSideHtml;
     if (isAltFormat) {
       scoreSideHtml = `
         <div class="round-card-score-row">
           <div class="round-card-score round-card-score-muted">${score}</div>
           <div class="round-card-format-tag">${escapeHtml(fmtLabel.toUpperCase())}</div>
-          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
         </div>`;
     } else {
       scoreSideHtml = `
         <div class="round-card-score-row">
           <div class="round-card-score">${score}</div>
           ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
-          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
         </div>`;
     }
 
@@ -65482,7 +68472,7 @@
           <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span>${liveSlotHtml}</div>
           <div class="round-card-arrow">→</div>
         </div>
-        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
+        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}${bestBadge}</div>
         ${groupLine}
         ${scoreSideHtml}
       </button>`;
@@ -73199,6 +76189,9 @@
     // panel doesn't unmount.
     roundGpsState.holeIndex = holeIndex;
     roundGpsState.holeNumber = hole.number;
+    // Drop any user-chosen swing-thought category override so the
+    // Pre-Shot tool re-infers fresh for the new hole.
+    preShotCategoryOverride = null;
     roundGpsState.greenLat = hole.greenLat ?? null;
     roundGpsState.greenLng = hole.greenLng ?? null;
     roundGpsState.teeLat = teePos ? teePos.lat : null;
@@ -82505,6 +85498,12 @@
     }
     const holeNum = roundGpsState.holeNumber;
     if (holeNum == null) return;
+
+    // The user's situation will change after this shot lands — a tee
+    // shot becomes an approach, an approach becomes a chip, etc.
+    // Drop any swing-thought category override so the Pre-Shot tool
+    // re-infers from the new state next time it opens.
+    preShotCategoryOverride = null;
 
     // Scramble group shot: minimal data path. A group shot only needs
     // position + hit-by attribution — the team scorecard tracks total
