@@ -23452,6 +23452,98 @@
     letter-spacing: var(--tracking-wide);
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     SKELETON LOADERS
+     ══════════════════════════════════════════════════════════════
+     Reusable shimmer primitives used by surfaces that lazy-load
+     Firestore data. Two building blocks:
+
+       .skel-line  — a single shimmer rectangle (defaults to one
+                     line of text; height + width are adjustable via
+                     inline style or modifier classes)
+       .skel-card  — a card-shaped wrapper that holds skel-lines
+
+     The shimmer is a gradient sweep over a base muted background.
+     Speed is moderate (1.6s) — too fast feels frantic; too slow
+     reads as broken. All skeletons are aria-hidden so screen readers
+     don't announce them.
+
+     Compose these into surface-shaped skeletons via small per-surface
+     helper functions like renderRecentRoundsSkeleton(). */
+
+  @keyframes skel-shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+
+  .skel-line {
+    display: block;
+    height: 12px;
+    width: 100%;
+    border-radius: 4px;
+    background-color: var(--bg-elevated);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--text-primary) 6%, transparent) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    background-position: -200% 0;
+    animation: skel-shimmer 1.6s linear infinite;
+  }
+  /* Width modifiers — sprinkle for variety so the skeleton doesn't
+     read as a single uniform wall of bars. */
+  .skel-line-xs { width: 30%; }
+  .skel-line-sm { width: 45%; }
+  .skel-line-md { width: 65%; }
+  .skel-line-lg { width: 80%; }
+  /* Height modifiers — taller bars for headlines/numbers. */
+  .skel-line-tall { height: 20px; border-radius: 5px; }
+  .skel-line-xtall { height: 32px; border-radius: 6px; }
+
+  .skel-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+  }
+  /* Stack of skeleton cards — used by list surfaces (recent rounds,
+     practice sessions, history). Matches the gap rhythm of real card
+     lists so the layout doesn't shift when content loads in. */
+  .skel-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  /* Reduced-motion respect — kill the shimmer animation, leave the
+     shape so users still see something is loading. */
+  @media (prefers-reduced-motion: reduce) {
+    .skel-line {
+      animation: none;
+      background-image: none;
+    }
+  }
+
+  html.dark .skel-line {
+    background-color: rgba(255, 255, 255, 0.05);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+  }
+  html.dark .skel-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
   /* ── Session detail page ──────────────────────────────────── */
 
   .range-detail-section-label {
@@ -40797,6 +40889,7 @@
   async function loadRecentSessions() {
     if (!currentUser || !window.fb) {
       recentSessions = [];
+      recentSessionsLoaded = true;
       return;
     }
     try {
@@ -40810,11 +40903,18 @@
       // Filter: only show completed sessions in history. Legacy docs without
       // a status field are treated as completed (they predate this feature).
       recentSessions = all.filter(s => !s.status || s.status === 'completed');
+      recentSessionsLoaded = true;
     } catch (err) {
       console.error('Failed to load session history:', err);
       recentSessions = [];
+      // Mirror loadRecentRounds: leave Loaded false on error so the
+      // skeleton stays put instead of falsely showing empty state.
     }
   }
+  // Tracks whether loadRecentSessions has completed at least once.
+  // Used by renderHistory + skeleton to distinguish "still loading"
+  // from "truly empty" before falling back to the empty state.
+  let recentSessionsLoaded = false;
 
   // ─────────────────────────────────────────────────────────────
   // In-progress session persistence — survives page refresh
@@ -42016,6 +42116,7 @@
       stopFriendRequestsSubscription();
       stopFriendsSubscription();
       recentSessions = [];
+      recentSessionsLoaded = false;
       recentRounds = [];
       friendsList = [];
       friendRequests = [];
@@ -42095,6 +42196,14 @@
           <div class="history-empty-sub">Your completed workouts sync across devices once you sign in. Nothing to see here until then.</div>
           ${renderSignInButton()}
         </div>`;
+      return;
+    }
+
+    // Skeleton until the lazy-load completes. Without this, the
+    // empty-state ("No completed sessions yet") flashes for users
+    // with history during the Firestore round-trip.
+    if (!recentSessionsLoaded) {
+      mount.innerHTML = renderRecentRoundsSkeleton();
       return;
     }
 
@@ -54881,6 +54990,20 @@
     const mount = document.getElementById('practice-stats-mount');
     if (!mount) return;
 
+    // Skeleton while either practice-history cache is still loading.
+    // Both arrays (range + short game) feed this surface, so we wait
+    // for both flags to flip before rendering real content. Without
+    // this, the empty-state ("Start your first session") flashes for
+    // users who DO have history.
+    const stillLoading = currentUser && (
+      (typeof rangeSessionsHistoryLoaded !== 'undefined' && !rangeSessionsHistoryLoaded) ||
+      (typeof shortGameSessionsHistoryLoaded !== 'undefined' && !shortGameSessionsHistoryLoaded)
+    );
+    if (stillLoading) {
+      mount.innerHTML = renderPlayStatsSkeleton();
+      return;
+    }
+
     // Read whatever's in memory. The lazy-load triggered by the panel
     // show populates these arrays; if they're still empty when this
     // first renders, the empty-state CTA serves both "loading" and
@@ -54978,6 +55101,17 @@
   function renderRecentPracticeSessions() {
     const mount = document.getElementById('practice-recent-mount');
     if (!mount) return;
+
+    // Skeleton while either history cache still loading. Same pattern
+    // as renderPracticeStats above.
+    const stillLoading = currentUser && (
+      (typeof rangeSessionsHistoryLoaded !== 'undefined' && !rangeSessionsHistoryLoaded) ||
+      (typeof shortGameSessionsHistoryLoaded !== 'undefined' && !shortGameSessionsHistoryLoaded)
+    );
+    if (stillLoading) {
+      mount.innerHTML = renderRecentRoundsSkeleton();
+      return;
+    }
 
     // Mix range + short-game sessions and sort by startTime desc.
     // Each entry carries its source type so we can render the right
@@ -60081,8 +60215,10 @@
       const actionLabel = gr.status === 'lobby' ? 'Open Lobby →' : 'Continue Round →';
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
-          ${avatarHtml}
-          <div class="play-hero-eyebrow">${escapeHtml(fmtLabel)} · ${escapeHtml(statusLabel)}</div>
+          <div class="play-hero-eyebrow-row">
+            <div class="play-hero-eyebrow">${escapeHtml(fmtLabel)} · ${escapeHtml(statusLabel)}</div>
+            ${avatarHtml}
+          </div>
           <h2 class="play-hero-title">${gr.status === 'lobby' ? 'Waiting to Start' : 'Continue <em>Round</em>'}</h2>
           <p class="play-hero-sub">${escapeHtml(courseName)} · ${playerCount} player${playerCount === 1 ? '' : 's'}</p>
           <div class="play-hero-actions">
@@ -60103,8 +60239,10 @@
       const strokes = inProgress.totals?.strokes ?? 0;
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
-          ${avatarHtml}
-          <div class="play-hero-eyebrow">Round in Progress</div>
+          <div class="play-hero-eyebrow-row">
+            <div class="play-hero-eyebrow">Round in Progress</div>
+            ${avatarHtml}
+          </div>
           <h2 class="play-hero-title">Continue <em>Round</em></h2>
           <p class="play-hero-sub">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')}</p>
           <div class="play-hero-progress">
@@ -61800,9 +61938,29 @@
 
   // Stats strip: renders 4 cards based on completed rounds.
   // Em-dash for empty; real numbers once data exists.
+  // Skeleton for the Your Game stats strip — three stat tiles with
+  // a big number placeholder + label + caption hint. Matches the
+  // .play-stats grid layout so widths/alignment don't jump on swap.
+  function renderPlayStatsSkeleton() {
+    const tile = `
+      <div class="play-stat" aria-hidden="true">
+        <span class="skel-line skel-line-xtall skel-line-md" style="margin: 0 auto;"></span>
+        <span class="skel-line skel-line-sm" style="margin: var(--space-2) auto 0;"></span>
+        <span class="skel-line skel-line-xs" style="margin: var(--space-2) auto 0;"></span>
+      </div>`;
+    return `<div class="play-stats">${tile}${tile}${tile}</div>`;
+  }
+
   function renderPlayStats() {
     const mount = document.getElementById('play-stats-mount');
     if (!mount) return;
+    // Skeleton while rounds still loading — three stat tiles with
+    // big-number placeholders. Without this, the dashes ("—") flash
+    // for users who actually have stats.
+    if (typeof roundsLoaded !== 'undefined' && !roundsLoaded && currentUser) {
+      mount.innerHTML = renderPlayStatsSkeleton();
+      return;
+    }
     const completed = recentRounds.filter(r => r.status === 'completed');
     const roundsPlayed = completed.length;
 
@@ -61920,9 +62078,31 @@
   // Recent rounds: empty state if no completed rounds, otherwise a list of
   // up to 3 cards (most recent first) with a "See all rounds" footer link
   // that navigates to the full All Rounds history page.
+  // Skeleton for Recent Rounds — three card shapes matching the
+  // real round-card layout (course title row, meta row, score row).
+  // Used while roundsLoaded is false on first load; replaced by real
+  // cards once Firestore data lands.
+  function renderRecentRoundsSkeleton() {
+    const card = `
+      <div class="skel-card" aria-hidden="true">
+        <div class="skel-line skel-line-tall skel-line-md"></div>
+        <div class="skel-line skel-line-sm"></div>
+        <div class="skel-line skel-line-xtall skel-line-xs"></div>
+      </div>`;
+    return `<div class="skel-stack">${card}${card}${card}</div>`;
+  }
+
   function renderRecentRounds() {
     const mount = document.getElementById('play-rounds-mount');
     if (!mount) return;
+    // Pre-load skeleton — render shape-matching placeholder cards
+    // until loadRecentRounds() flips roundsLoaded. Without this the
+    // empty-state ("No rounds yet") flashes before real data arrives,
+    // which is misleading for users who DO have rounds.
+    if (typeof roundsLoaded !== 'undefined' && !roundsLoaded && currentUser) {
+      mount.innerHTML = renderRecentRoundsSkeleton();
+      return;
+    }
     const completed = recentRounds.filter(r => r.status === 'completed');
     if (completed.length === 0) {
       mount.innerHTML = `
@@ -69471,12 +69651,47 @@
     return { tableHtml, nineParSum, nineStrokeSum, ninePlayed };
   }
 
+  // Skeleton for the Round Summary panel — mimics the dense hero
+  // (score number + course meta) + a scorecard outline + a stats
+  // grid placeholder. Used when the round summary is opened before
+  // the rounds cache has loaded (e.g. via a deep link or a fresh
+  // app open). Once roundsLoaded flips true and the round is found,
+  // the real summary takes over.
+  function renderRoundSummarySkeleton() {
+    return `
+      <div aria-hidden="true">
+        <div class="skel-card" style="margin-bottom: var(--space-6); align-items: center; gap: var(--space-4);">
+          <span class="skel-line skel-line-sm" style="margin: 0 auto;"></span>
+          <span class="skel-line skel-line-xtall" style="height: 56px; width: 50%; margin: 0 auto;"></span>
+          <span class="skel-line skel-line-md" style="margin: 0 auto;"></span>
+        </div>
+        <div class="skel-card" style="margin-bottom: var(--space-4);">
+          <span class="skel-line skel-line-sm"></span>
+          <span class="skel-line"></span>
+          <span class="skel-line skel-line-lg"></span>
+          <span class="skel-line skel-line-md"></span>
+        </div>
+        <div class="skel-card">
+          <span class="skel-line skel-line-sm"></span>
+          <span class="skel-line"></span>
+          <span class="skel-line skel-line-lg"></span>
+        </div>
+      </div>`;
+  }
+
   function renderRoundSummary() {
     const mount = document.getElementById('round-summary-mount');
     if (!mount) return;
     const roundId = roundSummaryState.roundId;
     const round = roundId ? recentRounds.find(r => r.id === roundId) : null;
+    // Round not in the cache. Two scenarios: (a) we're still loading
+    // — show skeleton until roundsLoaded; (b) we finished loading
+    // and the round genuinely isn't there — show "Round not found".
     if (!round) {
+      if (typeof roundsLoaded !== 'undefined' && !roundsLoaded && currentUser) {
+        mount.innerHTML = renderRoundSummarySkeleton();
+        return;
+      }
       mount.innerHTML = `
         <div class="panel-head">
           <span class="accent-line"></span>
