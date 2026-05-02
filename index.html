@@ -6920,8 +6920,8 @@
     font-weight: var(--weight-regular);
   }
   .round-gps-close {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     border: none;
     background: var(--bg-surface);
@@ -6933,18 +6933,49 @@
     align-items: center;
     justify-content: center;
   }
+  /* GPS view floating close — Liquid Glass bead over the map. The
+     map is dark/saturated (especially in satellite mode) so we use
+     the dark variant of the Liquid Glass treatment regardless of
+     light/dark app mode for legibility. */
   .round-gps-close-float {
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
     right: 16px;
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
     pointer-events: auto;
-    backdrop-filter: blur(10px);
+    background-color: rgba(28, 28, 30, 0.62);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.15) inset,
+      0 4px 14px rgba(0, 0, 0, 0.4),
+      0 1px 3px rgba(0, 0, 0, 0.3);
+    color: #fff;
+    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
+                box-shadow 180ms ease,
+                background 180ms ease;
   }
-  /* Hole navigation chevrons — round buttons floating on the map's
-     left/right edges, vertical-centered. Match the close button's
-     visual language. */
+  .round-gps-close-float:active {
+    transform: scale(0.94);
+  }
+  @media (hover: hover) {
+    .round-gps-close-float:hover {
+      background-color: rgba(40, 40, 45, 0.78);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 6px 18px rgba(0, 0, 0, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.35);
+    }
+  }
+  /* Hole navigation chevrons — Liquid Glass beads floating on the
+     map's left/right edges, vertical-centered. Same dark Liquid Glass
+     treatment as the floating close button for visual consistency. */
   .round-gps-hole-nav {
     position: absolute;
     top: 50%;
@@ -6952,8 +6983,20 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: none;
-    background: rgba(0, 0, 0, 0.75);
+    background-color: rgba(28, 28, 30, 0.62);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.15) inset,
+      0 4px 14px rgba(0, 0, 0, 0.4),
+      0 1px 3px rgba(0, 0, 0, 0.3);
     color: #fff;
     font-size: var(--text-2xl);
     line-height: 1;
@@ -6962,9 +7005,22 @@
     justify-content: center;
     cursor: pointer;
     z-index: 3;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     -webkit-tap-highlight-color: transparent;
+    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
+                box-shadow 180ms ease,
+                background 180ms ease;
+  }
+  .round-gps-hole-nav:active {
+    transform: translateY(-50%) scale(0.94);
+  }
+  @media (hover: hover) {
+    .round-gps-hole-nav:hover {
+      background-color: rgba(40, 40, 45, 0.78);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 6px 18px rgba(0, 0, 0, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.35);
+    }
   }
   .round-gps-hole-nav-prev { left: 12px; }
   .round-gps-hole-nav-next { right: 12px; }
@@ -31140,18 +31196,33 @@
     body[data-current-panel="range-session"] .mobile-topbar-back,
     body[data-current-panel="shortgame-session"] .mobile-topbar-back,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back {
-      /* X button styling — matches the LIVE pill's frosted-glass
-         treatment so the pair reads as a unit on the topbar. Light
-         mode: light frosted bg + black × glyph. Dark mode: dark
-         frosted bg + white × glyph. The plain × (no surrounding
-         circle ring) matches the GPS-view close button's clean
-         look so the close affordance is consistent across the app. */
+      /* X variant — the bead is rendered by the ::before pseudo so
+         it can host the × glyph in ::after. Strip the parent's bead
+         styling (which the default rule applies for back-arrow panels)
+         so we don't double up with two stacked discs. */
       background-color: transparent;
+      background-image: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      box-shadow: none;
       border-radius: 50%;
     }
-    /* Light frosted circle — matches the LIVE pill's treatment so
-       the X and LIVE pill read as a pair on the topbar. Dark mode
-       inverts to a dark circle (override below). */
+    html.dark body[data-current-panel="round"] .mobile-topbar-back,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back {
+      background-color: transparent;
+      background-image: none;
+      border: none;
+      box-shadow: none;
+    }
+    /* Light frosted Liquid Glass disc — matches the LIVE pill's
+       backing tone but with the full Liquid Glass treatment (inner
+       highlight gradient + edge stroke + soft shadow). Dark mode
+       inverts to a dark disc (override below). */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
@@ -31163,12 +31234,23 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background-color: rgba(255, 253, 247, 0.72);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      background-image: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.04) 100%
+      );
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.5) inset,
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 1px 3px rgba(0, 0, 0, 0.06);
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
@@ -31176,7 +31258,18 @@
     html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
-      background-color: rgba(13, 13, 13, 0.6);
+      background-color: rgba(28, 28, 30, 0.62);
+      background-image: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.15) 100%
+      );
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        0 4px 14px rgba(0, 0, 0, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.3);
     }
     /* Plain × glyph — drawn as SVG on ::after so it paints above the
        circle background. Black in light mode (against the light
@@ -31467,10 +31560,12 @@
     body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
       top: calc(var(--session-banner-height, 52px) * 2 + var(--space-2));
     }
-    /* Chunky arrow glyph — match the Strava look. */
+    /* Arrow glyph inside the Liquid Glass bead — sized to feel
+       proportional to the 36px bead. Slightly chunky weight (500)
+       reads as a real button glyph rather than a thin character. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
-      font-size: var(--text-2xl);
-      font-weight: 300;
+      font-size: 18px;
+      font-weight: 500;
       line-height: 1;
       color: var(--text-primary);
     }
@@ -31561,33 +31656,93 @@
       display: none !important;
     }
 
-    /* The back arrow — a simple inline button inside the opaque
-       topbar. Round-context screens override this with the floating
-       X-close treatment (in the round-focus block further down). */
+    /* The back arrow — a Liquid-Glass-style floating bead in the
+       top-left of the topbar. Round-context screens override this
+       with the X-close variant (in the round-focus block further
+       down) which uses the SAME visual language but with an × glyph
+       instead of an arrow.
+
+       Liquid Glass styling principles applied here:
+       - Translucent surface with strong backdrop blur + saturation
+         boost so colors behind don't go grey-flat
+       - Inner-highlight gradient: top edge slightly brighter, bottom
+         slightly darker (gives the bead dimension, like a glass disc
+         catching light from above)
+       - Subtle white-ish edge stroke reinforces the dimensional feel
+       - Soft drop shadow lifts the bead off the page
+       - Mode-aware: light bead in light mode, dark bead in dark mode
+
+       The actual back glyph (← character) renders as plain text
+       inside the bead at native font weight; we don't replace it
+       with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-2);
+      left: var(--space-3);
       top: 50%;
       transform: translateY(-50%);
-      width: 44px;
-      height: 44px;
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      background-color: rgba(255, 253, 247, 0.72);
+      background-image: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.04) 100%
+      );
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.5) inset,
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 1px 3px rgba(0, 0, 0, 0.06);
+      color: var(--text-primary);
       cursor: pointer;
       display: none;
       align-items: center;
       justify-content: center;
       padding: 0;
-      border-radius: var(--radius-sm);
-      transition: background var(--transition-fast), color var(--transition-fast);
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 500;
+      transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
+                  box-shadow 180ms ease,
+                  background 180ms ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .mobile-topbar-back:active { opacity: 0.6; }
+    html.dark .mobile-topbar-back {
+      background-color: rgba(28, 28, 30, 0.62);
+      background-image: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.15) 100%
+      );
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        0 4px 14px rgba(0, 0, 0, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+      color: var(--text-primary);
+    }
+    .mobile-topbar-back:active {
+      transform: translateY(-50%) scale(0.94);
+    }
     @media (hover: hover) {
       .mobile-topbar-back:hover {
-        background: var(--bg-surface);
-        color: var(--color-accent);
+        background-color: rgba(255, 253, 247, 0.85);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.6) inset,
+          0 6px 16px rgba(0, 0, 0, 0.1),
+          0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+      html.dark .mobile-topbar-back:hover {
+        background-color: rgba(40, 40, 45, 0.78);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.12) inset,
+          0 6px 18px rgba(0, 0, 0, 0.5),
+          0 2px 4px rgba(0, 0, 0, 0.35);
       }
     }
     /* "Back" button only shows on panels that aren't top-level tabs */
