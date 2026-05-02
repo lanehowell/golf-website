@@ -15945,6 +15945,18 @@
     gap: var(--space-3);
     margin-bottom: var(--space-1);
   }
+  /* Scoped override — when the head wraps a course title (i.e. it's
+     a recent-rounds list card), strip the bottom border + tighten
+     spacing so the meta row sits close under the course name. The
+     unscoped .round-card-head rule earlier in this file gives the
+     in-round hole card a divider, which we need to keep there but
+     drop here. :has() scopes by content type instead of by parent. */
+  .round-card-head:has(.round-card-course) {
+    border-bottom: none;
+    padding-bottom: 0;
+    text-align: left;
+    margin-bottom: 0;
+  }
   .round-card-course {
     display: flex;
     align-items: center;
@@ -16011,7 +16023,11 @@
      at a glance in the history list. Plus the 👥 badge in the title and the
      "Played with" line below the meta. */
   .round-card.round-card-group {
-    border-left: 3px solid var(--color-accent);
+    /* Blue left border removed — keeps every card visually equal in
+       the recent rounds list. The 👥 badge in the title row + the
+       "Played with X" line below already convey group context; the
+       border was an extra signal that broke the visual rhythm of
+       the stack. */
   }
   .round-card-group-badge {
     display: inline-block;
@@ -16078,17 +16094,20 @@
      visual priority (gold-tinted); course best uses the app's orange.
      Both variants share the star-prefix + pill shape. */
   .round-card-best-badge {
+    /* Inline within the meta row now (vs. its own line previously),
+       so the standalone vertical margins are dropped. The leading
+       " · " separator in the meta string + the pill chrome itself
+       provide enough visual separation from neighboring meta. */
     display: inline-block;
-    padding: 3px 10px;
+    padding: 2px 8px;
     font-family: var(--font-body);
     font-size: var(--text-2xs);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     border-radius: var(--radius-pill);
-    margin-top: var(--space-2);
-    margin-bottom: var(--space-2);
-    line-height: 1.6;
+    line-height: 1.4;
+    vertical-align: middle;
   }
   .round-card-best-global {
     background: linear-gradient(90deg, #F5D068 0%, #E8A634 100%);
@@ -16146,6 +16165,33 @@
     font-weight: var(--weight-medium);
     color: var(--color-accent);
     letter-spacing: var(--tracking-wide);
+  }
+
+  /* Alt-format score treatment — scramble, team formats, anything
+     that isn't comparable to solo stroke play. The score numeral
+     renders in muted gray (vs the prominent black of solo rounds)
+     so a 54 in a scramble doesn't visually outrank a 71 in a real
+     round. The vs-par chip is replaced with a tracked-caps format
+     label. */
+  .round-card-score-muted {
+    color: var(--text-muted);
+  }
+  .round-card-format-tag {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  /* Best-round badge slot — pushed to the right side of the score
+     row via margin-left: auto so the badge always lands at the far
+     right of the card regardless of what's on the left (score +
+     vs-par for solo, score + format-tag for alt-format). */
+  .round-card-score-badge-slot {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
   }
 
   /* "See all rounds →" footer link under the recent-rounds list on the
@@ -65365,13 +65411,13 @@
       ? '<span class="round-card-group-badge" aria-label="Group round" title="Group round">👥</span>'
       : '';
 
-    // Format pill — visible for non-standard formats so the user can
-    // scan history and see at a glance which rounds were scrambles
-    // etc. Standard rounds get nothing (default — clean UI).
+    // Format detection — non-standard formats (scramble, etc.) get
+    // de-emphasized on the score side because their numbers aren't
+    // comparable to solo stroke play. A 54 in a scramble shouldn't
+    // visually compete with a 71 in a solo round.
     const fmt = getRoundFormat(r);
-    const formatPill = fmt !== 'standard'
-      ? ` · <span class="round-card-format-pill">${escapeHtml(getRoundFormatLabel(r))}</span>`
-      : '';
+    const isAltFormat = fmt !== 'standard';
+    const fmtLabel = isAltFormat ? getRoundFormatLabel(r) : '';
 
     // Live badge for group rounds that are still active. Renders as
     // an empty slot initially, then patched in by
@@ -65389,12 +65435,11 @@
       // Runs in microtask after the current render so it doesn't block.
       Promise.resolve().then(() => ensureGroupRoundStatus(r.groupRoundId));
     }
-    // Best-round badge. Global best outranks course best — if this
-    // round is the global best, show that; else if it's a course best,
-    // show that. bestRoundInfo is memoized across a render pass by
-    // renderHistory / renderRoundsPage which call computeMyBestRounds
-    // once and pass the result down; direct callers fall back to a
-    // per-round compute (cheap for small lists).
+    // Best-round badge. Rendered inline with the score row, pushed
+    // to the right side of the card. Sits opposite the score numeral
+    // so it reads as "this score earned this distinction." For solo
+    // rounds it appears next to the vs-par chip; for alt-format it
+    // appears next to the format tag.
     const bests = window.__bestRoundsCache || computeMyBestRounds(recentRounds || []);
     let bestBadge = '';
     if (r.id === bests.globalBestId) {
@@ -65402,19 +65447,44 @@
     } else if (bests.courseBestIds && bests.courseBestIds.has(r.id)) {
       bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
     }
+
+    // Meta row: date · tee · (partial holes) — clean, no badge.
+    // Format pill is no longer rendered here for non-standard rounds —
+    // those rounds now show the format label on the score side as
+    // the score replacement, so doubling it up in meta would be
+    // redundant.
+    // (Standard rounds show no format indicator at all — clean default.)
+
+    // Score side. Standard rounds: big serif strokes + vs-par chip.
+    // Alt-format rounds: gray strokes + uppercase format label (no
+    // vs-par, since it's not meaningful for scramble/etc.).
+    // Best badge (when present) lives at the far right of this row.
+    let scoreSideHtml;
+    if (isAltFormat) {
+      scoreSideHtml = `
+        <div class="round-card-score-row">
+          <div class="round-card-score round-card-score-muted">${score}</div>
+          <div class="round-card-format-tag">${escapeHtml(fmtLabel.toUpperCase())}</div>
+          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
+        </div>`;
+    } else {
+      scoreSideHtml = `
+        <div class="round-card-score-row">
+          <div class="round-card-score">${score}</div>
+          ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
+          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
+        </div>`;
+    }
+
     return `
       <button class="round-card${r.groupRoundId ? ' round-card-group' : ''}"${r.groupRoundId ? ` data-group-round-id="${escapeAttr(r.groupRoundId)}"` : ''} onclick="openRoundSummary('${r.id}')">
         <div class="round-card-head">
           <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span>${liveSlotHtml}</div>
           <div class="round-card-arrow">→</div>
         </div>
-        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}${formatPill}</div>
+        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
         ${groupLine}
-        ${bestBadge}
-        <div class="round-card-score-row">
-          <div class="round-card-score">${score}</div>
-          ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
-        </div>
+        ${scoreSideHtml}
       </button>`;
   }
 
