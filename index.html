@@ -1929,6 +1929,83 @@
   .play-hero::before {
     content: none;
   }
+
+  /* Personalized greeting — tracked-caps, transparent (no pill
+     treatment so the actual PLAY pill below remains the visual
+     anchor). Sits at the top of the hero. The PLAY eyebrow inherits
+     `margin-bottom: var(--space-3)` from elsewhere in this section
+     so the rhythm flows: greeting → eyebrow pill → headline. */
+  .play-hero-greeting {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+    line-height: 1.2;
+  }
+
+  /* Avatar — small circular photo top-right of the hero. Tappable,
+     opens profile. Uses absolute positioning anchored to the hero's
+     own top-right edge (the .play-hero is position: relative so this
+     pins to it). The image fills the circle with `object-fit: cover`
+     so non-square photos crop sensibly. */
+  .play-hero-avatar {
+    position: absolute;
+    top: var(--space-5);
+    right: var(--space-6);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: var(--bg-elevated);
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+  }
+  .play-hero-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @media (hover: hover) {
+    .play-hero-avatar:hover {
+      border-color: var(--color-accent);
+      transform: scale(1.05);
+    }
+  }
+
+  /* Context lines below the action buttons — italic muted single-line
+     notes that add forward-looking ("perfect day for X") or backward-
+     looking ("last round was…") personalization. Stack vertically with
+     a tight gap. The weather line fades in once async loaded; the
+     history line renders synchronously alongside the rest of the hero. */
+  .play-hero-context {
+    margin: var(--space-4) 0 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-style: italic;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .play-hero-context + .play-hero-context {
+    margin-top: var(--space-1);
+  }
+  /* Weather line starts empty + invisible until async fill, then
+     fades in. Avoids a layout pop on initial render. */
+  .play-hero-context-weather {
+    opacity: 0;
+    transition: opacity 300ms ease;
+    min-height: 1.4em;
+  }
+  .play-hero-context-weather.is-loaded {
+    opacity: 1;
+  }
+
   .play-hero-eyebrow {
     font-family: var(--font-body);
     font-size: var(--text-xs);
@@ -56846,10 +56923,101 @@
   // list and a "Scorecard UI coming next" placeholder so navigation
   // doesn't crash when Start Round fires.
 
+  // Time-of-day greeting. Returns "Good morning" / "Good afternoon"
+  // / "Good evening" based on local hour. Used in the personalized
+  // hero header above the PLAY pill.
+  function getTimeGreeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  // First-name extraction from the user's display name. Falls back
+  // to username if displayName isn't set, then to empty string. The
+  // greeting omits the name entirely if we don't have one — better
+  // than rendering "GOOD MORNING, GOLFER" for an unauthenticated
+  // viewer.
+  function getUserFirstName() {
+    const display = (prefs.usernameDisplay || currentUser?.displayName || '').trim();
+    if (!display) return '';
+    // Split on whitespace and take the first token. Handles "Lane Smith"
+    // → "Lane" and a single-name display ("Lane") → "Lane".
+    return display.split(/\s+/)[0];
+  }
+
+  // Personalized sub-copy below the headline. Reads recentRounds
+  // and adapts based on history density + recency:
+  //   - 0 rounds: nudge toward first round
+  //   - last round 14+ days: gently re-engage
+  //   - last round within 7 days: warm "back for more"
+  //   - default: original copy
+  function getPersonalizedHeroSub() {
+    const completed = (recentRounds || []).filter(r => r.status === 'completed');
+    if (completed.length === 0) {
+      return 'Track your first round. Solo or with friends.';
+    }
+    const last = completed.reduce((latest, r) => {
+      const t = r.endedAt || r.startedAt || 0;
+      return t > (latest?.endedAt || latest?.startedAt || 0) ? r : latest;
+    }, null);
+    const lastTime = last?.endedAt || last?.startedAt;
+    if (!lastTime) return 'Score every hole. Solo or with friends.';
+    const daysSince = Math.floor((Date.now() - lastTime) / (24 * 60 * 60 * 1000));
+    if (daysSince >= 14) return "It's been a while. Get back out there.";
+    if (daysSince <= 7) return 'Back for more? Solo or with friends.';
+    return 'Score every hole. Solo or with friends.';
+  }
+
+  // Last-round line — small italic nudge above the context line.
+  // Format: "Last round: 78 at Grand Oaks · 3 days ago". Skipped
+  // when there's no completed round.
+  function getLastRoundLine() {
+    const completed = (recentRounds || []).filter(r => r.status === 'completed');
+    if (completed.length === 0) return '';
+    const last = completed.reduce((latest, r) => {
+      const t = r.endedAt || r.startedAt || 0;
+      const lt = latest?.endedAt || latest?.startedAt || 0;
+      return t > lt ? r : latest;
+    }, null);
+    if (!last) return '';
+    const lastTime = last.endedAt || last.startedAt;
+    const strokes = last.totals?.strokes;
+    const courseName = getCourse(last.courseId)?.name || last.courseName;
+    if (!strokes || !courseName || !lastTime) return '';
+    const daysSince = Math.floor((Date.now() - lastTime) / (24 * 60 * 60 * 1000));
+    let when;
+    if (daysSince === 0) when = 'today';
+    else if (daysSince === 1) when = 'yesterday';
+    else if (daysSince < 7) when = `${daysSince} days ago`;
+    else when = formatRoundDate(lastTime);
+    return `Last round: ${strokes} at ${courseName} · ${when}`;
+  }
+
   function renderPlayHero() {
     const mount = document.getElementById('play-hero-mount');
     if (!mount) return;
     const inProgress = findInProgressRound();
+
+    // Greeting block — sits above the eyebrow pill. Renders only on
+    // the default (no-active-round) hero state; active-round states
+    // already have their own contextual eyebrow ("Round in Progress")
+    // so adding a greeting on top would feel cluttered.
+    const firstName = getUserFirstName();
+    const greeting = getTimeGreeting();
+    const greetingHtml = firstName
+      ? `<div class="play-hero-greeting">${escapeHtml(greeting)}, ${escapeHtml(firstName)}</div>`
+      : `<div class="play-hero-greeting">${escapeHtml(greeting)}</div>`;
+
+    // Avatar — small circular photo in the top-right of the hero.
+    // Tap → profile. Hidden if there's no photoURL. Uses the same
+    // `referrerpolicy="no-referrer"` as the auth chip so Google
+    // hot-link blocking doesn't kill it.
+    const avatarHtml = currentUser?.photoURL ? `
+      <button class="play-hero-avatar" onclick="showPanel('profile', null)" aria-label="Open profile">
+        <img src="${escapeAttr(currentUser.photoURL)}" alt="" referrerpolicy="no-referrer" />
+      </button>
+    ` : '';
 
     // Group round takes precedence in the hero — if the user is in one,
     // that's the thing they probably want to get back to. Rendered before
@@ -56869,6 +57037,7 @@
       const actionLabel = gr.status === 'lobby' ? 'Open Lobby →' : 'Continue Round →';
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
+          ${avatarHtml}
           <div class="play-hero-eyebrow">${escapeHtml(fmtLabel)} · ${escapeHtml(statusLabel)}</div>
           <h2 class="play-hero-title">${gr.status === 'lobby' ? 'Waiting to Start' : 'Continue <em>Round</em>'}</h2>
           <p class="play-hero-sub">${escapeHtml(courseName)} · ${playerCount} player${playerCount === 1 ? '' : 's'}</p>
@@ -56890,6 +57059,7 @@
       const strokes = inProgress.totals?.strokes ?? 0;
       mount.innerHTML = `
         <div class="play-hero play-hero-active">
+          ${avatarHtml}
           <div class="play-hero-eyebrow">Round in Progress</div>
           <h2 class="play-hero-title">Continue <em>Round</em></h2>
           <p class="play-hero-sub">${escapeHtml(courseName)} · ${escapeHtml(inProgress.teeName || '')}</p>
@@ -56916,16 +57086,77 @@
 
     // No round in progress — the default invite-to-start state. Solo
     // is the default; With Friends is a toggle inside the course detail.
+    // Personalized header: greeting + name above the PLAY pill, avatar
+    // in the corner. Sub-copy adapts based on round history.
+    const sub = getPersonalizedHeroSub();
+    const lastRoundLine = getLastRoundLine();
     mount.innerHTML = `
       <div class="play-hero">
+        ${avatarHtml}
+        ${greetingHtml}
         <div class="play-hero-eyebrow">Play</div>
         <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Score every hole. Solo or with friends.</p>
+        <p class="play-hero-sub">${escapeHtml(sub)}</p>
         <div class="play-hero-actions">
           <button class="play-hero-btn play-hero-btn-primary" onclick="startRoundFlow()">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showPanel('quick-score', null)">Quick Score</button>
         </div>
+        ${lastRoundLine ? `<p class="play-hero-context play-hero-context-history">${escapeHtml(lastRoundLine)}</p>` : ''}
+        <p class="play-hero-context play-hero-context-weather" id="play-hero-context-weather"></p>
       </div>`;
+
+    // Async: populate the weather + nearest-course context line.
+    // Doesn't block initial render — the line stays empty until both
+    // location and weather resolve, then fades in.
+    populatePlayHeroContextLine();
+  }
+
+  // Async helper — fills #play-hero-context-weather with a one-line
+  // context note like "68° and clear in Dallas. Perfect day for
+  // Grand Oaks." Pulls from the existing fetchWeather + userLocation
+  // + getCoursesWithDistance helpers; no new infrastructure. Silently
+  // bails on any failure (location denied, weather error, no courses
+  // nearby) — the line just stays empty.
+  async function populatePlayHeroContextLine() {
+    const el = document.getElementById('play-hero-context-weather');
+    if (!el) return;
+    try {
+      // Trigger location request if it hasn't been asked yet. Returns
+      // immediately if cached or already in progress.
+      await requestUserLocation();
+      if (userLocation.status !== 'granted') return;
+      const weather = await fetchWeather(userLocation.lat, userLocation.lng);
+      if (!weather || weather.status !== 'ok') return;
+      const cur = weather.data?.current;
+      if (!cur) return;
+      const temp = Math.round(cur.temperature_2m);
+      const codeMeta = weatherCodeMeta(cur.weather_code, cur.is_day);
+      const condition = (codeMeta?.label || 'clear').toLowerCase();
+      // Find nearest course within reasonable driving distance.
+      const distList = (typeof getCoursesWithDistance === 'function')
+        ? getCoursesWithDistance() : null;
+      const nearest = distList && distList.length > 0 && distList[0].distance <= 50
+        ? distList[0].course : null;
+      // City extraction — use reverse-geocoding cache if it exists,
+      // else skip the city portion. We don't add a new geocoding API
+      // dep just for this line; the temp + condition + course already
+      // does the heavy lifting.
+      let line;
+      if (nearest) {
+        line = `${temp}° and ${condition}. Perfect day for ${nearest.name}.`;
+      } else {
+        line = `${temp}° and ${condition} where you are.`;
+      }
+      // Re-check the element exists (panel may have changed during await)
+      const elNow = document.getElementById('play-hero-context-weather');
+      if (elNow && currentPanelId === 'play') {
+        elNow.textContent = line;
+        elNow.classList.add('is-loaded');
+      }
+    } catch (err) {
+      // Silent — the context line is a nice-to-have, not load-bearing.
+      console.warn('Context line populate failed:', err);
+    }
   }
 
   // Round banner — global top bar mirroring the workout session banner.
@@ -58542,6 +58773,8 @@
 
     let avgScore = '—';
     let bestRound = '—';
+    let avgScoreHint = '';
+    let bestRoundHint = '';
     if (roundsPlayed > 0) {
       // Performance stats (avg + best) are scoped to rounds that count
       // toward stats — scrambles persist in your account but a 54 in
@@ -58560,6 +58793,45 @@
           return s < b ? s : b;
         }, Infinity);
         if (best !== Infinity) bestRound = best;
+
+        // Avg score delta — last 30 days vs prior 30 days. Quietly
+        // skipped if either window has fewer than 2 rounds (sample
+        // too small to be meaningful).
+        const now = Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        const thirty = 30 * day;
+        const sixty = 60 * day;
+        const recent = fullRounds.filter(r => {
+          const t = r.endedAt || r.startedAt || 0;
+          return now - t <= thirty;
+        });
+        const prior = fullRounds.filter(r => {
+          const t = r.endedAt || r.startedAt || 0;
+          return now - t > thirty && now - t <= sixty;
+        });
+        if (recent.length >= 2 && prior.length >= 2) {
+          const recentAvg = recent.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / recent.length;
+          const priorAvg = prior.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / prior.length;
+          const delta = Math.round(recentAvg - priorAvg);
+          if (delta < 0) avgScoreHint = `↓ ${Math.abs(delta)} from last month`;
+          else if (delta > 0) avgScoreHint = `↑ ${delta} from last month`;
+          else avgScoreHint = 'Same as last month';
+        }
+
+        // Best round subtitle — course name + date. Identifies WHICH
+        // round produced the headline number. Skipped if we can't
+        // resolve the course (rare, but defensive).
+        const bestRecord = fullRounds.find(r => (r.totals?.strokes || Infinity) === best);
+        if (bestRecord) {
+          const course = getCourse(bestRecord.courseId);
+          const courseName = course?.name || bestRecord.courseName;
+          const t = bestRecord.endedAt || bestRecord.startedAt;
+          if (courseName && t) {
+            bestRoundHint = `${courseName} · ${formatRoundDate(t)}`;
+          } else if (courseName) {
+            bestRoundHint = courseName;
+          }
+        }
       }
     }
 
@@ -58589,10 +58861,12 @@
         <div class="play-stat">
           <span class="play-stat-value">${avgScore}</span>
           <span class="play-stat-label">Avg Score</span>
+          ${avgScoreHint ? `<span class="play-stat-hint">${escapeHtml(avgScoreHint)}</span>` : ''}
         </div>
         <div class="play-stat">
           <span class="play-stat-value">${bestRound}</span>
           <span class="play-stat-label">Best Round</span>
+          ${bestRoundHint ? `<span class="play-stat-hint">${escapeHtml(bestRoundHint)}</span>` : ''}
         </div>
       </div>
       ${roundsPlayed > 0 ? `
