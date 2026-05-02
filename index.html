@@ -447,14 +447,17 @@
      Text uses --color-black (which in dark mode flips to warm off-white
      — this is intentional, since the card is darker than the page and
      needs light text). */
+  /* Dark-mode play-hero — editorial layout, transparent. The token-
+     based colors (text-primary, text-secondary, color-accent) already
+     flip via dark-mode root variables, so the only override needed is
+     for the Continue-Round progress card (which still uses a card
+     treatment) and the ghost button border which needs a dark-mode
+     friendly color. */
   html.dark .play-hero {
-    background: #161310;       /* slightly deeper than --color-cream-50 (#1F1C17) */
-    color: var(--color-black);
-    border: 1px solid var(--color-cream-300);
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
   }
-  html.dark .play-hero-title   { color: var(--color-black); }
-  html.dark .play-hero-sub     { color: var(--color-black-80); }
-  html.dark .play-hero-meta    { color: var(--color-black-60); }
   /* Continue-Round progress panel — the tokens it uses (--color-cream-50
      and --color-cream-300) flip to dark browns in dark mode, making the
      numbers and labels invisible against the already-dark hero card.
@@ -463,19 +466,9 @@
     background: rgba(245, 237, 216, 0.05);
     border-color: rgba(245, 237, 216, 0.12);
   }
-  html.dark .play-hero-progress-value       { color: var(--color-black); }
-  html.dark .play-hero-progress-value span  { color: var(--color-black-60); }
-  html.dark .play-hero-progress-label       { color: var(--color-black-60); }
-  html.dark .play-hero-btn-ghost {
-    color: var(--color-black);
-    border-color: rgba(245, 237, 216, 0.25);
-  }
-  @media (hover: hover) {
-  html.dark .play-hero-btn-ghost:hover {
-    background: rgba(245, 237, 216, 0.08);
-    border-color: var(--color-black);
-  }
-}
+  html.dark .play-hero-progress-value       { color: var(--text-primary); }
+  html.dark .play-hero-progress-value span  { color: var(--text-muted); }
+  html.dark .play-hero-progress-label       { color: var(--text-muted); }
 
   /* Today card — same "dramatic dark card" design issue as Play hero.
      In light mode it's a black card with cream text (by design). When
@@ -1863,25 +1856,35 @@
      ══════════════════════════════════════════════════════════════ */
 
   /* Hero CTA — dark card mirrors the Today card's visual weight */
+  /* Play hero — editorial layout, no card. The dark-card variant
+     was retired in favor of letting the page background carry the
+     hero so the typography does the visual lifting. The italic
+     accent word ("Round") in the title is the focal point.
+     Continue-Round state still uses a card-style treatment because
+     it carries denser data (course name, hole, vsPar, progress);
+     see the .play-hero-progress block below for those overrides. */
   .play-hero {
-    background: var(--color-black);
-    color: var(--text-inverse);
-    border-radius: var(--radius-xl);
-    padding: var(--space-10) var(--space-8);
-    margin-bottom: var(--space-10);
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 0;
+    /* Full-bleed breakout — negate the container's --space-5 inline
+       padding so the hero stretches edge-to-edge across the panel.
+       Inner padding then provides the actual reading rhythm so text
+       isn't kissing the screen edge. The negative margin is REVERTED
+       on the .play-hero-active variant so the dark card stays inset
+       like before — only the editorial empty-state breaks out. */
+    margin-inline: calc(-1 * var(--space-5));
+    padding: var(--space-10) var(--space-6) var(--space-8);
+    margin-bottom: var(--space-8);
+    margin-top: 0;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
-  /* Subtle decorative golf flag mark */
+  /* Decorative accent removed in editorial mode — was a black-card
+     accent and reads wrong on the cream background. Continue-Round
+     state restores its own framing via .play-hero-progress. */
   .play-hero::before {
-    content: '';
-    position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 240px;
-    height: 240px;
-    background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 65%);
-    pointer-events: none;
+    content: none;
   }
   .play-hero-eyebrow {
     font-family: var(--font-body);
@@ -1890,29 +1893,70 @@
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--color-accent);
+    /* Pill treatment — small chip with translucent accent fill so
+       the eyebrow reads as a category tag rather than a label. The
+       inline-flex + width: max-content keeps the pill hugging its
+       text rather than stretching the full container width.
+       Centering details:
+       - Horizontal: letter-spacing adds trailing space after every
+         char including the last. text-indent shifts the whole text
+         right by one tracking unit to compensate, so visual center
+         matches geometric center.
+       - Vertical: explicit line-height: 1 + symmetric padding stops
+         the uppercase glyph block from sitting low in the pill (the
+         default ~1.4 line-height adds asymmetric space below caps). */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    padding: 6px 12px;
+    line-height: 1;
+    text-indent: var(--tracking-widest);
+    background: var(--color-accent-pale);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    border-radius: 999px;
     margin-bottom: var(--space-3);
     position: relative;
   }
+  html.dark .play-hero-eyebrow {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  }
   .play-hero-title {
     font-family: var(--font-display);
-    font-size: var(--text-5xl);
+    /* Editorial scale — way larger than the previous text-5xl.
+       Mockup target: ~64px on a 380px viewport. clamp uses 16vw so
+       it scales naturally with screen width while still staying
+       readable on small phones (lower bound) and not getting silly
+       on tablets (upper bound). */
+    font-size: clamp(64px, 16vw, 96px);
     font-weight: var(--weight-bold);
-    line-height: 1.05;
-    letter-spacing: var(--tracking-tight);
-    color: var(--color-cream-50);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
     margin-bottom: var(--space-4);
     position: relative;
   }
   .play-hero-title em {
     font-style: italic;
     color: var(--color-accent);
+    /* Soft line-break before the italic word so "Start a / Round"
+       reads as two lines on narrow screens (matches the editorial
+       mockup). The display: block forces the wrap regardless of
+       container width — predictable on every device. */
+    display: block;
   }
   .play-hero-sub {
     font-size: var(--text-md);
-    color: var(--color-cream-300);
+    color: var(--text-secondary);
     line-height: var(--leading-normal);
     max-width: 48ch;
-    margin-bottom: var(--space-8);
+    /* Tightened rhythm — eyebrow→title (12px), title→sub (16px),
+       sub→buttons (24px). The screenshot showed everything floating
+       apart; bringing the gaps in connects the elements visually
+       while still preserving a clear "now act" moment before the
+       primary CTA. */
+    margin-bottom: var(--space-6);
     position: relative;
   }
   .play-hero-actions {
@@ -1932,6 +1976,18 @@
     cursor: pointer;
     border: 2px solid transparent;
     transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-spring);
+    /* Editorial mode: each button takes full width on its own row
+       on mobile, since the hero no longer has a card to constrain
+       layout. Looks more deliberate than two short buttons floating
+       on the cream page. flex: 1 with a low min-width lets them
+       sit side-by-side on wider viewports. */
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  @media (min-width: 480px) {
+    .play-hero-btn {
+      flex: 1 1 auto;
+    }
   }
   @media (hover: hover) {
   .play-hero-btn:hover { transform: translateY(-2px); }
@@ -1950,19 +2006,41 @@
 }
   .play-hero-btn-ghost {
     background: transparent;
-    color: var(--color-cream-50);
-    border-color: rgba(255, 253, 247, 0.3);
+    /* Editorial mode: ghost button uses primary text color + a
+       solid (not translucent) border so it reads cleanly on the
+       cream page. The previous transparent-on-dark-card values
+       would have rendered the button nearly invisible. */
+    color: var(--text-primary);
+    border-color: var(--text-primary);
   }
   @media (hover: hover) {
   .play-hero-btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: var(--color-cream-50);
+    background: var(--color-cream-100);
+    border-color: var(--text-primary);
   }
 }
+  /* Continue-Round / Lobby-active variant — uses the same editorial
+     layout as the empty state (no card chrome). Only differences:
+     a more conservative title size since the active state has more
+     content below it (course name, player count, progress strip),
+     and the italic word stays inline rather than forced to its own
+     line — "Continue Round" reads cleanly on one line. */
+  .play-hero.play-hero-active .play-hero-title {
+    /* Restore a more conservative title size — the editorial XL bump
+       only fits the empty-state hero where there's nothing competing
+       for vertical space. */
+    font-size: clamp(48px, 12vw, 72px);
+  }
+  .play-hero.play-hero-active .play-hero-title em {
+    /* Active variant keeps the inline italic — no forced line break.
+       "Continue Round" reads cleanly on one line. */
+    display: inline;
+  }
+
   .play-hero-meta {
     margin-top: var(--space-6);
     font-size: var(--text-xs);
-    color: var(--color-cream-300);
+    color: var(--text-muted);
     letter-spacing: var(--tracking-wide);
     position: relative;
   }
@@ -2124,10 +2202,11 @@
     margin-inline: auto;
   }
 
-  /* Mobile tweaks */
+  /* Mobile tweaks. Both the empty-state and active hero use the
+     editorial layout, so the title font-size override that used to
+     scale down the active card on mobile is no longer needed. The
+     actions still stack full-width on small screens for tappability. */
   @media (max-width: 640px) {
-    .play-hero { padding: var(--space-8) var(--space-6); }
-    .play-hero-title { font-size: var(--text-4xl); }
     .play-hero-actions { flex-direction: column; }
     .play-hero-btn { width: 100%; }
   }
@@ -3795,6 +3874,213 @@
     text-transform: uppercase;
     border-radius: var(--radius-sm);
     vertical-align: middle;
+  }
+  /* Guest badge — quieter than the accent-colored Organizer/You
+     badges. Uses surface tones so a guest reads as "secondary
+     participant" not "important". */
+  .lobby-player-badge-guest {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+  }
+  html.dark .lobby-player-badge-guest {
+    background: color-mix(in srgb, var(--text-muted) 15%, transparent);
+    border-color: color-mix(in srgb, var(--text-muted) 30%, transparent);
+    color: var(--text-secondary);
+  }
+
+  /* Helper text for lobby sections — small, muted, sits between the
+     section label and its content. Used to explain optional features
+     like guests so users understand the affordance before tapping. */
+  .lobby-section-helper {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: var(--space-3);
+  }
+
+  /* Add-guest button — full-width affordance in the lobby's Guests
+     section + Manage Players sheet. Visually quieter than the start-
+     round CTA; reads as "optional secondary action." */
+  .lobby-add-guest-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .lobby-add-guest-btn:hover {
+      border-color: var(--color-accent);
+      background: var(--color-accent-pale);
+    }
+  }
+  .lobby-add-guest-btn:active {
+    transform: scale(0.98);
+  }
+  .lobby-add-guest-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    font-size: 16px;
+    font-weight: var(--weight-bold);
+    line-height: 1;
+  }
+
+  /* Add-guest modal — small focused sheet for entering a name.
+     Centered modal style (not bottom sheet) since it's quick + the
+     content is one input field. Backdrop dims everything behind it
+     including any open manage-players sheet. */
+  .add-guest-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9700;
+    backdrop-filter: blur(2px);
+  }
+  .add-guest-sheet {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(90vw, 420px);
+    max-width: 420px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 9710;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .add-guest-header {
+    position: relative;
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .add-guest-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-accent);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .add-guest-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .add-guest-close {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-guest-close:active {
+    background: var(--bg-surface);
+  }
+  .add-guest-body {
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .add-guest-blurb {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .add-guest-input {
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-guest-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+  }
+  .add-guest-input:disabled {
+    opacity: 0.5;
+  }
+  .add-guest-footer {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5) var(--space-4);
+    border-top: 1px solid var(--border-light);
+  }
+  .add-guest-cancel {
+    flex: 1;
+    padding: var(--space-3);
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-guest-cancel:disabled {
+    opacity: 0.5;
+  }
+  .add-guest-add {
+    flex: 1;
+    padding: var(--space-3);
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-guest-add:active {
+    transform: scale(0.98);
+  }
+  .add-guest-add:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   /* Tee chip — secondary metadata, muted color to step back from the name. */
   .lobby-player-tee {
@@ -17092,6 +17378,25 @@
     color: var(--color-accent);
     font-weight: var(--weight-semibold);
   }
+  /* Guest tag — small inline pill in the attribution row so historic
+     reviewers can tell which players were guests vs real app users.
+     Quiet (muted color, dashed-feeling treatment) so it doesn't
+     compete with the player name. */
+  .scramble-attr-guest-tag {
+    display: inline-block;
+    margin-left: var(--space-1);
+    padding: 1px 5px;
+    background: var(--bg-page);
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
   .scramble-attr-track {
     height: 8px;
     background: var(--bg-page);
@@ -26894,6 +27199,202 @@
     flex-wrap: wrap;
   }
 
+  /* ──────────────────────────────────────────────────────────────
+     Admin panel — manage admin grants. Visually quieter than other
+     panels (this is restricted-area UI, not feature UX). Uses the
+     existing settings-section conventions for headers, but admin
+     rows have their own layout because they need a revoke action
+     instead of the typical chevron.
+     ────────────────────────────────────────────────────────────── */
+  .admin-section {
+    margin-bottom: var(--space-6);
+  }
+  .admin-section-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    margin-bottom: var(--space-3);
+  }
+  .admin-section-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: var(--space-3);
+  }
+  .admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .admin-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .admin-row-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .admin-row-name {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .admin-row-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .admin-row-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  .admin-row-badge-root {
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+  .admin-row-badge-self {
+    background: color-mix(in srgb, var(--text-muted) 15%, transparent);
+    color: var(--text-secondary);
+    border: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  }
+  .admin-row-revoke {
+    flex: 0 0 auto;
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    color: var(--color-danger);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .admin-row-revoke:hover {
+      background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+      border-color: var(--color-danger);
+    }
+  }
+  .admin-row-revoke:active {
+    transform: scale(0.97);
+  }
+  .admin-row-revoke[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .admin-empty-row {
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .admin-add-form {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .admin-add-input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .admin-add-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+  }
+  .admin-add-input:disabled {
+    opacity: 0.5;
+  }
+  .admin-add-btn {
+    flex: 0 0 auto;
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-accent);
+    color: var(--color-accent-on);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .admin-add-btn:active {
+    transform: scale(0.97);
+  }
+  .admin-add-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .admin-add-error {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--color-danger);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+  }
+  .admin-empty {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+  }
+  .admin-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .admin-empty-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-4);
+  }
+
   /* The list of club rows */
   .bag-list {
     display: flex;
@@ -29443,6 +29944,20 @@
       <div id="profile-mount"></div>
     </section>
 
+    <!-- Admin panel — gated to admin users only at the routing level
+         (showPanel('admin') no-ops for non-admins). The panel itself
+         re-checks isCurrentUserAdmin() on render so a revoked admin
+         tabbing into a stale link won't see admin tools. -->
+    <section class="panel" id="panel-admin">
+      <div class="panel-head">
+        <span class="accent-line"></span>
+        <span class="label">Restricted</span>
+        <h2>Admin</h2>
+        <p class="panel-desc">Manage admin access and shared catalog.</p>
+      </div>
+      <div id="admin-mount"></div>
+    </section>
+
     <!-- ═══════════════ MY BAG (profile sub-page) ═══════════════ -->
     <!-- Dedicated page for the user's clubs. Reached via the My Bag row
          in Profile. Has its own view/edit mode; Save/Discard are in the
@@ -29733,6 +30248,13 @@
      With" strip. Bottom sheet listing current players + invitable
      friends. Body-level for the same reason as the others above. -->
 <div id="manage-players-mount"></div>
+
+<!-- ADD GUEST sheet mount — populated by renderAddGuestSheet() when
+     the user taps "+ Add guest" in lobby or manage-players sheet.
+     Tiny modal: name input + Add. Body-level so it sits above the
+     manage-players sheet which is already open in the most common
+     entry path. -->
+<div id="add-guest-mount"></div>
 
 <!-- PLAYER SCORECARD sheet mount — populated by renderPlayerScorecardSheet()
      when the user taps a player card in the "Playing With" strip.
@@ -30493,6 +31015,40 @@
     // on first run, and by any future admin add-course flow.
     upsertCourse: async (courseId, data) => {
       await setDoc(doc(db, `courses/${courseId}`), data, { merge: true });
+    },
+
+    // ── Admin role management ─────────────────────────────────────
+    // Admins live as docs in the top-level `admins/` collection,
+    // keyed by uid. Doc shape: { grantedAt, grantedBy, usernameDisplay }.
+    // Read access is open to any authed user (so the client can gate
+    // UI without a special permission). Write access is admin-only,
+    // enforced in firestore.rules. Subscribe instead of one-shot read
+    // so grants/revokes from another session propagate live.
+    subscribeAdmins: (callback) => {
+      return onSnapshot(collection(db, 'admins'), (snap) => {
+        const docs = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+        callback(docs);
+      }, (err) => {
+        console.warn('admins snapshot error:', err);
+        // Fail closed: emit empty so the client falls back to root-only.
+        callback([]);
+      });
+    },
+    // Grant admin: write a doc to admins/{uid}. Caller must already be
+    // admin (rule-enforced). Includes the granter's uid and the target's
+    // username (denormalized so the admin list UI doesn't need a join).
+    grantAdmin: async (targetUid, targetUsernameDisplay) => {
+      await setDoc(doc(db, `admins/${targetUid}`), {
+        grantedAt: new Date().toISOString(),
+        grantedBy: auth.currentUser?.uid || null,
+        usernameDisplay: targetUsernameDisplay || null,
+      });
+    },
+    // Revoke admin: delete admins/{uid}. Caller must be admin
+    // (rule-enforced). Root admins are not stored here so revoking
+    // them via this path is a no-op (their entry won't exist).
+    revokeAdmin: async (targetUid) => {
+      await deleteDoc(doc(db, `admins/${targetUid}`));
     },
 
     // Update a single green coord on a course doc. Per-hole keyed
@@ -31635,16 +32191,92 @@
   // management UI. Hardcoded for now; can move to a proper role
   // system later (Firestore custom claims, or an admins/{uid} doc
   // collection).
-  const ADMIN_UIDS = new Set([
-    // Lane's UID
-    'LldPjvPzC6aASDfyfDaBRsYVIBr2',
-    // Lane's friend
-    'S5JxUSJ6TXRUvf5cteaCA6GERSB3',
+  // Root admin UIDs — hardcoded as a permanent fail-safe. These are
+  // ALWAYS admin regardless of what's in the admins/ collection. Acts
+  // as a recovery hatch: if the admins collection gets corrupted, or
+  // if a granted admin revokes everyone, the root admin can still
+  // sign in and fix things. Should be JUST the founder's UID.
+  const ROOT_ADMIN_UIDS = new Set([
+    'LldPjvPzC6aASDfyfDaBRsYVIBr2',  // Lane (founder)
   ]);
 
-  // Helper: is the current signed-in user an admin?
+  // Cache of granted admin UIDs from the admins/ collection, populated
+  // by loadAdmins() on auth via a snapshot subscription so grants/
+  // revokes propagate live to other open sessions. Combined with
+  // ROOT_ADMIN_UIDS in the isCurrentUserAdmin() check.
+  const grantedAdminUids = new Set();
+  const grantedAdminMeta = new Map(); // uid → { grantedAt, grantedBy }
+  let adminsLoaded = false;
+  let __adminsUnsub = null;
+
+  // Helper: is the current signed-in user an admin? Checks BOTH the
+  // hardcoded root list (instant) and the granted-admins cache (data
+  // from Firestore). For non-root users, returns false until the
+  // admins snapshot has loaded — UI gates that depend on this should
+  // re-render after admins load if rendered before. The Profile panel
+  // re-renders automatically via rerenderActivePanel() on snapshot.
   function isCurrentUserAdmin() {
-    return !!(currentUser && ADMIN_UIDS.has(currentUser.uid));
+    if (!currentUser) return false;
+    if (ROOT_ADMIN_UIDS.has(currentUser.uid)) return true;
+    return grantedAdminUids.has(currentUser.uid);
+  }
+
+  // Subscribe to the admins collection. Tiny (a handful of docs); the
+  // listener is cheap. Re-fires when grants/revokes happen so the
+  // current session reacts live (Profile gate appears/disappears,
+  // Admin panel list refreshes). Tears down the previous listener on
+  // re-call so auth changes don't leak listeners.
+  async function loadAdmins() {
+    if (__adminsUnsub) {
+      try { __adminsUnsub(); } catch (_) {}
+      __adminsUnsub = null;
+    }
+    grantedAdminUids.clear();
+    grantedAdminMeta.clear();
+    adminsLoaded = false;
+    if (!window.fb || !currentUser) {
+      adminsLoaded = true;
+      return;
+    }
+    try {
+      __adminsUnsub = window.fb.subscribeAdmins((adminDocs) => {
+        grantedAdminUids.clear();
+        grantedAdminMeta.clear();
+        for (const d of adminDocs) {
+          if (!d.id) continue;
+          grantedAdminUids.add(d.id);
+          grantedAdminMeta.set(d.id, {
+            grantedAt: d.data?.grantedAt || null,
+            grantedBy: d.data?.grantedBy || null,
+            usernameDisplay: d.data?.usernameDisplay || null,
+          });
+        }
+        adminsLoaded = true;
+        try { rerenderActivePanel(); } catch (_) {}
+      });
+    } catch (err) {
+      console.warn('Failed to subscribe to admins collection:', err);
+      adminsLoaded = true;
+    }
+  }
+
+  // Best-effort soft re-render of the active panel. Used after admin
+  // status changes so gated UI updates without a page reload. No-op
+  // when the active panel isn't found or doesn't have a render fn.
+  // Kept tiny + defensive — adding new admin-gated panels just means
+  // adding their renderer here.
+  function rerenderActivePanel() {
+    const id = (typeof currentPanelId !== 'undefined') ? currentPanelId : null;
+    if (!id) return;
+    const renderers = {
+      'profile': typeof renderProfile     === 'function' ? renderProfile     : null,
+      'courses': typeof renderCoursesPanel === 'function' ? renderCoursesPanel : null,
+      'admin':   typeof renderAdminPanel   === 'function' ? renderAdminPanel   : null,
+    };
+    const fn = renderers[id];
+    if (typeof fn === 'function') {
+      try { fn(); } catch (_) {}
+    }
   }
 
   // In-memory cache of courses, keyed by course id. Populated on auth
@@ -32769,6 +33401,7 @@
     if (id === 'course-practice-session') return 'Course Practice';
     if (id === 'social')         return 'Social';
     if (id === 'profile')        return 'Profile';
+    if (id === 'admin')          return 'Admin';
     if (id === 'courses')        return 'Courses';
     if (id === 'course-detail')  return 'Course';
     if (id === 'round')          return 'Round';
@@ -32984,6 +33617,7 @@
     if (id === 'club-data-detail') renderClubDataDetailPage();
     if (id === 'rounds') renderRoundsPage();
     if (id === 'my-stats') renderMyStatsPage();
+    if (id === 'admin') renderAdminPanel();
     if (id === 'quick-score') {
       // Reset the form on every fresh entry so returning after a save
       // (or cancel) doesn't show stale values. But if editingId is set,
@@ -38732,7 +39366,8 @@
         loadGroupRoundInvites(),
         loadInProgressPracticeSession(),
         loadInProgressSession(),
-        loadCourses()
+        loadCourses(),
+        loadAdmins()
       ]);
       if (inProgressSession) {
         restoreInProgressSession(inProgressSession);
@@ -38788,6 +39423,16 @@
       practiceSessionState.docId = null;
       practiceSessionState.doc = null;
       practiceSessionState.draft = { clubId: null, swingPct: 100, distance: '', direction: null, contact: null };
+      // Admin: tear down the snapshot listener and clear the granted
+      // cache. Root admins (hardcoded) are unaffected; granted admins
+      // need a fresh sign-in to be re-resolved against the collection.
+      if (__adminsUnsub) {
+        try { __adminsUnsub(); } catch (_) {}
+        __adminsUnsub = null;
+      }
+      grantedAdminUids.clear();
+      grantedAdminMeta.clear();
+      adminsLoaded = false;
       updateSocialBadge();
       prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
       // Not signed in — vacuously "loaded" (no doc to read). Setting these
@@ -38892,8 +39537,248 @@
       ${renderScheduleSection()}
       ${renderUnitsSection()}
       ${renderAppearanceSection()}
+      ${renderAdminEntrySection()}
     `;
   }
+
+  // Admin entry — appears in Profile only when the current user is an
+  // admin (root or granted). Tapping the row navigates to the Admin
+  // panel where they can manage admin grants and shared catalog.
+  // Hidden entirely for non-admins so the option doesn't tease.
+  function renderAdminEntrySection() {
+    if (!isCurrentUserAdmin()) return '';
+    return `
+      <div class="settings-section">
+        <div class="settings-section-title">Admin</div>
+        <button class="settings-row settings-row-link" onclick="showPanel('admin')">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Manage admin access</div>
+            <div class="settings-row-sub">Grant or revoke admin to other users.</div>
+          </div>
+          <div class="settings-row-meta">
+            <span class="settings-row-chevron" aria-hidden="true">→</span>
+          </div>
+        </button>
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Admin panel — manage admin grants and (eventually) other shared
+  // catalog operations. Gated end-to-end:
+  //   - Profile entry only renders when isCurrentUserAdmin()
+  //   - This renderer no-ops + redirects when isCurrentUserAdmin() false
+  //   - Firestore rules enforce that grant/revoke are admin-only
+  // Don't rely on the UI gate alone — a user might land here via stale
+  // URL, browser back, etc.
+  // ─────────────────────────────────────────────────────────────
+
+  const adminPanelState = {
+    addInput: '',         // current value of the username field
+    addError: null,       // error message if last add attempt failed
+    busy: false,          // true while a grant/revoke is in flight
+  };
+
+  function renderAdminPanel() {
+    const mount = document.getElementById('admin-mount');
+    if (!mount) return;
+    if (!isCurrentUserAdmin()) {
+      // Defensive: kick non-admins back to Profile. Can happen if
+      // they were revoked while the panel was open.
+      mount.innerHTML = `
+        <div class="admin-empty">
+          <div class="admin-empty-title">Not authorized</div>
+          <div class="admin-empty-sub">Admin access required.</div>
+          <button class="settings-row settings-row-link" onclick="showPanel('profile')">
+            <div class="settings-row-info">
+              <div class="settings-row-label">Back to Profile</div>
+            </div>
+          </button>
+        </div>`;
+      return;
+    }
+
+    // Build admin list. Roots first (with badge), granted admins
+    // after with revoke button. The current user is also flagged.
+    const myUid = currentUser?.uid;
+    const rootRows = [...ROOT_ADMIN_UIDS].map(uid => {
+      const isMe = uid === myUid;
+      const label = isMe
+        ? `${escapeHtml(prefs?.username ? '@' + prefs.username : 'You')} <span class="admin-row-badge admin-row-badge-self">you</span>`
+        : escapeHtml(uid.slice(0, 8) + '…');
+      return `
+        <div class="admin-row admin-row-root">
+          <div class="admin-row-info">
+            <div class="admin-row-name">${label}</div>
+            <div class="admin-row-meta"><span class="admin-row-badge admin-row-badge-root">root</span> Permanent</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const grantedRows = [...grantedAdminUids].map(uid => {
+      const meta = grantedAdminMeta.get(uid) || {};
+      const isMe = uid === myUid;
+      // Display: prefer the denormalized usernameDisplay stored on
+      // grant; fall back to a uid prefix if it's missing (e.g. older
+      // grants created before we stored display names).
+      const display = meta.usernameDisplay
+        ? '@' + escapeHtml(meta.usernameDisplay)
+        : escapeHtml(uid.slice(0, 8) + '…');
+      const granted = meta.grantedAt
+        ? `Granted ${new Date(meta.grantedAt).toLocaleDateString()}`
+        : 'Granted';
+      const youBadge = isMe ? ' <span class="admin-row-badge admin-row-badge-self">you</span>' : '';
+      return `
+        <div class="admin-row admin-row-granted">
+          <div class="admin-row-info">
+            <div class="admin-row-name">${display}${youBadge}</div>
+            <div class="admin-row-meta">${granted}</div>
+          </div>
+          <button class="admin-row-revoke"
+                  onclick="confirmRevokeAdmin('${escapeAttr(uid)}', '${escapeAttr(meta.usernameDisplay || uid)}')"
+                  ${adminPanelState.busy ? 'disabled' : ''}>
+            Revoke
+          </button>
+        </div>`;
+    }).join('');
+
+    const grantedHtml = grantedRows || `
+      <div class="admin-empty-row">No granted admins yet. Add one below.</div>`;
+
+    const errorHtml = adminPanelState.addError ? `
+      <div class="admin-add-error">${escapeHtml(adminPanelState.addError)}</div>
+    ` : '';
+
+    mount.innerHTML = `
+      <div class="admin-section">
+        <div class="admin-section-title">Current admins</div>
+        <div class="admin-list">
+          ${rootRows}
+          ${grantedHtml}
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">Grant admin access</div>
+        <div class="admin-section-sub">
+          Enter the username (without @) of someone you want to grant admin access to.
+          Granted admins can add/edit shared catalog data and grant/revoke admin to others.
+        </div>
+        <form class="admin-add-form" onsubmit="handleGrantAdminSubmit(event); return false;">
+          <input
+            class="admin-add-input"
+            type="text"
+            placeholder="username"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            value="${escapeAttr(adminPanelState.addInput || '')}"
+            oninput="adminPanelState.addInput = this.value; adminPanelState.addError = null;"
+            ${adminPanelState.busy ? 'disabled' : ''}
+          />
+          <button class="admin-add-btn" type="submit" ${adminPanelState.busy ? 'disabled' : ''}>
+            ${adminPanelState.busy ? 'Working…' : 'Grant'}
+          </button>
+        </form>
+        ${errorHtml}
+      </div>
+    `;
+  }
+  window.renderAdminPanel = renderAdminPanel;
+
+  // Submit handler for the grant-admin form. Looks up the username,
+  // checks for duplicates (already an admin / root), then writes the
+  // admins/{uid} doc. The snapshot subscription re-fires the panel
+  // render once the write lands.
+  async function handleGrantAdminSubmit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (!isCurrentUserAdmin()) return;
+    if (adminPanelState.busy) return;
+    const raw = (adminPanelState.addInput || '').trim().replace(/^@/, '');
+    if (!raw) {
+      adminPanelState.addError = 'Enter a username';
+      renderAdminPanel();
+      return;
+    }
+    adminPanelState.busy = true;
+    adminPanelState.addError = null;
+    renderAdminPanel();
+    try {
+      const lookup = await window.fb.lookupUsername(raw.toLowerCase());
+      if (!lookup || !lookup.uid) {
+        adminPanelState.addError = `No user found with username "${raw}"`;
+        return;
+      }
+      const targetUid = lookup.uid;
+      if (ROOT_ADMIN_UIDS.has(targetUid)) {
+        adminPanelState.addError = 'That user is already a root admin';
+        return;
+      }
+      if (grantedAdminUids.has(targetUid)) {
+        adminPanelState.addError = 'That user is already an admin';
+        return;
+      }
+      // Look up display name for denormalization (so the admin list
+      // doesn't need a join to render). Best-effort — falls back to
+      // the lowercased input if the public profile doesn't have one.
+      let displayName = raw;
+      try {
+        const pubProfile = await window.fb.getDoc(`publicProfiles/${targetUid}`);
+        if (pubProfile && pubProfile.usernameDisplay) {
+          displayName = pubProfile.usernameDisplay;
+        }
+      } catch (_) {}
+      await window.fb.grantAdmin(targetUid, displayName);
+      // Clear the input on success — the snapshot listener will re-
+      // render the list automatically with the new admin row.
+      adminPanelState.addInput = '';
+      showToast(`Granted admin to @${displayName}`);
+    } catch (err) {
+      console.error('Grant admin failed:', err);
+      adminPanelState.addError = 'Failed to grant — check the username and try again';
+    } finally {
+      adminPanelState.busy = false;
+      renderAdminPanel();
+    }
+  }
+  window.handleGrantAdminSubmit = handleGrantAdminSubmit;
+
+  // Revoke flow with a confirm dialog so accidental taps don't strip
+  // someone of admin without warning. The dialog quotes the username
+  // for clarity. Revoking yourself is allowed but heavily warned —
+  // if the current user is granted (not root), they'll lose access
+  // immediately on commit.
+  async function confirmRevokeAdmin(targetUid, displayName) {
+    if (!isCurrentUserAdmin()) return;
+    const isMe = targetUid === currentUser?.uid;
+    const ok = await confirmDialog({
+      eyebrow: isMe ? 'Revoke yourself?' : 'Revoke admin?',
+      eyebrowStyle: 'warning',
+      title: isMe
+        ? 'Remove your own admin access?'
+        : `Remove admin from @${displayName}?`,
+      message: isMe
+        ? "You'll lose access to the admin panel and shared catalog tools immediately. Another admin will need to grant you back."
+        : `@${displayName} will lose admin access. They can be re-granted later.`,
+      confirmText: 'Revoke',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
+    if (adminPanelState.busy) return;
+    adminPanelState.busy = true;
+    renderAdminPanel();
+    try {
+      await window.fb.revokeAdmin(targetUid);
+      showToast(`Revoked admin from @${displayName}`);
+    } catch (err) {
+      console.error('Revoke admin failed:', err);
+      showToast('Revoke failed — see console', true);
+    } finally {
+      adminPanelState.busy = false;
+      renderAdminPanel();
+    }
+  }
+  window.confirmRevokeAdmin = confirmRevokeAdmin;
+
 
   // ─────────────────────────────────────────────────────────────
   // Courses (list view + detail view)
@@ -40014,27 +40899,37 @@
     }
 
     // Player rows — organizer badge, my-self label, kick button for
-    // others when current user is organizer.
+    // others when current user is organizer. Guests get a "guest"
+    // badge + are removable by anyone (no organizer-only gate, since
+    // guests aren't real users with permissions to violate).
     const playerRows = players.map(p => {
       const isMe = p.uid === currentUser?.uid;
       const isOrg = p.uid === gr.organizerUid;
+      const isGuest = isGuestPlayer(p);
       const name = p.usernameDisplay || p.username || p.displayName || 'Player';
       const teeLabel = p.tee ? `<span class="lobby-player-tee">${escapeHtml(p.tee)}</span>` : '';
       const orgBadge = isOrg ? `<span class="lobby-player-badge">Organizer</span>` : '';
       const meBadge = isMe && !isOrg ? `<span class="lobby-player-badge">You</span>` : '';
-      // Kick button: only if I'm the organizer AND the player isn't me.
-      const kickBtn = (isOrganizer && !isMe)
-        ? `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`
-        : '';
+      const guestBadge = isGuest ? `<span class="lobby-player-badge lobby-player-badge-guest">Guest</span>` : '';
+      // Removal button — for guests, ANYONE can remove (no organizer
+      // gate; guests aren't real users). For real players, only the
+      // organizer can kick, and never themselves.
+      let removeBtn = '';
+      if (isGuest) {
+        removeBtn = `<button class="lobby-player-kick" onclick="removeGuestFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`;
+      } else if (isOrganizer && !isMe) {
+        removeBtn = `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`;
+      }
       return `
         <div class="lobby-player-row">
           <div class="lobby-player-info">
             <span class="lobby-player-name">${escapeHtml(name)}</span>
             ${orgBadge}
             ${meBadge}
+            ${guestBadge}
             ${teeLabel}
           </div>
-          ${kickBtn}
+          ${removeBtn}
         </div>`;
     }).join('');
 
@@ -40122,6 +41017,27 @@
             <div class="lobby-format-pills">${formatPills}</div>
             <div class="lobby-format-helper">${escapeHtml(helperText)}</div>
             ${lockNote}
+          </div>
+        `;
+      })()}
+
+      ${(() => {
+        // Add-guest entry — scramble only. Anyone in the lobby can
+        // add guests (no organizer-only gate). Hidden in standard
+        // format because shots aren't attributed there, so a guest
+        // would have no use.
+        const fmt = getRoundFormat(gr);
+        if (fmt !== 'scramble') return '';
+        return `
+          <div class="lobby-section">
+            <div class="lobby-section-label">Guests</div>
+            <div class="lobby-section-helper">
+              Playing with someone who doesn't have the app? Add them as a guest so you can attribute shots to them.
+            </div>
+            <button class="lobby-add-guest-btn" onclick="openAddGuestSheet()">
+              <span class="lobby-add-guest-icon" aria-hidden="true">+</span>
+              <span>Add guest</span>
+            </button>
           </div>
         `;
       })()}
@@ -40380,6 +41296,279 @@
       }
     }
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // Guest players — names without real Firebase users behind them.
+  // Used in scramble rounds to attribute team shots to friends who
+  // don't have the app. A guest is a synthetic player record with
+  // a fake uid (`guest_<random>`), no real auth, and no personal
+  // shots / stats. They appear in the hit-by picker so attribution
+  // stays accurate, and on the round summary's attribution card,
+  // but otherwise have minimal app surface area.
+  //
+  // Limited to scramble rounds — in standard format, every player
+  // tracks their own ball, so a guest with no app couldn't
+  // participate meaningfully. We hide the Add Guest UI for non-
+  // scramble formats.
+  // ─────────────────────────────────────────────────────────────
+
+  // Generate a fake, locally-unique uid for a guest. Uses 'guest_'
+  // prefix so we can distinguish from real Firebase UIDs anywhere
+  // we need to (e.g., for read-only display, or to skip personal-
+  // stats paths). The random suffix is pulled from crypto when
+  // available so concurrent adds don't collide.
+  function newGuestUid() {
+    let suffix;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+    } else {
+      suffix = Math.random().toString(36).slice(2, 14);
+    }
+    return `guest_${suffix}`;
+  }
+
+  // Detect whether a uid (or a player record) belongs to a guest.
+  // Used in the hit-by picker, round summary, attribution card, and
+  // anywhere personal-stats paths need to bail (guests never have
+  // personal data).
+  function isGuestUid(uid) {
+    return typeof uid === 'string' && uid.startsWith('guest_');
+  }
+  function isGuestPlayer(player) {
+    return !!(player && (player.isGuest || isGuestUid(player.uid)));
+  }
+
+  // Add a guest to the current group round. Any player can do this
+  // (no organizer-only gate) — the same permission level as logging
+  // a shot. Guest is appended to gr.players[]; NOT added to
+  // playerUids (they have no real auth). Persists via the same
+  // round-doc update path as any other player edit.
+  async function addGuestToGroupRound(name) {
+    if (!isGroupRoundActive()) {
+      showToast('No active round', true);
+      return false;
+    }
+    const gr = groupRoundState.doc;
+    if (!gr) return false;
+    const trimmed = (name || '').trim();
+    if (!trimmed) {
+      showToast('Enter a name', true);
+      return false;
+    }
+    // Cap length so a runaway-paste doesn't break layout. 30 chars
+    // is generous for first-name + initial.
+    if (trimmed.length > 30) {
+      showToast('Name too long (max 30)', true);
+      return false;
+    }
+    const guest = {
+      uid: newGuestUid(),
+      // No `username` field — guests don't reserve usernames. The
+      // display name carries through everywhere via usernameDisplay
+      // (matches how real players are rendered).
+      username: null,
+      usernameDisplay: trimmed,
+      displayName: trimmed,
+      photoURL: null,
+      tee: null,
+      handicapIndex: null,
+      joinedAt: Date.now(),
+      status: 'active',
+      leftAtHole: null,
+      scores: {},
+      isGuest: true,
+      addedBy: currentUser?.uid || null,
+    };
+    try {
+      // Append to local copy first so the UI updates immediately;
+      // then persist. Snapshot listener will reconcile on confirm.
+      gr.players = [...(gr.players || []), guest];
+      // Persist via the existing group-round update path. The
+      // snapshot subscription replays the doc back to all players.
+      await window.fb.updateGroupRoundFields(gr.id, { players: gr.players });
+      // Refresh whichever surface is showing the player list.
+      if (currentPanelId === 'group-lobby') renderGroupLobby();
+      if (currentPanelId === 'group-round') renderGroupRoundPanel();
+      if (managePlayersState.open) renderManagePlayersSheet();
+      haptic('light');
+      return true;
+    } catch (err) {
+      console.error('Failed to add guest:', err);
+      // Roll back the local state on failure so we don't show a
+      // ghost guest that doesn't exist server-side.
+      gr.players = (gr.players || []).filter(p => p.uid !== guest.uid);
+      showToast("Couldn't add guest", true);
+      return false;
+    }
+  }
+  window.addGuestToGroupRound = addGuestToGroupRound;
+
+  // Remove a guest from the round. Anyone can remove a guest (no
+  // permission check needed — guests aren't real users). Cleans up
+  // any team-shot attributions pointing at this guest by setting
+  // hitBy to null and hitByName to "(removed)" so existing shots
+  // don't break, but the guest no longer appears anywhere.
+  async function removeGuestFromGroupRound(uid) {
+    if (!isGuestUid(uid)) return;
+    if (!isGroupRoundActive()) return;
+    const gr = groupRoundState.doc;
+    if (!gr) return;
+    const target = (gr.players || []).find(p => p.uid === uid);
+    const name = target?.usernameDisplay || target?.displayName || 'this guest';
+    const ok = await confirmDialog({
+      eyebrow: 'Remove guest',
+      eyebrowStyle: 'warning',
+      title: `Remove ${name}?`,
+      message: 'Any shots attributed to them on this round will be unattributed. Their name is removed from the player list.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      // Remove from players[]. Note: not in playerUids[] in the
+      // first place (guests aren't real users), so no uids cleanup.
+      const players = (gr.players || []).filter(p => p.uid !== uid);
+      // Strip attribution from any team shots pointing at this guest.
+      // Iterate teamShots.{holeNum}[] — convert hitBy/hitByName to
+      // null. We don't delete the shots; they're real swings, just
+      // no longer attributed to anyone in particular.
+      const teamShots = JSON.parse(JSON.stringify(gr.teamShots || {}));
+      let shotsTouched = false;
+      for (const holeKey of Object.keys(teamShots)) {
+        const arr = teamShots[holeKey];
+        if (!Array.isArray(arr)) continue;
+        for (const s of arr) {
+          if (s && s.hitBy === uid) {
+            s.hitBy = null;
+            s.hitByName = null;
+            shotsTouched = true;
+          }
+        }
+      }
+      const update = { players };
+      if (shotsTouched) update.teamShots = teamShots;
+      await window.fb.updateGroupRoundFields(gr.id, update);
+      gr.players = players;
+      if (shotsTouched) gr.teamShots = teamShots;
+      if (currentPanelId === 'group-lobby') renderGroupLobby();
+      if (currentPanelId === 'group-round') renderGroupRoundPanel();
+      if (managePlayersState.open) renderManagePlayersSheet();
+      // If the GPS view is open, re-render shot markers so unattributed
+      // pins update if any visible attribution changed.
+      if (typeof renderRoundGpsShotMarkers === 'function') {
+        try { renderRoundGpsShotMarkers(); } catch (_) {}
+      }
+      haptic('medium');
+    } catch (err) {
+      console.error('Failed to remove guest:', err);
+      showToast("Couldn't remove guest", true);
+    }
+  }
+  window.removeGuestFromGroupRound = removeGuestFromGroupRound;
+
+  // Sheet state for the Add Guest modal — name input + busy flag.
+  // Lives at module scope so the modal renderer can update it on
+  // input without any external state passing.
+  const addGuestState = {
+    open: false,
+    name: '',
+    busy: false,
+  };
+
+  function openAddGuestSheet() {
+    if (!isGroupRoundActive()) return;
+    if (addGuestState.open) return;
+    addGuestState.open = true;
+    addGuestState.name = '';
+    addGuestState.busy = false;
+    acquireScrollLock();
+    renderAddGuestSheet();
+  }
+  window.openAddGuestSheet = openAddGuestSheet;
+
+  function closeAddGuestSheet() {
+    if (!addGuestState.open) return;
+    addGuestState.open = false;
+    addGuestState.name = '';
+    addGuestState.busy = false;
+    releaseScrollLock();
+    renderAddGuestSheet();
+  }
+  window.closeAddGuestSheet = closeAddGuestSheet;
+
+  async function submitAddGuest() {
+    if (!addGuestState.open || addGuestState.busy) return;
+    const name = (addGuestState.name || '').trim();
+    if (!name) {
+      showToast('Enter a name', true);
+      return;
+    }
+    addGuestState.busy = true;
+    renderAddGuestSheet();
+    const ok = await addGuestToGroupRound(name);
+    addGuestState.busy = false;
+    if (ok) {
+      closeAddGuestSheet();
+    } else {
+      // addGuestToGroupRound already toasted on failure; just
+      // re-render the sheet so the input is editable again.
+      renderAddGuestSheet();
+    }
+  }
+  window.submitAddGuest = submitAddGuest;
+
+  function renderAddGuestSheet() {
+    const mount = document.getElementById('add-guest-mount');
+    if (!mount) return;
+    if (!addGuestState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    mount.innerHTML = `
+      <div class="add-guest-backdrop" onclick="closeAddGuestSheet()" aria-hidden="true"></div>
+      <div class="add-guest-sheet" role="dialog" aria-modal="true" aria-label="Add guest player">
+        <div class="add-guest-header">
+          <div class="add-guest-eyebrow">Scramble</div>
+          <div class="add-guest-title">Add a guest</div>
+          <button class="add-guest-close" onclick="closeAddGuestSheet()" aria-label="Close">×</button>
+        </div>
+        <div class="add-guest-body">
+          <div class="add-guest-blurb">
+            Add someone playing with you who doesn't have the app. You can attribute team shots to them in the hit-by picker.
+          </div>
+          <input
+            class="add-guest-input"
+            type="text"
+            placeholder="Name"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            maxlength="30"
+            value="${escapeAttr(addGuestState.name || '')}"
+            oninput="addGuestState.name = this.value;"
+            onkeydown="if (event.key === 'Enter') { event.preventDefault(); submitAddGuest(); }"
+            ${addGuestState.busy ? 'disabled' : ''}
+          />
+        </div>
+        <div class="add-guest-footer">
+          <button class="add-guest-cancel" onclick="closeAddGuestSheet()" ${addGuestState.busy ? 'disabled' : ''}>Cancel</button>
+          <button class="add-guest-add" onclick="submitAddGuest()" ${addGuestState.busy ? 'disabled' : ''}>
+            ${addGuestState.busy ? 'Adding…' : 'Add'}
+          </button>
+        </div>
+      </div>
+    `;
+    // Autofocus the input on first render so the keyboard pops on
+    // mobile. Defer to next frame so the element is in the DOM.
+    requestAnimationFrame(() => {
+      const input = mount.querySelector('.add-guest-input');
+      if (input && document.activeElement !== input) {
+        try { input.focus(); } catch (_) {}
+      }
+    });
+  }
+  window.renderAddGuestSheet = renderAddGuestSheet;
 
   async function kickPlayerFromGroupRound(uid) {
     if (!currentUser || !isGroupRoundActive()) return;
@@ -43680,6 +44869,12 @@
       .map(p => ({
         uid: p.uid,
         name: p.usernameDisplay || p.username || p.displayName || 'Player',
+        // Flag guests so the summary card can render a small badge
+        // alongside their name. Denormalized at completion time so
+        // the card doesn't need to re-derive from the original
+        // player record (which lives on the group round, not the
+        // personal snapshot).
+        isGuest: isGuestPlayer(p),
         count: hitCounts[p.uid] || 0,
       }))
       .sort((a, b) => b.count - a.count);
@@ -47853,6 +49048,7 @@
         const pills = players.map(p => {
           const label = p.usernameDisplay || p.username || p.displayName || 'Player';
           const isMe = p.uid === currentUser?.uid;
+          const isGuest = isGuestPlayer(p);
           const isActive = p.uid === currentHitter;
           // The shot's id may be in draft.id (existing) or
           // shotEditState.editingId (set by openShotEditSheet for
@@ -47860,11 +49056,17 @@
           const shotIdJs = jsLit(draft.id || shotEditState.editingId || null);
           const holeJs = jsLit(shotEditState.holeNumber);
           const uidJs = jsLit(p.uid);
+          // Suffix: "(you)" for self, "(guest)" for guests. Guest
+          // wins if both apply (currentUser added themselves as a
+          // guest? unlikely but possible).
+          let suffix = '';
+          if (isGuest) suffix = ' (guest)';
+          else if (isMe) suffix = ' (you)';
           return `<button type="button"
-                          class="hit-by-pill${isActive ? ' is-active' : ''}"
+                          class="hit-by-pill${isActive ? ' is-active' : ''}${isGuest ? ' is-guest' : ''}"
                           onclick="pickScrambleHitter(${uidJs}, ${shotIdJs}, ${holeJs})"
                           aria-pressed="${isActive}">
-                    <span class="hit-by-pill-label">${escapeHtml(label)}${isMe ? ' (you)' : ''}</span>
+                    <span class="hit-by-pill-label">${escapeHtml(label)}${suffix}</span>
                   </button>`;
         }).join('');
         hitByPickerHtml = `
@@ -48075,15 +49277,19 @@
         const pills = players.map(p => {
           const label = p.usernameDisplay || p.username || p.displayName || 'Player';
           const isMe = p.uid === currentUser?.uid;
+          const isGuest = isGuestPlayer(p);
           const isActive = p.uid === currentHitter;
           const shotIdJs = jsLit(draft.id || shotEditState.editingId || null);
           const holeJs = jsLit(shotEditState.holeNumber);
           const uidJs = jsLit(p.uid);
+          let suffix = '';
+          if (isGuest) suffix = ' (guest)';
+          else if (isMe) suffix = ' (you)';
           return `<button type="button"
-                          class="hit-by-pill${isActive ? ' is-active' : ''}"
+                          class="hit-by-pill${isActive ? ' is-active' : ''}${isGuest ? ' is-guest' : ''}"
                           onclick="pickScrambleHitter(${uidJs}, ${shotIdJs}, ${holeJs})"
                           aria-pressed="${isActive}">
-                    <span class="hit-by-pill-label">${escapeHtml(label)}${isMe ? ' (you)' : ''}</span>
+                    <span class="hit-by-pill-label">${escapeHtml(label)}${suffix}</span>
                   </button>`;
         }).join('');
         hitByPickerHtml = `
@@ -50142,27 +51348,35 @@
       players.filter(p => p.status !== 'finished').map(p => p.uid)
     );
 
-    // Player rows — same shape as the lobby's, but only the organizer
-    // sees the kick affordance, and not against themselves.
+    // Player rows — same shape as the lobby's. Guests get a "guest"
+    // badge + are removable by anyone (no organizer-only gate, since
+    // guests aren't real users). Real players: only organizer can
+    // kick, and never themselves.
     const playerRows = players.map(p => {
       const isMe = p.uid === currentUser?.uid;
       const isOrg = p.uid === gr.organizerUid;
+      const isGuest = isGuestPlayer(p);
       const name = p.usernameDisplay || p.username || p.displayName || 'Player';
       const teeLabel = p.tee ? `<span class="lobby-player-tee">${escapeHtml(p.tee)}</span>` : '';
       const orgBadge = isOrg ? `<span class="lobby-player-badge">Organizer</span>` : '';
       const meBadge = isMe && !isOrg ? `<span class="lobby-player-badge">You</span>` : '';
-      const kickBtn = (isOrganizer && !isMe)
-        ? `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`
-        : '';
+      const guestBadge = isGuest ? `<span class="lobby-player-badge lobby-player-badge-guest">Guest</span>` : '';
+      let removeBtn = '';
+      if (isGuest) {
+        removeBtn = `<button class="lobby-player-kick" onclick="removeGuestFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`;
+      } else if (isOrganizer && !isMe) {
+        removeBtn = `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`;
+      }
       return `
         <div class="lobby-player-row">
           <div class="lobby-player-info">
             <span class="lobby-player-name">${escapeHtml(name)}</span>
             ${orgBadge}
             ${meBadge}
+            ${guestBadge}
             ${teeLabel}
           </div>
-          ${kickBtn}
+          ${removeBtn}
         </div>`;
     }).join('');
 
@@ -50171,6 +51385,23 @@
     // invited state. Both organizer AND non-organizer can invite mid-
     // round (per spec); the helper doesn't gate on organizer status.
     const friendsHtml = renderLobbyFriendsList(playerUidsSet);
+
+    // Add-guest section — scramble only. Same logic as the lobby:
+    // shows a button that opens the Add Guest modal. Anyone in the
+    // round can add guests.
+    const fmt = getRoundFormat(gr);
+    const guestHtml = (fmt === 'scramble') ? `
+      <div class="lobby-section">
+        <div class="lobby-section-label">Guests</div>
+        <div class="lobby-section-helper">
+          Add someone playing with you who doesn't have the app.
+        </div>
+        <button class="lobby-add-guest-btn" onclick="openAddGuestSheet()">
+          <span class="lobby-add-guest-icon" aria-hidden="true">+</span>
+          <span>Add guest</span>
+        </button>
+      </div>
+    ` : '';
 
     // If the sheet is already mounted (re-render after invite/kick),
     // update the body content in place — DON'T tear down and rebuild
@@ -50186,6 +51417,7 @@
             <div class="lobby-section-label">In This Round</div>
             <div class="lobby-players">${playerRows}</div>
           </div>
+          ${guestHtml}
           ${friendsHtml}
         `;
       }
@@ -50205,6 +51437,7 @@
             <div class="lobby-section-label">In This Round</div>
             <div class="lobby-players">${playerRows}</div>
           </div>
+          ${guestHtml}
           ${friendsHtml}
         </div>
       </div>
@@ -54660,7 +55893,7 @@
     // is the default; With Friends is a toggle inside the course detail.
     mount.innerHTML = `
       <div class="play-hero">
-        <div class="play-hero-eyebrow">Round Tracking</div>
+        <div class="play-hero-eyebrow">Play</div>
         <h2 class="play-hero-title">Start a <em>Round</em></h2>
         <p class="play-hero-sub">Track your scores and putts hole by hole. Play solo or invite friends for a live shared scorecard.</p>
         <div class="play-hero-actions">
@@ -64135,10 +65368,17 @@
           const pct = maxCount > 0 ? Math.round((row.count / maxCount) * 100) : 0;
           const isLeader = row.count === leaderCount && row.count > 0;
           const isZero = row.count === 0;
+          // Guest indicator — denormalized onto the attribution
+          // payload at completion time. Renders as a quiet inline
+          // tag so reviewers can tell "Mike was a guest, not a real
+          // app user" months later when looking at the round.
+          const guestTag = row.isGuest
+            ? ` <span class="scramble-attr-guest-tag">guest</span>`
+            : '';
           return `
             <div class="scramble-attr-row">
               <div class="scramble-attr-name${isLeader ? ' is-leader' : ''}">
-                ${escapeHtml(row.name)}
+                ${escapeHtml(row.name)}${guestTag}
               </div>
               <div class="scramble-attr-track">
                 <div class="scramble-attr-fill${isZero ? ' is-zero' : ''}"
