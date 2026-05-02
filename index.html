@@ -31081,17 +31081,18 @@
     body[data-current-panel="range-session"] .mobile-topbar-back,
     body[data-current-panel="shortgame-session"] .mobile-topbar-back,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back {
-      /* Match the GPS-view close button — solid dark circle filled
-         with a white × glyph + backdrop blur. Same in both light and
-         dark modes. The GPS X is the canonical "exit this context"
-         affordance; the simple-view X now matches so the close
-         pattern is consistent regardless of whether the user is on
-         the map or the simple hole card. */
+      /* X button styling — matches the LIVE pill's frosted-glass
+         treatment so the pair reads as a unit on the topbar. Light
+         mode: light frosted bg + black × glyph. Dark mode: dark
+         frosted bg + white × glyph. The plain × (no surrounding
+         circle ring) matches the GPS-view close button's clean
+         look so the close affordance is consistent across the app. */
       background-color: transparent;
       border-radius: 50%;
     }
-    /* Solid dark circle — sized to the visible 28px button face,
-       not the 44px tap target. Same look in both modes. */
+    /* Light frosted circle — matches the LIVE pill's treatment so
+       the X and LIVE pill read as a pair on the topbar. Dark mode
+       inverts to a dark circle (override below). */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
@@ -31106,14 +31107,23 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background-color: rgba(0, 0, 0, 0.55);
+      background-color: rgba(255, 253, 247, 0.72);
       backdrop-filter: blur(10px) saturate(140%);
       -webkit-backdrop-filter: blur(10px) saturate(140%);
     }
-    /* Plain white × glyph — drawn as SVG on ::after so it paints
-       above the dark circle background. No surrounding circle ring;
-       just the two stroked lines forming the X (matches the GPS
-       close button's plain × treatment). */
+    html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
+      background-color: rgba(13, 13, 13, 0.6);
+    }
+    /* Plain × glyph — drawn as SVG on ::after so it paints above the
+       circle background. Black in light mode (against the light
+       frosted bg), white in dark mode (against the dark bg). No
+       surrounding circle ring; just the two stroked lines forming
+       the X. */
     body[data-current-panel="round"] .mobile-topbar-back::after,
     body[data-current-panel="group-round"] .mobile-topbar-back::after,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
@@ -31127,10 +31137,18 @@
       transform: translate(-50%, -50%);
       width: 14px;
       height: 14px;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230D0D0D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
       background-size: 14px 14px;
+    }
+    html.dark body[data-current-panel="round"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
