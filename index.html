@@ -6920,8 +6920,8 @@
     font-weight: var(--weight-regular);
   }
   .round-gps-close {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: none;
     background: var(--bg-surface);
@@ -6933,49 +6933,18 @@
     align-items: center;
     justify-content: center;
   }
-  /* GPS view floating close — Liquid Glass bead over the map. The
-     map is dark/saturated (especially in satellite mode) so we use
-     the dark variant of the Liquid Glass treatment regardless of
-     light/dark app mode for legibility. */
   .round-gps-close-float {
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
     right: 16px;
-    pointer-events: auto;
-    background-color: rgba(28, 28, 30, 0.62);
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.18) 0%,
-      rgba(255, 255, 255, 0) 50%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.15) inset,
-      0 4px 14px rgba(0, 0, 0, 0.4),
-      0 1px 3px rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.55);
     color: #fff;
-    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
-                box-shadow 180ms ease,
-                background 180ms ease;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
   }
-  .round-gps-close-float:active {
-    transform: scale(0.94);
-  }
-  @media (hover: hover) {
-    .round-gps-close-float:hover {
-      background-color: rgba(40, 40, 45, 0.78);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.2) inset,
-        0 6px 18px rgba(0, 0, 0, 0.5),
-        0 2px 4px rgba(0, 0, 0, 0.35);
-    }
-  }
-  /* Hole navigation chevrons — Liquid Glass beads floating on the
-     map's left/right edges, vertical-centered. Same dark Liquid Glass
-     treatment as the floating close button for visual consistency. */
+  /* Hole navigation chevrons — round buttons floating on the map's
+     left/right edges, vertical-centered. Match the close button's
+     visual language. */
   .round-gps-hole-nav {
     position: absolute;
     top: 50%;
@@ -6983,20 +6952,8 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background-color: rgba(28, 28, 30, 0.62);
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.18) 0%,
-      rgba(255, 255, 255, 0) 50%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.15) inset,
-      0 4px 14px rgba(0, 0, 0, 0.4),
-      0 1px 3px rgba(0, 0, 0, 0.3);
+    border: none;
+    background: rgba(0, 0, 0, 0.75);
     color: #fff;
     font-size: var(--text-2xl);
     line-height: 1;
@@ -7005,22 +6962,9 @@
     justify-content: center;
     cursor: pointer;
     z-index: 3;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     -webkit-tap-highlight-color: transparent;
-    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
-                box-shadow 180ms ease,
-                background 180ms ease;
-  }
-  .round-gps-hole-nav:active {
-    transform: translateY(-50%) scale(0.94);
-  }
-  @media (hover: hover) {
-    .round-gps-hole-nav:hover {
-      background-color: rgba(40, 40, 45, 0.78);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.2) inset,
-        0 6px 18px rgba(0, 0, 0, 0.5),
-        0 2px 4px rgba(0, 0, 0, 0.35);
-    }
   }
   .round-gps-hole-nav-prev { left: 12px; }
   .round-gps-hole-nav-next { right: 12px; }
@@ -31219,10 +31163,10 @@
       border: none;
       box-shadow: none;
     }
-    /* Light frosted Liquid Glass disc — matches the LIVE pill's
-       backing tone but with the full Liquid Glass treatment (inner
-       highlight gradient + edge stroke + soft shadow). Dark mode
-       inverts to a dark disc (override below). */
+    /* Light frosted disc — matches the simple back-arrow's softly-
+       frosted treatment. Same flat-frost look (no inner highlight
+       gradient) for visual consistency. Dark mode inverts to a dark
+       disc (override below). */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
@@ -31234,23 +31178,14 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background-color: rgba(255, 253, 247, 0.72);
-      background-image: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.35) 0%,
-        rgba(255, 255, 255, 0) 50%,
-        rgba(0, 0, 0, 0.04) 100%
-      );
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.45);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.5) inset,
-        0 4px 12px rgba(0, 0, 0, 0.08),
-        0 1px 3px rgba(0, 0, 0, 0.06);
+      background-color: rgba(255, 253, 247, 0.55);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
@@ -31258,18 +31193,9 @@
     html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
-      background-color: rgba(28, 28, 30, 0.62);
-      background-image: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0) 50%,
-        rgba(0, 0, 0, 0.15) 100%
-      );
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.08) inset,
-        0 4px 14px rgba(0, 0, 0, 0.4),
-        0 1px 3px rgba(0, 0, 0, 0.3);
+      background-color: rgba(28, 28, 30, 0.5);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
     /* Plain × glyph — drawn as SVG on ::after so it paints above the
        circle background. Black in light mode (against the light
@@ -31334,19 +31260,25 @@
     body[data-current-panel="group-round"] .mobile-topbar-live,
     body[data-current-panel="group-lobby"] .mobile-topbar-live {
       display: inline-flex;
-      /* Same frosted-glass backing as the X so the LIVE label stays
-         legible against scrolling content behind it. Pill shape with
-         tight padding so it reads as a small chip, not a banner. */
+      /* Same softly-frosted glass treatment as the back button so
+         the X and LIVE pill read as a matched pair on the topbar.
+         Edge stroke + soft shadow lift the pill slightly off the
+         scrolling content behind. No inner highlight gradient —
+         keeps the pill flat-frosted, not glass-bead-dimensional. */
       padding: 4px var(--space-3) 4px var(--space-2);
-      background-color: rgba(255, 253, 247, 0.72);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      background-color: rgba(255, 253, 247, 0.55);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       border-radius: var(--radius-pill);
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-live,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-live,
     html.dark body[data-current-panel="group-lobby"] .mobile-topbar-live {
-      background-color: rgba(13, 13, 13, 0.6);
+      background-color: rgba(28, 28, 30, 0.5);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     /* Timer indicator — analogous to the LIVE pill, shown only on
@@ -31504,7 +31436,14 @@
       right: 0;
       height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
-      background: var(--bg-page);
+      /* Translucent blurred surface — content scrolls visibly under
+         the topbar with a soft blur, instead of being cut off by an
+         opaque strip. Same backdrop-blur language as our floating
+         buttons; the bg-page tint at 75% opacity keeps the status bar
+         legible without hiding what's behind. */
+      background-color: color-mix(in srgb, var(--bg-page) 75%, transparent);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
       z-index: var(--z-dropdown);
     }
     .mobile-topbar-title { display: none; }
@@ -31513,24 +31452,17 @@
       display: block;
       height: var(--mobile-topbar-h);
     }
+    /* All panels use the same fixed-position blurred topbar (defined
+       above). Earlier this file had a transparent-passthrough variant
+       for sub-panels that made the back button scroll away with the
+       page — but that broke the iOS-style sticky blur status bar
+       feel. Now every panel gets the same translucent blur strip;
+       the back button stays anchored at the top while content
+       scrolls visibly underneath.
 
-    /* On sub-panels (anything that isn't a root tab or a round-context
-       panel), there's no topbar fill at all — just the back arrow as
-       a floating element that sticks below the banner as the user
-       scrolls. The .mobile-topbar wrapper is a transparent passthrough;
-       the actual sticky behavior lives on the button itself so content
-       can flow up to and around the arrow without an opaque strip
-       cutting across the page. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar {
-      position: static;
-      height: auto;
-      padding: 0;
-      background: transparent;
-      z-index: auto;
-    }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-inner {
-      height: auto;
-    }
+       Round-context panels override the topbar back to transparent
+       further down (search "Round-context panels keep") so their X
+       button + LIVE pill float free over the round content. */
     /* Floating fixed back arrow — no surrounding bar. Pins to the
        viewport just below any active banner; otherwise to the top.
        Transparent background keeps content visible behind/around it
@@ -31581,7 +31513,7 @@
        safe-area portion, so reserve banner height + topbar content
        height (no separate safe-area addition — that's already in the
        banner). The more-specific selectors below override this for
-       root tabs and sub-panels. */
+       round-context panels. */
     body.session-active,
     body.round-active {
       padding-top: calc(var(--mobile-topbar-h) + var(--session-banner-height, 52px)) !important;
@@ -31589,25 +31521,11 @@
     body.session-active.round-active {
       padding-top: calc(var(--mobile-topbar-h) + var(--session-banner-height, 52px) * 2) !important;
     }
-
-    /* Sub-panels: topbar is now static (flows with content), so the
-       body doesn't need to reserve vertical space for it. Only reserve
-       the safe-area inset (and the banner heights when active).
-       --session-banner-height already includes its own internal
-       safe-area inset (banner paints behind dynamic island in PWA
-       black-translucent mode), so we don't add env(safe-area-inset-top)
-       again when the banner is reserving space — that would push
-       content too far below the banner's bottom edge. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]):not(.session-active):not(.round-active) {
-      padding-top: env(safe-area-inset-top, 0px) !important;
-    }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).round-active,
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active {
-      padding-top: var(--session-banner-height, 52px) !important;
-    }
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]).session-active.round-active {
-      padding-top: calc(var(--session-banner-height, 52px) * 2) !important;
-    }
+    /* Sub-panels: the base body rule already reserves topbar-h +
+       safe-area which is what we want — content scrolls visibly
+       under the new translucent blur topbar instead of being cut
+       off, but page content starts BELOW the topbar so the back
+       button doesn't sit on top of the first heading at rest. */
 
     /* Round-context panels keep the floating X close + LIVE indicator
        treatment — topbar transparent, no border, no reserved height
@@ -31630,6 +31548,8 @@
     body[data-current-panel="shortgame-session"] .mobile-topbar,
     body[data-current-panel="course-practice-session"] .mobile-topbar {
       background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border-bottom: none;
       pointer-events: none;
     }
@@ -31656,46 +31576,36 @@
       display: none !important;
     }
 
-    /* The back arrow — a Liquid-Glass-style floating bead in the
+    /* The back arrow — a softly-frosted floating bead in the
        top-left of the topbar. Round-context screens override this
-       with the X-close variant (in the round-focus block further
-       down) which uses the SAME visual language but with an × glyph
-       instead of an arrow.
+       with the X-close variant (further down) which uses the SAME
+       visual language but with an × glyph instead of an arrow.
 
-       Liquid Glass styling principles applied here:
-       - Translucent surface with strong backdrop blur + saturation
-         boost so colors behind don't go grey-flat
-       - Inner-highlight gradient: top edge slightly brighter, bottom
-         slightly darker (gives the bead dimension, like a glass disc
-         catching light from above)
-       - Subtle white-ish edge stroke reinforces the dimensional feel
-       - Soft drop shadow lifts the bead off the page
-       - Mode-aware: light bead in light mode, dark bead in dark mode
+       Visual treatment:
+       - Translucent light/dark surface with backdrop blur + saturate
+       - No inner highlight gradient — keeps the disc looking flat-
+         frosted rather than dimensional, more like an iOS toolbar
+         pill than a glass bead
+       - Subtle 1px edge stroke
+       - Soft single shadow lifts the disc just enough to read
+
+       Mode-aware: light frost in light mode, dark frost in dark.
 
        The actual back glyph (← character) renders as plain text
-       inside the bead at native font weight; we don't replace it
+       inside the disc at native font weight; we don't replace it
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
       left: var(--space-3);
       top: 50%;
       transform: translateY(-50%);
-      width: 36px;
-      height: 36px;
-      background-color: rgba(255, 253, 247, 0.72);
-      background-image: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.35) 0%,
-        rgba(255, 255, 255, 0) 50%,
-        rgba(0, 0, 0, 0.04) 100%
-      );
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.45);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.5) inset,
-        0 4px 12px rgba(0, 0, 0, 0.08),
-        0 1px 3px rgba(0, 0, 0, 0.06);
+      width: 40px;
+      height: 40px;
+      background-color: rgba(255, 253, 247, 0.55);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       color: var(--text-primary);
       cursor: pointer;
       display: none;
@@ -31712,18 +31622,9 @@
       -webkit-tap-highlight-color: transparent;
     }
     html.dark .mobile-topbar-back {
-      background-color: rgba(28, 28, 30, 0.62);
-      background-image: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0) 50%,
-        rgba(0, 0, 0, 0.15) 100%
-      );
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.08) inset,
-        0 4px 14px rgba(0, 0, 0, 0.4),
-        0 1px 3px rgba(0, 0, 0, 0.3);
+      background-color: rgba(28, 28, 30, 0.5);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       color: var(--text-primary);
     }
     .mobile-topbar-back:active {
@@ -31731,18 +31632,12 @@
     }
     @media (hover: hover) {
       .mobile-topbar-back:hover {
-        background-color: rgba(255, 253, 247, 0.85);
-        box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.6) inset,
-          0 6px 16px rgba(0, 0, 0, 0.1),
-          0 2px 4px rgba(0, 0, 0, 0.08);
+        background-color: rgba(255, 253, 247, 0.7);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
       }
       html.dark .mobile-topbar-back:hover {
-        background-color: rgba(40, 40, 45, 0.78);
-        box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.12) inset,
-          0 6px 18px rgba(0, 0, 0, 0.5),
-          0 2px 4px rgba(0, 0, 0, 0.35);
+        background-color: rgba(40, 40, 45, 0.65);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
       }
     }
     /* "Back" button only shows on panels that aren't top-level tabs */
