@@ -1874,15 +1874,12 @@
        on the .play-hero-active variant so the dark card stays inset
        like before — only the editorial empty-state breaks out. */
     margin-inline: calc(-1 * var(--space-5));
-    padding: var(--space-10) var(--space-6) var(--space-8);
+    padding: var(--space-5) var(--space-6);
     margin-bottom: var(--space-8);
     margin-top: 0;
     position: relative;
     overflow: visible;
   }
-  /* Decorative accent removed in editorial mode — was a black-card
-     accent and reads wrong on the cream background. Continue-Round
-     state restores its own framing via .play-hero-progress. */
   .play-hero::before {
     content: none;
   }
@@ -1997,6 +1994,13 @@
     color: var(--color-white);
     border-color: var(--color-accent);
     box-shadow: var(--shadow-accent);
+    /* Bumped — bigger padding and bolder text so the primary button
+       carries more visual weight than the demoted ghost. The pop
+       (taller + heavier text + slightly bigger letters) is the main
+       eye-drawing affordance now that the dark card is gone. */
+    padding: var(--space-5) var(--space-8);
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
   }
   @media (hover: hover) {
   .play-hero-btn-primary:hover {
@@ -2006,17 +2010,22 @@
 }
   .play-hero-btn-ghost {
     background: transparent;
-    /* Editorial mode: ghost button uses primary text color + a
-       solid (not translucent) border so it reads cleanly on the
-       cream page. The previous transparent-on-dark-card values
-       would have rendered the button nearly invisible. */
-    color: var(--text-primary);
-    border-color: var(--text-primary);
+    /* Demoted — no border, muted text, small. Reads as a tertiary
+       text-link affordance under the primary CTA so the eye lands
+       on Start a Round, not on a competing button of equal weight.
+       The transition still applies to the parent hover lift, but
+       there's no border-color to animate. */
+    color: var(--text-muted);
+    border-color: transparent;
+    font-size: var(--text-sm);
+    padding: var(--space-3);
+    text-transform: none;
+    letter-spacing: normal;
   }
   @media (hover: hover) {
   .play-hero-btn-ghost:hover {
-    background: var(--color-cream-100);
-    border-color: var(--text-primary);
+    background: transparent;
+    color: var(--text-primary);
   }
 }
   /* Continue-Round / Lobby-active variant — uses the same editorial
@@ -55895,7 +55904,7 @@
       <div class="play-hero">
         <div class="play-hero-eyebrow">Play</div>
         <h2 class="play-hero-title">Start a <em>Round</em></h2>
-        <p class="play-hero-sub">Track your scores and putts hole by hole. Play solo or invite friends for a live shared scorecard.</p>
+        <p class="play-hero-sub">Score every hole. Solo or with friends.</p>
         <div class="play-hero-actions">
           <button class="play-hero-btn play-hero-btn-primary" onclick="startRoundFlow()">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showPanel('quick-score', null)">Quick Score</button>
