@@ -42700,6 +42700,13 @@
   function renderCoursesList() {
     const mount = document.getElementById('courses-list-mount');
     if (!mount) return;
+    // Skeleton while courses cache still loading. Without this the
+    // empty state ("No courses yet") flashes on first visit before
+    // Firestore data lands.
+    if (typeof coursesLoaded !== 'undefined' && !coursesLoaded) {
+      mount.innerHTML = renderCourseCatalogSkeleton();
+      return;
+    }
     // Read from the cache, not the seed array. After Phase A,
     // courses live in Firestore and the cache is the source of
     // truth. Falls back gracefully if the cache hasn't loaded yet
@@ -42858,6 +42865,13 @@
     const courseId = courseDetailState.activeCourseId;
     const course = courseId ? getCourse(courseId) : null;
     if (!course) {
+      // Two cases: still loading the courses cache, or the course
+      // genuinely doesn't exist. Show skeleton during load; "Course
+      // not found" only after we've confirmed the cache is populated.
+      if (typeof coursesLoaded !== 'undefined' && !coursesLoaded) {
+        mount.innerHTML = renderCourseDetailSkeleton();
+        return;
+      }
       mount.innerHTML = `
         <div class="panel-head">
           <span class="accent-line"></span>
@@ -43938,6 +43952,13 @@
     if (!mount) return;
     const gr = groupRoundState.doc;
     if (!gr) {
+      // docId set but doc not yet hydrated by snapshot subscription
+      // → still loading. Render skeleton while we wait. No docId at
+      // all → genuine empty state, bounce to Play.
+      if (groupRoundState.docId) {
+        mount.innerHTML = renderGroupLobbySkeleton();
+        return;
+      }
       // No active lobby — bounce back to Play landing.
       mount.innerHTML = `
         <div class="panel-head">
@@ -57488,7 +57509,7 @@
     }
 
     if (!rangeSessionsHistoryLoaded) {
-      mount.innerHTML = `<div class="range-history-loading">Loading sessions…</div>`;
+      mount.innerHTML = renderPracticeHistorySkeleton();
       return;
     }
 
@@ -58528,7 +58549,7 @@
     }
 
     if (!shortGameSessionsHistoryLoaded) {
-      mount.innerHTML = `<div class="range-history-loading">Loading sessions…</div>`;
+      mount.innerHTML = renderPracticeHistorySkeleton();
       return;
     }
 
@@ -62253,6 +62274,147 @@
     return `<div class="skel-stack">${card}${card}${card}</div>`;
   }
 
+  // ─── Tier 2 skeleton helpers ────────────────────────────────────
+  // Each helper composes the .skel-line / .skel-card primitives into
+  // a shape-matching placeholder for one specific surface. Wired in
+  // by the corresponding render function under a "still loading"
+  // gate so the skeleton replaces the false-empty state during
+  // initial data fetch.
+
+  // Practice history cards (range + short game) — card per session
+  // with date row + meta row + 3-stat strip. Mirrors the real
+  // .range-history-card / .shortgame-history-card layout.
+  function renderPracticeHistorySkeleton() {
+    const statTile = `
+      <div class="range-history-stat" aria-hidden="true">
+        <span class="skel-line skel-line-tall skel-line-sm" style="margin: 0 auto;"></span>
+        <span class="skel-line skel-line-xs" style="margin: var(--space-2) auto 0;"></span>
+      </div>`;
+    const card = `
+      <div class="skel-card" aria-hidden="true" style="gap: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);">
+          <span class="skel-line skel-line-tall skel-line-md"></span>
+        </div>
+        <div class="skel-line skel-line-sm"></div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+          ${statTile}${statTile}${statTile}
+        </div>
+      </div>`;
+    return `<div class="skel-stack">${card}${card}${card}</div>`;
+  }
+
+  // Social feed — friend round cards. Each card has avatar circle +
+  // name/course lines + score row. Slightly wider stack than recent
+  // rounds since these are denser.
+  function renderSocialFeedSkeleton() {
+    const card = `
+      <div class="skel-card" aria-hidden="true" style="gap: var(--space-3);">
+        <div style="display: flex; align-items: center; gap: var(--space-3);">
+          <span class="skel-line" style="width: 36px; height: 36px; border-radius: 50%;"></span>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <span class="skel-line skel-line-md"></span>
+            <span class="skel-line skel-line-xs"></span>
+          </div>
+        </div>
+        <div class="skel-line skel-line-tall skel-line-lg"></div>
+        <div class="skel-line skel-line-sm"></div>
+      </div>`;
+    return `<div class="skel-stack">${card}${card}${card}</div>`;
+  }
+
+  // Course catalog — section label + list rows. Each row has icon
+  // square + course name + meta line.
+  function renderCourseCatalogSkeleton() {
+    const row = `
+      <div class="skel-card" aria-hidden="true" style="flex-direction: row; align-items: center; gap: var(--space-4); padding: var(--space-4);">
+        <span class="skel-line" style="width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;"></span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+          <span class="skel-line skel-line-tall skel-line-md"></span>
+          <span class="skel-line skel-line-sm"></span>
+        </div>
+      </div>`;
+    return `
+      <div aria-hidden="true">
+        <div class="skel-line skel-line-sm" style="margin-bottom: var(--space-4);"></div>
+        <div class="skel-stack">${row}${row}${row}${row}${row}</div>
+      </div>`;
+  }
+
+  // Course detail — info hero + tee picker + scorecard outline.
+  function renderCourseDetailSkeleton() {
+    return `
+      <div aria-hidden="true">
+        <div class="skel-card" style="margin-bottom: var(--space-6); gap: var(--space-3);">
+          <span class="skel-line skel-line-xtall skel-line-lg"></span>
+          <span class="skel-line skel-line-sm"></span>
+          <span class="skel-line skel-line-md"></span>
+        </div>
+        <div class="skel-card" style="margin-bottom: var(--space-4); gap: var(--space-3);">
+          <span class="skel-line skel-line-sm"></span>
+          <span class="skel-line skel-line-tall"></span>
+          <span class="skel-line skel-line-tall skel-line-lg"></span>
+        </div>
+      </div>`;
+  }
+
+  // Rounds full-history page — same as recent rounds skeleton but
+  // with more cards since this page shows the whole history.
+  function renderRoundsPageSkeleton() {
+    const card = `
+      <div class="skel-card" aria-hidden="true">
+        <div class="skel-line skel-line-tall skel-line-md"></div>
+        <div class="skel-line skel-line-sm"></div>
+        <div class="skel-line skel-line-xtall skel-line-xs"></div>
+      </div>`;
+    return `<div class="skel-stack">${card.repeat(8)}</div>`;
+  }
+
+  // My Stats — multiple stat sections, each with label + values
+  // grid. Generic "stat blocks" shape.
+  function renderMyStatsSkeleton() {
+    const block = `
+      <div class="skel-card" aria-hidden="true" style="margin-bottom: var(--space-4); gap: var(--space-4);">
+        <span class="skel-line skel-line-sm"></span>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+          ${[0,1,2].map(() => `
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); align-items: center;">
+              <span class="skel-line skel-line-tall skel-line-md"></span>
+              <span class="skel-line skel-line-sm"></span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return `<div aria-hidden="true">${block}${block}${block}</div>`;
+  }
+
+  // Group lobby — header line + course preview block + player rows
+  // strip + a row of action buttons.
+  function renderGroupLobbySkeleton() {
+    const playerRow = `
+      <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0;">
+        <span class="skel-line" style="width: 36px; height: 36px; border-radius: 50%;"></span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+          <span class="skel-line skel-line-md"></span>
+          <span class="skel-line skel-line-xs"></span>
+        </div>
+      </div>`;
+    return `
+      <div aria-hidden="true">
+        <div class="skel-card" style="margin-bottom: var(--space-4); gap: var(--space-3);">
+          <span class="skel-line skel-line-xtall skel-line-md"></span>
+          <span class="skel-line skel-line-sm"></span>
+        </div>
+        <div class="skel-card" style="margin-bottom: var(--space-4); gap: var(--space-3);">
+          <span class="skel-line skel-line-sm"></span>
+          <span class="skel-line skel-line-tall"></span>
+          <span class="skel-line skel-line-tall skel-line-lg"></span>
+        </div>
+        <div style="margin-bottom: var(--space-4);">
+          <div class="skel-line skel-line-sm" style="margin-bottom: var(--space-3);"></div>
+          ${playerRow}${playerRow}
+        </div>
+      </div>`;
+  }
+
   function renderRecentRounds() {
     const mount = document.getElementById('play-rounds-mount');
     if (!mount) return;
@@ -64120,10 +64282,7 @@
             <div class="social-section-title">Feed</div>
             ${renderFeedFilterToggle()}
           </div>
-          <div class="social-feed-loading">
-            <div class="spinner"></div>
-            <div class="social-feed-loading-text">Loading recent rounds…</div>
-          </div>
+          ${renderSocialFeedSkeleton()}
         </div>`;
     }
     // Apply filter: 'all' shows everything, 'friends' hides my own rounds.
@@ -67003,6 +67162,13 @@
     const mount = document.getElementById('rounds-page-mount');
     if (!mount) return;
 
+    // Skeleton while rounds cache still loading. Without this, the
+    // empty-state ("No rounds yet") flashes for users with history.
+    if (typeof roundsLoaded !== 'undefined' && !roundsLoaded && currentUser) {
+      mount.innerHTML = renderRoundsPageSkeleton();
+      return;
+    }
+
     const completed = (recentRounds || []).filter(r => r.status === 'completed');
 
     if (completed.length === 0) {
@@ -67525,6 +67691,14 @@
   function renderMyStatsPage() {
     const mount = document.getElementById('my-stats-mount');
     if (!mount) return;
+
+    // Skeleton while rounds cache still loading. The "No stats yet"
+    // empty state would otherwise flash for users with rounds in
+    // the cloud during the load round-trip.
+    if (typeof roundsLoaded !== 'undefined' && !roundsLoaded && currentUser) {
+      mount.innerHTML = renderMyStatsSkeleton();
+      return;
+    }
 
     // Filter to completed rounds that count toward stats. Non-counting
     // formats (scrambles, etc.) are kept on the user's account but
