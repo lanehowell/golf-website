@@ -1989,6 +1989,33 @@
        container width — predictable on every device. */
     display: block;
   }
+  /* Practice hero — same editorial pattern as the Play hero but
+     intentionally smaller and single-line. Practice is a secondary
+     destination; the hero should establish the screen identity
+     without competing with the Play hero's "primary action" weight.
+     Override the title size + flip the em back to inline so "Skill
+     Building" reads as one phrase on one line. Also tighten the
+     bottom margin so the Your Practice section sits closer — the
+     Practice hero has no CTA buttons below it, so the breathing
+     room the Play hero needs (to separate the buttons from the
+     stats) isn't required here. */
+  .practice-hero {
+    margin-bottom: 0;
+  }
+  /* Pull the first prominent section label closer to the practice
+     hero. The default home-section-label-prominent has margin-top:
+     var(--space-8) (40px) for the editorial breathing room between
+     stats sections; right under the hero that's too much. Negative
+     compensation here brings the rhythm in tight. */
+  .practice-hero + .home-section-label-prominent {
+    margin-top: var(--space-3);
+  }
+  .practice-hero .play-hero-title {
+    font-size: clamp(40px, 10vw, 56px);
+  }
+  .practice-hero .play-hero-title em {
+    display: inline;
+  }
   .play-hero-sub {
     font-size: var(--text-md);
     color: var(--text-secondary);
@@ -30327,11 +30354,17 @@
 
     <!-- ═══════════════ PRACTICE ═══════════════ -->
     <section class="panel" id="panel-practice">
-      <div class="panel-head">
-        <span class="accent-line"></span>
-        <span class="label">Skill Building</span>
-        <h2>Practice</h2>
-        <p class="panel-desc">Track range sessions, putting drills, and other skill-focused work — separate from on-course rounds.</p>
+      <!-- Editorial hero — mirrors the Play tab pattern but a touch
+           smaller (Practice is a secondary destination, not the
+           primary one). PRACTICE pill eyebrow, single-line headline
+           ("Skill" black + "Building" accent italic, inline so it
+           reads as one phrase), and a one-line subhead. The
+           .practice-hero modifier scopes the size overrides without
+           touching the Play hero. -->
+      <div class="play-hero practice-hero">
+        <span class="play-hero-eyebrow">Practice</span>
+        <h1 class="play-hero-title">Skill <em>Building</em></h1>
+        <p class="play-hero-sub">Range sessions, drills, and skill work.</p>
       </div>
       <!-- In-progress practice session resume banner — surfaced via
            renderPracticeLanding when isAnyPracticeSessionActive(). -->
