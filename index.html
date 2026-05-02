@@ -1448,6 +1448,36 @@
     background: var(--border-light);
   }
 
+  /* Play-landing variant: stronger label, no trailing rule. The default
+     home-section-label has a quiet muted label paired with a long thin
+     rule that fills the row — appropriate on the Today panel where it
+     introduces dense secondary content. The Play landing has fewer,
+     bigger sections (hero → stats → courses), so the label should
+     lead more confidently and not get diluted by a rule that just
+     traces back to the screen edge. */
+  .home-section-label-prominent {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-widest);
+    margin-bottom: var(--space-5);
+    margin-top: var(--space-8);
+  }
+  .home-section-label-prominent::after {
+    content: none;
+  }
+
+  /* Soft section divider used between major Play landing sections.
+     A thin warm-gray rule that sits flush with the cream page —
+     enough to register as "new section" without feeling like a hard
+     edge. Keeps the editorial rhythm. */
+  .play-section-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin-block: var(--space-6);
+    margin-inline: 0;
+  }
+
   /* ── Week strip ───────────────────────────────────────────── */
   .week-strip {
     display: grid;
@@ -2010,22 +2040,26 @@
 }
   .play-hero-btn-ghost {
     background: transparent;
-    /* Demoted — no border, muted text, small. Reads as a tertiary
-       text-link affordance under the primary CTA so the eye lands
-       on Start a Round, not on a competing button of equal weight.
-       The transition still applies to the parent hover lift, but
-       there's no border-color to animate. */
-    color: var(--text-muted);
+    /* Demoted further — text-link styling. Brand-blue color with
+       a subtle underline on hover so it reads as a clear secondary
+       action paired with the primary CTA, not a competing button.
+       Smaller font, regular weight, no border, no transform. */
+    color: var(--color-accent);
     border-color: transparent;
     font-size: var(--text-sm);
-    padding: var(--space-3);
+    font-weight: var(--weight-medium);
+    padding: var(--space-2);
     text-transform: none;
     letter-spacing: normal;
+    text-decoration: none;
   }
   @media (hover: hover) {
   .play-hero-btn-ghost:hover {
     background: transparent;
-    color: var(--text-primary);
+    color: var(--color-accent-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transform: none;
   }
 }
   /* Continue-Round / Lobby-active variant — uses the same editorial
@@ -2135,13 +2169,18 @@
     background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    padding: var(--space-5) var(--space-4);
+    /* Bumped padding so the numerals breathe more inside their tile.
+       Previously --space-5 / --space-4; now --space-6 / --space-5. */
+    padding: var(--space-6) var(--space-5);
     text-align: center;
   }
   .play-stat-value {
     display: block;
     font-family: var(--font-display);
-    font-size: var(--text-3xl);
+    /* Reduced ~25% from text-3xl so the numerals read as supporting
+       stats rather than secondary headlines competing with the hero
+       title. text-2xl gives the right weight at this card scale. */
+    font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
@@ -29716,11 +29755,13 @@
       <div id="play-hero-mount"></div>
 
       <!-- Stats strip — dynamic based on completed rounds -->
-      <div class="home-section-label">Your Game</div>
+      <div class="play-section-divider" aria-hidden="true"></div>
+      <div class="home-section-label home-section-label-prominent">Your Game</div>
       <div id="play-stats-mount"></div>
 
       <!-- Browse Courses entry point — sub-page off Play -->
-      <div class="home-section-label">Courses</div>
+      <div class="play-section-divider" aria-hidden="true"></div>
+      <div class="home-section-label home-section-label-prominent">Courses</div>
       <button class="play-courses-link" onclick="showPanel('courses', null)">
         <span class="play-courses-link-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -29736,7 +29777,8 @@
       </button>
 
       <!-- Recent rounds — dynamic empty state vs list of round cards -->
-      <div class="home-section-label">Recent Rounds</div>
+      <div class="play-section-divider" aria-hidden="true"></div>
+      <div class="home-section-label home-section-label-prominent">Recent Rounds</div>
       <div id="play-rounds-mount"></div>
     </section>
 
