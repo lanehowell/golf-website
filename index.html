@@ -839,6 +839,11 @@
 
   /* ── Section heading override (tighter than .section-heading) ── */
   .panel-head { margin-bottom: var(--space-10); }
+  /* Compact variant — for utility screens (course catalog, list views)
+     where the editorial title + description aren't needed and the
+     small "label" eyebrow is enough orientation. Tighter bottom
+     margin so the content below sits closer to the eyebrow. */
+  .panel-head-compact { margin-bottom: var(--space-5); }
   .panel-head .accent-line { margin-bottom: var(--space-3); }
   .panel-head .label {
     color: var(--color-accent);
@@ -2390,6 +2395,21 @@
     box-shadow: var(--shadow-sm);
   }
 }
+  /* Nearby variant — recommended starting points (closest courses to
+     the user's current location). Adds a thin brand-blue accent
+     stripe along the left edge so the section reads as featured vs
+     the broader alphabetical All Courses list below. The base
+     border still wraps all four sides; the accent sits as a thicker
+     left border that visually anchors the card. */
+  .course-card-nearby {
+    border-left: 3px solid var(--color-accent);
+    padding-left: calc(var(--space-6) - 2px);
+  }
+  @media (hover: hover) {
+    .course-card-nearby:hover {
+      border-left-color: var(--color-accent);
+    }
+  }
   .course-card-head {
     display: flex;
     align-items: center;
@@ -2506,6 +2526,18 @@
   .courses-search {
     position: relative;
     margin-bottom: var(--space-4);
+  }
+  /* Sticky variant — pins the search bar to the top of the scroll
+     area so it stays accessible as the user scrolls through long
+     course lists. Background + small bottom padding ensure cards
+     scrolling beneath don't bleed visually into the input. */
+  .courses-search-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-page);
+    padding-block: var(--space-3);
+    margin-bottom: var(--space-5);
   }
   .courses-search-input {
     /* Inherit the base .input treatment but leave room on the right
@@ -29834,11 +29866,9 @@
     <!-- ═══════════════ COURSES (LIST) ═══════════════ -->
     <section class="panel" id="panel-courses">
       <button class="back-link" onclick="goBack()"><span class="back-arrow">←</span>Back</button>
-      <div class="panel-head">
+      <div class="panel-head panel-head-compact">
         <span class="accent-line"></span>
         <span class="label">Course Catalog</span>
-        <h2>Available <em>Courses</em></h2>
-        <p class="panel-desc">Tap a course to see hole pars, yardages, and tee box options. More courses will be added over time.</p>
       </div>
       <div id="courses-list-mount"></div>
     </section>
@@ -39974,15 +40004,18 @@
       return;
     }
 
-    // Card builder — reused across Closest and filtered-All sections.
-    function buildCourseCard(c, distanceLabel) {
+    // Card builder — reused across Nearby and All sections. Optional
+    // `nearby` flag adds the brand-blue accent stripe so nearby cards
+    // read as the recommended starting point.
+    function buildCourseCard(c, distanceLabel, nearby) {
       const totalPar = c.holes.reduce((sum, h) => sum + h.par, 0);
       const teeCount = c.tees.length;
       const distHtml = distanceLabel
         ? `<span class="course-card-distance">${escapeHtml(distanceLabel)}</span>`
         : '';
+      const cls = nearby ? 'course-card course-card-nearby' : 'course-card';
       return `
-        <button class="course-card" onclick="openCourseDetail('${c.id}')">
+        <button class="${cls}" onclick="openCourseDetail('${c.id}')">
           <div class="course-card-head">
             <div class="course-card-name">${escapeHtml(c.name)}</div>
             ${distHtml}
@@ -39997,56 +40030,15 @@
         </button>`;
     }
 
-    // Closest section — single course only, within a sensible radius.
-    // Use case: you're at (or driving to) the course and want one tap
-    // to open it. Multiple "nearby" options would just be extra noise.
-    let closestHtml = '';
-    const CLOSEST_RADIUS_MILES = 50;
-    const distanceList = getCoursesWithDistance();
-    if (distanceList && distanceList.length > 0) {
-      const closest = distanceList[0];
-      if (closest.distance <= CLOSEST_RADIUS_MILES) {
-        closestHtml = `
-          <div class="course-section">
-            <div class="course-section-head">
-              <span class="course-section-title">Closest</span>
-            </div>
-            <div class="course-list">
-              ${buildCourseCard(closest.course, formatDistance(closest.distance))}
-            </div>
-          </div>
-        `;
-      }
-    }
-
-    // Search + All courses section. Search input sits above an
-    // alphabetical list that filters as you type. Matches name or
-    // location so "rowlett" finds Waterview even if you don't
-    // remember the course name.
-    const q = coursesListState.searchQuery.trim().toLowerCase();
-    const sorted = [...allCourses].sort((a, b) => a.name.localeCompare(b.name));
-    const filtered = q
-      ? sorted.filter(c =>
-          c.name.toLowerCase().includes(q) ||
-          (c.location || '').toLowerCase().includes(q)
-        )
-      : sorted;
-
-    // Label changes based on whether Closest is rendered. When it is,
-    // the second section is "All courses" (implying a full list);
-    // without it, no label at all (parsed as the only list).
-    const allLabel = closestHtml ? 'All courses' : '';
-    const allHeaderHtml = allLabel
-      ? `<div class="course-section-head">
-           <span class="course-section-title">${escapeHtml(allLabel)}</span>
-         </div>`
-      : '';
-
     // Search input — always shown when there's more than 1 course.
-    // With a single course there's nothing to search.
+    // Sticky at the top of the scroll area so it stays accessible
+    // as the user scrolls through long course lists. Search is the
+    // primary action on this screen, hence its placement above any
+    // section content.
     const showSearch = allCourses.length > 1;
+    const q = coursesListState.searchQuery.trim().toLowerCase();
     const searchHtml = showSearch ? `
-      <div class="courses-search">
+      <div class="courses-search courses-search-sticky">
         <input type="text"
                id="courses-search-input"
                class="input courses-search-input"
@@ -40058,6 +40050,59 @@
       </div>
     ` : '';
 
+    // Nearby section — up to 5 closest courses within a sensible
+    // radius. Each card gets a brand-blue accent stripe so the
+    // section reads as a recommended starting point (vs the broader
+    // alphabetical All Courses list below). Hidden entirely when the
+    // user is searching — search results take over the full screen.
+    let nearbyHtml = '';
+    const NEARBY_RADIUS_MILES = 50;
+    const NEARBY_MAX = 5;
+    const distanceList = getCoursesWithDistance();
+    if (!q && distanceList && distanceList.length > 0) {
+      const nearby = distanceList
+        .filter(d => d.distance <= NEARBY_RADIUS_MILES)
+        .slice(0, NEARBY_MAX);
+      if (nearby.length > 0) {
+        const nearbyCards = nearby
+          .map(d => buildCourseCard(d.course, formatDistance(d.distance), true))
+          .join('');
+        nearbyHtml = `
+          <div class="course-section">
+            <div class="course-section-head">
+              <span class="course-section-title">Nearby</span>
+            </div>
+            <div class="course-list">${nearbyCards}</div>
+          </div>
+        `;
+      }
+    }
+
+    // All courses — alphabetical, filtered by search query if present.
+    // When searching, this is the only section shown; without a query
+    // it sits below the Nearby section.
+    const sorted = [...allCourses].sort((a, b) => a.name.localeCompare(b.name));
+    const filtered = q
+      ? sorted.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          (c.location || '').toLowerCase().includes(q)
+        )
+      : sorted;
+
+    // Section label: "Search results" when filtering, "All courses"
+    // when Nearby is also shown above, no label otherwise.
+    let allLabel = '';
+    if (q) {
+      allLabel = `${filtered.length} result${filtered.length === 1 ? '' : 's'}`;
+    } else if (nearbyHtml) {
+      allLabel = 'All courses';
+    }
+    const allHeaderHtml = allLabel
+      ? `<div class="course-section-head">
+           <span class="course-section-title">${escapeHtml(allLabel)}</span>
+         </div>`
+      : '';
+
     // Empty-search-results state
     let listBody = '';
     if (filtered.length === 0) {
@@ -40067,19 +40112,18 @@
         </div>
       `;
     } else {
-      const cards = filtered.map(c => buildCourseCard(c, null)).join('');
+      const cards = filtered.map(c => buildCourseCard(c, null, false)).join('');
       listBody = `<div class="course-list">${cards}</div>`;
     }
 
     const allHtml = `
       <div class="course-section">
         ${allHeaderHtml}
-        ${searchHtml}
         ${listBody}
       </div>
     `;
 
-    mount.innerHTML = `${adminAddBtn}${closestHtml}${allHtml}`;
+    mount.innerHTML = `${adminAddBtn}${searchHtml}${nearbyHtml}${allHtml}`;
   }
 
   function openCourseDetail(courseId) {
