@@ -17077,6 +17077,15 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
+  /* Best-round badge slot — pushed to the right side of the score
+     row via margin-left: auto so the badge always lands at the far
+     right of the card regardless of what's on the left (score +
+     vs-par for solo, score + format-tag for alt-format). */
+  .round-card-score-badge-slot {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+  }
 
   /* "See all rounds →" footer link under the recent-rounds list on the
      Play landing. Tappable whole-row affordance, orange accent. */
@@ -68610,39 +68619,38 @@
       // Runs in microtask after the current render so it doesn't block.
       Promise.resolve().then(() => ensureGroupRoundStatus(r.groupRoundId));
     }
-    // Best-round badge. Now rendered INLINE in the meta row (vs. its
-    // own line previously) so each card reads as 3 horizontal bands
-    // instead of 4 — lets more cards fit on screen without losing info.
+    // Best-round badge. Rendered inline with the score row, pushed
+    // to the right side of the card via margin-left: auto on the
+    // slot. Sits opposite the score numeral so it reads as "this
+    // score earned this distinction." For solo rounds it sits next
+    // to the vs-par chip; for alt-format it sits next to the format
+    // tag. Meta row stays clean: just date · tee.
     const bests = window.__bestRoundsCache || computeMyBestRounds(recentRounds || []);
     let bestBadge = '';
     if (r.id === bests.globalBestId) {
-      bestBadge = ' · <span class="round-card-best-badge round-card-best-global" title="Your best round ever">★ Best Round</span>';
+      bestBadge = '<span class="round-card-best-badge round-card-best-global" title="Your best round ever">★ Best Round</span>';
     } else if (bests.courseBestIds && bests.courseBestIds.has(r.id)) {
-      bestBadge = ' · <span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
+      bestBadge = '<span class="round-card-best-badge round-card-best-course" title="Your best at this course">★ Course Best</span>';
     }
-
-    // Meta row: date · tee · (partial holes) · (best badge inline).
-    // Format pill is no longer rendered here for non-standard rounds —
-    // those rounds now show the format label on the score side as
-    // the score replacement, so doubling it up in meta would be
-    // redundant.
-    // (Standard rounds show no format indicator at all — clean default.)
 
     // Score side. Standard rounds: big serif strokes + vs-par chip.
     // Alt-format rounds: gray strokes + uppercase format label (no
     // vs-par, since it's not meaningful for scramble/etc.).
+    // Best badge (when present) lives at the far right of this row.
     let scoreSideHtml;
     if (isAltFormat) {
       scoreSideHtml = `
         <div class="round-card-score-row">
           <div class="round-card-score round-card-score-muted">${score}</div>
           <div class="round-card-format-tag">${escapeHtml(fmtLabel.toUpperCase())}</div>
+          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
         </div>`;
     } else {
       scoreSideHtml = `
         <div class="round-card-score-row">
           <div class="round-card-score">${score}</div>
           ${vsParStr ? `<div class="round-card-vspar">${vsParStr}</div>` : ''}
+          ${bestBadge ? `<div class="round-card-score-badge-slot">${bestBadge}</div>` : ''}
         </div>`;
     }
 
@@ -68652,7 +68660,7 @@
           <div class="round-card-course">${groupBadge}<span class="round-card-course-title">${escapeHtml(r.courseName || 'Round')}</span>${liveSlotHtml}</div>
           <div class="round-card-arrow">→</div>
         </div>
-        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}${bestBadge}</div>
+        <div class="round-card-meta">${escapeHtml(dateStr)} · ${escapeHtml(r.teeName || '')}${partial}</div>
         ${groupLine}
         ${scoreSideHtml}
       </button>`;
