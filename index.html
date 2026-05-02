@@ -64266,6 +64266,18 @@
     // devices without needing a full page reload. If a load is already
     // in flight, skip — it'll complete and re-render on its own.
     if (isFeedStale() && !socialState.feedLoading) {
+      // Pre-set loading flag synchronously so the upcoming feed
+      // render sees the loading state immediately. Without this,
+      // there's a one-frame race where renderSocialFeed runs before
+      // loadActivityFeed's first line sets feedLoading=true, so the
+      // empty state flashes for a frame before the skeleton appears.
+      socialState.feedLoading = true;
+      // Re-render the feed mount NOW with feedLoading=true so the
+      // skeleton paints before the async load even starts. Without
+      // this, the parent renderSocial already wrote the feed mount
+      // with stale content (or empty state).
+      const feedMountSync = document.getElementById('social-feed-mount');
+      if (feedMountSync) feedMountSync.innerHTML = renderSocialFeed();
       loadActivityFeed().then(() => {
         const feedMount = document.getElementById('social-feed-mount');
         if (feedMount) feedMount.innerHTML = renderSocialFeed();
@@ -64275,7 +64287,13 @@
 
   // Render the activity feed — friends' + own recent rounds as tappable cards.
   function renderSocialFeed() {
-    if (socialState.feedLoading && !socialState.feedLoaded) {
+    // Show skeleton whenever we're actively loading the feed —
+    // including stale-cache reloads. The earlier gate also required
+    // !feedLoaded which meant subsequent visits snapped from old
+    // content to new with no loading indicator. With this gate, the
+    // user sees the skeleton on every reload so the swap doesn't
+    // feel jarring.
+    if (socialState.feedLoading) {
       return `
         <div class="social-section">
           <div class="social-section-title-row">
