@@ -6996,6 +6996,45 @@
   .round-gps-action-bar .round-tools-btn-compact .round-tools-btn-label {
     font-size: var(--text-xs);
   }
+  /* Lock the GPS-view tools + score buttons to a dark glass +
+     white-text treatment in BOTH light and dark modes. They sit on
+     the live map (often satellite imagery) where the simple-view
+     light-mode chrome (off-white card bg, dark text) loses contrast
+     and reads as broken. Same visual language as the floating GPS
+     close button (.round-gps-close-float) for consistency.
+     Scoped to .round-gps-action-bar so the same .round-tools-btn /
+     -compact class used elsewhere (simple-view top bar) keeps its
+     normal light/dark-aware theming. */
+  .round-gps-action-bar .round-tools-btn,
+  .round-gps-action-bar .round-tools-btn-compact {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+  .round-gps-action-bar .round-tools-btn .round-tools-btn-label,
+  .round-gps-action-bar .round-tools-btn-compact .round-tools-btn-label {
+    color: #fff;
+  }
+  @media (hover: hover) {
+    .round-gps-action-bar .round-tools-btn:hover,
+    .round-gps-action-bar .round-tools-btn-compact:hover {
+      background: rgba(0, 0, 0, 0.7);
+      border-color: rgba(255, 255, 255, 0.32);
+      color: #fff;
+    }
+  }
+  /* Active toggle state (e.g. Tools button while sheet is open) —
+     pale-accent fill from the base would clash on the dark glass.
+     Use a subtle white-tinted overlay instead. */
+  .round-gps-action-bar .round-tools-btn.is-active,
+  .round-gps-action-bar .round-tools-btn-compact.is-active {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
+  }
 
   /* Log shot — primary action button in the GPS action bar. Orange
      fill mirrors the language of the round-save-btn (familiar primary
@@ -10221,7 +10260,10 @@
     color: var(--color-accent);
   }
   .tools-list-row.is-toggle-active .tools-list-row-icon {
-    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 50%, transparent));
+    /* Stronger accent fill when toggle is on. The drop-shadow alone
+       reads weakly now that the icon sits on a tinted circle bg;
+       deepening the bg tint is the clearer signal. */
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
   }
   .round-gps-advance-prompt.is-visible {
     transform: translateX(-50%) translateY(0);
@@ -10650,11 +10692,21 @@
     cursor: not-allowed;
   }
   .tools-editor-row-icon {
-    font-size: var(--text-xl);
-    line-height: 1;
+    /* SVG line icon — same vocabulary as the tools sheet, just sized
+       smaller for the editor's denser row layout. Accent color tint
+       so it ties visually to the rest of the icon chrome. */
     width: 32px;
-    text-align: center;
+    height: 32px;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+  }
+  .tools-editor-row-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
   }
   .tools-editor-row-label {
     flex: 1;
@@ -15191,6 +15243,31 @@
      shot-edit sheet, which is reached via the Shots tool. */
   body.round-gps-open .tools-sheet-backdrop { z-index: 9450; }
   body.round-gps-open .tools-sheet           { z-index: 9460; }
+  /* Same boost for the GPS view — backdrop now also needs to sit
+     above the floating round-gps-close button (z=3 + position
+     absolute) so the close X dims with the rest. */
+  /* When the tools sheet is open in the simple (non-GPS) view, the
+     mobile topbar would otherwise stay bright above the backdrop
+     (topbar z = z-dropdown = 100, backdrop z ≈ 11). Push the topbar
+     BELOW the backdrop so it dims along with the rest of the screen.
+     z=10 is just under the backdrop's 11, so the backdrop's 0.45
+     black wash flows over it.
+
+     This intentionally only fires when GPS is NOT open — GPS view
+     handles its own dimming via boosted backdrop above all GPS
+     chrome (see body.round-gps-open block above). */
+  body.tools-open:not(.round-gps-open) .mobile-topbar {
+    z-index: 10;
+  }
+  /* GPS view: the floating GPS-close button (.round-gps-close-float)
+     and bottom action buttons (.round-tools-btn inside the action
+     bar) sit above the boosted GPS backdrop (9450) at their default
+     z. Drop them under the backdrop while tools is open so they
+     dim too. */
+  body.round-gps-open.tools-open .round-gps-close-float,
+  body.round-gps-open.tools-open .round-gps-action-bar {
+    z-index: 9440;
+  }
   body.round-gps-open .shot-edit-backdrop    { z-index: 9470; }
   body.round-gps-open .shot-edit-sheet       { z-index: 9480; }
   /* Replay edit — shot edit sheet must sit above the replay panel
@@ -15383,31 +15460,52 @@
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    padding: var(--space-4);
-    background: var(--bg-surface);
+    padding: var(--space-3) var(--space-4);
+    /* bg-elevated is the clean off-white in light mode (vs. the
+       warmer bg-surface), and matches the rest of the app's nav-row
+       chrome (Library rows, Browse Courses card, etc.). Same look in
+       dark mode where both vars resolve to similar muted greys. */
+    background: var(--bg-elevated);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     cursor: pointer;
     text-align: left;
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast), transform var(--transition-spring), box-shadow var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
-    min-height: 72px;
   }
   @media (hover: hover) {
-  .tools-list-row:hover {
-    background: var(--color-accent-pale);
-    border-color: var(--color-accent);
+    .tools-list-row:hover {
+      /* Subtler hover — just the border + a small lift. The accent-
+         pale fill was too strong for a list of 7+ rows; you'd see a
+         sea of blue on cursor sweep. */
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
   }
-}
   .tools-list-row:active {
     transform: scale(0.99);
   }
   .tools-list-row-icon {
-    font-size: var(--text-xl);
-    line-height: 1;
     flex-shrink: 0;
+    /* Circle of accent-pale tint with the SVG icon centered inside.
+       Gives the icons a defined zone so they don't float raw against
+       the row bg, and aligns visually with the icon-chrome pattern
+       on Library rows + Browse Courses card. */
     width: 40px;
-    text-align: center;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent-pale);
+    color: var(--color-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .tools-list-row-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
   }
   .tools-list-row-body {
     flex: 1;
@@ -15423,32 +15521,35 @@
     align-items: flex-start;
   }
   .tools-list-row-label {
-    font-family: var(--font-display);
-    font-size: var(--text-md);
-    font-weight: var(--weight-bold);
+    /* Body font (not display) — these are nav rows, not cards or
+       headlines. The display serif at this size felt heavy and
+       competed with the icon for attention. */
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
-    letter-spacing: var(--tracking-tight);
     text-align: left;
   }
   .tools-list-row-desc {
     font-family: var(--font-body);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--text-muted);
-    line-height: var(--leading-normal);
+    line-height: 1.35;
     text-align: left;
   }
   .tools-list-row-arrow {
-    font-size: var(--text-base);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
     color: var(--text-muted);
     flex-shrink: 0;
     transition: transform var(--transition-fast), color var(--transition-fast);
   }
   @media (hover: hover) {
-  .tools-list-row:hover .tools-list-row-arrow {
-    color: var(--color-accent);
-    transform: translateX(4px);
+    .tools-list-row:hover .tools-list-row-arrow {
+      color: var(--color-accent);
+      transform: translateX(3px);
+    }
   }
-}
 
   /* ── Caddie tool ─────────────────────────────────────────── */
   .caddie-header {
@@ -16849,6 +16950,18 @@
     justify-content: space-between;
     gap: var(--space-3);
     margin-bottom: var(--space-1);
+  }
+  /* Scoped override — when the head wraps a course title (i.e. it's
+     a recent-rounds list card), strip the bottom border + tighten
+     spacing so the meta row sits close under the course name. The
+     unscoped .round-card-head rule earlier in this file gives the
+     in-round hole card a divider, which we need to keep there but
+     drop here. :has() scopes by content type instead of by parent. */
+  .round-card-head:has(.round-card-course) {
+    border-bottom: none;
+    padding-bottom: 0;
+    text-align: left;
+    margin-bottom: 0;
   }
   .round-card-course {
     display: flex;
@@ -30968,19 +31081,17 @@
     body[data-current-panel="range-session"] .mobile-topbar-back,
     body[data-current-panel="shortgame-session"] .mobile-topbar-back,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back {
-      /* Frosted-glass fill behind the X — matches the LIVE pill's
-         treatment on the right side of the topbar so the close button
-         stays legible over scrolling content. Button is 44×44 for the
-         tap target, but we use a radial-gradient trick so the FROST
-         only fills the visible 28px circle, not the whole square.
-         Using radial-gradient rather than a pseudo-element keeps the
-         SVG icon on the ::before so it stays above the frost naturally
-         without fighting z-index. */
+      /* Match the GPS-view close button — solid dark circle filled
+         with a white × glyph + backdrop blur. Same in both light and
+         dark modes. The GPS X is the canonical "exit this context"
+         affordance; the simple-view X now matches so the close
+         pattern is consistent regardless of whether the user is on
+         the map or the simple hole card. */
       background-color: transparent;
       border-radius: 50%;
     }
-    /* Frost fill — separate ::before so it can be sized to the visible
-       icon circle (28px) rather than the 44px tap target. */
+    /* Solid dark circle — sized to the visible 28px button face,
+       not the 44px tap target. Same look in both modes. */
     body[data-current-panel="round"] .mobile-topbar-back::before,
     body[data-current-panel="group-round"] .mobile-topbar-back::before,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
@@ -30995,21 +31106,14 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background-color: rgba(255, 253, 247, 0.72);
+      background-color: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(10px) saturate(140%);
       -webkit-backdrop-filter: blur(10px) saturate(140%);
     }
-    html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::before,
-    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::before {
-      background-color: rgba(13, 13, 13, 0.6);
-    }
-    /* SVG icon — drawn on the ::after pseudo so it paints ABOVE the
-       ::before frost layer naturally (pseudo paint order: ::before,
-       content, ::after). No z-index needed. */
+    /* Plain white × glyph — drawn as SVG on ::after so it paints
+       above the dark circle background. No surrounding circle ring;
+       just the two stroked lines forming the X (matches the GPS
+       close button's plain × treatment). */
     body[data-current-panel="round"] .mobile-topbar-back::after,
     body[data-current-panel="group-round"] .mobile-topbar-back::after,
     body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
@@ -31021,20 +31125,12 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 28px;
-      height: 28px;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
+      width: 14px;
+      height: 14px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
-      background-size: 28px 28px;
-    }
-    html.dark body[data-current-panel="round"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="group-round"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="range-session"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back::after,
-    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A89878' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>");
+      background-size: 14px 14px;
     }
     body[data-current-panel="round"] .mobile-topbar-back:active,
     body[data-current-panel="group-round"] .mobile-topbar-back:active,
@@ -36366,6 +36462,10 @@
         dockState.activeTool = null;
         dockState._animateNext = false;
       }
+      // Defensive cleanup — if the user navigated away while the
+      // tools sheet was open, the body class would otherwise stick
+      // and dim the topbar on whatever screen they landed on.
+      document.body.classList.remove('tools-open');
       const dockMount = document.getElementById('round-dock-mount');
       if (dockMount) dockMount.innerHTML = '';
     }
@@ -42066,7 +42166,13 @@
         loadInProgressPracticeSession(),
         loadInProgressSession(),
         loadCourses(),
-        loadAdmins()
+        loadAdmins(),
+        // Swing thoughts surface in-round via the Pre-Shot tool, so
+        // they need to be loaded eagerly — not lazy-loaded on Practice
+        // tab show. Otherwise a user who goes app open → straight into
+        // a round sees an empty Pre-Shot tool even when they have
+        // saved thoughts. Cheap query (single subcollection list).
+        loadSwingThoughts(),
       ]);
       if (inProgressSession) {
         restoreInProgressSession(inProgressSession);
@@ -48734,27 +48840,47 @@
 
   // Registry of available tools. Adding a new tool = adding an entry here
   // and a render function. The dock UI iterates this list.
+  //
+  // Icons are inline SVG line-art — same visual vocabulary as the Library
+  // rows + Browse Courses card (1.5px stroke, currentColor, rounded caps).
+  // Renders into both the tools sheet and the tools editor; both surfaces
+  // size the SVG via CSS targeting the inline <svg>.
+  //
+  // SVG size is omitted on purpose — set via CSS so each surface (sheet,
+  // editor) can scale independently.
+  const _ICON = {
+    scorecard:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>`,
+    shots:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-13a7 7 0 1 1 14 0c0 5.5-7 13-7 13z"/><circle cx="12" cy="8" r="2.5"/></svg>`,
+    gps:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg>`,
+    weather:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3"/><path d="M9 3v1.5"/><path d="M9 13.5V15"/><path d="M3 9h1.5"/><path d="M13.5 9H15"/><path d="m4.7 4.7 1.1 1.1"/><path d="m12.2 12.2 1.1 1.1"/><path d="M14 17a3 3 0 0 0-3-3 4 4 0 0 0-7.8 1.2A3 3 0 0 0 5 21h10a2.5 2.5 0 0 0 0-5l-1 .5"/></svg>`,
+    preshot:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>`,
+    caddie:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-1.4 4.7 8.4 8.4 0 0 1-7.1 3.8 8.4 8.4 0 0 1-3.9-.9L3 21l1.9-5.6a8.4 8.4 0 0 1-.9-3.9A8.4 8.4 0 0 1 7.8 4.4 8.4 8.4 0 0 1 12.5 3a8.4 8.4 0 0 1 8.5 8.5z"/></svg>`,
+    bag:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2L7 8z"/><path d="M10 8V6a2 2 0 0 1 4 0v2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>`,
+    dispersion: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="8" ry="5"/><ellipse cx="12" cy="12" rx="4.5" ry="2.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>`,
+    penalty:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5"/><circle cx="12" cy="18" r="0.6" fill="currentColor"/></svg>`,
+  };
+
   const DOCK_TOOLS = [
     // roundOnly: hidden in GPS preview mode (no round = no scores/shots
     // to display). Other tools (weather, caddie, bag, preshot,
     // dispersion) work without a round and stay available in preview.
-    { id: 'scorecard',  label: 'Scorecard',   icon: '📋', roundOnly: true },
-    { id: 'shots',      label: 'Track Shots', icon: '📍', roundOnly: true },
-    { id: 'gps',        label: 'GPS',         icon: '🗺️' },
-    { id: 'weather',    label: 'Weather',     icon: '🌤️' },
-    { id: 'preshot',    label: 'Pre-Shot',    icon: '🎯' },
-    { id: 'caddie',     label: 'Club Caddie', icon: '🏌️' },
-    { id: 'bag',        label: 'My Bag',      icon: '⛳' },
+    { id: 'scorecard',  label: 'Scorecard',   icon: _ICON.scorecard,  roundOnly: true },
+    { id: 'shots',      label: 'Track Shots', icon: _ICON.shots,      roundOnly: true },
+    { id: 'gps',        label: 'GPS',         icon: _ICON.gps },
+    { id: 'weather',    label: 'Weather',     icon: _ICON.weather },
+    { id: 'preshot',    label: 'Pre-Shot',    icon: _ICON.preshot },
+    { id: 'caddie',     label: 'Club Caddie', icon: _ICON.caddie },
+    { id: 'bag',        label: 'My Bag',      icon: _ICON.bag },
     // Dispersion overlay — toggleable map overlay rather than an
     // inline tool surface. Only meaningful while the GPS view is
     // active; renderToolsList filters it out when GPS is closed.
-    { id: 'dispersion', label: 'Dispersion',  icon: '⭕', gpsOnly: true, isToggle: true },
+    { id: 'dispersion', label: 'Dispersion',  icon: _ICON.dispersion, gpsOnly: true, isToggle: true },
     // Penalty — one-shot action that opens the penalty modal. Only
     // surfaced while GPS is open since the whole flow uses GPS to
     // capture trouble + drop positions. Also hidden in planning mode
     // since the flow needs a real user position to capture (the
     // trouble-end shot + drop area both rely on the GPS fix).
-    { id: 'penalty',    label: 'Penalty',     icon: '⚠️', gpsOnly: true, playingOnly: true, isAction: true },
+    { id: 'penalty',    label: 'Penalty',     icon: _ICON.penalty,    gpsOnly: true, playingOnly: true, isAction: true },
   ];
 
   // Compute the tools list the user actually sees in the sheet, applying
@@ -49470,6 +49596,12 @@
     dockState.activeTool = null;
     dockState._animateNext = true;
     acquireScrollLock();
+    // Body class so CSS can dim adjacent fixed-position chrome (the
+    // mobile topbar with X + LIVE) along with the rest of the screen.
+    // Without this, the topbar sits at z-dropdown (100), well above
+    // the backdrop (~11), and stays bright while everything else
+    // dims — visually inconsistent.
+    document.body.classList.add('tools-open');
     renderRoundDock();
     // Attach drag-to-close handlers after the DOM exists
     requestAnimationFrame(attachSheetDragHandlers);
@@ -49610,6 +49742,7 @@
       // Edge case — sheet node missing, just update state
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      document.body.classList.remove('tools-open');
       releaseScrollLock();
       renderRoundDock();
       return;
@@ -49624,6 +49757,7 @@
       sheet.removeEventListener('transitionend', onDone);
       dockState.sheetOpen = false;
       dockState.activeTool = null;
+      document.body.classList.remove('tools-open');
       releaseScrollLock();
       renderRoundDock();
     };
