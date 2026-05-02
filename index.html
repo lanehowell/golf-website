@@ -1456,15 +1456,26 @@
      lead more confidently and not get diluted by a rule that just
      traces back to the screen edge. */
   .home-section-label-prominent {
-    font-size: var(--text-sm);
+    /* Quiet refined caps — small, well-tracked, dark. Reads as a
+       deliberate section anchor without shouting. */
+    font-size: var(--text-xs);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
-    letter-spacing: var(--tracking-widest);
+    letter-spacing: 0.15em;
     margin-bottom: var(--space-5);
     margin-top: var(--space-8);
   }
+  /* Restore short divider lines on either side of the prominent label,
+     vertically centered with the text via the parent's flex
+     align-items: center. The label sits flush left (no leading rule)
+     with a long trailing rule that fills the row to the right edge —
+     puts the section name first as the visual anchor, with the rule
+     pulling the eye across to whatever sits to the right. */
   .home-section-label-prominent::after {
-    content: none;
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light);
   }
 
   /* Soft section divider used between major Play landing sections.
@@ -2161,26 +2172,49 @@
   /* Stats strip — 4 numbers in a row, mirrors the Library .lib-stats look */
   .play-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-3);
-    margin-bottom: var(--space-10);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    /* Tighter bottom margin — was --space-10 (40px). The "View
+       detailed stats →" link sits below this and was floating too
+       far from the stats it summarized. --space-4 brings it close
+       enough to read as paired with the stats above. */
+    margin-bottom: var(--space-4);
   }
   .play-stat {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    /* Bumped padding so the numerals breathe more inside their tile.
-       Previously --space-5 / --space-4; now --space-6 / --space-5. */
-    padding: var(--space-6) var(--space-5);
+    /* Container-less treatment — no border, no card background, no
+       shadow. Each column sits flush on the cream page; thin vertical
+       dividers between columns (via border-left below) give just enough
+       separation to read as discrete stats without the dashboard feel
+       of bordered tiles. */
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: var(--space-2) var(--space-4);
     text-align: center;
+    /* Caption slot at the bottom — reserves space below the label so
+       all three columns align at the baseline even when only one has
+       caption text. Using flex column + auto bottom-anchored hint via
+       grid-template would also work; the simpler approach is just to
+       always render the .play-stat-hint span (with &nbsp; if empty). */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  /* Thin vertical dividers between columns. Skip the first column so
+     there's no leading edge on the row. Color matches the warm-gray
+     border tone used elsewhere on the cream page. */
+  .play-stat + .play-stat {
+    border-left: 1px solid var(--border-light);
   }
   .play-stat-value {
     display: block;
     font-family: var(--font-display);
-    /* Reduced ~25% from text-3xl so the numerals read as supporting
-       stats rather than secondary headlines competing with the hero
-       title. text-2xl gives the right weight at this card scale. */
-    font-size: var(--text-2xl);
+    /* Reduced again — was text-2xl, now text-xl. With the cards gone
+       and the hero typography setting the editorial tone, the stat
+       numerals are now clearly supporting content rather than a
+       second headline. */
+    font-size: var(--text-xl);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
     line-height: 1;
@@ -2195,9 +2229,10 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  /* Secondary hint caption below the label — used by the Handicap tile
-     to explain provisional state ("1 more round to establish" etc). The hint
-     overlays the bottom of the tile as a small muted caption. */
+  /* Caption slot — sits below the label as part of the column flow.
+     Only rendered when there's content to show. Italic muted text
+     reads as a supporting note without competing with the label
+     above. */
   .play-stat-hint {
     display: block;
     margin-top: var(--space-2);
@@ -2211,7 +2246,9 @@
     font-style: italic;
   }
   @media (max-width: 640px) {
-    .play-stats { grid-template-columns: repeat(2, 1fr); }
+    /* On phones, keep the 3-column layout but tighten padding and
+       drop dividers between rows if wrapping ever occurs. */
+    .play-stats { gap: 0; }
   }
 
   /* Empty rounds state */
@@ -16718,6 +16755,21 @@
   }
 
   /* Play landing "View detailed stats →" link below the 4-stat strip */
+  /* Stats link row — sits below the stats grid. The link is wider
+     than a single column would be, so we don't try to constrain it
+     to one cell. Instead, left-align it with the same horizontal
+     padding as the .play-stat columns so the link's visual left edge
+     starts where the first column's content area begins — putting
+     the "V" of "View" close to vertical alignment with the "H" of
+     "HANDICAP" above. */
+  .play-stats-link-row {
+    padding: 0 var(--space-4);
+  }
+  .play-stats-link-row .play-stats-link {
+    margin-top: 0;
+    /* One line, no wrap — the link should never break. */
+    white-space: nowrap;
+  }
   .play-stats-link {
     display: inline-block;
     margin-top: var(--space-3);
@@ -29755,12 +29807,10 @@
       <div id="play-hero-mount"></div>
 
       <!-- Stats strip — dynamic based on completed rounds -->
-      <div class="play-section-divider" aria-hidden="true"></div>
       <div class="home-section-label home-section-label-prominent">Your Game</div>
       <div id="play-stats-mount"></div>
 
       <!-- Browse Courses entry point — sub-page off Play -->
-      <div class="play-section-divider" aria-hidden="true"></div>
       <div class="home-section-label home-section-label-prominent">Courses</div>
       <button class="play-courses-link" onclick="showPanel('courses', null)">
         <span class="play-courses-link-icon" aria-hidden="true">
@@ -29777,7 +29827,6 @@
       </button>
 
       <!-- Recent rounds — dynamic empty state vs list of round cards -->
-      <div class="play-section-divider" aria-hidden="true"></div>
       <div class="home-section-label home-section-label-prominent">Recent Rounds</div>
       <div id="play-rounds-mount"></div>
     </section>
@@ -57590,24 +57639,19 @@
     }
 
     // Handicap calculation — returns a formatted number or em-dash, plus
-    // a small hint below the tile explaining what's needed if not yet
-    // computable. The hint overlays the bottom of the tile as a small
-    // muted caption.
+    // a small hint shown in the caption slot below the tile when the
+    // index isn't yet established. Once established, no caption — even
+    // provisional indices stand on their own without disclaimer.
     const hcpResult = computeHandicapIndex();
     const hcpDisplay = formatHandicapIndex(hcpResult.index);
     let hcpHint = '';
     if (hcpResult.index == null) {
       const needed = Math.max(0, 3 - hcpResult.roundsCount);
       if (hcpResult.reason === 'no-eligible-rounds') {
-        hcpHint = `<span class="play-stat-hint">Play 3 full 18s to establish</span>`;
+        hcpHint = 'Play 3 full 18s to establish';
       } else if (hcpResult.reason === 'need-more-rounds') {
-        hcpHint = `<span class="play-stat-hint">${needed} more round${needed === 1 ? '' : 's'} to establish</span>`;
+        hcpHint = `${needed} more round${needed === 1 ? '' : 's'} to establish`;
       }
-    } else if (hcpResult.basedOn < 8) {
-      // Transparent about the provisional nature when we're averaging fewer
-      // than the "full" 8 lowest — helps users understand why their index
-      // may shift meaningfully as they add rounds.
-      hcpHint = `<span class="play-stat-hint">Based on ${hcpResult.basedOn} of ${hcpResult.roundsCount}</span>`;
     }
 
     mount.innerHTML = `
@@ -57615,15 +57659,11 @@
         <div class="play-stat">
           <span class="play-stat-value">${hcpDisplay}</span>
           <span class="play-stat-label">Handicap</span>
-          ${hcpHint}
+          ${hcpHint ? `<span class="play-stat-hint">${hcpHint}</span>` : ''}
         </div>
         <div class="play-stat">
           <span class="play-stat-value">${avgScore}</span>
           <span class="play-stat-label">Avg Score</span>
-        </div>
-        <div class="play-stat">
-          <span class="play-stat-value">${roundsPlayed}</span>
-          <span class="play-stat-label">Rounds Played</span>
         </div>
         <div class="play-stat">
           <span class="play-stat-value">${bestRound}</span>
@@ -57631,11 +57671,13 @@
         </div>
       </div>
       ${roundsPlayed > 0 ? `
-        <a class="play-stats-link" role="button" tabindex="0"
-           onclick="showPanel('my-stats', null)"
-           onkeydown="if(event.key==='Enter'){showPanel('my-stats', null)}">
-          View detailed stats →
-        </a>
+        <div class="play-stats-link-row">
+          <a class="play-stats-link" role="button" tabindex="0"
+             onclick="showPanel('my-stats', null)"
+             onkeydown="if(event.key==='Enter'){showPanel('my-stats', null)}">
+            View detailed stats →
+          </a>
+        </div>
       ` : ''}`;
   }
 
