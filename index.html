@@ -1930,11 +1930,20 @@
     content: none;
   }
 
-  /* Personalized greeting — tracked-caps, transparent (no pill
-     treatment so the actual PLAY pill below remains the visual
-     anchor). Sits at the top of the hero. The PLAY eyebrow inherits
-     `margin-bottom: var(--space-3)` from elsewhere in this section
-     so the rhythm flows: greeting → eyebrow pill → headline. */
+  /* Top bar: greeting (left) + avatar (right) on a single row at
+     the top of the hero. Replaces the absolute-positioned avatar
+     pattern; flex layout means both pieces participate in the hero's
+     normal flow rhythm. */
+  .play-hero-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  /* Personalized greeting — tracked-caps, transparent. Inside the
+     top bar so it sits flush with the avatar on a single row. */
   .play-hero-greeting {
     font-family: var(--font-body);
     font-size: var(--text-xs);
@@ -1942,19 +1951,15 @@
     letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--text-secondary);
-    margin-bottom: var(--space-3);
     line-height: 1.2;
+    margin: 0;
   }
 
-  /* Avatar — small circular photo top-right of the hero. Tappable,
-     opens profile. Uses absolute positioning anchored to the hero's
-     own top-right edge (the .play-hero is position: relative so this
-     pins to it). The image fills the circle with `object-fit: cover`
-     so non-square photos crop sensibly. */
+  /* Avatar — small circular photo, top-right of the hero. Now sits
+     in the .play-hero-topbar flex row instead of being absolutely
+     positioned. Tappable, opens profile. */
   .play-hero-avatar {
-    position: absolute;
-    top: var(--space-5);
-    right: var(--space-6);
+    flex-shrink: 0;
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -1979,30 +1984,26 @@
     }
   }
 
-  /* Context lines below the action buttons — italic muted single-line
-     notes that add forward-looking ("perfect day for X") or backward-
-     looking ("last round was…") personalization. Stack vertically with
-     a tight gap. The weather line fades in once async loaded; the
-     history line renders synchronously alongside the rest of the hero. */
-  .play-hero-context {
-    margin: var(--space-4) 0 0;
+  /* Conditions row — compact data strip directly under the Quick
+     Score link. Tracked-caps, sans-serif, small. Format example:
+     "69° · CLEAR · 6 MPH · GRAND OAKS". Async-loaded; fades in once
+     weather + nearest course resolve. Reserved min-height prevents
+     layout pop while empty. */
+  .play-hero-conditions {
+    margin-top: var(--space-5);
     font-family: var(--font-body);
-    font-size: var(--text-sm);
-    font-style: italic;
+    font-size: 12px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
     color: var(--text-muted);
-    line-height: 1.4;
-  }
-  .play-hero-context + .play-hero-context {
-    margin-top: var(--space-1);
-  }
-  /* Weather line starts empty + invisible until async fill, then
-     fades in. Avoids a layout pop on initial render. */
-  .play-hero-context-weather {
+    line-height: 1.3;
+    text-align: center;
     opacity: 0;
     transition: opacity 300ms ease;
-    min-height: 1.4em;
+    min-height: 1.3em;
   }
-  .play-hero-context-weather.is-loaded {
+  .play-hero-conditions.is-loaded {
     opacity: 1;
   }
 
@@ -2347,12 +2348,16 @@
     margin-top: var(--space-2);
     font-family: var(--font-body);
     font-size: var(--text-2xs);
-    font-weight: var(--weight-regular);
+    font-weight: var(--weight-semibold);
     color: var(--text-muted);
-    letter-spacing: var(--tracking-normal);
-    text-transform: none;
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
     line-height: 1.3;
-    font-style: italic;
+    /* Single line is the common case; long course names occasionally
+       wrap to two lines. Allow wrap (vs. ellipsis) since the full
+       course name is more useful than visual perfection — slight
+       baseline drift in the rare case beats lost info every time. */
+    overflow-wrap: anywhere;
   }
   @media (max-width: 640px) {
     /* On phones, keep the 3-column layout but tighten padding and
@@ -56999,15 +57004,13 @@
     if (!mount) return;
     const inProgress = findInProgressRound();
 
-    // Greeting block — sits above the eyebrow pill. Renders only on
-    // the default (no-active-round) hero state; active-round states
-    // already have their own contextual eyebrow ("Round in Progress")
-    // so adding a greeting on top would feel cluttered.
+    // Greeting block — sits in the top bar of the default hero
+    // alongside the avatar (left side: greeting, right side: avatar).
+    // Active-round states get the avatar but skip the greeting since
+    // their contextual eyebrow ("Round in Progress") carries more
+    // weight than a generic salutation.
     const firstName = getUserFirstName();
     const greeting = getTimeGreeting();
-    const greetingHtml = firstName
-      ? `<div class="play-hero-greeting">${escapeHtml(greeting)}, ${escapeHtml(firstName)}</div>`
-      : `<div class="play-hero-greeting">${escapeHtml(greeting)}</div>`;
 
     // Avatar — small circular photo in the top-right of the hero.
     // Tap → profile. Hidden if there's no photoURL. Uses the same
@@ -57086,43 +57089,44 @@
 
     // No round in progress — the default invite-to-start state. Solo
     // is the default; With Friends is a toggle inside the course detail.
-    // Personalized header: greeting + name above the PLAY pill, avatar
-    // in the corner. Sub-copy adapts based on round history.
+    // Personalized header: greeting + avatar in a top bar (PLAY pill
+    // removed — the greeting + headline carry the context). Compact
+    // conditions row below the buttons replaces the italic prose
+    // version: tracked-caps data, no marketing voice.
     const sub = getPersonalizedHeroSub();
-    const lastRoundLine = getLastRoundLine();
+    const greetingText = firstName
+      ? `${greeting}, ${firstName}`
+      : greeting;
     mount.innerHTML = `
       <div class="play-hero">
-        ${avatarHtml}
-        ${greetingHtml}
-        <div class="play-hero-eyebrow">Play</div>
+        <div class="play-hero-topbar">
+          <div class="play-hero-greeting">${escapeHtml(greetingText)}</div>
+          ${avatarHtml}
+        </div>
         <h2 class="play-hero-title">Start a <em>Round</em></h2>
         <p class="play-hero-sub">${escapeHtml(sub)}</p>
         <div class="play-hero-actions">
           <button class="play-hero-btn play-hero-btn-primary" onclick="startRoundFlow()">Start a Round →</button>
           <button class="play-hero-btn play-hero-btn-ghost" onclick="showPanel('quick-score', null)">Quick Score</button>
         </div>
-        ${lastRoundLine ? `<p class="play-hero-context play-hero-context-history">${escapeHtml(lastRoundLine)}</p>` : ''}
-        <p class="play-hero-context play-hero-context-weather" id="play-hero-context-weather"></p>
+        <div class="play-hero-conditions" id="play-hero-conditions"></div>
       </div>`;
 
-    // Async: populate the weather + nearest-course context line.
-    // Doesn't block initial render — the line stays empty until both
-    // location and weather resolve, then fades in.
-    populatePlayHeroContextLine();
+    // Async: populate the conditions row (temp · condition · wind ·
+    // nearest course). Doesn't block initial render — the row stays
+    // empty until weather + nearest course resolve, then fades in.
+    populatePlayHeroConditionsRow();
   }
 
-  // Async helper — fills #play-hero-context-weather with a one-line
-  // context note like "68° and clear in Dallas. Perfect day for
-  // Grand Oaks." Pulls from the existing fetchWeather + userLocation
-  // + getCoursesWithDistance helpers; no new infrastructure. Silently
-  // bails on any failure (location denied, weather error, no courses
-  // nearby) — the line just stays empty.
-  async function populatePlayHeroContextLine() {
-    const el = document.getElementById('play-hero-context-weather');
+  // Async helper — fills #play-hero-conditions with a compact
+  // tracked-caps row: "69° · CLEAR · 6 MPH · GRAND OAKS". Pulls from
+  // existing fetchWeather + userLocation + getCoursesWithDistance
+  // helpers. Silently bails on any failure (location denied, weather
+  // error, etc) — the row just stays empty.
+  async function populatePlayHeroConditionsRow() {
+    const el = document.getElementById('play-hero-conditions');
     if (!el) return;
     try {
-      // Trigger location request if it hasn't been asked yet. Returns
-      // immediately if cached or already in progress.
       await requestUserLocation();
       if (userLocation.status !== 'granted') return;
       const weather = await fetchWeather(userLocation.lat, userLocation.lng);
@@ -57130,32 +57134,23 @@
       const cur = weather.data?.current;
       if (!cur) return;
       const temp = Math.round(cur.temperature_2m);
+      const wind = Math.round(cur.wind_speed_10m);
       const codeMeta = weatherCodeMeta(cur.weather_code, cur.is_day);
-      const condition = (codeMeta?.label || 'clear').toLowerCase();
-      // Find nearest course within reasonable driving distance.
+      const condition = (codeMeta?.label || 'clear').toUpperCase();
+      // Nearest course within reasonable driving distance.
       const distList = (typeof getCoursesWithDistance === 'function')
         ? getCoursesWithDistance() : null;
       const nearest = distList && distList.length > 0 && distList[0].distance <= 50
         ? distList[0].course : null;
-      // City extraction — use reverse-geocoding cache if it exists,
-      // else skip the city portion. We don't add a new geocoding API
-      // dep just for this line; the temp + condition + course already
-      // does the heavy lifting.
-      let line;
-      if (nearest) {
-        line = `${temp}° and ${condition}. Perfect day for ${nearest.name}.`;
-      } else {
-        line = `${temp}° and ${condition} where you are.`;
-      }
-      // Re-check the element exists (panel may have changed during await)
-      const elNow = document.getElementById('play-hero-context-weather');
+      const parts = [`${temp}°`, condition, `${wind} MPH`];
+      if (nearest) parts.push(nearest.name.toUpperCase());
+      const elNow = document.getElementById('play-hero-conditions');
       if (elNow && currentPanelId === 'play') {
-        elNow.textContent = line;
+        elNow.textContent = parts.join(' · ');
         elNow.classList.add('is-loaded');
       }
     } catch (err) {
-      // Silent — the context line is a nice-to-have, not load-bearing.
-      console.warn('Context line populate failed:', err);
+      console.warn('Conditions row populate failed:', err);
     }
   }
 
@@ -58720,14 +58715,18 @@
   // of differentials averaged, or { index: null, reason, roundsCount }
   // explaining why no index is available yet.
   function computeHandicapIndex() {
-    const completed = (recentRounds || []).filter(r => r.status === 'completed');
-    // Compute differentials for every round that qualifies. Non-qualifying
-    // rounds (partial, missing rating data, unknown course) yield null
-    // and are filtered out.
+    return computeHandicapIndexFrom(recentRounds || []);
+  }
+
+  // Parameterized variant — same algorithm as computeHandicapIndex
+  // but operates on an arbitrary rounds array. Used by the stats
+  // strip to compute "handicap as of 30 days ago" against a filtered
+  // round set, which feeds the "↓ 0.3 this month" caption.
+  function computeHandicapIndexFrom(rounds) {
+    const completed = rounds.filter(r => r.status === 'completed');
     const diffs = completed
       .map(r => ({ round: r, diff: computeRoundDifferential(r) }))
       .filter(x => typeof x.diff === 'number');
-
     const n = diffs.length;
     if (n < 3) {
       return {
@@ -58736,16 +58735,11 @@
         roundsCount: n,
       };
     }
-
-    // How many lowest diffs to use + any adjustment
     let [takeCount, adjustment] = n >= 20 ? [8, 0.0] : (HANDICAP_TABLE[n] || [8, 0.0]);
-
-    // Sort all differentials ascending (lowest = best = most used)
     const sortedDiffs = diffs.slice().sort((a, b) => a.diff - b.diff);
     const lowest = sortedDiffs.slice(0, takeCount).map(x => x.diff);
     const avg = lowest.reduce((s, d) => s + d, 0) / lowest.length;
     const index = Math.round((avg + adjustment) * 10) / 10;
-
     return {
       index,
       basedOn: takeCount,
@@ -58786,59 +58780,42 @@
         (r.totals?.holesPlayed || 0) >= 18 && roundCountsForStats(r)
       );
       if (fullRounds.length > 0) {
-        const totalStrokes = fullRounds.reduce((s, r) => s + (r.totals?.strokes || 0), 0);
-        avgScore = Math.round(totalStrokes / fullRounds.length);
+        // Avg score is computed over the LAST 10 rounds (most recent
+        // by endedAt) — captioned as "LAST 10 ROUNDS" below the
+        // stat. This makes the number a recency-weighted signal
+        // rather than a lifetime average that gets stickier as you
+        // play more. Falls back to "all rounds" copy when the user
+        // hasn't yet played 10.
+        const sortedByDate = fullRounds.slice().sort((a, b) => {
+          const ta = a.endedAt || a.startedAt || 0;
+          const tb = b.endedAt || b.startedAt || 0;
+          return tb - ta;
+        });
+        const recentN = sortedByDate.slice(0, 10);
+        const totalStrokes = recentN.reduce((s, r) => s + (r.totals?.strokes || 0), 0);
+        avgScore = Math.round(totalStrokes / recentN.length);
+        avgScoreHint = recentN.length === 10
+          ? 'Last 10 rounds'
+          : `Last ${recentN.length} round${recentN.length === 1 ? '' : 's'}`;
+
+        // Best is still computed across the full eligible history —
+        // your career-best round shouldn't disappear from the stats
+        // strip just because you haven't beaten it lately.
         const best = fullRounds.reduce((b, r) => {
           const s = r.totals?.strokes || Infinity;
           return s < b ? s : b;
         }, Infinity);
         if (best !== Infinity) bestRound = best;
-
-        // Avg score delta — last 30 days vs prior 30 days. Quietly
-        // skipped if either window has fewer than 2 rounds (sample
-        // too small to be meaningful).
-        const now = Date.now();
-        const day = 24 * 60 * 60 * 1000;
-        const thirty = 30 * day;
-        const sixty = 60 * day;
-        const recent = fullRounds.filter(r => {
-          const t = r.endedAt || r.startedAt || 0;
-          return now - t <= thirty;
-        });
-        const prior = fullRounds.filter(r => {
-          const t = r.endedAt || r.startedAt || 0;
-          return now - t > thirty && now - t <= sixty;
-        });
-        if (recent.length >= 2 && prior.length >= 2) {
-          const recentAvg = recent.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / recent.length;
-          const priorAvg = prior.reduce((s, r) => s + (r.totals?.strokes || 0), 0) / prior.length;
-          const delta = Math.round(recentAvg - priorAvg);
-          if (delta < 0) avgScoreHint = `↓ ${Math.abs(delta)} from last month`;
-          else if (delta > 0) avgScoreHint = `↑ ${delta} from last month`;
-          else avgScoreHint = 'Same as last month';
-        }
-
-        // Best round subtitle — course name + date. Identifies WHICH
-        // round produced the headline number. Skipped if we can't
-        // resolve the course (rare, but defensive).
         const bestRecord = fullRounds.find(r => (r.totals?.strokes || Infinity) === best);
         if (bestRecord) {
           const course = getCourse(bestRecord.courseId);
           const courseName = course?.name || bestRecord.courseName;
-          const t = bestRecord.endedAt || bestRecord.startedAt;
-          if (courseName && t) {
-            bestRoundHint = `${courseName} · ${formatRoundDate(t)}`;
-          } else if (courseName) {
-            bestRoundHint = courseName;
-          }
+          if (courseName) bestRoundHint = courseName;
         }
       }
     }
 
-    // Handicap calculation — returns a formatted number or em-dash, plus
-    // a small hint shown in the caption slot below the tile when the
-    // index isn't yet established. Once established, no caption — even
-    // provisional indices stand on their own without disclaimer.
+    // Handicap calculation — current index, plus delta vs ~30 days ago.
     const hcpResult = computeHandicapIndex();
     const hcpDisplay = formatHandicapIndex(hcpResult.index);
     let hcpHint = '';
@@ -58849,6 +58826,25 @@
       } else if (hcpResult.reason === 'need-more-rounds') {
         hcpHint = `${needed} more round${needed === 1 ? '' : 's'} to establish`;
       }
+    } else {
+      // Trajectory caption — "↓ 0.3 this month" / "↑ 0.2 this month".
+      // Computes the index against rounds older than 30 days, then
+      // diffs the current index against that historical snapshot.
+      // Quietly skipped when there isn't enough history >30 days ago
+      // to compute a valid index (need ≥3 differentials per the
+      // handicap algorithm).
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const olderRounds = (recentRounds || []).filter(r => {
+        const t = r.endedAt || r.startedAt || 0;
+        return t > 0 && t < cutoff;
+      });
+      const priorResult = computeHandicapIndexFrom(olderRounds);
+      if (priorResult.index != null) {
+        const delta = Math.round((hcpResult.index - priorResult.index) * 10) / 10;
+        if (delta < 0) hcpHint = `↓ ${Math.abs(delta).toFixed(1)} this month`;
+        else if (delta > 0) hcpHint = `↑ ${delta.toFixed(1)} this month`;
+        else hcpHint = 'Steady this month';
+      }
     }
 
     mount.innerHTML = `
@@ -58856,7 +58852,7 @@
         <div class="play-stat">
           <span class="play-stat-value">${hcpDisplay}</span>
           <span class="play-stat-label">Handicap</span>
-          ${hcpHint ? `<span class="play-stat-hint">${hcpHint}</span>` : ''}
+          ${hcpHint ? `<span class="play-stat-hint">${escapeHtml(hcpHint)}</span>` : ''}
         </div>
         <div class="play-stat">
           <span class="play-stat-value">${avgScore}</span>
