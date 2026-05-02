@@ -2527,18 +2527,6 @@
     position: relative;
     margin-bottom: var(--space-4);
   }
-  /* Sticky variant — pins the search bar to the top of the scroll
-     area so it stays accessible as the user scrolls through long
-     course lists. Background + small bottom padding ensure cards
-     scrolling beneath don't bleed visually into the input. */
-  .courses-search-sticky {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: var(--bg-page);
-    padding-block: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
   .courses-search-input {
     /* Inherit the base .input treatment but leave room on the right
        for the clear button when a query is active. */
@@ -3112,6 +3100,79 @@
   .tee-btn.active .tee-btn-yards { color: var(--color-accent-dark); }
 
   /* Tee info strip — yards/rating/slope/par for the selected tee */
+  /* Course Info card — hero yardage on top, three supporting stats
+     (rating, slope, par) below, separated by thin vertical dividers.
+     The hero gets the editorial big-serif treatment so the headline
+     metric reads instantly; the supporting row uses smaller numerals
+     for hierarchy. */
+  .tee-info-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-6) var(--space-5);
+    margin-bottom: var(--space-6);
+  }
+  .tee-info-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: var(--space-5);
+    margin-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .tee-info-hero-value {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 12vw, 64px);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  .tee-info-hero-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .tee-info-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .tee-info-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 var(--space-3);
+  }
+  .tee-info-cell + .tee-info-cell {
+    border-left: 1px solid var(--border-light);
+  }
+  .tee-info-cell-value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+  }
+  .tee-info-cell-label {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Legacy tee-info grid — kept for backward-compat in case any other
+     screen still references it. The new course-detail layout uses
+     .tee-info-hero + .tee-info-row above. */
   .tee-info {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -3782,6 +3843,127 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+  }
+
+  /* Compact friend chips — used on the lobby itself (vs. the verbose
+     row pattern used in the Manage Players sheet). Horizontal flex
+     row with wrapping; each chip has a small initials avatar + name.
+     Joined / Invited variants use muted treatments so the user can
+     tell at a glance which chips are still actionable. */
+  .lobby-friends-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .lobby-friend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px 10px 4px 4px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .lobby-friend-chip:hover:not(:disabled) {
+      border-color: var(--color-accent);
+      background: var(--color-accent-pale);
+    }
+  }
+  .lobby-friend-chip:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .lobby-friend-chip:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+  .lobby-friend-chip.is-invited {
+    background: var(--color-accent-pale);
+    border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    opacity: 1;
+  }
+  .lobby-friend-chip.is-joined {
+    background: var(--color-cream-100);
+    border-color: var(--border-light);
+    opacity: 0.8;
+  }
+  .lobby-friend-chip-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-white);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    flex-shrink: 0;
+  }
+  .lobby-friend-chip.is-invited .lobby-friend-chip-avatar,
+  .lobby-friend-chip.is-joined .lobby-friend-chip-avatar {
+    background: var(--text-muted);
+  }
+  .lobby-friend-chip-label {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+  }
+  .lobby-friend-see-all {
+    display: inline-block;
+    margin-top: var(--space-3);
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .lobby-friend-see-all:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  /* Inline tee-change link inside the player row + the expander
+     beneath it. The Change link sits to the right of the tee pill;
+     the expander renders the four tee chips when the link is tapped.
+     Pattern is the same .tee-selector / .tee-btn used on course
+     detail, just nested inside the player section. */
+  .lobby-player-tee-change {
+    margin-left: var(--space-2);
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .lobby-player-tee-change:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+  .lobby-player-tee-expander {
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    background: var(--color-cream-100);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
   }
 
   /* Format selector — two pills (Standard / Scramble) at the top of
@@ -10808,6 +10990,124 @@
      don't have the lobby's top-level padding around it. */
   .manage-sheet-body .lobby-section { margin-bottom: var(--space-5); }
   .manage-sheet-body .lobby-section:last-child { margin-bottom: 0; }
+
+  /* ── Tee picker bottom sheet — opens when the user taps "Change"
+     next to their tee on the lobby. Same chrome architecture as the
+     manage-sheet (backdrop fade + sheet slide via .opening/.closing
+     class toggles, drag-to-dismiss on the header). Sized to its
+     content rather than capped — the tee list is short (typically
+     4-8 options) so the sheet just hugs naturally. */
+  .tee-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8800;
+    background: rgba(13, 13, 13, 0.45);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tee-picker-backdrop.opening,
+  .tee-picker-backdrop.closing {
+    opacity: 0;
+  }
+  .tee-picker-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8801;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .tee-picker-sheet.opening,
+  .tee-picker-sheet.closing {
+    transform: translateY(100%);
+  }
+  .tee-picker-sheet.is-dragging { transition: none; }
+  .tee-picker-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-5) var(--space-5) var(--space-3);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tee-picker-sheet.is-dragging .tee-picker-header { cursor: grabbing; }
+  .tee-picker-grabber {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+  }
+  .tee-picker-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .tee-picker-close {
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-30%);
+    background: transparent;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  @media (hover: hover) {
+    .tee-picker-close:hover {
+      background: var(--color-cream-100);
+      color: var(--text-primary);
+    }
+  }
+  .tee-picker-body {
+    padding: var(--space-3) var(--space-5) var(--space-6);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
+  }
+  /* Stack the tee chips vertically inside the sheet (vs. the inline
+     tee-selector grid used elsewhere). Each row is full-width and
+     touch-friendly — bigger tap targets than the side-by-side grid. */
+  .tee-selector-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .tee-selector-stack .tee-btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
 
   /* ── Edit-score sheet — opens when you tap another player's cell in
      the group scorecard. Lightweight strokes/putts editor. Same
@@ -20252,6 +20552,69 @@
   /* Resume card at the top of Practice landing when a session is in
      progress. Same shape/feel as the round-invite banner but with
      practice vocabulary. */
+  /* Practice landing — additions for the Play-tab-mirror layout.
+     Recent session cards reuse the .range-history-card chrome but
+     get a small type-tag eyebrow on top so users can tell at a
+     glance whether each card is a Range or Short Game session. */
+  .practice-recent-card {
+    position: relative;
+  }
+  .practice-recent-card-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: var(--space-2);
+  }
+  /* Stat-value variant for short text strings (e.g. "7 IRON" in
+     the Most Practiced column). Keeps the serif weight but drops
+     the size so a multi-character word doesn't blow out the
+     column layout next to single-digit numbers. */
+  .play-stat-value-text {
+    font-size: var(--text-base);
+    line-height: 1.15;
+    /* Constrain to the column width and clamp long club names with
+       ellipsis. Without this, "Pitching Wedge" or a custom name
+       like "Driver 9.5°" can blow out the column. */
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline: var(--space-1);
+  }
+  /* Loading placeholder for the practice stats / recent sessions
+     mounts while the lazy-loaded session lists are in flight. */
+  .play-stats-loading {
+    padding: var(--space-6) 0;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+  }
+  /* Empty-state CTA — full-width card prompting the user to start
+     their first session. Inherits the .play-empty visual but uses
+     button semantics so it's tappable. */
+  .practice-empty-cta {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: var(--bg-elevated);
+    border: 1px dashed var(--border-light);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .practice-empty-cta:hover {
+      border-color: var(--color-accent);
+      background: var(--color-accent-pale);
+    }
+  }
+
   .practice-resume-card {
     display: flex;
     align-items: center;
@@ -29970,7 +30333,31 @@
         <h2>Practice</h2>
         <p class="panel-desc">Track range sessions, putting drills, and other skill-focused work — separate from on-course rounds.</p>
       </div>
-      <div id="practice-landing-mount"></div>
+      <!-- In-progress practice session resume banner — surfaced via
+           renderPracticeLanding when isAnyPracticeSessionActive(). -->
+      <div id="practice-resume-mount"></div>
+
+      <!-- YOUR PRACTICE — stats strip mirroring the Play tab's
+           "Your Game" section. Renders 3 quiet stats with vertical
+           dividers + a right-aligned "View detailed stats" link
+           below. -->
+      <div class="home-section-label home-section-label-prominent">Your Practice</div>
+      <div id="practice-stats-mount"></div>
+
+      <!-- PRACTICE MODES — the four entry points (GPS Range, Range,
+           Short Game, Course Practice) plus the Coming Soon putting
+           card. Sits above Recent Sessions so tapping a mode is one
+           scroll-free action; the data sections below provide
+           context once the user has history to look at. -->
+      <div class="home-section-label home-section-label-prominent">Practice Modes</div>
+      <div id="practice-modes-mount"></div>
+
+      <!-- RECENT SESSIONS — mirrors Play's Recent Rounds. Up to 3
+           recent sessions across both range + short-game types,
+           sorted by start time desc. "See all sessions →" footer
+           link routes to the unified history page. -->
+      <div class="home-section-label home-section-label-prominent">Recent Sessions</div>
+      <div id="practice-recent-mount"></div>
     </section>
 
     <!-- ═══════════════ RANGE SESSION ═══════════════ -->
@@ -30372,6 +30759,14 @@
      a user taps ✗ on FIR or GIR. Lives at body level for the same
      reasons as the dock mount (escape ancestor transforms). -->
 <div id="miss-modal-mount"></div>
+
+<!-- TEE PICKER sheet mount — populated by renderTeePicker() when the
+     user taps the "Change" link next to their tee on the lobby or
+     in the round panel. Bottom sheet listing the available tees for
+     the current course. Body-level so the slide-up animation isn't
+     constrained by the panel's transform-based slide-in (transforms
+     create a containing block, breaking position: fixed). -->
+<div id="tee-picker-mount"></div>
 
 <!-- MANAGE PLAYERS sheet mount — populated by renderManagePlayersSheet()
      when the user taps the manage button on the round panel's "Playing
@@ -33773,7 +34168,27 @@
     if (id === 'workout') renderWorkoutPanel();
     if (id === 'group-lobby') renderGroupLobby();
     if (id === 'group-round') renderGroupRoundPanel();
-    if (id === 'practice') renderPracticeLanding();
+    if (id === 'practice') {
+      renderPracticeLanding();
+      // Always fetch on panel show. The loaded flag isn't reliable
+      // because earlier no-auth calls set it to true with an empty
+      // array, then the gate skips the real fetch once auth lands.
+      // A single Firestore query per visit is cheap; correctness >
+      // saving one round trip.
+      if (currentUser && window.fb) {
+        (async () => {
+          try {
+            await Promise.all([
+              loadRangeSessionsHistory(),
+              loadShortGameSessionsHistory(),
+            ]);
+          } catch (err) {
+            console.error('Failed to load practice histories:', err);
+          }
+          if (currentPanelId === 'practice') renderPracticeLanding();
+        })();
+      }
+    }
     if (id === 'range-session') renderRangeSession();
     if (id === 'range-history') renderRangeHistory();
     if (id === 'range-session-detail') renderRangeSessionDetail();
@@ -39508,6 +39923,25 @@
       // wouldn't appear on a cold-load — the panel mounts before
       // these caches are populated.
       if (currentPanelId === 'play') renderPlayLanding();
+      // Same idea for Practice — if the user is sitting on the Practice
+      // tab when auth resolves, kick off the lazy load and re-render
+      // once it lands. Otherwise the Your Practice + Recent Sessions
+      // sections sit on the empty state forever (no signed-in user
+      // when the panel first rendered → nothing to load).
+      if (currentPanelId === 'practice') {
+        renderPracticeLanding();
+        (async () => {
+          try {
+            await Promise.all([
+              loadRangeSessionsHistory(),
+              loadShortGameSessionsHistory(),
+            ]);
+          } catch (err) {
+            console.error('Failed to load practice histories:', err);
+          }
+          if (currentPanelId === 'practice') renderPracticeLanding();
+        })();
+      }
       // Refresh the "N courses available" count — it was set at parse
       // time when coursesCache held only the seed array; now that
       // loadCourses() has populated the full Firestore catalog, the
@@ -40030,15 +40464,13 @@
         </button>`;
     }
 
-    // Search input — always shown when there's more than 1 course.
-    // Sticky at the top of the scroll area so it stays accessible
-    // as the user scrolls through long course lists. Search is the
-    // primary action on this screen, hence its placement above any
-    // section content.
+    // Search input — inline at the top of the list (not sticky).
+    // Always shown when there's more than 1 course; hidden entirely
+    // for single-course installs (nothing to search).
     const showSearch = allCourses.length > 1;
     const q = coursesListState.searchQuery.trim().toLowerCase();
     const searchHtml = showSearch ? `
-      <div class="courses-search courses-search-sticky">
+      <div class="courses-search">
         <input type="text"
                id="courses-search-input"
                class="input courses-search-input"
@@ -40089,8 +40521,8 @@
         )
       : sorted;
 
-    // Section label: "Search results" when filtering, "All courses"
-    // when Nearby is also shown above, no label otherwise.
+    // Section label: "N results" when filtering, "All courses" when
+    // Nearby is also shown above, no label otherwise.
     let allLabel = '';
     if (q) {
       allLabel = `${filtered.length} result${filtered.length === 1 ? '' : 's'}`;
@@ -40223,7 +40655,6 @@
 
     mount.innerHTML = `
       <div class="course-detail-head">
-        <div class="course-detail-eyebrow">Course Catalog</div>
         <h2 class="course-detail-title">${escapeHtml(course.name)}</h2>
         <p class="course-detail-meta">${escapeHtml(course.location)}</p>
       </div>
@@ -40278,16 +40709,32 @@
         </button>
       </div>
 
-      <!-- Tee reference stats — key at-a-glance numbers (yards/rating/
-           slope/par) for the selected tee. Positioned right after the
-           Start card so they update alongside the tee selection and
-           give the user the core "how hard is this" signal before the
-           deeper scorecard reference below. -->
-      <div class="tee-info">
-        <div class="tee-info-stat"><span class="tee-info-value">${tee.totalYards.toLocaleString()}</span><span class="tee-info-label">Yards</span></div>
-        <div class="tee-info-stat"><span class="tee-info-value">${tee.rating ?? '—'}</span><span class="tee-info-label">Rating</span></div>
-        <div class="tee-info-stat"><span class="tee-info-value">${tee.slope ?? '—'}</span><span class="tee-info-label">Slope</span></div>
-        <div class="tee-info-stat"><span class="tee-info-value">${totalPar}</span><span class="tee-info-label">Par</span></div>
+      <!-- Tee reference stats. Hero yardage on top (the most variable
+           and interesting number — changes per tee selection), then
+           a row of three supporting stats (rating, slope, par)
+           separated by thin vertical dividers. The two-tier layout
+           creates clear hierarchy and reads as a single grouped
+           section. Updates alongside the tee selection above. -->
+      <div class="course-detail-section-label">Course Info</div>
+      <div class="tee-info-card">
+        <div class="tee-info-hero">
+          <span class="tee-info-hero-value">${tee.totalYards.toLocaleString()}</span>
+          <span class="tee-info-hero-label">Yards from ${escapeHtml(tee.name)}</span>
+        </div>
+        <div class="tee-info-row">
+          <div class="tee-info-cell">
+            <span class="tee-info-cell-value">${tee.rating ?? '—'}</span>
+            <span class="tee-info-cell-label">Rating</span>
+          </div>
+          <div class="tee-info-cell">
+            <span class="tee-info-cell-value">${tee.slope ?? '—'}</span>
+            <span class="tee-info-cell-label">Slope</span>
+          </div>
+          <div class="tee-info-cell">
+            <span class="tee-info-cell-value">${totalPar}</span>
+            <span class="tee-info-cell-label">Par</span>
+          </div>
+        </div>
       </div>
 
       <div class="course-detail-section-label">Scorecard</div>
@@ -40316,10 +40763,6 @@
             </tfoot>
           </table>
         </div>
-      </div>
-      <div class="scorecard-total">
-        <span>Total</span>
-        <span>${tee.totalYards.toLocaleString()} yd · Par ${totalPar}</span>
       </div>
 
       <!-- GPS / Green coordinates section — Phase 1 of the GPS feature.
@@ -40914,6 +41357,143 @@
   // Called on: panel entry, after invite-send, after kick, after
   // the realtime subscription fires an updated doc.
   // ─────────────────────────────────────────────────────────────
+  // Tee picker bottom sheet — slides up from the bottom of the
+  // viewport when the user taps "Change" next to their tee on the
+  // lobby player card. Lives at body level (mount #tee-picker-mount)
+  // so the slide animation isn't constrained by the lobby panel's
+  // own transform. Mirrors the manage-players + add-guest sheet
+  // pattern: backdrop fade + sheet slide via .opening / .closing
+  // class toggles, drag-to-dismiss on the header.
+  const teePickerSheetState = { open: false };
+
+  function openTeePicker() {
+    if (teePickerSheetState.open) return;
+    teePickerSheetState.open = true;
+    acquireScrollLock();
+    renderTeePicker();
+  }
+  window.openTeePicker = openTeePicker;
+
+  function closeTeePicker() {
+    if (!teePickerSheetState.open) return;
+    const el = document.querySelector('.tee-picker-sheet');
+    const backdrop = document.querySelector('.tee-picker-backdrop');
+    if (!el || !backdrop) {
+      teePickerSheetState.open = false;
+      releaseScrollLock();
+      renderTeePicker();
+      return;
+    }
+    void el.offsetHeight;
+    void backdrop.offsetHeight;
+    el.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      teePickerSheetState.open = false;
+      releaseScrollLock();
+      renderTeePicker();
+    };
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      el.removeEventListener('transitionend', onEnd);
+      finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(finish, 320);
+  }
+  window.closeTeePicker = closeTeePicker;
+
+  function selectTeeFromPicker(teeName) {
+    changeMyGroupRoundTee(teeName);
+    closeTeePicker();
+  }
+  window.selectTeeFromPicker = selectTeeFromPicker;
+
+  function renderTeePicker() {
+    const mount = document.getElementById('tee-picker-mount');
+    if (!mount) return;
+    if (!teePickerSheetState.open) {
+      mount.innerHTML = '';
+      return;
+    }
+    const gr = groupRoundState.doc;
+    if (!gr) {
+      mount.innerHTML = '';
+      return;
+    }
+    const course = getCourse(gr.courseId);
+    if (!course || !Array.isArray(course.tees)) {
+      mount.innerHTML = '';
+      return;
+    }
+    const me = (gr.players || []).find(p => p.uid === currentUser?.uid);
+    const myTeeName = me?.tee || course.tees[0]?.name;
+    const visibleTees = getVisibleTees(course);
+    if (!visibleTees.length) {
+      mount.innerHTML = '';
+      return;
+    }
+
+    const chips = visibleTees.map(t => {
+      const active = t.name === myTeeName;
+      return `
+        <button class="tee-btn${active ? ' active' : ''}"
+                onclick="selectTeeFromPicker('${escapeAttr(t.name)}')"
+                aria-pressed="${active}">
+          <span class="tee-btn-swatch" style="background:${t.color};border-color:${t.color}"></span>
+          <span class="tee-btn-name">${escapeHtml(t.name)}</span>
+          <span class="tee-btn-yards">${t.totalYards.toLocaleString()} yd</span>
+        </button>`;
+    }).join('');
+
+    // First render — build full sheet + trigger open animation. On
+    // re-renders (e.g. tee selection updates state), only the body
+    // chips get refreshed so the slide-in animation isn't restarted.
+    const existingSheet = mount.querySelector('.tee-picker-sheet');
+    if (existingSheet && !existingSheet.classList.contains('closing')) {
+      const body = existingSheet.querySelector('.tee-picker-body');
+      if (body) body.innerHTML = `<div class="tee-selector tee-selector-stack">${chips}</div>`;
+      return;
+    }
+
+    mount.innerHTML = `
+      <div class="tee-picker-backdrop opening" onclick="closeTeePicker()" aria-hidden="true"></div>
+      <div class="tee-picker-sheet opening" role="dialog" aria-modal="true" aria-label="Choose your tee">
+        <div class="tee-picker-header">
+          <div class="tee-picker-grabber" aria-hidden="true"></div>
+          <div class="tee-picker-title">Your Tee</div>
+          <button class="tee-picker-close" onclick="closeTeePicker()" aria-label="Close">×</button>
+        </div>
+        <div class="tee-picker-body">
+          <div class="tee-selector tee-selector-stack">${chips}</div>
+        </div>
+      </div>
+    `;
+
+    const sheet = mount.querySelector('.tee-picker-sheet.opening');
+    const backdrop = mount.querySelector('.tee-picker-backdrop.opening');
+    if (sheet) {
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    }
+
+    const fullSheet = mount.querySelector('.tee-picker-sheet');
+    const header = fullSheet?.querySelector('.tee-picker-header');
+    attachBottomSheetDrag({
+      sheetEl: fullSheet,
+      headerEl: header,
+      backdropSelector: '.tee-picker-backdrop',
+      ignoreSelector: '.tee-picker-close',
+      closeFn: closeTeePicker,
+    });
+  }
+
   function renderGroupLobby() {
     const mount = document.getElementById('group-lobby-mount');
     if (!mount) return;
@@ -41016,36 +41596,19 @@
         </div>`;
     }
 
-    // ── Your Tee picker — uses the same .tee-selector / .tee-btn
-    //    pattern as the course-detail page so it feels consistent
-    //    across the app. Each tap updates the player's tee entry on
-    //    the group-round doc; fans out via the snapshot subscription.
-    //    Only YOUR tee is editable here (each player picks their own).
-    let teeChangeHtml = '';
-    if (course && Array.isArray(course.tees)) {
-      const visibleTees = getVisibleTees(course);
-      const chips = visibleTees.map(t => {
-        const active = t.name === myTeeName;
-        return `
-          <button class="tee-btn${active ? ' active' : ''}"
-                  onclick="changeMyGroupRoundTee('${escapeAttr(t.name)}')"
-                  aria-pressed="${active}">
-            <span class="tee-btn-swatch" style="background:${t.color};border-color:${t.color}"></span>
-            <span class="tee-btn-name">${escapeHtml(t.name)}</span>
-            <span class="tee-btn-yards">${t.totalYards.toLocaleString()} yd</span>
-          </button>`;
-      }).join('');
-      teeChangeHtml = `
-        <div class="lobby-section">
-          <div class="lobby-section-label">Your Tee</div>
-          <div class="tee-selector">${chips}</div>
-        </div>`;
-    }
+    // ── Tee picker — moved INTO each player card (see playerRows
+    //    below). Tap "Change" → bottom sheet slides up with the tee
+    //    options. The standalone "Your Tee" section was retired in
+    //    favor of this pattern so multiplayer rounds scale naturally
+    //    (each player gets their own tee control on their own card).
+    const visibleTees = (course && Array.isArray(course.tees)) ? getVisibleTees(course) : [];
 
     // Player rows — organizer badge, my-self label, kick button for
     // others when current user is organizer. Guests get a "guest"
     // badge + are removable by anyone (no organizer-only gate, since
-    // guests aren't real users with permissions to violate).
+    // guests aren't real users with permissions to violate). The
+    // current user's own row gets a "Change" link next to their tee
+    // pill that opens the tee-picker bottom sheet.
     const playerRows = players.map(p => {
       const isMe = p.uid === currentUser?.uid;
       const isOrg = p.uid === gr.organizerUid;
@@ -41064,6 +41627,15 @@
       } else if (isOrganizer && !isMe) {
         removeBtn = `<button class="lobby-player-kick" onclick="kickPlayerFromGroupRound('${p.uid}')" aria-label="Remove ${escapeHtml(name)}">×</button>`;
       }
+      // Inline tee-change affordance — only for the current user (not
+      // guests, not other real players). Tapping opens the tee-picker
+      // bottom sheet. Tee changes propagate to the lobby via the
+      // group-round snapshot subscription, so the pill updates
+      // automatically when the sheet closes.
+      const canEditTee = isMe && !isGuest && visibleTees.length > 0;
+      const changeBtn = canEditTee
+        ? `<button class="lobby-player-tee-change" onclick="openTeePicker()">Change</button>`
+        : '';
       return `
         <div class="lobby-player-row">
           <div class="lobby-player-info">
@@ -41072,6 +41644,7 @@
             ${meBadge}
             ${guestBadge}
             ${teeLabel}
+            ${changeBtn}
           </div>
           ${removeBtn}
         </div>`;
@@ -41186,15 +41759,15 @@
         `;
       })()}
 
-      ${renderLobbyFriendsList(playerUidsSet)}
-
-      ${teeChangeHtml}
+      ${renderLobbyFriendsCompact(playerUidsSet)}
 
       ${coursePreviewHtml}
 
       <!-- Leave link sits inline at the bottom of scrollable content;
            the Start Round CTA lives in the fixed bottom action bar
-           rendered separately at body level. -->
+           rendered separately at body level. The X / back arrow at
+           the top just navigates away without ending the round —
+           this link explicitly abandons it (with confirmation). -->
       <div class="lobby-leave-row">
         <button class="round-btn-link round-btn-end" onclick="confirmLeaveGroupRound()">${isOrganizer ? 'Cancel Lobby' : 'Leave Round'}</button>
       </div>
@@ -41363,6 +41936,70 @@
       <div class="lobby-section">
         <div class="lobby-section-label">Invite Friends</div>
         <div class="lobby-friends">${rows}</div>
+      </div>`;
+  }
+
+  // Compact version of the friends list — used on the lobby itself
+  // where vertical real estate matters. Renders up to 5 friends as
+  // small avatar+name chips in a single horizontal row, with a
+  // "See all friends →" link that opens the existing Manage Players
+  // sheet (which has the full list view). Tapping a chip sends the
+  // invite immediately and the chip flips to an Invited state.
+  function renderLobbyFriendsCompact(playerUidsSet) {
+    if (!friendsList || friendsList.length === 0) {
+      return `
+        <div class="lobby-section">
+          <div class="lobby-section-label">Invite Friends</div>
+          <div class="lobby-empty-msg">You haven't added any friends yet. Find them on the Social page.</div>
+        </div>`;
+    }
+    const MAX_CHIPS = 5;
+    // Order: pending-invitable first (most actionable), then joined,
+    // then already-invited. Within each bucket, original friendsList
+    // order. This way the user sees what they can act on first.
+    const sortable = friendsList.map(f => {
+      const alreadyIn = playerUidsSet.has(f.uid);
+      const alreadyInvited = isInviteStillSent(f.uid);
+      let bucket = 0;
+      if (alreadyIn) bucket = 2;
+      else if (alreadyInvited) bucket = 1;
+      else bucket = 0;
+      return { f, bucket, alreadyIn, alreadyInvited };
+    });
+    sortable.sort((a, b) => a.bucket - b.bucket);
+    const visible = sortable.slice(0, MAX_CHIPS);
+    const chips = visible.map(({ f, alreadyIn, alreadyInvited }) => {
+      const name = f.usernameDisplay || f.username || 'Friend';
+      const initials = (name[0] || '?').toUpperCase();
+      let cls = 'lobby-friend-chip';
+      let label = name;
+      let onclick = `onclick="inviteFriendToGroupRound('${f.uid}')"`;
+      let disabled = '';
+      if (alreadyIn) {
+        cls += ' is-joined';
+        label = `${name} · Joined`;
+        onclick = '';
+        disabled = 'disabled';
+      } else if (alreadyInvited) {
+        cls += ' is-invited';
+        label = `${name} · Invited`;
+        onclick = '';
+        disabled = 'disabled';
+      }
+      return `
+        <button class="${cls}" ${onclick} ${disabled}>
+          <span class="lobby-friend-chip-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+          <span class="lobby-friend-chip-label">${escapeHtml(label)}</span>
+        </button>`;
+    }).join('');
+    const seeAll = friendsList.length > MAX_CHIPS
+      ? `<button class="lobby-friend-see-all" onclick="openManagePlayersSheet()">See all friends →</button>`
+      : '';
+    return `
+      <div class="lobby-section">
+        <div class="lobby-section-label">Invite Friends</div>
+        <div class="lobby-friends-chips">${chips}</div>
+        ${seeAll}
       </div>`;
   }
 
@@ -51864,48 +52501,273 @@
   // either opens an in-progress session of that type (if one exists)
   // or starts a new one.
   function renderPracticeLanding() {
-    const mount = document.getElementById('practice-landing-mount');
+    // Composed of independent sub-renders, mirroring renderPlayLanding.
+    // Each sub-render targets its own mount and bails gracefully if
+    // the mount isn't there (panel may not be mounted yet).
+    renderPracticeResumeBanner();
+    renderPracticeStats();
+    renderRecentPracticeSessions();
+    renderPracticeModes();
+  }
+
+  // In-progress session resume card. Same logic as the old inline
+  // version — type-aware copy + destination + subtitle. Renders
+  // nothing when there's no active session.
+  function renderPracticeResumeBanner() {
+    const mount = document.getElementById('practice-resume-mount');
+    if (!mount) return;
+    if (!isAnyPracticeSessionActive()) {
+      mount.innerHTML = '';
+      return;
+    }
+    const doc = practiceSessionState.doc;
+    const shots = doc.shots || [];
+    const isShort = doc.type === 'shortgame';
+    const isCourse = doc.type === 'course-practice';
+    let eyebrow, target, subtitle;
+    if (isShort) {
+      eyebrow = 'Short Game Session In Progress';
+      target = 'shortgame-session';
+      subtitle = `${shots.length} shot${shots.length === 1 ? '' : 's'} logged`;
+    } else if (isCourse) {
+      eyebrow = 'Course Practice In Progress';
+      target = 'course-practice-session';
+      const holeNum = doc.holes[doc.currentHoleIdx]?.holeNumber || 1;
+      const total = doc.holes.length;
+      subtitle = `Hole ${holeNum} of ${total}`;
+    } else {
+      eyebrow = 'Range Session In Progress';
+      target = 'range-session';
+      subtitle = `${shots.length} shot${shots.length === 1 ? '' : 's'} logged`;
+    }
+    mount.innerHTML = `
+      <button class="practice-resume-card" onclick="showPanel('${target}', null)">
+        <div class="practice-resume-body">
+          <div class="practice-resume-eyebrow">${eyebrow}</div>
+          <div class="practice-resume-title">${subtitle}</div>
+          <div class="practice-resume-desc">Tap to continue where you left off.</div>
+        </div>
+        <div class="practice-resume-arrow" aria-hidden="true">→</div>
+      </button>
+    `;
+  }
+
+  // YOUR PRACTICE stats strip — mirrors the Play tab's Your Game
+  // section. Renders 3 stats with vertical dividers + a "View
+  // detailed stats" link. Empty state for users with no completed
+  // sessions yet shows a nudge to start their first session.
+  function renderPracticeStats() {
+    const mount = document.getElementById('practice-stats-mount');
     if (!mount) return;
 
-    // If there's an in-progress practice session (any type), surface a
-    // prominent "Continue" card at the top. Copy + destination vary by
-    // session type. Mirrors the Play hero's resume pattern.
-    const inProgressBanner = (() => {
-      if (!isAnyPracticeSessionActive()) return '';
-      const doc = practiceSessionState.doc;
-      const shots = doc.shots || [];
-      const isShort = doc.type === 'shortgame';
-      const isCourse = doc.type === 'course-practice';
-      let eyebrow, target, subtitle;
-      if (isShort) {
-        eyebrow = 'Short Game Session In Progress';
-        target = 'shortgame-session';
-        subtitle = `${shots.length} shot${shots.length === 1 ? '' : 's'} logged`;
-      } else if (isCourse) {
-        eyebrow = 'Course Practice In Progress';
-        target = 'course-practice-session';
-        const holeNum = doc.holes[doc.currentHoleIdx]?.holeNumber || 1;
-        const total = doc.holes.length;
-        subtitle = `Hole ${holeNum} of ${total}`;
-      } else {
-        eyebrow = 'Range Session In Progress';
-        target = 'range-session';
-        subtitle = `${shots.length} shot${shots.length === 1 ? '' : 's'} logged`;
+    // Read whatever's in memory. The lazy-load triggered by the panel
+    // show populates these arrays; if they're still empty when this
+    // first renders, the empty-state CTA serves both "loading" and
+    // "truly empty" cases — visually identical to the user, and the
+    // re-render after load completion swaps in real data.
+    const allSessions = [
+      ...rangeSessionsHistory,
+      ...shortGameSessionsHistory,
+    ];
+
+    // Empty state — no completed practice sessions yet (or still
+    // loading). Single full-width card prompting the user to start.
+    // Tapping scrolls to the Practice Modes section below.
+    if (allSessions.length === 0) {
+      mount.innerHTML = `
+        <button class="play-empty practice-empty-cta" onclick="document.getElementById('practice-modes-mount')?.scrollIntoView({behavior:'smooth', block:'start'})">
+          <div class="play-empty-title">Start your first session</div>
+          <div class="play-empty-sub">Pick a practice mode below to start tracking shots, distances, and proximity.</div>
+        </button>`;
+      return;
+    }
+
+    // Sessions this month — based on startTime falling inside the
+    // current calendar month. Cheap and obvious; no week-rolling
+    // complications.
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const sessionsThisMonth = allSessions.filter(s => (s.startTime || 0) >= monthStart).length;
+
+    // Total shots across all sessions of any type. Cheap aggregate
+    // since shots are already in memory on each session record.
+    let totalShots = 0;
+    for (const s of allSessions) {
+      totalShots += (s.shots?.length || 0);
+    }
+
+    // Most practiced club — count shots per clubId across both
+    // session types. Pick the club with the highest count. Falls back
+    // to em-dash if no shots have a clubId (shouldn't happen, but
+    // defensive). Display name comes from the clubs catalog so it
+    // renders as e.g. "7 IRON" / "PW" rather than the raw id.
+    const clubCounts = new Map();
+    for (const s of allSessions) {
+      for (const sh of (s.shots || [])) {
+        if (!sh.clubId) continue;
+        clubCounts.set(sh.clubId, (clubCounts.get(sh.clubId) || 0) + 1);
       }
-      return `
-        <button class="practice-resume-card" onclick="showPanel('${target}', null)">
-          <div class="practice-resume-body">
-            <div class="practice-resume-eyebrow">${eyebrow}</div>
-            <div class="practice-resume-title">${subtitle}</div>
-            <div class="practice-resume-desc">Tap to continue where you left off.</div>
-          </div>
-          <div class="practice-resume-arrow" aria-hidden="true">→</div>
-        </button>
-      `;
-    })();
+    }
+    let mostPracticedDisplay = '—';
+    if (clubCounts.size > 0) {
+      let topClubId = null;
+      let topCount = 0;
+      for (const [id, count] of clubCounts) {
+        if (count > topCount) { topCount = count; topClubId = id; }
+      }
+      // Resolve clubId → display name by looking up the bag entry
+      // directly. Practice shots store the bag's `id` field
+      // (e.g. "Club_mo6cln3d_tpogs"), NOT a name-hash key, so
+      // clubLabelFromKey's name-hash lookup wouldn't find it.
+      const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+      const club = bag.find(c => c.id === topClubId);
+      mostPracticedDisplay = club?.name || topClubId || '—';
+    }
 
     mount.innerHTML = `
-      ${inProgressBanner}
+      <div class="play-stats">
+        <div class="play-stat">
+          <span class="play-stat-value">${sessionsThisMonth}</span>
+          <span class="play-stat-label">Sessions This Month</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value">${totalShots.toLocaleString()}</span>
+          <span class="play-stat-label">Total Shots</span>
+        </div>
+        <div class="play-stat">
+          <span class="play-stat-value play-stat-value-text">${escapeHtml(mostPracticedDisplay)}</span>
+          <span class="play-stat-label">Most Practiced</span>
+        </div>
+      </div>
+      ${allSessions.length > 0 ? `
+        <div class="play-stats-link-row">
+          <a class="play-stats-link" role="button" tabindex="0"
+             onclick="openRangeHistory()"
+             onkeydown="if(event.key==='Enter'){openRangeHistory()}">
+            View detailed stats →
+          </a>
+        </div>
+      ` : ''}`;
+  }
+
+  // RECENT SESSIONS — up to 3 most recent practice sessions across
+  // both range and short-game types, mixed chronologically. Each card
+  // shows a small type tag, the date, a metadata row, and 3 stats.
+  // Tapping opens the type-appropriate session detail page.
+  function renderRecentPracticeSessions() {
+    const mount = document.getElementById('practice-recent-mount');
+    if (!mount) return;
+
+    // Mix range + short-game sessions and sort by startTime desc.
+    // Each entry carries its source type so we can render the right
+    // card variant + route taps correctly. Reads whatever's in
+    // memory; the lazy-load on panel-show populates these arrays
+    // and triggers a re-render when they arrive.
+    const all = [
+      ...rangeSessionsHistory.map(s => ({ ...s, _type: 'range' })),
+      ...shortGameSessionsHistory.map(s => ({ ...s, _type: 'shortgame' })),
+    ].sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+
+    if (all.length === 0) {
+      mount.innerHTML = `
+        <div class="play-empty">
+          <div class="play-empty-title">No sessions yet</div>
+          <div class="play-empty-sub">Sessions appear here after you end them. Pick a practice mode below to start your first.</div>
+        </div>`;
+      return;
+    }
+
+    const top = all.slice(0, 3);
+
+    const cards = top.map(s => {
+      const dateStr = formatRoundDate(s.startTime);
+      const typeLabel = s._type === 'shortgame' ? 'Short Game' : 'Range';
+      const isShort = s._type === 'shortgame';
+      const onclick = isShort
+        ? `openShortGameSessionDetail('${escapeAttr(s.id)}')`
+        : `openRangeSessionDetail('${escapeAttr(s.id)}')`;
+
+      // Stat shape differs by type: range gets shots/avg/max distance,
+      // short game gets shots/avg-proximity/best-proximity.
+      let stats;
+      if (isShort) {
+        const shots = s.shots || [];
+        const count = shots.length;
+        const deltas = shots.map(sh => Math.abs(sh.delta || 0));
+        const avgDelta = count > 0 ? Math.round(deltas.reduce((a, b) => a + b, 0) / count) : 0;
+        const bestDelta = count > 0 ? Math.min(...deltas) : 0;
+        // Duration calculated similarly to range
+        let durationMin = 0;
+        if (s.startTime && s.endTime) {
+          durationMin = Math.max(1, Math.round((s.endTime - s.startTime) / 60000));
+        }
+        const meta = `${durationMin > 0 ? durationMin + ' min · ' : ''}${count} shot${count === 1 ? '' : 's'}`;
+        stats = {
+          meta,
+          col1: { value: count, label: 'Shots' },
+          col2: { value: `${avgDelta}<span>${distanceUnit()}</span>`, label: 'Avg Off' },
+          col3: { value: `${bestDelta}<span>${distanceUnit()}</span>`, label: 'Best' },
+        };
+      } else {
+        const stat = sessionSummaryStats(s);
+        const meta = `${stat.durationMin > 0 ? stat.durationMin + ' min · ' : ''}${stat.clubCount} club${stat.clubCount === 1 ? '' : 's'} worked`;
+        stats = {
+          meta,
+          col1: { value: stat.count, label: 'Shots' },
+          col2: { value: `${stat.avg}<span>${distanceUnit()}</span>`, label: 'Avg' },
+          col3: { value: `${stat.max}<span>${distanceUnit()}</span>`, label: 'Max' },
+        };
+      }
+
+      return `
+        <button class="range-history-card practice-recent-card" onclick="${onclick}">
+          <div class="practice-recent-card-eyebrow">${escapeHtml(typeLabel)}</div>
+          <div class="range-history-card-head">
+            <div class="range-history-card-date">${escapeHtml(dateStr)}</div>
+            <div class="range-history-card-arrow">→</div>
+          </div>
+          <div class="range-history-card-meta">${stats.meta}</div>
+          <div class="range-history-card-stats">
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.col1.value}</div>
+              <div class="range-history-stat-label">${stats.col1.label}</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.col2.value}</div>
+              <div class="range-history-stat-label">${stats.col2.label}</div>
+            </div>
+            <div class="range-history-stat">
+              <div class="range-history-stat-value">${stats.col3.value}</div>
+              <div class="range-history-stat-label">${stats.col3.label}</div>
+            </div>
+          </div>
+        </button>`;
+    }).join('');
+
+    // "See all sessions →" footer link. For now this routes to the
+    // range history page (which has the most sessions and is the
+    // closest existing surface). Future: build a unified history
+    // page with type filter chips. Logged in the deferred queue.
+    const seeAllFooter = all.length > top.length ? `
+      <div class="play-rounds-footer">
+        <a role="button" tabindex="0" class="play-rounds-see-all"
+           onclick="openRangeHistory()"
+           onkeydown="if(event.key==='Enter'){openRangeHistory()}">
+          See all ${all.length} sessions →
+        </a>
+      </div>
+    ` : '';
+
+    mount.innerHTML = `<div class="range-history-list">${cards}</div>${seeAllFooter}`;
+  }
+
+  // PRACTICE MODES — the four entry-point cards plus the Coming Soon
+  // putting card. Static markup; previously was the entire body of
+  // renderPracticeLanding.
+  function renderPracticeModes() {
+    const mount = document.getElementById('practice-modes-mount');
+    if (!mount) return;
+    mount.innerHTML = `
       <div class="practice-types">
         <!-- TEMP entry point for the new GPS Range Session (scaffold).
              Will be replaced with a proper menu / replace the existing
@@ -51961,7 +52823,6 @@
         <button class="practice-type-card" onclick="startCoursePractice()">
           <div class="practice-type-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <!-- Course / fairway icon -->
               <path d="M3 20h18"/>
               <path d="M7 20V8l4-4"/>
               <path d="M11 4v16"/>
@@ -51990,19 +52851,6 @@
           </div>
         </div>
       </div>
-
-      ${currentUser ? `
-        <div class="practice-history-link-wrap">
-          <button class="practice-history-link" onclick="openRangeHistory()">
-            <span class="practice-history-link-label">View Range History</span>
-            <span class="practice-history-link-arrow">→</span>
-          </button>
-          <button class="practice-history-link" onclick="openShortGameHistory()">
-            <span class="practice-history-link-label">View Short Game History</span>
-            <span class="practice-history-link-arrow">→</span>
-          </button>
-        </div>
-      ` : ''}
     `;
   }
 
