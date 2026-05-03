@@ -31264,7 +31264,7 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-5);
+      right: var(--space-6);
       top: 4px;
       transform: none;
       font-family: var(--font-body);
@@ -31310,7 +31310,7 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-5);
+      right: var(--space-6);
       top: 4px;
       transform: none;
       font-family: var(--font-mono);
@@ -31463,77 +31463,13 @@
       background-color: transparent;
       z-index: var(--z-dropdown);
     }
-    /* Status-bar blur — TWO stacked strips for a smooth falloff
-       instead of one masked strip. The mask-on-backdrop-filter
-       approach leaves a visible boundary at the filter's physical
-       edge (Safari renders the blur to a discrete region regardless
-       of the mask). With two layers each fading into the next, the
-       falloff has no single sharp boundary.
-
-       Layer 1 (::before): primary blur over the very top of the
-         screen, taller. Carries most of the tint.
-       Layer 2 (::after): lighter blur that extends a bit below
-         layer 1, taking over as layer 1's mask fades it out.
-         Catches any residual edge-line from layer 1 and softens
-         the transition into untreated content.
-
-       Both layers are masked with extended fade ranges so each
-       individual blur boundary is invisible. */
-    .mobile-topbar::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: calc(env(safe-area-inset-top, 0px) + 32px);
-      background-color: color-mix(in srgb, var(--bg-page) 20%, transparent);
-      backdrop-filter: blur(4px) saturate(120%);
-      -webkit-backdrop-filter: blur(4px) saturate(120%);
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 40%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 40%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-    }
-    .mobile-topbar::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      /* Layer 2 extends ~10px past layer 1's bottom edge, taking
-         over the falloff with a much lighter blur. */
-      height: calc(env(safe-area-inset-top, 0px) + 44px);
-      backdrop-filter: blur(1.5px);
-      -webkit-backdrop-filter: blur(1.5px);
-      /* No bg tint on layer 2 — its job is to hide the edge of
-         layer 1's blur with a weaker blur that continues the
-         falloff. Mask starts opaque only where layer 1's mask
-         starts fading (~40%), and fades fully by the end. */
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.8) 30%,
-        rgba(0, 0, 0, 0.8) 60%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.8) 30%,
-        rgba(0, 0, 0, 0.8) 60%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      pointer-events: none;
-    }
+    /* Status-bar blur strip — temporarily removed. The blur was
+       proving difficult to render without a visible boundary line,
+       and the visual benefit didn't justify the complexity. Topbar
+       wrapper stays transparent; back button + LIVE pill float
+       directly over content. May revisit later with a different
+       approach (e.g. a properly-rendered backdrop element rather
+       than masked pseudos). */
     .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
       position: relative;
@@ -31702,7 +31638,7 @@
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-5);
+      left: var(--space-6);
       /* Lift the button up so it sits high in the topbar — closer to
          the dynamic island / status bar where iOS conventionally
          places close affordances. The inner zone is 52px tall; a
