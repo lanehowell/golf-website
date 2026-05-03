@@ -31075,8 +31075,12 @@
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .page-main {
       padding-top: 0;
     }
+    /* Sub-panel content padding — the body already reserves topbar-h
+       + safe-area so no need to duplicate that here. Just a small
+       breathing-room margin so content doesn't sit flush against
+       the back-arrow's bottom edge. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .panel {
-      padding-top: calc(44px + var(--space-4));
+      padding-top: var(--space-3);
     }
 
     /* Banners (session + round) sit at the very top of the viewport.
@@ -31131,8 +31135,9 @@
     body[data-current-panel="range-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="shortgame-session"] .mobile-topbar-back .mobile-topbar-back-arrow,
     body[data-current-panel="course-practice-session"] .mobile-topbar-back .mobile-topbar-back-arrow {
-      font-size: 0;
-      line-height: 0;
+      /* In-round panels render an × glyph via ::after, not the back
+         arrow — hide the SVG arrow entirely. */
+      display: none;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
@@ -31539,13 +31544,14 @@
     body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
       top: calc(var(--session-banner-height, 52px) * 2 + 4px);
     }
-    /* Arrow glyph inside the back-button bead — sized to feel
-       proportional to the 44px bead. Slightly chunky weight (500)
-       reads as a real button glyph rather than a thin character. */
+    /* Arrow glyph inside the back-button bead — SVG sized to feel
+       proportional to the 44px bead. Block display so it centers
+       cleanly via the button's flex alignment without inheriting
+       inline text baseline quirks. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
-      font-size: 20px;
-      font-weight: 500;
-      line-height: 1;
+      width: 22px;
+      height: 22px;
+      display: block;
       color: var(--text-primary);
     }
 
@@ -31710,17 +31716,25 @@
        BEFORE the navigation fires (otherwise the panel swaps before
        the eye registers the press). :active stays as a fallback
        for keyboard / accessibility paths that don't go through
-       the pointer handlers. */
+       the pointer handlers.
+
+       Exaggerated values — the press should feel decisive, almost
+       playful. Bigger pop than typical iOS so the action reads
+       clearly even on a quick tap. */
     .mobile-topbar-back.is-pressing,
     .mobile-topbar-back:active {
-      transform: scale(1.1);
-      background-color: rgba(255, 253, 247, 0.92);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      transform: scale(1.18);
+      background-color: rgba(255, 253, 247, 1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22),
+                  0 2px 6px rgba(0, 0, 0, 0.12);
+      border-color: rgba(255, 255, 255, 0.7);
     }
     html.dark .mobile-topbar-back.is-pressing,
     html.dark .mobile-topbar-back:active {
-      background-color: rgba(70, 70, 75, 0.85);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+      background-color: rgba(90, 90, 95, 0.95);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7),
+                  0 2px 6px rgba(0, 0, 0, 0.45);
+      border-color: rgba(255, 255, 255, 0.2);
     }
     @media (hover: hover) {
       .mobile-topbar-back:hover {
@@ -31783,11 +31797,6 @@
     body[data-current-panel="shortgame-session"] .panel.active,
     body[data-current-panel="course-practice-session"] .panel.active {
       padding-top: calc(var(--mobile-topbar-h) + var(--space-2));
-    }
-    .mobile-topbar-back-arrow {
-      font-size: var(--text-xl);
-      font-weight: var(--weight-medium);
-      line-height: 1;
     }
     .mobile-topbar-title {
       font-family: var(--font-display);
@@ -32005,7 +32014,9 @@
 <header class="mobile-topbar" id="mobile-topbar">
   <div class="mobile-topbar-inner">
     <button class="mobile-topbar-back" id="mobile-topbar-back" onclick="handleBackButtonTap(event)" aria-label="Back">
-      <span class="mobile-topbar-back-arrow">←</span>
+      <svg class="mobile-topbar-back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 6l-6 6 6 6"/>
+      </svg>
     </button>
     <h1 class="mobile-topbar-title" id="mobile-topbar-title">Today</h1>
     <!-- Live indicator — shown only on the round panel (via CSS). A pulsing
