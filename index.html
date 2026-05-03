@@ -31264,10 +31264,8 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-4);
-      /* Sit at the same vertical offset as the back arrow so the
-         X and LIVE pill stay horizontally aligned across the top. */
-      top: 38%;
+      right: var(--space-5);
+      top: 25%;
       transform: translateY(-50%);
       font-family: var(--font-body);
       font-size: var(--text-xs);
@@ -31312,8 +31310,8 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-4);
-      top: 38%;
+      right: var(--space-5);
+      top: 25%;
       transform: translateY(-50%);
       font-family: var(--font-mono);
       font-size: var(--text-xs);
@@ -31488,9 +31486,9 @@
       left: 0;
       right: 0;
       height: calc(env(safe-area-inset-top, 0px) + 32px);
-      background-color: color-mix(in srgb, var(--bg-page) 35%, transparent);
-      backdrop-filter: blur(8px) saturate(140%);
-      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      background-color: color-mix(in srgb, var(--bg-page) 20%, transparent);
+      backdrop-filter: blur(4px) saturate(120%);
+      -webkit-backdrop-filter: blur(4px) saturate(120%);
       -webkit-mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
@@ -31514,8 +31512,8 @@
       /* Layer 2 extends ~10px past layer 1's bottom edge, taking
          over the falloff with a much lighter blur. */
       height: calc(env(safe-area-inset-top, 0px) + 44px);
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
+      backdrop-filter: blur(1.5px);
+      -webkit-backdrop-filter: blur(1.5px);
       /* No bg tint on layer 2 — its job is to hide the edge of
          layer 1's blur with a weaker blur that continues the
          falloff. Mask starts opaque only where layer 1's mask
@@ -31704,14 +31702,8 @@
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      /* Pulled in from the screen edge with a bit more breathing
-         room. Sat too tight at space-3 (12px); space-4 (16px) puts
-         the bead in a more relaxed position. */
-      left: var(--space-4);
-      /* Sit higher within the topbar zone — closer to the status
-         bar / dynamic island feels more natural on iOS than dead-
-         center in the 52px topbar height. */
-      top: 38%;
+      left: var(--space-5);
+      top: 25%;
       transform: translateY(-50%);
       width: 40px;
       height: 40px;
