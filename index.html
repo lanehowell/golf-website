@@ -16669,6 +16669,22 @@
     flex-shrink: 0;
   }
 
+  /* Auto-fill source hint — small line under the distance input
+     telling the user what the auto-filled value is measuring TO
+     ("To set target", "To pin", "To green center"). Hidden when
+     the user types manually. visibility:hidden (not display:none)
+     reserves vertical space so layout doesn't shift when the hint
+     toggles on/off. */
+  .caddie-distance-source {
+    margin-top: var(--space-1);
+    padding-left: var(--space-4);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+    line-height: 1.3;
+    min-height: 1em;
+  }
+
   /* Wind block — sits between distance input and recommendations.
      3-button toggle (Into / Calm / Helping) + live "plays like" math.
      Hidden when active round's course has no coords. */
@@ -49574,6 +49590,18 @@
     activeTool: null,         // null = tools list, 'caddie'|'scorecard'|... = tool content
     caddie: {
       targetDistance: null,  // canonical yards, or null
+      // Provenance of targetDistance. Drives whether to show the
+      // "to set target / to pin / to green center" hint label, and
+      // whether to refresh the value when the tool re-renders.
+      //   'auto'   — value came from auto-fill at tool open
+      //   'manual' — user typed a custom value (hint hidden)
+      //   null     — no value yet, auto-fill will populate on render
+      distanceSource: null,
+      // Human-readable label for the auto-source ("Set target",
+      // "Pin", "Green center"). Used by renderCaddie to show the
+      // subtle hint under the input. Cleared when source becomes
+      // 'manual'.
+      distanceSourceLabel: '',
       wind: 'calm',          // 'into' | 'calm' | 'helping' — affects play-distance calc
     },
     // Transient flag — true for exactly one render after a user-initiated
@@ -50713,18 +50741,110 @@
     return `${candidate.percent}% ${candidate.clubName}`;
   }
 
+  // Compute an auto-fill distance for the Club Caddie.
+  // Priority chain (matches the pre-shot summary):
+  //   1. Committed target — user has tapped the orange "Set" button
+  //      to lock in a custom aim point on GPS view
+  //   2. Pin — user has dropped a custom pin, OR green center
+  //      (getEffectivePinLatLng falls back to green center)
+  //   3. Green center — final fallback if no pin/target available
+  //
+  // Returns { yards, label } or null if no GPS context (off-course
+  // / no fix yet / no hole loaded). The label tells the user where
+  // the auto-distance is measuring TO, so they can sanity-check
+  // before trusting the recommendation.
+  function computeCaddieAutoDistance() {
+    if (typeof roundGpsState === 'undefined' || !roundGpsState) return null;
+    const userPos = (typeof getRoundGpsUserPos === 'function') ? getRoundGpsUserPos() : null;
+    if (!userPos) return null;
+
+    // 1. Committed target.
+    const committed = roundGpsState.committedTarget;
+    if (committed
+        && Number.isFinite(committed.lat)
+        && Number.isFinite(committed.lng)) {
+      const yds = haversineYards(userPos.lat, userPos.lng, committed.lat, committed.lng);
+      return { yards: yds, label: 'Set target' };
+    }
+
+    // 2. Pin (custom-dropped) or green center (fallback).
+    //    getEffectivePinLatLng returns whichever applies.
+    const pin = (typeof getEffectivePinLatLng === 'function') ? getEffectivePinLatLng() : null;
+    if (pin) {
+      const yds = haversineYards(userPos.lat, userPos.lng, pin.lat, pin.lng);
+      // Distinguish whether this is a user-dropped pin vs the green
+      // center fallback. hasCustomPinForCurrentHole tells us.
+      const isCustomPin = (typeof hasCustomPinForCurrentHole === 'function')
+        && hasCustomPinForCurrentHole();
+      return { yards: yds, label: isCustomPin ? 'Pin' : 'Green center' };
+    }
+
+    return null;
+  }
+
   // Update the caddie's target distance. Called from the input's oninput.
   // Re-renders only the recommendation area so the input keeps focus
   // (re-rendering the whole dock would kill the keyboard on mobile).
+  //
+  // Source-tracking semantics:
+  //   - User typed a number → mark 'manual' (hides the auto-source label)
+  //   - User cleared the field → re-auto-fill if a sensible distance
+  //     is available (and re-render the input + label so they update)
+  //   - Programmatic auto-fill (handled in renderCaddie, not here)
+  //     marks 'auto' + remembers the source label
   function setCaddieDistance(displayValue) {
-    dockState.caddie.targetDistance = distanceFromInput(displayValue);
+    const parsed = distanceFromInput(displayValue);
     const recsMount = document.getElementById('caddie-recs-mount');
+    const windMount = document.getElementById('caddie-wind-mount');
+    const sourceMount = document.getElementById('caddie-distance-source');
+
+    if (parsed == null) {
+      // Field was cleared. Try to re-auto-fill.
+      const auto = computeCaddieAutoDistance();
+      if (auto && auto.yards > 0) {
+        dockState.caddie.targetDistance = auto.yards;
+        dockState.caddie.distanceSource = 'auto';
+        dockState.caddie.distanceSourceLabel = auto.label;
+        // Push the auto value back into the input so the user sees
+        // the fill happen. This doesn't fight the user — they cleared
+        // the field, we put a value back; they can either accept it
+        // or type over it.
+        const input = document.getElementById('caddie-input');
+        if (input) input.value = distanceToDisplay(auto.yards);
+      } else {
+        // No auto distance available (off course, no GPS fix, etc.) —
+        // just leave the field empty.
+        dockState.caddie.targetDistance = null;
+        dockState.caddie.distanceSource = null;
+        dockState.caddie.distanceSourceLabel = '';
+      }
+    } else {
+      // User typed a value. Mark as manual so the auto-source hint
+      // hides. Don't overwrite the user's typing.
+      dockState.caddie.targetDistance = parsed;
+      dockState.caddie.distanceSource = 'manual';
+      dockState.caddie.distanceSourceLabel = '';
+    }
+
+    // Refresh dependent UI.
     if (recsMount) recsMount.innerHTML = renderCaddieRecommendations();
     // Wind block depends on target distance for the "plays like" calc,
     // so refresh it too. Skip if no wind block on screen (e.g., no
     // course coords for the active round).
-    const windMount = document.getElementById('caddie-wind-mount');
     if (windMount) windMount.innerHTML = renderCaddieWindBlock();
+    // Update the source-label visibility/content. We just write the
+    // text directly here rather than re-rendering the input row, so
+    // input focus is preserved.
+    if (sourceMount) {
+      const lbl = dockState.caddie.distanceSourceLabel;
+      if (dockState.caddie.distanceSource === 'auto' && lbl) {
+        sourceMount.textContent = `To ${lbl.toLowerCase()}`;
+        sourceMount.style.visibility = 'visible';
+      } else {
+        sourceMount.textContent = '';
+        sourceMount.style.visibility = 'hidden';
+      }
+    }
   }
 
   // Tap a wind direction button (into / calm / helping). Re-renders
@@ -54075,9 +54195,36 @@
       }
     }
 
+    // Auto-fill the distance on render IF the user hasn't already
+    // engaged with this tool (no source set yet) AND a sensible
+    // distance is available. This makes the Caddie tool useful on
+    // first open with zero typing — typical case is "open dock,
+    // tap Caddie, see distance + recommendation."
+    //
+    // We never overwrite a user's manual typing here. Once
+    // distanceSource === 'manual', the value sticks until reset
+    // (hole change / shot logged) or the user clears the field.
+    if (dockState.caddie.distanceSource == null) {
+      const auto = computeCaddieAutoDistance();
+      if (auto && auto.yards > 0) {
+        dockState.caddie.targetDistance = auto.yards;
+        dockState.caddie.distanceSource = 'auto';
+        dockState.caddie.distanceSourceLabel = auto.label;
+      }
+    }
+
     const unit = distanceUnit();
     const targetDisplay = dockState.caddie.targetDistance != null
       ? distanceToDisplay(dockState.caddie.targetDistance)
+      : '';
+
+    // Source hint — subtle line under the input showing what the
+    // auto-fill distance is measuring TO. Only visible when source
+    // is 'auto'; manual entry hides it. Empty/no-source also hidden.
+    const showHint = dockState.caddie.distanceSource === 'auto'
+      && !!dockState.caddie.distanceSourceLabel;
+    const hintText = showHint
+      ? `To ${dockState.caddie.distanceSourceLabel.toLowerCase()}`
       : '';
 
     return `
@@ -54096,6 +54243,8 @@
                  aria-label="Distance to target">
           <span class="caddie-input-unit">${unit}</span>
         </div>
+        <div id="caddie-distance-source" class="caddie-distance-source"
+             style="visibility: ${showHint ? 'visible' : 'hidden'};">${escapeHtml(hintText)}</div>
         <div id="caddie-wind-mount">${renderCaddieWindBlock()}</div>
         <div id="caddie-recs-mount">${renderCaddieRecommendations()}</div>
       </div>`;
@@ -77941,6 +78090,12 @@
     // Drop any user-chosen swing-thought category override so the
     // Pre-Shot tool re-infers fresh for the new hole.
     preShotCategoryOverride = null;
+    // Same logic for the Caddie tool's auto-fill distance — the
+    // distance to target / pin / green changes hole-to-hole, so
+    // wipe the state and let renderCaddie re-auto-fill on next open.
+    dockState.caddie.targetDistance = null;
+    dockState.caddie.distanceSource = null;
+    dockState.caddie.distanceSourceLabel = '';
     roundGpsState.greenLat = hole.greenLat ?? null;
     roundGpsState.greenLng = hole.greenLng ?? null;
     roundGpsState.teeLat = teePos ? teePos.lat : null;
@@ -79193,6 +79348,14 @@
     // Committed target affects dispersion anchor priority (committed
     // > reticle > green) — re-anchor the ellipse to reflect.
     updateDispersionOverlay();
+    // The Caddie tool's auto-distance includes committed target as
+    // its top priority — clear the auto-fill so renderCaddie picks
+    // up the new state next render. Don't disturb manual entries.
+    if (dockState.caddie.distanceSource === 'auto') {
+      dockState.caddie.targetDistance = null;
+      dockState.caddie.distanceSource = null;
+      dockState.caddie.distanceSourceLabel = '';
+    }
   }
   window.toggleRoundGpsCommittedTarget = toggleRoundGpsCommittedTarget;
 
@@ -87284,6 +87447,12 @@
     // Drop any swing-thought category override so the Pre-Shot tool
     // re-infers from the new state next time it opens.
     preShotCategoryOverride = null;
+    // Same for the Caddie tool: the new shot's distance to pin/target
+    // is different from the one we just executed. Wipe the cached
+    // distance so renderCaddie re-auto-fills fresh on next open.
+    dockState.caddie.targetDistance = null;
+    dockState.caddie.distanceSource = null;
+    dockState.caddie.distanceSourceLabel = '';
 
     // Scramble group shot: minimal data path. A group shot only needs
     // position + hit-by attribution — the team scorecard tracks total
