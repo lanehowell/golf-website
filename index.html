@@ -64574,16 +64574,24 @@
   window.closePreShotSummary = closePreShotSummary;
 
   // Compute the current target for the pre-shot summary.
-  // Returns:
-  //   { lat, lng, isCustom: true }  — user-set target (reticle on map)
-  //   { lat, lng, isCustom: false } — falling back to pin position
-  //   null                          — no target available
+  // Priority:
+  //   1. Committed target — user has tapped "Set" to lock in an aim
+  //      point (this is the explicit "I'm aiming here" intent, not
+  //      just where the reticle happens to be hovering)
+  //   2. Pin position — default for every shot, regardless of
+  //      whether a reticle is on the map for planning purposes
+  //
+  // We deliberately do NOT use roundGpsState.targetLat/Lng (the
+  // reticle position) — the reticle is a planning tool, not an aim
+  // commitment. A user dragging the reticle to scout distances
+  // shouldn't change what the lightbulb summary shows.
   function getPreShotTarget() {
     if (typeof roundGpsState === 'undefined' || !roundGpsState) return null;
-    if (roundGpsState.targetActive
-        && Number.isFinite(roundGpsState.targetLat)
-        && Number.isFinite(roundGpsState.targetLng)) {
-      return { lat: roundGpsState.targetLat, lng: roundGpsState.targetLng, isCustom: true };
+    const committed = roundGpsState.committedTarget;
+    if (committed
+        && Number.isFinite(committed.lat)
+        && Number.isFinite(committed.lng)) {
+      return { lat: committed.lat, lng: committed.lng, isCustom: true };
     }
     const pin = (typeof getEffectivePinLatLng === 'function') ? getEffectivePinLatLng() : null;
     if (pin) return { lat: pin.lat, lng: pin.lng, isCustom: false };
@@ -79190,14 +79198,21 @@
     }
     const el = document.createElement('div');
     el.className = 'round-gps-committed-target-marker round-gps-fadable';
-    // Orange filled pin with a darker outline. Smaller than the
+    // Filled accent-colored pin with a white outline. Smaller than the
     // reticle (24px vs 32px) so they read as distinct sizes too.
     // The SVG explicitly opts out of pointer events so taps fall
     // through to the reticle underneath when the two pins overlap.
+    //
+    // Color follows the active theme palette (orange / cobalt /
+    // burgundy) — resolved at draw time from --color-accent so users
+    // who switch palettes see the marker change too.
+    const accent = (typeof activeAccentColor === 'function')
+      ? activeAccentColor()
+      : '#ff8a3d';
     el.innerHTML = `
       <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg"
            style="pointer-events: none">
-        <circle cx="12" cy="12" r="9" fill="#ff8a3d"
+        <circle cx="12" cy="12" r="9" fill="${accent}"
                 stroke="#fff" stroke-width="2"
                 opacity="0.95"
                 pointer-events="none"/>
