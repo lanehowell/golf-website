@@ -31898,20 +31898,70 @@
       border-color: var(--color-accent);
     }
 
-    /* --- Panel slide-in transitions --- */
+    /* --- Panel slide transitions ---
+       Two animation pairs, both using iOS's signature easing curve
+       cubic-bezier(0.32, 0.72, 0, 1) for the "decisive ease-out"
+       feel. Duration matches iOS UINavigationController defaults. */
+
+    /* Push (forward) — incoming slides in from the right at full
+       width, replacing the previous panel. Used by default for
+       forward navigation. The outgoing panel just disappears
+       (no parallax shift) since this is the simpler case. */
     .panel.active.slide-in-right {
-      animation: slide-in-right var(--transition-slow) both;
+      animation: panel-slide-in-right 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
     }
-    .panel.active.slide-in-left {
-      animation: slide-in-left var(--transition-slow) both;
+    @keyframes panel-slide-in-right {
+      from { transform: translateX(100%); }
+      to   { transform: translateX(0); }
     }
-    @keyframes slide-in-right {
-      from { transform: translateX(18px); opacity: 0; }
-      to   { transform: translateX(0);    opacity: 1; }
+
+    /* Pop (back) — proper iOS parallax: incoming panel comes from
+       offscreen-LEFT at half speed (-30% start), outgoing panel
+       slides off to the right at full speed. Both visible during
+       the transition. */
+    .panel.active.slide-in-from-left-parallax {
+      animation: panel-slide-in-from-left-parallax 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+      z-index: 1;
     }
-    @keyframes slide-in-left {
-      from { transform: translateX(-18px); opacity: 0; }
-      to   { transform: translateX(0);     opacity: 1; }
+    @keyframes panel-slide-in-from-left-parallax {
+      from { transform: translateX(-30%); }
+      to   { transform: translateX(0); }
+    }
+    .panel.slide-out-right {
+      /* Outgoing panel during pop — keep it visible (display:block
+         even though .active was removed) and slide it off the right
+         edge. Subtle leading-edge shadow gives depth like iOS.
+
+         position: fixed (not absolute) so the outgoing panel fully
+         decouples from layout — won't collapse the parent height
+         and won't get pushed by the incoming panel's content
+         flow. The fixed positioning also pins it to the viewport
+         so its scroll position is preserved during the slide. */
+      display: block !important;
+      animation: panel-slide-out-right 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2;
+      box-shadow: -8px 0 16px rgba(0, 0, 0, 0.12);
+      pointer-events: none;
+      /* Match the page background so the panel's own background
+         carries through during the slide instead of going transparent. */
+      background: var(--bg-page);
+      /* Allow internal scroll to be visible during the slide */
+      overflow-y: auto;
+    }
+    @keyframes panel-slide-out-right {
+      from { transform: translateX(0); }
+      to   { transform: translateX(100%); }
+    }
+    /* Both animation states need will-change hints so the browser
+       promotes them to their own layer for smooth GPU rendering. */
+    .panel.slide-in-from-left-parallax,
+    .panel.slide-out-right {
+      will-change: transform;
     }
 
     /* Log modal: already bottom-sheet styled at this breakpoint */
@@ -36527,8 +36577,24 @@
       if (primarySlot) primarySlot.innerHTML = '';
     }
 
+    // Capture the OUTGOING panel before we deactivate it. We'll
+    // animate it sliding off-screen during a back ('left') transition
+    // for proper iOS-style parallax. The incoming panel slides in
+    // from offscreen-left at half speed; the outgoing one slides
+    // off the right edge at full speed.
+    const outgoingPanel = prevId ? document.getElementById('panel-' + prevId) : null;
+    const isBackNav = isMobileMode() && prevId && prevId !== id && opts.direction === 'left';
+
     document.querySelectorAll('.panel').forEach(p => {
-      p.classList.remove('active', 'slide-in-right', 'slide-in-left');
+      // During a back nav we DON'T want to strip the slide-out class
+      // off the outgoing panel — it needs to keep animating off-screen
+      // alongside the incoming panel's slide-in. All other panels
+      // get fully cleaned up.
+      if (isBackNav && p === outgoingPanel) {
+        p.classList.remove('active', 'slide-in-right', 'slide-in-from-left-parallax');
+      } else {
+        p.classList.remove('active', 'slide-in-right', 'slide-in-from-left-parallax', 'slide-out-right');
+      }
     });
     document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
     const target = document.getElementById('panel-' + id);
@@ -36537,7 +36603,33 @@
       // Slide animation on mobile only; desktop stays instant
       if (isMobileMode() && prevId && prevId !== id) {
         const dir = opts.direction || slideDirection(prevId, id);
-        target.classList.add(dir === 'left' ? 'slide-in-left' : 'slide-in-right');
+        if (dir === 'left') {
+          // Back navigation — proper iOS parallax pair. Incoming
+          // panel slides in from offscreen-left at half speed;
+          // outgoing panel slides off the right edge.
+          target.classList.add('slide-in-from-left-parallax');
+          if (outgoingPanel && outgoingPanel !== target) {
+            outgoingPanel.classList.add('slide-out-right');
+            // Clean up the outgoing panel after the animation
+            // completes. Listen to animationend on the slide-out
+            // animation so we don't leave a stale absolute-positioned
+            // panel hanging in the DOM.
+            const cleanup = (e) => {
+              if (e.animationName !== 'panel-slide-out-right') return;
+              outgoingPanel.classList.remove('slide-out-right');
+              outgoingPanel.removeEventListener('animationend', cleanup);
+            };
+            outgoingPanel.addEventListener('animationend', cleanup);
+            // Belt-and-suspenders timeout in case animationend doesn't
+            // fire (e.g. user backgrounded the tab mid-animation).
+            setTimeout(() => {
+              outgoingPanel.classList.remove('slide-out-right');
+            }, 500);
+          }
+        } else {
+          // Forward navigation — incoming slides in from the right.
+          target.classList.add('slide-in-right');
+        }
       }
     }
     if (btn) {
