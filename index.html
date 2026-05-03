@@ -13713,6 +13713,21 @@
     color: var(--text-muted);
     line-height: 1.4;
   }
+  /* Shot distance subtext — small label showing computed start→end
+     yardage under the origin picker. Read-only info, not an input.
+     Replaces the editable "Yards to target" field for personal
+     scramble shots since the distance is derivable from GPS. */
+  .shot-edit-shot-distance {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+  }
 
   /* Inline hint inside a shot-edit section — soft tip / suggestion.
      Currently surfaced for the par 3 tee shot → approach intent
@@ -50023,6 +50038,19 @@
     return me.shots[holeNumber];
   }
 
+  // Remove a personal scramble shot by ID from a given hole. Returns
+  // true if removed, false if not found. Persists via the personal-
+  // shots debouncer. Used by the discard-stub path in dismissShotEditSheet.
+  function removePersonalScrambleShot(shotId, holeNumber) {
+    const shots = getPersonalScrambleShotsForHole(holeNumber);
+    if (!shots || !shots.length) return false;
+    const idx = shots.findIndex(s => s.id === shotId);
+    if (idx === -1) return false;
+    shots.splice(idx, 1);
+    queueSavePersonalScrambleShots();
+    return true;
+  }
+
   // Compute the start position for a fresh personal shot. Personal
   // shots don't chain to each other — instead each one starts from
   // wherever the TEAM is hitting from on this swing-round:
@@ -51694,11 +51722,12 @@
     shotEditState.holeNumber = holeNumber;
     // Flag: was this sheet opened on a brand-new stub shot (e.g. from
     // Log Shot in GPS view)? If so, dismissing the sheet without
-    // saving + without a club selected should prompt to discard the
-    // shot rather than silently committing an unconfigured stub.
-    // Group shots in scramble mode never need this — there's nothing
-    // to "fill in", they're sparse by design.
-    shotEditState.isNewStub = !!opts.isNewStub && !shotEditState.groupSimple;
+    // saving should prompt to discard the shot rather than silently
+    // committing it. Applies to ALL modes — groupSimple included —
+    // because the "Log shot / My shot" buttons create the underlying
+    // record up-front, and X-ing out of the sheet should feel like
+    // cancelling that creation.
+    shotEditState.isNewStub = !!opts.isNewStub;
     acquireScrollLock();
     renderShotEditSheet();
   }
@@ -52119,54 +52148,75 @@
   }
 
   // User-initiated dismiss path. If this is a freshly-created stub
-  // (Log Shot pushed it but user never picked a club / hit save),
-  // prompt to discard rather than silently leaving a clubless shot
-  // in the array. Only fires for stubs from Log Shot — editing an
-  // existing shot dismisses immediately like before.
+  // (Log Shot / My Shot pushed it but user X'd out without saving),
+  // prompt to discard rather than silently leaving the shot in the
+  // array. Editing an existing shot dismisses immediately like before.
+  //
+  // Why prompt regardless of club presence: a stub means "the user
+  // tapped Log Shot / My Shot, the record was created, then they
+  // closed the sheet without confirming." That's not a save — it's
+  // a cancel. Even when default values would make the shot "valid"
+  // on paper (rich mode auto-picks a club from the bag, simple mode
+  // doesn't need a club), the user's X is unambiguous: they don't
+  // want this shot.
   async function dismissShotEditSheet() {
     if (!shotEditState.open) return;
-    const isStub = shotEditState.isNewStub;
-    const draft = shotEditState.draft;
-    const hasClub = !!(draft && draft.club);
-    if (isStub && !hasClub) {
+    if (shotEditState.isNewStub) {
+      const isPersonal = shotEditState.personalShot;
+      const isScrambleGroup = shotEditState.groupSimple;
+      let title, message;
+      if (isPersonal) {
+        title = 'Discard your shot?';
+        message = 'You haven\'t saved this shot yet. Its GPS position will be lost.';
+      } else if (isScrambleGroup) {
+        title = 'Discard team shot?';
+        message = 'You haven\'t saved this shot yet. Its GPS position will be lost.';
+      } else {
+        title = 'Discard this shot?';
+        message = 'You haven\'t saved this shot yet. Its GPS position will be lost.';
+      }
       const ok = await confirmDialog({
         eyebrow: 'Discard Shot',
         eyebrowStyle: 'warning',
-        title: 'Discard this shot?',
-        message: 'You haven\'t picked a club yet. The shot and its GPS position will be lost.',
+        title,
+        message,
         confirmText: 'Discard',
         cancelText: 'Keep editing',
         destructive: true,
       });
       if (!ok) return;  // user chose to keep editing — sheet stays open
 
-      // Remove the stub from the shots array. Mirror the cleanup from
-      // deleteShotDraft minus the confirm (already done).
+      // Remove the stub from the appropriate shots array. For personal
+      // scramble shots that's me.shots; for everything else it's the
+      // team-shot or solo-shot stream via ensureShotsForHole.
       const { editingId, holeNumber } = shotEditState;
       if (editingId != null && holeNumber != null) {
-        const overrideRound = getEditingRoundOverride();
-        const isReplayEdit = !!overrideRound;
-        const replayRoundId = shotEditState.roundId;
-        const shots = ensureShotsForHole(holeNumber, overrideRound);
-        const idx = shots.findIndex(s => s.id === editingId);
-        if (idx !== -1) shots.splice(idx, 1);
-        // Clean up GPS-side state for the removed stub: re-init shot
-        // tracking so lastShotEnd reflects the now-shorter array, and
-        // re-render the map pins. Without this, the next Log Shot tap
-        // would treat the removed stub's end as the previous shot's
-        // start, putting the next shot in the wrong place.
+        if (shotEditState.personalShot) {
+          // Personal scramble shot — remove from me.shots.
+          removePersonalScrambleShot(editingId, holeNumber);
+        } else {
+          const overrideRound = getEditingRoundOverride();
+          const isReplayEdit = !!overrideRound;
+          const replayRoundId = shotEditState.roundId;
+          const shots = ensureShotsForHole(holeNumber, overrideRound);
+          const idx = shots.findIndex(s => s.id === editingId);
+          if (idx !== -1) shots.splice(idx, 1);
+          if (isReplayEdit) {
+            persistShotChangesForReplay(replayRoundId);
+          } else {
+            persistShotChanges();
+          }
+        }
+        // Refresh GPS-side state so the next Log Shot tap doesn't
+        // treat the discarded stub's end as the previous shot's
+        // start. Re-init shot tracking for the hole + re-render
+        // markers so the discarded pin disappears.
         if (typeof renderRoundGpsShotMarkers === 'function'
             && roundGpsState.open
             && roundGpsState.holeNumber === holeNumber) {
           initShotTrackingForHole();
           renderRoundGpsShotMarkers();
           refreshRoundGpsActionButton();
-        }
-        // Persist the removal so it survives refresh.
-        if (isReplayEdit) {
-          persistShotChangesForReplay(replayRoundId);
-        } else {
-          persistShotChanges();
         }
       }
     }
@@ -52394,6 +52444,16 @@
     }
     haptic('light');
     renderShotEditSheet();
+    // The shot-edit map preserves itself across re-renders to avoid
+    // destroying/recreating GPU resources on every chip tap. But here
+    // the start position just changed — that's exactly when the map
+    // DOES need to rebuild. Force a fresh render after the sheet
+    // re-renders so the start pin moves to the new origin.
+    if (typeof draft.endLat === 'number' && typeof draft.endLng === 'number') {
+      requestAnimationFrame(() => {
+        try { renderShotEditMap(draft); } catch (_) {}
+      });
+    }
   }
   window.setPersonalShotOrigin = setPersonalShotOrigin;
 
@@ -53146,6 +53206,20 @@
             const customOption = currentOptionId === null
               ? `<option value="" selected disabled>Custom position</option>`
               : '';
+            // Shot distance — start→end haversine. Computed live from
+            // current draft coords so it reflects the picked origin.
+            // Replaces the editable "Yards to target" input for
+            // personal scramble shots — distance is implicit from the
+            // GPS positions, no need to hand-enter it.
+            let shotDistText = '';
+            if (typeof draft.startLat === 'number' && typeof draft.startLng === 'number'
+                && typeof draft.endLat === 'number' && typeof draft.endLng === 'number'
+                && typeof haversineYards === 'function') {
+              const yds = Math.round(haversineYards(
+                draft.startLat, draft.startLng,
+                draft.endLat, draft.endLng));
+              shotDistText = `Shot distance · ${yds} ${unit}`;
+            }
             originPickerHtml = `
               <div class="shot-edit-section">
                 <label class="shot-edit-label" for="shot-edit-origin-select">
@@ -53160,6 +53234,7 @@
                 <div class="shot-edit-origin-hint">
                   Where this shot started from. Change if you logged it in the wrong order.
                 </div>
+                ${shotDistText ? `<div class="shot-edit-shot-distance">${escapeHtml(shotDistText)}</div>` : ''}
               </div>
             `;
           }
@@ -53227,14 +53302,17 @@
     }
 
     // (continuing below — bodyHtml uses mapSectionHtml as a prefix)
-    const bodyHtml = `
-      <div class="shot-edit-section">
-        <label class="shot-edit-label">Club</label>
-        ${clubPickerHtml}
-      </div>
-
-      ${hitByPickerHtml}
-
+    //
+    // The "Yards to target" input is hidden for non-putt personal
+    // scramble shots — the origin picker now shows "Shot distance"
+    // as static subtext (computed from start→end), so a fillable
+    // input would be redundant and confusing. Putts still need an
+    // input (feet to hole isn't derivable from the start/end coords
+    // alone — it requires the actual pin position which may not be
+    // logged). Solo rounds and rich-mode group shots keep the input
+    // since they don't have an origin picker.
+    const hideDistanceInput = shotEditState.personalShot && !isPutt;
+    const distanceSectionHtml = hideDistanceInput ? '' : `
       <div class="shot-edit-section">
         <label class="shot-edit-label">
           ${isPutt ? 'Feet to hole' : 'Yards to target'}
@@ -53259,7 +53337,17 @@
             <span class="shot-edit-dist-unit">${unit}</span>
           `}
         </div>
+      </div>`;
+
+    const bodyHtml = `
+      <div class="shot-edit-section">
+        <label class="shot-edit-label">Club</label>
+        ${clubPickerHtml}
       </div>
+
+      ${hitByPickerHtml}
+
+      ${distanceSectionHtml}
 
       ${isChip ? `
         <div class="shot-edit-section">
