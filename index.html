@@ -31186,6 +31186,9 @@
       -webkit-backdrop-filter: blur(20px) saturate(160%);
       border: 1px solid rgba(255, 255, 255, 0.5);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
+                  background-color 180ms ease,
+                  box-shadow 180ms ease;
     }
     html.dark body[data-current-panel="round"] .mobile-topbar-back::before,
     html.dark body[data-current-panel="group-round"] .mobile-topbar-back::before,
@@ -31228,13 +31231,29 @@
     html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back::after {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
     }
-    body[data-current-panel="round"] .mobile-topbar-back:active,
-    body[data-current-panel="group-round"] .mobile-topbar-back:active,
-    body[data-current-panel="group-lobby"] .mobile-topbar-back:active,
-    body[data-current-panel="range-session"] .mobile-topbar-back:active,
-    body[data-current-panel="shortgame-session"] .mobile-topbar-back:active,
-    body[data-current-panel="course-practice-session"] .mobile-topbar-back:active {
-      opacity: 0.6;
+    /* In-round X press feedback — same iOS-style grow + brighten
+       as the default back button. The visual disc lives on the
+       ::before pseudo, so we scale + brighten THAT (not the parent
+       button which holds the layout) so the glyph in ::after stays
+       sharp and proportional. */
+    body[data-current-panel="round"] .mobile-topbar-back:active::before,
+    body[data-current-panel="group-round"] .mobile-topbar-back:active::before,
+    body[data-current-panel="group-lobby"] .mobile-topbar-back:active::before,
+    body[data-current-panel="range-session"] .mobile-topbar-back:active::before,
+    body[data-current-panel="shortgame-session"] .mobile-topbar-back:active::before,
+    body[data-current-panel="course-practice-session"] .mobile-topbar-back:active::before {
+      transform: translate(-50%, -50%) scale(1.06);
+      background-color: rgba(255, 253, 247, 0.78);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+    html.dark body[data-current-panel="round"] .mobile-topbar-back:active::before,
+    html.dark body[data-current-panel="group-round"] .mobile-topbar-back:active::before,
+    html.dark body[data-current-panel="group-lobby"] .mobile-topbar-back:active::before,
+    html.dark body[data-current-panel="range-session"] .mobile-topbar-back:active::before,
+    html.dark body[data-current-panel="shortgame-session"] .mobile-topbar-back:active::before,
+    html.dark body[data-current-panel="course-practice-session"] .mobile-topbar-back:active::before {
+      background-color: rgba(50, 50, 55, 0.7);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     }
     /* Live indicator — right-aligned in the topbar, visible on all
        round-context screens (round, group-round, group-lobby). Pulsing
@@ -31246,7 +31265,9 @@
       gap: var(--space-2);
       position: absolute;
       right: var(--space-4);
-      top: 50%;
+      /* Sit at the same vertical offset as the back arrow so the
+         X and LIVE pill stay horizontally aligned across the top. */
+      top: 38%;
       transform: translateY(-50%);
       font-family: var(--font-body);
       font-size: var(--text-xs);
@@ -31292,7 +31313,7 @@
       gap: var(--space-2);
       position: absolute;
       right: var(--space-4);
-      top: 50%;
+      top: 38%;
       transform: translateY(-50%);
       font-family: var(--font-mono);
       font-size: var(--text-xs);
@@ -31466,7 +31487,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: calc(env(safe-area-inset-top, 0px) + 22px);
+      height: calc(env(safe-area-inset-top, 0px) + 32px);
       background-color: color-mix(in srgb, var(--bg-page) 35%, transparent);
       backdrop-filter: blur(8px) saturate(140%);
       -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -31492,7 +31513,7 @@
       right: 0;
       /* Layer 2 extends ~10px past layer 1's bottom edge, taking
          over the falloff with a much lighter blur. */
-      height: calc(env(safe-area-inset-top, 0px) + 32px);
+      height: calc(env(safe-area-inset-top, 0px) + 44px);
       backdrop-filter: blur(3px);
       -webkit-backdrop-filter: blur(3px);
       /* No bg tint on layer 2 — its job is to hide the edge of
@@ -31683,8 +31704,14 @@
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-3);
-      top: 50%;
+      /* Pulled in from the screen edge with a bit more breathing
+         room. Sat too tight at space-3 (12px); space-4 (16px) puts
+         the bead in a more relaxed position. */
+      left: var(--space-4);
+      /* Sit higher within the topbar zone — closer to the status
+         bar / dynamic island feels more natural on iOS than dead-
+         center in the 52px topbar height. */
+      top: 38%;
       transform: translateY(-50%);
       width: 40px;
       height: 40px;
@@ -31714,8 +31741,18 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       color: var(--text-primary);
     }
+    /* Press feedback — iOS-style "press in" where the button
+       slightly grows AND brightens, rather than shrinking. The
+       grow + brighten combo reads as the glass "lighting up" under
+       a finger, like Liquid Glass affordances on iOS. */
     .mobile-topbar-back:active {
-      transform: translateY(-50%) scale(0.94);
+      transform: translateY(-50%) scale(1.06);
+      background-color: rgba(255, 253, 247, 0.78);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+    html.dark .mobile-topbar-back:active {
+      background-color: rgba(50, 50, 55, 0.7);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     }
     @media (hover: hover) {
       .mobile-topbar-back:hover {
