@@ -31575,6 +31575,29 @@
     .page-main { padding-block: var(--space-6) var(--space-6); }
     .panel { padding-top: var(--space-4); }
 
+    /* Stabilize bottom nav position. iOS Safari's bottom toolbar
+       behavior depends on whether the page is scrollable: short pages
+       leave the toolbar visible, which on a PWA shell where we expect
+       the nav to be flush at the bottom shows up as the nav appearing
+       to "jump up." Force every active panel to fill at least the
+       viewport (minus our top + bottom chrome) so the page is always
+       tall enough to commit Safari's toolbar to its retracted state.
+       Using 100dvh (dynamic viewport height) rather than 100vh so the
+       value adjusts as Safari's toolbar shows/hides — without this
+       Safari oscillates between two layouts.
+       Skipped for round-context panels: those have their own immersive
+       layout (full-bleed map, etc) and the bottom nav is hidden, so
+       this stabilization isn't needed there. */
+    body:not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .panel.active {
+      min-height: calc(
+        100dvh
+        - var(--mobile-topbar-h)
+        - var(--mobile-bottomnav-h)
+        - env(safe-area-inset-top, 0px)
+        - env(safe-area-inset-bottom, 0px)
+      );
+    }
+
     /* Sub-panels: the back arrow floats fixed at the top, so panel
        content needs top padding to start BELOW where the arrow floats.
        44px arrow + breathing room = ~60px reserved at the top. */
