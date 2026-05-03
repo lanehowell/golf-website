@@ -10004,6 +10004,45 @@
     transition: background var(--transition-fast), transform 100ms ease-out;
     /* Hidden until wind data lands. JS removes the .is-hidden class. */
   }
+
+  /* Pre-shot summary button — sits above the wind pill, same dark
+     glass treatment. Lightbulb icon, no text. Smaller than the wind
+     pill (44px vs 56px) so it reads as a secondary affordance. */
+  .round-gps-preshot {
+    position: absolute;
+    right: 22px;
+    /* Stack above the wind pill: wind pill bottom + wind pill height
+       (56) + small gap (10). When wind pill is hidden the lightbulb
+       still anchors to the same vertical position so its placement
+       is stable regardless of weather load state. */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px + 56px + 10px);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+    transition: background var(--transition-fast), transform 100ms ease-out;
+  }
+  .round-gps-preshot svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+  .round-gps-preshot:active { transform: scale(0.94); }
+  @media (hover: hover) {
+    .round-gps-preshot:hover { background: rgba(0, 0, 0, 0.75); }
+  }
   .round-gps-wind:active { transform: scale(0.94); }
   @media (hover: hover) {
     .round-gps-wind:hover { background: rgba(0, 0, 0, 0.75); }
@@ -21503,6 +21542,371 @@
     flex: 1;
   }
 
+  /* ─── Hole SG detail bottom sheet (hsd-*) ─────────────────────
+     Drill-down from a tappable score cell on the round summary
+     scorecard. Shows per-category SG bars + shot-by-shot list for
+     a single hole. Same body-level/escape-from-ancestor-transforms
+     pattern as the summary group scorecard sheet. */
+  .hsd-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8650;
+    background: rgba(13, 13, 13, 0.5);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hsd-backdrop.opening,
+  .hsd-backdrop.closing { opacity: 0; }
+  .hsd-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8651;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .hsd-sheet.opening,
+  .hsd-sheet.closing { transform: translateY(100%); }
+  .hsd-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .hsd-header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hsd-header-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .hsd-header-score {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  .hsd-header-score-num {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    color: var(--text-primary);
+  }
+  .hsd-header-score-vspar {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .hsd-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast);
+  }
+  .hsd-close svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+  .hsd-close:active { background: var(--bg-elevated-hover, var(--bg-surface)); }
+  .hsd-body {
+    padding: var(--space-4);
+    overflow-y: auto;
+    flex: 1;
+  }
+  .hsd-total-phrase {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+    line-height: var(--leading-snug);
+  }
+  /* Reuse the round-total SG bars (.sg-bars / .sg-bar-row) but with
+     slightly tighter spacing for the per-hole context. */
+  .hsd-bars {
+    margin-bottom: var(--space-5);
+  }
+  .hsd-shots-label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+  .hsd-shots-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .hsd-shot-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .hsd-shot-row:last-child {
+    border-bottom: none;
+  }
+  .hsd-shot-num {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .hsd-shot-desc {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+  }
+  .hsd-shot-sg {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 44px;
+  }
+  .hsd-shot-sg-pos { color: var(--text-success, #2563eb); }
+  .hsd-shot-sg-neg { color: var(--color-accent, #ea580c); }
+  .hsd-shot-sg-zero { color: var(--text-muted); }
+
+  /* ─── Pre-shot summary bottom sheet (pss-*) ───────────────────
+     Opened from the lightbulb button on GPS view. Same body-level/
+     escape-from-ancestor-transforms pattern as the hole-SG sheet.
+     Scoped above GPS overlays via the higher z-index range. */
+  .pss-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9460;
+    background: rgba(13, 13, 13, 0.55);
+    opacity: 1;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pss-backdrop.opening,
+  .pss-backdrop.closing { opacity: 0; }
+  .pss-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9461;
+    background: var(--bg-elevated);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sheet);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .pss-sheet.opening,
+  .pss-sheet.closing { transform: translateY(100%); }
+  .pss-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .pss-header-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .pss-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pss-close svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+  .pss-body {
+    padding: var(--space-4);
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .pss-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .pss-section-label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .pss-distance-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .pss-distance-num {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .pss-distance-unit {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+  .pss-distance-target {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .pss-distance-empty {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-snug);
+  }
+  .pss-plays-like {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+  }
+  .pss-plays-like-label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .pss-plays-like-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .pss-plays-like-delta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+  .pss-helper {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: var(--leading-snug);
+  }
+  .pss-thought {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: var(--leading-snug);
+    padding: var(--space-3);
+    background: var(--bg-surface);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-md);
+  }
+  .pss-thought-more {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+  .pss-thought-empty {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+  .pss-add-thought-btn {
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pss-add-thought-btn:active { opacity: 0.85; }
+
+  /* Tappable score cells on the round summary scorecard — visual
+     affordance that the cell opens the drill-down. Uses a subtle
+     background tint + cursor change so it reads as interactive
+     without dominating the scorecard's visual density. */
+  .rs-sc-strokes-tappable {
+    cursor: pointer;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 100ms ease, transform 100ms ease;
+  }
+  .rs-sc-strokes-tappable:active {
+    transform: scale(0.92);
+    background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+  @media (hover: hover) {
+    .rs-sc-strokes-tappable:hover {
+      background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    }
+  }
+
   /* Hole-table FIR/GIR cell states — tiny visual cues in the scorecard */
   .rs-cell-hit {
     color: var(--text-success);
@@ -32015,7 +32419,7 @@
   <div class="mobile-topbar-inner">
     <button class="mobile-topbar-back" id="mobile-topbar-back" onclick="handleBackButtonTap(event)" aria-label="Back">
       <svg class="mobile-topbar-back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M15 6l-6 6 6 6"/>
+        <path d="M14 6l-6 6 6 6"/>
       </svg>
     </button>
     <h1 class="mobile-topbar-title" id="mobile-topbar-title">Today</h1>
@@ -32936,6 +33340,19 @@
      group's hole-by-hole grid (all players × all holes) from shaped
      leaderboard row data. Body-level for ancestor-transform escape. -->
 <div id="summary-group-scorecard-mount"></div>
+
+<!-- HOLE SG DETAIL bottom sheet mount — populated when the user taps
+     a hole's score cell on the round summary scorecard. Shows the
+     per-hole strokes-gained breakdown: per-category bars (tee /
+     approach / around / putt) + a shot-by-shot list. Body-level so
+     it escapes any ancestor transforms. -->
+<div id="hole-sg-detail-mount"></div>
+
+<!-- PRE-SHOT SUMMARY bottom sheet mount — opened from the lightbulb
+     button on the GPS view. Shows distance to target (real + wind-
+     adjusted) and the inferred swing thought. Body-level for the
+     usual escape-from-ancestor-transforms reason. -->
+<div id="preshot-summary-mount"></div>
 
 <!-- HOLE PICKER sheet mount — populated by renderHolePicker() when
      the user taps the "Hole N of 18" pill in the round status strip.
@@ -63888,6 +64305,415 @@
     `;
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Hole SG detail — bottom sheet showing per-hole strokes-gained
+  // breakdown. Opened by tapping a tracked-hole's score cell on the
+  // round summary scorecard. Reads from holeSGDetailState which is
+  // populated by renderRoundSummary at the time it builds the
+  // scorecard, so the sheet has zero recompute cost on open.
+  // ─────────────────────────────────────────────────────────────
+  const holeSGDetailState = {
+    open: false,
+    holeNumber: null,
+    sg: null,       // computeRoundSG result (cached from summary render)
+    round: null,    // round doc (cached from summary render)
+    course: null,   // course doc (cached from summary render)
+  };
+
+  function openHoleSGDetail(holeNumber) {
+    if (holeSGDetailState.open) return;
+    if (!holeSGDetailState.sg || !holeSGDetailState.round) {
+      // Shouldn't happen — tappable cells are gated on data presence —
+      // but bail safely if state was wiped between paint and tap.
+      return;
+    }
+    holeSGDetailState.open = true;
+    holeSGDetailState.holeNumber = holeNumber;
+    acquireScrollLock();
+    renderHoleSGDetail();
+    // Trigger the slide-up animation: render with .opening (offscreen),
+    // then on the next frame remove .opening so it transitions to rest.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const sheet = document.querySelector('.hsd-sheet');
+        const backdrop = document.querySelector('.hsd-backdrop');
+        if (sheet) sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    });
+  }
+  window.openHoleSGDetail = openHoleSGDetail;
+
+  function closeHoleSGDetail() {
+    if (!holeSGDetailState.open) return;
+    const sheet = document.querySelector('.hsd-sheet');
+    const backdrop = document.querySelector('.hsd-backdrop');
+    const finish = () => {
+      holeSGDetailState.open = false;
+      holeSGDetailState.holeNumber = null;
+      releaseScrollLock();
+      const mount = document.getElementById('hole-sg-detail-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!sheet || !backdrop) { finish(); return; }
+    sheet.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      sheet.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+  window.closeHoleSGDetail = closeHoleSGDetail;
+
+  // Render the full sheet contents: header, per-category bars,
+  // shot-by-shot list, totals.
+  function renderHoleSGDetail() {
+    const mount = document.getElementById('hole-sg-detail-mount');
+    if (!mount) return;
+    if (!holeSGDetailState.open) { mount.innerHTML = ''; return; }
+    const { holeNumber, sg, round, course } = holeSGDetailState;
+    if (!sg || !round || !course) { closeHoleSGDetail(); return; }
+
+    // Slice perShot for just this hole.
+    const holeShots = sg.perShot.filter(s => s.holeNumber === holeNumber);
+    if (holeShots.length === 0) {
+      // Defensive — tappable cells should only exist for holes with
+      // data. Bail to a graceful state if somehow we got here without.
+      closeHoleSGDetail();
+      return;
+    }
+
+    const holeData = course.holes.find(h => h.number === holeNumber);
+    const par = holeData?.par ?? '—';
+    const score = round.scores?.[holeNumber]?.strokes ?? '—';
+    const vsPar = (typeof score === 'number' && typeof par === 'number') ? score - par : null;
+    const vsParStr = vsPar == null ? '' : (vsPar === 0 ? 'Even' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`));
+
+    // Per-category totals for this hole only.
+    const totals = { tee: 0, approach: 0, around: 0, putt: 0, total: 0 };
+    for (const s of holeShots) {
+      totals[s.category] += s.sg;
+      totals.total += s.sg;
+    }
+
+    // Bars — same visual language as the round-total SG block, but
+    // scaled to this hole's max so single-shot SG values are readable.
+    const maxAbs = Math.max(
+      0.5,
+      Math.abs(totals.tee), Math.abs(totals.approach),
+      Math.abs(totals.around), Math.abs(totals.putt)
+    );
+    const cats = [
+      { key: 'tee',      label: 'Off the Tee' },
+      { key: 'approach', label: 'Approach' },
+      { key: 'around',   label: 'Around Green' },
+      { key: 'putt',     label: 'Putting' },
+    ];
+    const barsHtml = cats.map(c => {
+      const v = totals[c.key];
+      // Skip categories with no contribution this hole to avoid a
+      // wall of zero-bars on holes that were e.g. pure putting.
+      if (v === 0) return '';
+      const pct = (Math.abs(v) / maxAbs) * 50;
+      const isPositive = v >= 0;
+      const valueClass = isPositive ? 'sg-bar-value-pos' : 'sg-bar-value-neg';
+      const fillClass = isPositive ? 'sg-bar-fill-pos' : 'sg-bar-fill-neg';
+      const fillStyle = isPositive
+        ? `left: 50%; width: ${pct.toFixed(2)}%;`
+        : `right: 50%; width: ${pct.toFixed(2)}%;`;
+      return `
+        <div class="sg-bar-row">
+          <div class="sg-bar-label">${escapeHtml(c.label)}</div>
+          <div class="sg-bar-track">
+            <div class="sg-bar-axis"></div>
+            <div class="sg-bar-fill ${fillClass}" style="${fillStyle}"></div>
+          </div>
+          <div class="sg-bar-value ${valueClass}">${formatSGValue(v)}</div>
+        </div>`;
+    }).filter(s => s).join('');
+
+    // Shot list — one row per shot or putt. Each row shows shot
+    // number, what kind of shot it was (lie + distance context),
+    // and its SG contribution.
+    const shotRows = holeShots.map((s, idx) => {
+      const num = idx + 1;
+      const isPutt = s.category === 'putt';
+      // Description: lie + distance context. Putts are in feet
+      // (shown as "X ft putt"); other shots in yards.
+      let desc;
+      if (isPutt) {
+        // distFromPin for a putt is in feet (set by computeRoundSG's
+        // putt processing). Show it as feet.
+        const ft = s.distFromPin;
+        desc = (typeof ft === 'number')
+          ? `${Math.round(ft)} ft putt`
+          : `Putt`;
+      } else {
+        // Tee shots, approaches, around-green chips. Show the start
+        // lie + distance to pin from the start position.
+        const lie = formatLieLabel(s.startLie);
+        const dist = (typeof s.distFromPin === 'number')
+          ? `from ${Math.round(s.distFromPin)} yds`
+          : '';
+        desc = [lie, dist].filter(x => x).join(' ');
+      }
+      const sgClass = s.sg > 0 ? 'hsd-shot-sg-pos' : (s.sg < 0 ? 'hsd-shot-sg-neg' : 'hsd-shot-sg-zero');
+      return `
+        <div class="hsd-shot-row">
+          <div class="hsd-shot-num">${num}</div>
+          <div class="hsd-shot-desc">${escapeHtml(desc)}</div>
+          <div class="hsd-shot-sg ${sgClass}">${formatSGValue(s.sg)}</div>
+        </div>`;
+    }).join('');
+
+    // Hole-total summary line.
+    const totalRounded = Math.round(totals.total * 10) / 10;
+    let totalPhrase;
+    if (totalRounded > 0) totalPhrase = `Gained ${totalRounded.toFixed(1)} strokes on this hole`;
+    else if (totalRounded < 0) totalPhrase = `Lost ${Math.abs(totalRounded).toFixed(1)} strokes on this hole`;
+    else totalPhrase = 'Even on this hole';
+
+    mount.innerHTML = `
+      <div class="hsd-backdrop opening" onclick="closeHoleSGDetail()"></div>
+      <div class="hsd-sheet opening" role="dialog" aria-label="Hole ${holeNumber} strokes gained breakdown">
+        <div class="hsd-header">
+          <div class="hsd-header-meta">
+            <div class="hsd-header-eyebrow">Hole ${holeNumber} · Par ${par}</div>
+            <div class="hsd-header-score">
+              <span class="hsd-header-score-num">${score}</span>
+              ${vsParStr ? `<span class="hsd-header-score-vspar">${vsParStr}</span>` : ''}
+            </div>
+          </div>
+          <button class="hsd-close" onclick="closeHoleSGDetail()" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="hsd-body">
+          <div class="hsd-total-phrase">${escapeHtml(totalPhrase)}</div>
+          ${barsHtml ? `<div class="sg-bars hsd-bars">${barsHtml}</div>` : ''}
+          <div class="hsd-shots-label">Shot by shot</div>
+          <div class="hsd-shots-list">${shotRows}</div>
+        </div>
+      </div>
+    `;
+  }
+  window.renderHoleSGDetail = renderHoleSGDetail;
+
+  // Tiny helper to format start-lie strings ("tee", "fairway", "rough",
+  // "sand", "green", etc.) into a display label for the shot list.
+  function formatLieLabel(lie) {
+    if (!lie) return 'Shot';
+    const map = {
+      tee: 'Tee shot',
+      fairway: 'Fairway shot',
+      rough: 'From rough',
+      sand: 'From bunker',
+      green: 'Putt',
+      recovery: 'Recovery',
+    };
+    return map[lie] || ('From ' + lie);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Pre-shot summary — bottom sheet opened from the lightbulb
+  // button on the GPS view. A quick "what am I doing on this
+  // shot" overview combining distance + swing thought, so the
+  // user can run a pre-shot routine without bouncing between
+  // the Caddie and Pre-Shot tools.
+  // ─────────────────────────────────────────────────────────────
+  const preShotSummaryState = {
+    open: false,
+  };
+
+  function openPreShotSummary() {
+    if (preShotSummaryState.open) return;
+    preShotSummaryState.open = true;
+    acquireScrollLock();
+    renderPreShotSummary();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const sheet = document.querySelector('.pss-sheet');
+        const backdrop = document.querySelector('.pss-backdrop');
+        if (sheet) sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+      });
+    });
+  }
+  window.openPreShotSummary = openPreShotSummary;
+
+  function closePreShotSummary() {
+    if (!preShotSummaryState.open) return;
+    const sheet = document.querySelector('.pss-sheet');
+    const backdrop = document.querySelector('.pss-backdrop');
+    const finish = () => {
+      preShotSummaryState.open = false;
+      releaseScrollLock();
+      const mount = document.getElementById('preshot-summary-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (!sheet || !backdrop) { finish(); return; }
+    sheet.classList.add('closing');
+    backdrop.classList.add('closing');
+    let done = false;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      sheet.removeEventListener('transitionend', onEnd);
+      if (done) return; done = true;
+      finish();
+    };
+    sheet.addEventListener('transitionend', onEnd);
+    setTimeout(() => { if (!done) { done = true; finish(); } }, 400);
+  }
+  window.closePreShotSummary = closePreShotSummary;
+
+  // Compute the current target for the pre-shot summary.
+  // Returns:
+  //   { lat, lng, isCustom: true }  — user-set target (reticle on map)
+  //   { lat, lng, isCustom: false } — falling back to pin position
+  //   null                          — no target available
+  function getPreShotTarget() {
+    if (typeof roundGpsState === 'undefined' || !roundGpsState) return null;
+    if (roundGpsState.targetActive
+        && Number.isFinite(roundGpsState.targetLat)
+        && Number.isFinite(roundGpsState.targetLng)) {
+      return { lat: roundGpsState.targetLat, lng: roundGpsState.targetLng, isCustom: true };
+    }
+    const pin = (typeof getEffectivePinLatLng === 'function') ? getEffectivePinLatLng() : null;
+    if (pin) return { lat: pin.lat, lng: pin.lng, isCustom: false };
+    return null;
+  }
+
+  function renderPreShotSummary() {
+    const mount = document.getElementById('preshot-summary-mount');
+    if (!mount) return;
+    if (!preShotSummaryState.open) { mount.innerHTML = ''; return; }
+
+    // ─── Distance section ─────────────────────────────────────
+    const target = getPreShotTarget();
+    const userPos = (typeof getRoundGpsUserPos === 'function') ? getRoundGpsUserPos() : null;
+    let distYards = null;
+    if (target && userPos && typeof haversineYards === 'function') {
+      distYards = haversineYards(userPos.lat, userPos.lng, target.lat, target.lng);
+    }
+
+    let distSection = '';
+    if (distYards != null) {
+      const distRounded = Math.round(distYards);
+      const targetLabel = target.isCustom ? 'Custom target' : 'Pin';
+      // Wind-adjusted distance, only if user has set wind direction
+      // in the Caddie tool AND we have a wind speed cached.
+      const windDir = (typeof dockState !== 'undefined' && dockState.caddie && dockState.caddie.wind) || 'calm';
+      const windMph = (typeof getCaddieWindSpeed === 'function') ? getCaddieWindSpeed() : null;
+      let playsLikeHtml = '';
+      if (windMph != null && windDir !== 'calm') {
+        const adj = applyWindAdjustment(distYards, windMph, windDir);
+        const adjRounded = Math.round(adj);
+        const diff = adjRounded - distRounded;
+        const diffSign = diff >= 0 ? '+' : '';
+        const dirLabel = windDir === 'into' ? 'into wind' : 'helping wind';
+        playsLikeHtml = `
+          <div class="pss-plays-like">
+            <span class="pss-plays-like-label">Plays like</span>
+            <span class="pss-plays-like-value">${adjRounded} yds</span>
+            <span class="pss-plays-like-delta">${diffSign}${diff} yds · ${dirLabel}</span>
+          </div>`;
+      }
+      // Helper text — only when no custom target. Tells the user
+      // they CAN aim somewhere else via the map (rather than always
+      // assuming pin distance).
+      const helperHtml = target.isCustom ? '' : `
+          <div class="pss-helper">Tap the map to aim somewhere else.</div>`;
+      distSection = `
+        <div class="pss-section">
+          <div class="pss-section-label">Distance</div>
+          <div class="pss-distance-row">
+            <span class="pss-distance-num">${distRounded}</span>
+            <span class="pss-distance-unit">yds</span>
+            <span class="pss-distance-target">to ${escapeHtml(targetLabel.toLowerCase())}</span>
+          </div>
+          ${playsLikeHtml}
+          ${helperHtml}
+        </div>`;
+    } else {
+      distSection = `
+        <div class="pss-section">
+          <div class="pss-section-label">Distance</div>
+          <div class="pss-distance-empty">No distance available — waiting for GPS fix.</div>
+        </div>`;
+    }
+
+    // ─── Swing thought section ────────────────────────────────
+    const inferred = (typeof inferSwingThoughtCategory === 'function')
+      ? inferSwingThoughtCategory() : null;
+    const activeCat = (typeof preShotCategoryOverride !== 'undefined' && preShotCategoryOverride)
+      ? preShotCategoryOverride
+      : inferred;
+    let swingThoughtSection = '';
+    if (activeCat) {
+      const catLabel = (typeof swingThoughtCategoryLabel === 'function')
+        ? swingThoughtCategoryLabel(activeCat)
+        : activeCat;
+      const allThoughts = (typeof swingThoughts !== 'undefined' && Array.isArray(swingThoughts))
+        ? swingThoughts : [];
+      const matches = allThoughts.filter(t =>
+        Array.isArray(t.categories) && t.categories.includes(activeCat)
+      );
+      if (matches.length === 0) {
+        swingThoughtSection = `
+          <div class="pss-section">
+            <div class="pss-section-label">Swing Thought · ${escapeHtml(catLabel)}</div>
+            <div class="pss-thought-empty">
+              <div>No thoughts saved for this category.</div>
+              <button class="pss-add-thought-btn"
+                      onclick="closePreShotSummary(); openSwingThoughtComposerWithCategory('${activeCat}')">
+                Add one
+              </button>
+            </div>
+          </div>`;
+      } else {
+        // Show the most recent matching thought as the primary, and
+        // a count of additional matches if there are more.
+        const primary = matches[0];
+        const moreCount = matches.length - 1;
+        const moreLine = moreCount > 0
+          ? `<div class="pss-thought-more">+${moreCount} more in ${escapeHtml(catLabel)}</div>`
+          : '';
+        swingThoughtSection = `
+          <div class="pss-section">
+            <div class="pss-section-label">Swing Thought · ${escapeHtml(catLabel)}</div>
+            <div class="pss-thought">${escapeHtml(primary.text)}</div>
+            ${moreLine}
+          </div>`;
+      }
+    }
+
+    mount.innerHTML = `
+      <div class="pss-backdrop opening" onclick="closePreShotSummary()"></div>
+      <div class="pss-sheet opening" role="dialog" aria-label="Pre-shot summary">
+        <div class="pss-header">
+          <div class="pss-header-eyebrow">Pre-shot</div>
+          <button class="pss-close" onclick="closePreShotSummary()" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pss-body">
+          ${distSection}
+          ${swingThoughtSection}
+        </div>
+      </div>`;
+  }
+  window.renderPreShotSummary = renderPreShotSummary;
+
+
   // Compute the rolling-average baseline for a course, excluding the
   // specified round (so a round's baseline doesn't include itself).
   // Uses the last INSIGHT_BASELINE_WINDOW completed rounds. Returns
@@ -70267,7 +71093,16 @@
   //
   // Hoisted out of renderRoundSummary so renderPublicRound can use the
   // same scorecard layout. Don't fork — both views must stay identical.
-  function buildScorecardNine(course, scores, start, end, label) {
+  //
+  // Optional opts:
+  //   sgPerHole: Map<holeNumber, true>  — if provided, score cells for
+  //     holes in the map become tappable and open the hole-SG drill-
+  //     down. Cells for un-tracked holes stay static. Pass null/omit
+  //     to render all cells static (used by renderPublicRound where
+  //     we don't expose the drill-down).
+  function buildScorecardNine(course, scores, start, end, label, opts) {
+    opts = opts || {};
+    const sgPerHole = opts.sgPerHole || null;
     let nineParSum = 0, nineStrokeSum = 0, ninePlayed = 0;
     const numCells = [];
     const parCells = [];
@@ -70291,14 +71126,17 @@
       else if (diff === -1) cls = ' rs-sc-birdie';
       else if (diff === 1)  cls = ' rs-sc-bogey';
       else if (diff >= 2)   cls = ' rs-sc-double';
-      // Penalty indicator — tiny red dot in the corner of the cell
-      // when this hole had any penalty strokes. Lets the user scan
-      // the scorecard and immediately spot which holes blew up due
-      // to hazards vs which were just bad putting/approach play.
       const penaltyMark = (e.penalties && e.penalties > 0)
         ? `<span class="rs-sc-penalty-dot" aria-label="${e.penalties} penalty stroke${e.penalties === 1 ? '' : 's'}"></span>`
         : '';
-      scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}${penaltyMark}</span></td>`);
+      // Hole has SG data → tappable cell that opens the drill-down.
+      // Otherwise plain non-interactive cell.
+      const isTappable = sgPerHole && sgPerHole.has(hn);
+      if (isTappable) {
+        scoreCells.push(`<td class="rs-sc-strokes rs-sc-strokes-tappable${cls}" onclick="openHoleSGDetail(${hn})" data-hole="${hn}" role="button" tabindex="0" aria-label="Hole ${hn} score ${e.strokes}, view strokes-gained breakdown"><span class="rs-sc-strokes-inner">${e.strokes}${penaltyMark}</span></td>`);
+      } else {
+        scoreCells.push(`<td class="rs-sc-strokes${cls}"><span class="rs-sc-strokes-inner">${e.strokes}${penaltyMark}</span></td>`);
+      }
     }
     const totalLabel = label === 'Front 9' ? 'Out' : 'In';
     const parTotalCell = `<td class="rs-sc-total rs-sc-par-total">${ninePlayed > 0 ? nineParSum : '—'}</td>`;
@@ -70379,6 +71217,26 @@
     const dateStr = formatRoundDate(round.startTime);
     const isQuickScore = !!round.quickScore;
 
+    // Precompute the set of holes that have SG-analyzable shot data.
+    // The scorecard renderer uses this Set to mark certain score cells
+    // as tappable (opens the per-hole drill-down sheet). Holes without
+    // tracked shots stay as plain non-interactive cells.
+    let roundSGHolesWithData = new Set();
+    let _roundSGCached = null;
+    if (course && !isQuickScore) {
+      _roundSGCached = computeRoundSG(round, course);
+      if (_roundSGCached && _roundSGCached.perShot) {
+        for (const s of _roundSGCached.perShot) {
+          roundSGHolesWithData.add(s.holeNumber);
+        }
+      }
+    }
+    // Stash the SG result + round on a module-level slot so the drill-
+    // down sheet can read it without re-computing or re-finding the round.
+    holeSGDetailState.sg = _roundSGCached;
+    holeSGDetailState.round = round;
+    holeSGDetailState.course = course;
+
     // Best-round badge — surfaces prominently at top of the summary
     // when this round qualifies. Global outranks course.
     const bests = computeMyBestRounds(recentRounds || []);
@@ -70452,7 +71310,7 @@
     let backParSum  = 0, backStrokeSum  = 0, backPlayed  = 0;
 
     const buildNine = (start, end, label) => {
-      return buildScorecardNine(course, round.scores, start, end, label);
+      return buildScorecardNine(course, round.scores, start, end, label, { sgPerHole: roundSGHolesWithData });
     };
 
     let hasScorecard = false;
@@ -88696,6 +89554,27 @@
              from the user's POV looking down the hole). Hidden until
              weather data lands. updateRoundGpsWindOverlay populates
              this and re-orients when the map rotates. -->
+        <!-- Pre-shot summary lightbulb — sits above the wind pill,
+             same right-edge alignment + dark glass styling. Tap to
+             open a bottom sheet showing distance to target (with
+             wind-adjusted plays-like) + the inferred swing thought
+             from the Pre-Shot tool. Always visible while GPS is
+             open (unlike the wind pill which is gated on weather
+             data). -->
+        <button class="round-gps-preshot" id="round-gps-preshot"
+                type="button"
+                onclick="openPreShotSummary()"
+                aria-label="Pre-shot summary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <!-- Lightbulb glyph -->
+            <path d="M9 18h6"/>
+            <path d="M10 21h4"/>
+            <path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.5 1 2.5h6c0-1 .3-1.9 1-2.5A6 6 0 0 0 12 3z"/>
+          </svg>
+        </button>
+
         <button class="round-gps-wind is-hidden" id="round-gps-wind"
                 type="button"
                 onclick="openWeatherFromGps()"
