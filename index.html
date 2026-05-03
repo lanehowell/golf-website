@@ -21958,9 +21958,13 @@
     border-left: 2px solid var(--color-accent);
     font-style: italic;
   }
-  .pss-thought-more {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
+  /* Stack wrapper for multiple thoughts in the same category — each
+     thought gets its own quote block, separated by a small gap so
+     they read as a list rather than a wall of italics. */
+  .pss-thought-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
   }
   .pss-thought-empty {
     display: flex;
@@ -65167,16 +65171,19 @@
             </div>
           </div>`;
       } else {
-        const primary = matches[0];
-        const moreCount = matches.length - 1;
-        const moreLine = moreCount > 0
-          ? `<div class="pss-thought-more">+${moreCount} more in ${escapeHtml(catLabel)}</div>`
-          : '';
+        // Render every saved thought in this category, stacked.
+        // Each gets its own quote-style block so the user can scan
+        // all their reminders for the moment at a glance — pulling
+        // up the lightbulb is meant to be a one-stop pre-shot
+        // briefing, hiding any thoughts behind a "+N more" line
+        // defeats that purpose.
+        const thoughtsHtml = matches.map(t =>
+          `<div class="pss-thought">${escapeHtml(t.text)}</div>`
+        ).join('');
         swingThoughtSection = `
           <div class="pss-section">
             <div class="pss-section-label">Swing Thought · ${escapeHtml(catLabel)}</div>
-            <div class="pss-thought">${escapeHtml(primary.text)}</div>
-            ${moreLine}
+            <div class="pss-thought-stack">${thoughtsHtml}</div>
           </div>`;
       }
     }
