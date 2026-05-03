@@ -31465,13 +31465,17 @@
     }
     /* Subtle status-bar blur — covers ONLY the iOS status bar zone
        (where the time, battery, and signal indicators live). Sized
-       to the safe-area-inset-top only, so the blur ends exactly at
-       the boundary between the status bar and the app content area.
-       Bottom fade keeps the edge soft.
+       to the safe-area-inset-top only.
 
-       Goal: very gentle. Just enough to keep the system status text
-       legible against scrolling content underneath; it should be
+       Goal: extremely subtle. Just enough to keep the system status
+       text legible against scrolling content underneath; should be
        barely perceptible as its own element.
+
+       The mask fades the strip's effect from full at the very top
+       (where the status bar lives) to zero at the bottom edge, so
+       the transition into untreated content is a smooth gradient
+       with no line at the bottom — any blur boundary is masked
+       to zero opacity.
 
        Hidden on full-bleed GPS / round-context panels where the
        map and floating affordances need to read full-width without
@@ -31482,27 +31486,23 @@
       top: 0;
       left: 0;
       right: 0;
-      /* Only cover the safe-area zone. No extension into content
-         below — that's what caused the visible boundary line in
-         previous attempts. With the blur strictly inside the system
-         status bar zone, the fade runs out before content even
-         starts, so there's no edge to perceive. */
       height: env(safe-area-inset-top, 0px);
-      background-color: color-mix(in srgb, var(--bg-page) 12%, transparent);
-      backdrop-filter: blur(6px) saturate(120%);
-      -webkit-backdrop-filter: blur(6px) saturate(120%);
-      /* Fade out toward the bottom so the edge that meets content
-         is the softest possible. */
+      background-color: color-mix(in srgb, var(--bg-page) 5%, transparent);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      /* Continuous gradient from full at top → zero at bottom. No
+         "hold then fade" — the full-opacity zone is just the very
+         top edge under the time/battery, then a smooth taper
+         through the rest of the safe-area. This means no part of
+         the strip has a hard boundary against content. */
       -webkit-mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 60%,
         rgba(0, 0, 0, 0) 100%
       );
       mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 60%,
         rgba(0, 0, 0, 0) 100%
       );
       pointer-events: none;
