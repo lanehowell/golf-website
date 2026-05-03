@@ -21827,47 +21827,80 @@
     font-weight: var(--weight-semibold);
     color: var(--text-secondary);
   }
-  .pss-distance-target {
+  /* Sub-line under the big distance number — gives context for what
+     the headline yardage represents. When plays-like math applied:
+     "Plays like · 137 yds to pin · +5". When raw only: "to pin". */
+  .pss-distance-sub {
+    margin-top: var(--space-1);
     font-size: var(--text-sm);
-    color: var(--text-muted);
+    color: var(--text-secondary);
+    line-height: var(--leading-snug);
+  }
+  /* Breakdown of plays-like adjustments — "+5 elev · −2 wind".
+     Smaller, uppercase tracking treatment so it reads as metadata
+     rather than a primary line. */
+  .pss-distance-breakdown {
+    margin-top: 2px;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
   }
   .pss-distance-empty {
     font-size: var(--text-sm);
     color: var(--text-muted);
     line-height: var(--leading-snug);
   }
-  .pss-plays-like {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-    border-radius: var(--radius-md);
-    flex-wrap: wrap;
-  }
-  .pss-plays-like-label {
-    font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-  .pss-plays-like-value {
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-  }
-  .pss-plays-like-delta {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-  }
   .pss-helper {
     font-size: var(--text-xs);
     color: var(--text-muted);
     font-style: italic;
     line-height: var(--leading-snug);
+    margin-top: var(--space-1);
+  }
+  /* Club recommendation section — large club name as the primary
+     answer, small meta line beneath ("Hits 145 yds · +3 long").
+     Sits between distance and swing thought. */
+  .pss-club {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+  }
+  .pss-club-name {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .pss-club-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+  }
+  .pss-club-note {
+    margin-top: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-accent);
+    letter-spacing: var(--tracking-wide);
+  }
+  .pss-club-empty {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
   }
   .pss-thought {
     font-size: var(--text-base);
@@ -64753,49 +64786,66 @@
     if (!preShotSummaryState.open) { mount.innerHTML = ''; return; }
 
     // ─── Distance section ─────────────────────────────────────
+    // Goal: a single decisive number — the distance to actually
+    // hit — backed by the geographic distance + a breakdown of
+    // adjustments. Use the same plays-like math that powers the
+    // GPS view's info bar (handles wind angle + elevation), so
+    // the lightbulb agrees with what's already visible on screen.
     const target = getPreShotTarget();
     const userPos = (typeof getRoundGpsUserPos === 'function') ? getRoundGpsUserPos() : null;
-    let distYards = null;
+    let actualYards = null;
+    let adjustments = null;
     if (target && userPos && typeof haversineYards === 'function') {
-      distYards = haversineYards(userPos.lat, userPos.lng, target.lat, target.lng);
+      actualYards = haversineYards(userPos.lat, userPos.lng, target.lat, target.lng);
+      if (typeof getRoundGpsPlaysLikeAdjustments === 'function') {
+        adjustments = getRoundGpsPlaysLikeAdjustments(
+          userPos.lat, userPos.lng,
+          target.lat, target.lng,
+          actualYards
+        );
+      }
     }
 
     let distSection = '';
-    if (distYards != null) {
-      const distRounded = Math.round(distYards);
-      const targetLabel = target.isCustom ? 'Custom target' : 'Pin';
-      // Wind-adjusted distance, only if user has set wind direction
-      // in the Caddie tool AND we have a wind speed cached.
-      const windDir = (typeof dockState !== 'undefined' && dockState.caddie && dockState.caddie.wind) || 'calm';
-      const windMph = (typeof getCaddieWindSpeed === 'function') ? getCaddieWindSpeed() : null;
-      let playsLikeHtml = '';
-      if (windMph != null && windDir !== 'calm') {
-        const adj = applyWindAdjustment(distYards, windMph, windDir);
-        const adjRounded = Math.round(adj);
-        const diff = adjRounded - distRounded;
-        const diffSign = diff >= 0 ? '+' : '';
-        const dirLabel = windDir === 'into' ? 'into wind' : 'helping wind';
-        playsLikeHtml = `
-          <div class="pss-plays-like">
-            <span class="pss-plays-like-label">Plays like</span>
-            <span class="pss-plays-like-value">${adjRounded} yds</span>
-            <span class="pss-plays-like-delta">${diffSign}${diff} yds · ${dirLabel}</span>
-          </div>`;
+    let playsLikeYards = null;
+    if (actualYards != null) {
+      const actualRounded = Math.round(actualYards);
+      const targetLabel = target.isCustom ? 'set target' : 'pin';
+
+      // Plays-like — when adjustments came back, display the adjusted
+      // number as the BIG number and demote raw to a sub-line. When no
+      // adjustments are available (DEM/wind not loaded yet, or no
+      // course coords) just show the raw distance as the headline.
+      let bigNum, subLine, breakdownLine;
+      if (adjustments && (adjustments.elevAvailable || adjustments.windAvailable)) {
+        playsLikeYards = adjustments.plays;
+        const delta = playsLikeYards - actualRounded;
+        const deltaSign = delta >= 0 ? '+' : '−';
+        const deltaAbs = Math.abs(delta);
+        bigNum = playsLikeYards;
+        subLine = `Plays like · ${actualRounded} yds to ${targetLabel}${
+          delta !== 0 ? ` · ${deltaSign}${deltaAbs}` : ''
+        }`;
+        breakdownLine = `<div class="pss-distance-breakdown">${escapeHtml(adjustments.breakdown)}</div>`;
+      } else {
+        playsLikeYards = actualRounded;
+        bigNum = actualRounded;
+        subLine = `to ${targetLabel}`;
+        breakdownLine = '';
       }
-      // Helper text — only when no custom target. Tells the user
-      // they CAN aim somewhere else via the map (rather than always
-      // assuming pin distance).
+
       const helperHtml = target.isCustom ? '' : `
           <div class="pss-helper">Set a target to aim somewhere else.</div>`;
+
       distSection = `
         <div class="pss-section">
           <div class="pss-section-label">Distance</div>
           <div class="pss-distance-row">
-            <span class="pss-distance-num">${distRounded}</span>
+            <span class="pss-distance-num">${bigNum}</span>
             <span class="pss-distance-unit">yds</span>
-            <span class="pss-distance-target">to ${escapeHtml(targetLabel.toLowerCase())}</span>
           </div>
-          ${playsLikeHtml}
+          <div class="pss-distance-sub">${escapeHtml(subLine)}</div>
+          ${breakdownLine}
           ${helperHtml}
         </div>`;
     } else {
@@ -64804,6 +64854,67 @@
           <div class="pss-section-label">Distance</div>
           <div class="pss-distance-empty">No distance available — waiting for GPS fix.</div>
         </div>`;
+    }
+
+    // ─── Club recommendation section ──────────────────────────
+    // Reuses the Caddie tool's recommendation engine but driven
+    // from the plays-like distance computed above. So when wind/
+    // elevation are accounted for, the club picked is for the
+    // ACTUAL distance the ball needs to fly, not the geographic
+    // one.
+    let clubSection = '';
+    if (playsLikeYards != null && playsLikeYards > 0) {
+      const bag = Array.isArray(prefs.bag) ? prefs.bag : [];
+      const hasAnyDistanceBearingSwing = bag.some(c => {
+        if (typeof c.distance === 'number' && c.distance > 0) return true;
+        return (c.partials || []).some(p => typeof p.distance === 'number' && p.distance > 0);
+      });
+      if (!hasAnyDistanceBearingSwing) {
+        // Empty bag — point user toward My Bag without making this
+        // section feel broken on first run.
+        clubSection = `
+          <div class="pss-section">
+            <div class="pss-section-label">Club</div>
+            <div class="pss-club-empty">
+              <div>No clubs with distances yet.</div>
+              <button class="pss-add-thought-btn"
+                      onclick="closePreShotSummary(); showPanel('bag', null)">
+                Set up My Bag
+              </button>
+            </div>
+          </div>`;
+      } else if (typeof getCaddieRecommendations === 'function') {
+        const { topPick, outOfRange } = getCaddieRecommendations(playsLikeYards, bag);
+        if (topPick) {
+          const diffYd = topPick.distance - playsLikeYards;
+          const diffAbs = Math.abs(Math.round(diffYd));
+          const diffText = diffYd === 0
+            ? 'Exact match'
+            : `${diffYd > 0 ? '+' : '−'}${diffAbs} yds ${diffYd > 0 ? 'long' : 'short'}`;
+          // Format club name with optional partial-swing percentage
+          const clubLabel = topPick.percent != null
+            ? `${topPick.percent}% ${topPick.clubName}`
+            : topPick.clubName;
+          // Out-of-range banner — short or long. Doesn't replace the
+          // pick (closest club is still actionable info), just
+          // contextualises why the diff is large.
+          let rangeNote = '';
+          if (outOfRange === 'long') {
+            rangeNote = '<div class="pss-club-note">Longer than your bag</div>';
+          } else if (outOfRange === 'short') {
+            rangeNote = '<div class="pss-club-note">Shorter than a full swing</div>';
+          }
+          clubSection = `
+            <div class="pss-section">
+              <div class="pss-section-label">Club</div>
+              <div class="pss-club">
+                <div class="pss-club-name">${escapeHtml(clubLabel)}</div>
+                <div class="pss-club-meta">Hits ${Math.round(topPick.distance)} yds · ${escapeHtml(diffText)}</div>
+              </div>
+              ${rangeNote}
+            </div>`;
+        }
+      }
     }
 
     // ─── Swing thought section ────────────────────────────────
@@ -64835,8 +64946,6 @@
             </div>
           </div>`;
       } else {
-        // Show the most recent matching thought as the primary, and
-        // a count of additional matches if there are more.
         const primary = matches[0];
         const moreCount = matches.length - 1;
         const moreLine = moreCount > 0
@@ -64864,6 +64973,7 @@
         </div>
         <div class="pss-body">
           ${distSection}
+          ${clubSection}
           ${swingThoughtSection}
         </div>
       </div>`;
