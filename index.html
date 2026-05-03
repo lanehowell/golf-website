@@ -64637,7 +64637,7 @@
       // they CAN aim somewhere else via the map (rather than always
       // assuming pin distance).
       const helperHtml = target.isCustom ? '' : `
-          <div class="pss-helper">Tap the map to aim somewhere else.</div>`;
+          <div class="pss-helper">Set a target to aim somewhere else.</div>`;
       distSection = `
         <div class="pss-section">
           <div class="pss-section-label">Distance</div>
@@ -79000,23 +79000,47 @@
       const natural = marker.getLngLat();
       let lat = natural.lat;
       let lng = natural.lng;
-      // Snap to pin when natural position is within threshold. Pin =
-      // user-dropped pin OR green center. Snap distance is in yards
-      // (real-world), so it scales with the map: zooming out doesn't
-      // change the snap radius the user feels relative to the green.
-      const pin = getEffectivePinLatLng();
+      // Snap candidates, in priority order:
+      //   1. Pin (user-dropped pin OR green center)
+      //   2. Committed target (the orange dot the user has locked in)
+      // Snap distance is in yards (real-world), so it scales with the
+      // map: zooming out doesn't change the snap radius the user feels
+      // relative to landmarks.
+      //
+      // Why include the committed target in snap candidates: once the
+      // user has set a target, dragging the reticle near it should
+      // re-engage that aim point (e.g., tweak slightly off and want
+      // to come back). Without snap, fine adjustments at the
+      // committed point are fiddly.
       let nowSnapped = false;
-      if (pin) {
-        const yds = haversineYards(lat, lng, pin.lat, pin.lng);
-        if (yds <= RETICLE_SNAP_YARDS) {
-          nowSnapped = true;
-          lat = pin.lat;
-          lng = pin.lng;
-          // Override marker's visual position so it sits on the pin.
-          // Mid-drag setLngLat doesn't disrupt Mapbox's pointer tracking;
-          // next drag tick still reads the finger's actual location.
-          try { marker.setLngLat([lng, lat]); } catch (_) {}
+      const snapCandidates = [];
+      const pin = getEffectivePinLatLng();
+      if (pin) snapCandidates.push(pin);
+      const committed = roundGpsState.committedTarget;
+      if (committed
+          && Number.isFinite(committed.lat)
+          && Number.isFinite(committed.lng)) {
+        snapCandidates.push({ lat: committed.lat, lng: committed.lng });
+      }
+      // Pick the nearest candidate within the snap radius.
+      let bestSnap = null;
+      let bestDist = Infinity;
+      for (const c of snapCandidates) {
+        const yds = haversineYards(lat, lng, c.lat, c.lng);
+        if (yds <= RETICLE_SNAP_YARDS && yds < bestDist) {
+          bestSnap = c;
+          bestDist = yds;
         }
+      }
+      if (bestSnap) {
+        nowSnapped = true;
+        lat = bestSnap.lat;
+        lng = bestSnap.lng;
+        // Override marker's visual position so it sits on the snap
+        // point. Mid-drag setLngLat doesn't disrupt Mapbox's pointer
+        // tracking; next drag tick still reads the finger's actual
+        // location.
+        try { marker.setLngLat([lng, lat]); } catch (_) {}
       }
       // Toggle visual snap state on entry/exit transitions only —
       // avoids redundant DOM writes on every tick. Also fire a soft
