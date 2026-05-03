@@ -19425,6 +19425,13 @@
     color: var(--text-secondary);
     margin-bottom: var(--space-3);
   }
+  /* Section labels need breathing room above them when they follow
+     another section's content. Adjacent-sibling selector skips the
+     very first label in any container (which would already have
+     natural spacing from its parent's padding). */
+  * + .round-summary-section-label {
+    margin-top: var(--space-6);
+  }
 
   /* TEMP — raw logged shots dump on round summary. Plain + utilitarian
      on purpose; a proper per-club/dispersion view replaces this later. */
