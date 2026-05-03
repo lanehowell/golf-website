@@ -31444,36 +31444,73 @@
       background-color: transparent;
       z-index: var(--z-dropdown);
     }
-    /* Status-bar blur strip — fixed-position pseudo at the very top
-       of the screen, just tall enough to cover the iOS status bar
-       (safe-area-inset-top + ~14px). Soft mask gradient fades the
-       blur out at the bottom edge so there's no hard cutoff. */
+    /* Status-bar blur — TWO stacked strips for a smooth falloff
+       instead of one masked strip. The mask-on-backdrop-filter
+       approach leaves a visible boundary at the filter's physical
+       edge (Safari renders the blur to a discrete region regardless
+       of the mask). With two layers each fading into the next, the
+       falloff has no single sharp boundary.
+
+       Layer 1 (::before): primary blur over the very top of the
+         screen, taller. Carries most of the tint.
+       Layer 2 (::after): lighter blur that extends a bit below
+         layer 1, taking over as layer 1's mask fades it out.
+         Catches any residual edge-line from layer 1 and softens
+         the transition into untreated content.
+
+       Both layers are masked with extended fade ranges so each
+       individual blur boundary is invisible. */
     .mobile-topbar::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: calc(env(safe-area-inset-top, 0px) + 14px);
+      height: calc(env(safe-area-inset-top, 0px) + 22px);
       background-color: color-mix(in srgb, var(--bg-page) 35%, transparent);
       backdrop-filter: blur(8px) saturate(140%);
       -webkit-backdrop-filter: blur(8px) saturate(140%);
-      /* Mask fades the blur+tint out smoothly. The fade starts at
-         50% (not 75%) so the gradient has more room to taper —
-         critical for hiding the boundary line that backdrop-filter
-         creates at its physical edge. Lighter blur intensity also
-         helps: a strong blur at a hard edge is much more visible
-         than a gentle blur fading away. */
       -webkit-mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 50%,
+        rgba(0, 0, 0, 1) 40%,
         rgba(0, 0, 0, 0) 100%
       );
       mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 50%,
+        rgba(0, 0, 0, 1) 40%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      pointer-events: none;
+    }
+    .mobile-topbar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      /* Layer 2 extends ~10px past layer 1's bottom edge, taking
+         over the falloff with a much lighter blur. */
+      height: calc(env(safe-area-inset-top, 0px) + 32px);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      /* No bg tint on layer 2 — its job is to hide the edge of
+         layer 1's blur with a weaker blur that continues the
+         falloff. Mask starts opaque only where layer 1's mask
+         starts fading (~40%), and fades fully by the end. */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.8) 30%,
+        rgba(0, 0, 0, 0.8) 60%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.8) 30%,
+        rgba(0, 0, 0, 0.8) 60%,
         rgba(0, 0, 0, 0) 100%
       );
       pointer-events: none;
@@ -31594,7 +31631,13 @@
     body[data-current-panel="group-lobby"] .mobile-topbar::before,
     body[data-current-panel="range-session"] .mobile-topbar::before,
     body[data-current-panel="shortgame-session"] .mobile-topbar::before,
-    body[data-current-panel="course-practice-session"] .mobile-topbar::before {
+    body[data-current-panel="course-practice-session"] .mobile-topbar::before,
+    body[data-current-panel="round"] .mobile-topbar::after,
+    body[data-current-panel="group-round"] .mobile-topbar::after,
+    body[data-current-panel="group-lobby"] .mobile-topbar::after,
+    body[data-current-panel="range-session"] .mobile-topbar::after,
+    body[data-current-panel="shortgame-session"] .mobile-topbar::after,
+    body[data-current-panel="course-practice-session"] .mobile-topbar::after {
       display: none;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
