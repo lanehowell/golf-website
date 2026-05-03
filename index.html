@@ -80970,6 +80970,17 @@
     setupAccuracyCircle: null, // { sourceId, layerId } for the accuracy ring
     setupHasFirstFix: false,   // true after first GPS fix lands (centers the map once)
     setupUserPanned: false,    // true after user pans/zooms the map; suppresses auto-center
+    // Heading indicator — wedge-shaped "you are looking that way" cone
+    // extending from the user dot. Driven by DeviceOrientationEvent
+    // compass heading. iOS requires permission via requestPermission()
+    // which can only be requested from a user gesture; we trigger it
+    // when the user enters the targets substage (commitRangeSetupTee
+    // is a button tap = a gesture). Browsers/devices without a compass
+    // gracefully fall back to no cone — the feature is purely additive.
+    setupHeadingDeg: null,     // current compass heading (0=N, 90=E)
+    setupHeadingHandler: null, // bound deviceorientation listener (for removal)
+    setupHeadingLayer: null,   // { sourceId, layerId } for the cone polygon
+    setupHeadingRafId: null,   // rAF id for throttling cone updates
     // Target rendering — single Mapbox circle layer + GeoJSON source
     // for ALL targets (replaces the old per-target DOM markers, which
     // visibly drifted on map pan; see architecture doc war stories).
@@ -81653,6 +81664,10 @@
       pendingDisplayLabel: null,
       pendingTargetDistanceInput: '',
     };
+    // Kick off compass-heading tracking — same rationale as
+    // commitRangeSetupTee. The sheet button tap that called us is
+    // a user gesture, so iOS will accept the permission prompt.
+    startGpsRangeSetupHeadingTracking();
     renderGpsRangeStage();
   }
   window.editRangeFromSheet = editRangeFromSheet;
@@ -81827,6 +81842,10 @@
     if (!center) return;
     gpsRangeSessionState.setupDraft.tee = { lat: center.lat, lng: center.lng };
     gpsRangeSessionState.setupStage = 'targets';
+    // Kick off compass-heading tracking now that we're in the targets
+    // substage where the cone is useful. This is a user gesture (button
+    // tap) so iOS will accept the requestPermission() prompt.
+    startGpsRangeSetupHeadingTracking();
     renderGpsRangeStage();
   }
   window.commitRangeSetupTee = commitRangeSetupTee;
@@ -82435,6 +82454,8 @@
     gpsRangeSessionState.setupAccuracyCircle = null;
     gpsRangeSessionState.setupHasFirstFix = false;
     gpsRangeSessionState.setupUserPanned = false;
+    // Compass heading + cone — paired with the user marker lifecycle.
+    stopGpsRangeSetupHeadingTracking();
   }
 
   function onGpsRangeSetupFix(pos) {
@@ -82489,6 +82510,9 @@
     } else {
       gpsRangeSessionState.setupUserMarker.setLngLat([longitude, latitude]);
     }
+    // Cone is anchored to the user marker — refresh it so the apex
+    // follows the fix. No-op if heading isn't being tracked yet.
+    updateGpsRangeSetupHeadingCone();
 
     // Update the accuracy circle. Visually communicates "this fix is
     // approximate" — important for poor GPS, since otherwise the user
@@ -82556,6 +82580,185 @@
       zoom, radiusPx,
       Math.min(22, zoom + 1), radiusPx * 2,
     ]);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Heading indicator — a translucent wedge ("cone of vision")
+  // extending from the user dot in the compass-heading direction.
+  // Helps the user place targets at the correct points on the
+  // distance ring by giving a visual reference for which way
+  // they're physically facing.
+  // ──────────────────────────────────────────────────────────
+
+  // Cone geometry parameters. The half-angle controls how wide the
+  // wedge is (from center line to either edge). 30° = 60° total
+  // spread, matches the iOS Maps "you're facing this way" cone.
+  // Length is in meters of real-world distance — a fixed real-world
+  // length (not pixels) so as the user zooms the map the cone
+  // stays anchored to the geography rather than the screen.
+  const SETUP_HEADING_CONE_HALF_ANGLE_DEG = 30;
+  const SETUP_HEADING_CONE_LENGTH_M = 60;
+
+  // Build the wedge polygon as a GeoJSON feature. Apex at the user
+  // position, two outer corners at +/- half-angle from the heading,
+  // SETUP_HEADING_CONE_LENGTH_M meters out. We add a few interpolated
+  // points along the arc edge so the outer boundary curves smoothly
+  // rather than chopping a flat triangle out.
+  function buildHeadingConeFeature(lat, lng, headingDeg) {
+    const segments = 12;  // resolution along the arc — visually smooth
+    const halfAngle = SETUP_HEADING_CONE_HALF_ANGLE_DEG;
+    const lengthM = SETUP_HEADING_CONE_LENGTH_M;
+    // Convert meters → degrees lat/lng. Earth radius ~6378137m for
+    // WGS84. Lat is uniform; lng scales by cos(lat).
+    const earthR = 6378137;
+    const latPerM = (180 / Math.PI) / earthR;
+    const lngPerM = latPerM / Math.cos(lat * Math.PI / 180);
+    const ring = [[lng, lat]];  // apex at user
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const bearing = headingDeg - halfAngle + (halfAngle * 2) * t;
+      const rad = bearing * Math.PI / 180;
+      // Bearing 0=north, 90=east. dx along east axis, dy along north.
+      const dx = Math.sin(rad) * lengthM;
+      const dy = Math.cos(rad) * lengthM;
+      ring.push([lng + dx * lngPerM, lat + dy * latPerM]);
+    }
+    ring.push([lng, lat]);  // close back to apex
+    return {
+      type: 'Feature',
+      geometry: { type: 'Polygon', coordinates: [ring] },
+    };
+  }
+
+  // Update the cone's polygon to match the current user position +
+  // heading. Coalesced via rAF so a flood of orientation events
+  // doesn't overwhelm Mapbox with setData calls. No-op if either
+  // user position or heading is unknown.
+  function updateGpsRangeSetupHeadingCone() {
+    // Cancel any pending frame; we're about to schedule a new one.
+    if (gpsRangeSessionState.setupHeadingRafId != null) {
+      cancelAnimationFrame(gpsRangeSessionState.setupHeadingRafId);
+    }
+    gpsRangeSessionState.setupHeadingRafId = requestAnimationFrame(() => {
+      gpsRangeSessionState.setupHeadingRafId = null;
+      const map = gpsRangeSessionState.map;
+      if (!map) return;
+      const userMarker = gpsRangeSessionState.setupUserMarker;
+      const heading = gpsRangeSessionState.setupHeadingDeg;
+      if (!userMarker || heading == null) return;
+      const ll = userMarker.getLngLat();
+      if (!ll) return;
+      const feature = buildHeadingConeFeature(ll.lat, ll.lng, heading);
+
+      const sourceId = 'gps-range-setup-heading-src';
+      const layerId = 'gps-range-setup-heading-lyr';
+      if (!gpsRangeSessionState.setupHeadingLayer) {
+        // First update — add the source + layer. The cone goes ABOVE
+        // the accuracy circle but BELOW the user dot (DOM markers
+        // always paint above Mapbox layers, so the dot stays on top
+        // automatically).
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, { type: 'geojson', data: feature });
+        }
+        if (!map.getLayer(layerId)) {
+          map.addLayer({
+            id: layerId,
+            type: 'fill',
+            source: sourceId,
+            paint: {
+              'fill-color': '#3b82f6',
+              // Gradient via fill-opacity isn't supported on a single
+              // polygon layer — Mapbox can't fade from apex to edge.
+              // We accept a flat translucent fill; the visual cue is
+              // strong enough without the gradient.
+              'fill-opacity': 0.22,
+            },
+          });
+        }
+        gpsRangeSessionState.setupHeadingLayer = { sourceId, layerId };
+      } else {
+        const src = map.getSource(sourceId);
+        if (src && src.setData) src.setData(feature);
+      }
+    });
+  }
+
+  // Start listening for compass-heading events. On iOS 13+ this
+  // requires explicit permission via DeviceOrientationEvent
+  // .requestPermission(), which can ONLY be called from a user
+  // gesture. Caller is responsible for invoking from a gesture
+  // (e.g., a button click handler).
+  //
+  // On grant or non-iOS, attaches a deviceorientation listener
+  // that tracks compass heading and refreshes the cone polygon.
+  // On denial / unsupported, silently no-ops — feature is additive
+  // and absent it the setup map still works fine.
+  function startGpsRangeSetupHeadingTracking() {
+    if (gpsRangeSessionState.setupHeadingHandler) return;  // already tracking
+    if (typeof window === 'undefined' || !window.DeviceOrientationEvent) return;
+
+    const attach = () => {
+      const handler = (e) => {
+        // iOS exposes a true compass heading on webkitCompassHeading
+        // (degrees clockwise from magnetic north). On Android Chrome,
+        // the absolute orientation event provides alpha = degrees
+        // counter-clockwise from north — so we flip it to match.
+        let heading = null;
+        if (typeof e.webkitCompassHeading === 'number') {
+          heading = e.webkitCompassHeading;
+        } else if (typeof e.alpha === 'number' && e.absolute) {
+          heading = (360 - e.alpha) % 360;
+        }
+        if (heading == null) return;
+        gpsRangeSessionState.setupHeadingDeg = heading;
+        updateGpsRangeSetupHeadingCone();
+      };
+      gpsRangeSessionState.setupHeadingHandler = handler;
+      // Prefer 'deviceorientationabsolute' when available (Chrome) for
+      // true compass; fall back to 'deviceorientation' (iOS uses this
+      // and provides webkitCompassHeading on it).
+      const eventName = ('ondeviceorientationabsolute' in window)
+        ? 'deviceorientationabsolute'
+        : 'deviceorientation';
+      window.addEventListener(eventName, handler, { passive: true });
+    };
+
+    // iOS 13+ permission gate. requestPermission must be called from
+    // a user gesture; the calling code arranges that. If it returns
+    // anything other than 'granted', we leave the cone unattached.
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(state => {
+        if (state === 'granted') attach();
+      }).catch(() => {
+        // Permission flow rejected — not a hard error, just no cone.
+      });
+    } else {
+      // Other browsers don't gate orientation events.
+      attach();
+    }
+  }
+
+  // Tear down the heading listener + cone layer. Called from
+  // stopGpsRangeSetupWatch as part of the broader setup cleanup.
+  function stopGpsRangeSetupHeadingTracking() {
+    if (gpsRangeSessionState.setupHeadingHandler) {
+      const eventName = ('ondeviceorientationabsolute' in window)
+        ? 'deviceorientationabsolute'
+        : 'deviceorientation';
+      try {
+        window.removeEventListener(eventName, gpsRangeSessionState.setupHeadingHandler);
+      } catch (_) {}
+      gpsRangeSessionState.setupHeadingHandler = null;
+    }
+    if (gpsRangeSessionState.setupHeadingRafId != null) {
+      cancelAnimationFrame(gpsRangeSessionState.setupHeadingRafId);
+      gpsRangeSessionState.setupHeadingRafId = null;
+    }
+    // Layer is owned by the map, which is destroyed in
+    // cleanupGpsRangeMap right after this. Clear the reference;
+    // the map.remove() call will tear down the actual source/layer.
+    gpsRangeSessionState.setupHeadingLayer = null;
+    gpsRangeSessionState.setupHeadingDeg = null;
   }
 
   function handleSetupMapTap(lat, lng) {
