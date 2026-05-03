@@ -31264,7 +31264,7 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-6);
+      right: var(--space-5);
       top: 4px;
       transform: none;
       font-family: var(--font-body);
@@ -31310,7 +31310,7 @@
       align-items: center;
       gap: var(--space-2);
       position: absolute;
-      right: var(--space-6);
+      right: var(--space-5);
       top: 4px;
       transform: none;
       font-family: var(--font-mono);
@@ -31463,13 +31463,50 @@
       background-color: transparent;
       z-index: var(--z-dropdown);
     }
-    /* Status-bar blur strip — temporarily removed. The blur was
-       proving difficult to render without a visible boundary line,
-       and the visual benefit didn't justify the complexity. Topbar
-       wrapper stays transparent; back button + LIVE pill float
-       directly over content. May revisit later with a different
-       approach (e.g. a properly-rendered backdrop element rather
-       than masked pseudos). */
+    /* Subtle status-bar blur — covers ONLY the iOS status bar zone
+       (where the time, battery, and signal indicators live). Sized
+       to the safe-area-inset-top only, so the blur ends exactly at
+       the boundary between the status bar and the app content area.
+       Bottom fade keeps the edge soft.
+
+       Goal: very gentle. Just enough to keep the system status text
+       legible against scrolling content underneath; it should be
+       barely perceptible as its own element.
+
+       Hidden on full-bleed GPS / round-context panels where the
+       map and floating affordances need to read full-width without
+       any tinted band at the top. */
+    .mobile-topbar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      /* Only cover the safe-area zone. No extension into content
+         below — that's what caused the visible boundary line in
+         previous attempts. With the blur strictly inside the system
+         status bar zone, the fade runs out before content even
+         starts, so there's no edge to perceive. */
+      height: env(safe-area-inset-top, 0px);
+      background-color: color-mix(in srgb, var(--bg-page) 12%, transparent);
+      backdrop-filter: blur(6px) saturate(120%);
+      -webkit-backdrop-filter: blur(6px) saturate(120%);
+      /* Fade out toward the bottom so the edge that meets content
+         is the softest possible. */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 60%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 60%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      pointer-events: none;
+    }
     .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
       position: relative;
@@ -31573,12 +31610,14 @@
     body[data-current-panel="range-session"] .mobile-topbar::before,
     body[data-current-panel="shortgame-session"] .mobile-topbar::before,
     body[data-current-panel="course-practice-session"] .mobile-topbar::before,
+    body.round-gps-open .mobile-topbar::before,
     body[data-current-panel="round"] .mobile-topbar::after,
     body[data-current-panel="group-round"] .mobile-topbar::after,
     body[data-current-panel="group-lobby"] .mobile-topbar::after,
     body[data-current-panel="range-session"] .mobile-topbar::after,
     body[data-current-panel="shortgame-session"] .mobile-topbar::after,
-    body[data-current-panel="course-practice-session"] .mobile-topbar::after {
+    body[data-current-panel="course-practice-session"] .mobile-topbar::after,
+    body.round-gps-open .mobile-topbar::after {
       display: none;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
@@ -31624,7 +31663,7 @@
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-6);
+      left: var(--space-5);
       /* Lift the button up so it sits high in the topbar — closer to
          the dynamic island / status bar where iOS conventionally
          places close affordances. The inner zone is 52px tall; a
