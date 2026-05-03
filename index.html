@@ -31436,15 +31436,45 @@
       right: 0;
       height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
-      /* Translucent blurred surface — content scrolls visibly under
-         the topbar with a soft blur, instead of being cut off by an
-         opaque strip. Same backdrop-blur language as our floating
-         buttons; the bg-page tint at 75% opacity keeps the status bar
-         legible without hiding what's behind. */
-      background-color: color-mix(in srgb, var(--bg-page) 75%, transparent);
-      backdrop-filter: blur(20px) saturate(160%);
-      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      /* Topbar wrapper itself stays transparent — the blur strip
+         lives on a ::before pseudo so it can be scoped to only the
+         status bar zone (not the full topbar height) and faded out
+         with a mask gradient at the bottom. The wrapper still hosts
+         the back button + LIVE pill at the topbar-h height below. */
+      background-color: transparent;
       z-index: var(--z-dropdown);
+    }
+    /* Status-bar blur strip — fixed-position pseudo at the very top
+       of the screen, just tall enough to cover the iOS status bar
+       (safe-area-inset-top + ~14px). Soft mask gradient fades the
+       blur out at the bottom edge so there's no hard cutoff. */
+    .mobile-topbar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(env(safe-area-inset-top, 0px) + 14px);
+      background-color: color-mix(in srgb, var(--bg-page) 60%, transparent);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      /* Mask fades the blur+tint out smoothly at the bottom — no
+         hard line where the blur ends. The mask is opaque for the
+         top ~80% of the strip, then fades to transparent for the
+         remaining 20% at the bottom edge. */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 75%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 75%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      pointer-events: none;
     }
     .mobile-topbar-title { display: none; }
     .mobile-topbar-inner {
@@ -31552,6 +31582,18 @@
       -webkit-backdrop-filter: none;
       border-bottom: none;
       pointer-events: none;
+    }
+    /* Round-context panels — also hide the status-bar blur strip
+       since these screens are full-bleed (round map, scorecard) and
+       any tinted band at the top would be visually inconsistent
+       with the floating-X / floating-LIVE-pill treatment. */
+    body[data-current-panel="round"] .mobile-topbar::before,
+    body[data-current-panel="group-round"] .mobile-topbar::before,
+    body[data-current-panel="group-lobby"] .mobile-topbar::before,
+    body[data-current-panel="range-session"] .mobile-topbar::before,
+    body[data-current-panel="shortgame-session"] .mobile-topbar::before,
+    body[data-current-panel="course-practice-session"] .mobile-topbar::before {
+      display: none;
     }
     body[data-current-panel="round"] .mobile-topbar-back,
     body[data-current-panel="group-round"] .mobile-topbar-back,
