@@ -21808,45 +21808,66 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
+  /* Distance section — when plays-like applies, the adjusted yardage
+     is the headline number. Eyebrow above it, breakdown ("+5 elev")
+     beneath, raw distance demoted to a small reference line. The
+     visual hierarchy is: PLAYS LIKE → big number → why → raw, in
+     that descending importance order. */
+  .pss-section-distance {
+    /* Subtle accent-tinted card so the section reads as the primary
+       answer of the sheet — matches how iOS surfaces the most-
+       relevant info in summary views. */
+    padding: var(--space-3) var(--space-4);
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-accent);
+  }
+  .pss-distance-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 2px;
+  }
   .pss-distance-row {
     display: flex;
     align-items: baseline;
     gap: var(--space-2);
     flex-wrap: wrap;
+    line-height: 1;
   }
   .pss-distance-num {
     font-family: var(--font-display);
-    font-size: var(--text-4xl);
+    font-size: 56px;
     font-weight: var(--weight-bold);
     line-height: 1;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
   }
   .pss-distance-unit {
-    font-size: var(--text-base);
+    font-size: var(--text-lg);
     font-weight: var(--weight-semibold);
     color: var(--text-secondary);
   }
-  /* Sub-line under the big distance number — gives context for what
-     the headline yardage represents. When plays-like math applied:
-     "Plays like · 137 yds to pin · +5". When raw only: "to pin". */
-  .pss-distance-sub {
+  /* Breakdown — compact "+5 elev · −2 wind" line in accent color so
+     it reads as a meaningful annotation of the headline number. */
+  .pss-distance-breakdown {
     margin-top: var(--space-1);
     font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: var(--leading-snug);
-  }
-  /* Breakdown of plays-like adjustments — "+5 elev · −2 wind".
-     Smaller, uppercase tracking treatment so it reads as metadata
-     rather than a primary line. */
-  .pss-distance-breakdown {
-    margin-top: 2px;
-    font-size: var(--text-xs);
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
     color: var(--color-accent);
     font-variant-numeric: tabular-nums;
+  }
+  /* Raw reference — small, muted line giving context for the
+     headline. "137 yds to pin · +5 adjusted" or just "to pin" when
+     no adjustment applies. */
+  .pss-distance-raw-ref {
+    margin-top: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-snug);
   }
   .pss-distance-empty {
     font-size: var(--text-sm);
@@ -57207,10 +57228,6 @@
       : (ctx.currentHoleIndex != null ? ctx.currentHoleIndex + 1 : null);
     if (!holeNum) return null;
 
-    const course = (typeof getCourse === 'function') ? getCourse(ctx.courseId) : null;
-    const hole = course?.holes?.[holeNum - 1];
-    const par = hole?.par;
-
     const shots = (typeof getShotsForHole === 'function')
       ? (getShotsForHole(holeNum) || [])
       : [];
@@ -57229,31 +57246,37 @@
       if (endLie === 'sand' || endLie === 'bunker') return 'bunker';
     }
 
-    // 3. Tee shot — no shots yet AND par allows it (par 3s aren't
-    //    "tee shots" in the swing-thought sense; they're approaches).
-    if (shots.length === 0 && par && par >= 4) {
-      return 'tee';
-    }
-
-    // 4. Distance-based for everything else. Use GPS distance to pin
-    //    if we can compute it; otherwise fall back to midApproach.
-    let distToPin = null;
+    // 3. Distance-based for every other case. The category should
+    //    match the SHOT being played, not the situation. A 165-yard
+    //    par-3 tee shot is an approach swing, not a "tee shot." A
+    //    layup with an 8-iron from 200 out is a long-iron swing,
+    //    not a tee swing. The thresholds reflect typical swing
+    //    character at each distance, not where on the hole you are.
+    //
+    //    Distance is measured to whatever target the user is
+    //    actually aiming at — committed target if set, otherwise
+    //    pin. Same priority chain as the pre-shot summary, so the
+    //    inferred category lines up with the displayed distance.
+    let distToTarget = null;
     try {
+      const target = (typeof getPreShotTarget === 'function') ? getPreShotTarget() : null;
       const userPos = (typeof getRoundGpsUserPos === 'function') ? getRoundGpsUserPos() : null;
-      const pin = (typeof getEffectivePinLatLng === 'function') ? getEffectivePinLatLng() : null;
-      if (userPos && pin && typeof haversineYards === 'function') {
-        distToPin = haversineYards(userPos.lat, userPos.lng, pin.lat, pin.lng);
+      if (userPos && target && typeof haversineYards === 'function') {
+        distToTarget = haversineYards(userPos.lat, userPos.lng, target.lat, target.lng);
       }
     } catch (_) {}
 
-    if (distToPin == null) {
-      // No GPS context — par 3 default to mid; otherwise mid.
+    if (distToTarget == null) {
+      // No GPS context — fall back to a reasonable default.
       return 'midApproach';
     }
-    if (distToPin <= 50) return 'chipping';
-    if (distToPin <= 120) return 'shortApproach';
-    if (distToPin <= 175) return 'midApproach';
-    return 'longApproach';
+    if (distToTarget <= 50)  return 'chipping';
+    if (distToTarget <= 120) return 'shortApproach';
+    if (distToTarget <= 175) return 'midApproach';
+    if (distToTarget <= 275) return 'longApproach';
+    // 275+ yards — driver/wood territory. This includes most par-4
+    // and par-5 tee shots, where the swing IS a tee swing.
+    return 'tee';
   }
 
   // In-memory state for the Pre-Shot tool's category override. Reset
@@ -64812,40 +64835,45 @@
       const actualRounded = Math.round(actualYards);
       const targetLabel = target.isCustom ? 'set target' : 'pin';
 
-      // Plays-like — when adjustments came back, display the adjusted
-      // number as the BIG number and demote raw to a sub-line. When no
-      // adjustments are available (DEM/wind not loaded yet, or no
-      // course coords) just show the raw distance as the headline.
-      let bigNum, subLine, breakdownLine;
+      // Plays-like — when adjustments came back, it's THE headline
+      // number with a "PLAYS LIKE" eyebrow above it (so the user
+      // immediately knows this is the adjusted figure, not raw).
+      // Raw distance demoted to a small reference line below the
+      // breakdown. When no adjustments are available (DEM/wind not
+      // loaded yet, or no course coords) just show the raw distance
+      // as the headline with no eyebrow.
+      let eyebrowHtml = '';
+      let bigNum, breakdownLine, rawRefLine;
       if (adjustments && (adjustments.elevAvailable || adjustments.windAvailable)) {
         playsLikeYards = adjustments.plays;
         const delta = playsLikeYards - actualRounded;
         const deltaSign = delta >= 0 ? '+' : '−';
         const deltaAbs = Math.abs(delta);
+        eyebrowHtml = `<div class="pss-distance-eyebrow">Plays like</div>`;
         bigNum = playsLikeYards;
-        subLine = `Plays like · ${actualRounded} yds to ${targetLabel}${
-          delta !== 0 ? ` · ${deltaSign}${deltaAbs}` : ''
-        }`;
         breakdownLine = `<div class="pss-distance-breakdown">${escapeHtml(adjustments.breakdown)}</div>`;
+        rawRefLine = `<div class="pss-distance-raw-ref">${actualRounded} yds to ${escapeHtml(targetLabel)}${
+          delta !== 0 ? ` · ${deltaSign}${deltaAbs} adjusted` : ''
+        }</div>`;
       } else {
         playsLikeYards = actualRounded;
         bigNum = actualRounded;
-        subLine = `to ${targetLabel}`;
         breakdownLine = '';
+        rawRefLine = `<div class="pss-distance-raw-ref">to ${escapeHtml(targetLabel)}</div>`;
       }
 
       const helperHtml = target.isCustom ? '' : `
           <div class="pss-helper">Set a target to aim somewhere else.</div>`;
 
       distSection = `
-        <div class="pss-section">
-          <div class="pss-section-label">Distance</div>
+        <div class="pss-section pss-section-distance">
+          ${eyebrowHtml}
           <div class="pss-distance-row">
             <span class="pss-distance-num">${bigNum}</span>
             <span class="pss-distance-unit">yds</span>
           </div>
-          <div class="pss-distance-sub">${escapeHtml(subLine)}</div>
           ${breakdownLine}
+          ${rawRefLine}
           ${helperHtml}
         </div>`;
     } else {
