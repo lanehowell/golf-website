@@ -51767,6 +51767,9 @@
       dragRotate: false,
       pitchWithRotate: false,
       touchZoomRotate: true,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      maxPitch: 0,
     });
     shotEditState.map = map;
 
@@ -51905,6 +51908,9 @@
       // Both lines depend on start — redraw both.
       updateShotEditFlightLine();
       updateShotEditIntentLine();
+      // Miss vector depends on start position — re-derive + refresh
+      // the "From GPS" readout in the Result section.
+      refreshShotEditMissContext();
     });
     shotEditState.startMarker = startMarker;
 
@@ -51926,6 +51932,8 @@
       // Only flight line depends on end; intent line is start→target,
       // unaffected by end position.
       updateShotEditFlightLine();
+      // Miss vector depends on end — re-derive + refresh readout.
+      refreshShotEditMissContext();
     });
     shotEditState.endMarker = endMarker;
 
@@ -51947,6 +51955,8 @@
         updateShotEditPinLayer('shot-edit-pin-target', ll.lng, ll.lat);
         // Only intent line depends on target; flight is unaffected.
         updateShotEditIntentLine();
+        // Miss vector depends on target — re-derive + refresh readout.
+        refreshShotEditMissContext();
       });
       shotEditState.targetMarker = tgtMarker;
     }
@@ -52146,6 +52156,46 @@
     shotEditState.endMarker = null;
     shotEditState.targetMarker = null;
   }
+
+  // Re-derive the miss vector from the current draft's start/end/
+  // target coords, then update the "From GPS" readout in the Result
+  // section in place. Called from the map drag handlers so the user
+  // sees the GPS-derived miss text update live as they drag pins.
+  // No-op if there's no readout currently in the DOM (e.g., shot
+  // doesn't have target geometry).
+  function refreshShotEditMissContext() {
+    const draft = shotEditState.draft;
+    if (!draft) return;
+    // Recompute miss vector from current geometry. We need start +
+    // target + end all set; otherwise alongShot/lateralOffset go
+    // stale and the readout would lie.
+    if (typeof draft.startLat === 'number' && typeof draft.startLng === 'number'
+        && typeof draft.targetLat === 'number' && typeof draft.targetLng === 'number'
+        && typeof draft.endLat === 'number' && typeof draft.endLng === 'number'
+        && typeof computeShotMissVector === 'function') {
+      const miss = computeShotMissVector(
+        draft.startLat, draft.startLng,
+        draft.targetLat, draft.targetLng,
+        draft.endLat, draft.endLng);
+      if (miss) {
+        draft.lateralOffset = miss.lateralOffset;
+        draft.alongShot = miss.alongShot;
+      }
+    }
+    // Update the DOM in place. The miss-context node may not exist
+    // (older shots without target geometry render no readout) — bail
+    // silently in that case rather than rendering one mid-drag.
+    const node = document.querySelector('.shot-edit-miss-context');
+    if (!node) return;
+    const ctx = (typeof getShotMissContext === 'function')
+      ? getShotMissContext(draft)
+      : { hasContext: false };
+    if (!ctx.hasContext) return;
+    const valueEl = node.querySelector('.shot-edit-miss-context-value');
+    if (valueEl) valueEl.textContent = ctx.joinText;
+    node.dataset.classify = ctx.classifyAsMiss ? 'miss' : 'ok';
+  }
+  window.refreshShotEditMissContext = refreshShotEditMissContext;
 
   // User-initiated dismiss path. If this is a freshly-created stub
   // (Log Shot / My Shot pushed it but user X'd out without saving),
@@ -73069,6 +73119,10 @@
       minZoom: 14,
       maxZoom: 19,
       attributionControl: true,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
     });
     holeHistoryState.map = map;
     if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
@@ -74050,6 +74104,9 @@
       doubleClickZoom: true,
       dragRotate: false,
       pitchWithRotate: false,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      maxPitch: 0,
     });
     map.on('load', () => {
       try { map.resize(); } catch (_) {}
@@ -76913,6 +76970,10 @@
       center: [courseLng, courseLat],
       zoom: 16,
       attributionControl: true,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
     });
     gpsTestState.map = map;
 
@@ -77492,6 +77553,10 @@
         minZoom: 15,  // prevent zooming out into the tile-tier color shift
         maxZoom: 19,
         attributionControl: true,
+        // Disable 3D pitch — flat satellite tiles look bad tilted.
+        touchPitch: false,
+        pitchWithRotate: false,
+        maxPitch: 0,
       });
       pinGreensState.map = map;
       applyMapboxPolish(map);
@@ -77824,6 +77889,10 @@
         minZoom: 15,
         maxZoom: 19,
         attributionControl: true,
+        // Disable 3D pitch — flat satellite tiles look bad tilted.
+        touchPitch: false,
+        pitchWithRotate: false,
+        maxPitch: 0,
       });
       pinTeesState.map = map;
       applyMapboxPolish(map);
@@ -80537,6 +80606,9 @@
       attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      maxPitch: 0,
     });
     pinModalState.map = map;
     if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
@@ -82184,6 +82256,10 @@
       maxZoom: 19,
       bearingSnap: 0,
       attributionControl: false,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
     });
     gpsRangeSessionState.map = map;
     if (typeof applyMapboxPolish === 'function') applyMapboxPolish(map);
@@ -83880,6 +83956,10 @@
       maxZoom: 19,
       bearingSnap: 0,
       attributionControl: false,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
     });
     gpsRangeSessionState.map = map;
     // Match the saturation/contrast tweaks the in-round GPS view uses
@@ -90210,6 +90290,10 @@
       minZoom: 15,
       maxZoom: 19,
       attributionControl: true,
+      // Disable 3D pitch — flat satellite tiles look bad tilted.
+      touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
     });
     roundGpsState.map = map;
     applyMapboxPolish(map);
