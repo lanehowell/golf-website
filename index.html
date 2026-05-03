@@ -346,7 +346,16 @@
        cobalt and burgundy live in their own blocks below. */
     --color-accent:       var(--color-orange);
     --color-accent-light: var(--color-orange-light);
-    --color-accent-dark:  var(--color-orange-dark);
+    /* In dark mode --color-accent-dark gets remapped to the LIGHT
+       variant. Light mode uses accent-dark as a deep accent for text
+       on pale-accent backgrounds (pills, cards, chips). In dark mode
+       the equivalent surface is dark-accent-pale (a tinted dark) — a
+       deeper accent on top of that fails contrast. The lifted accent
+       (orange-light = #FFB47A, cobalt-light = #5B82E8, burgundy-light
+       = #D88599) is the right contrast-positive choice on dark backs.
+       Single override here keeps every existing accent-dark usage
+       site working without per-rule dark patches. */
+    --color-accent-dark:  var(--color-orange-light);
     --color-accent-pale:  var(--color-orange-pale);
     --color-accent-glow:  var(--color-orange-glow);
     --color-accent-on:    var(--color-white);  /* white text on orange — high contrast */
@@ -411,12 +420,13 @@
 
   /* ── Cobalt theme · dark mode ─────────────────────────────────
      Deep cobalt loses contrast on dark surfaces. Brighten the
-     active accent significantly; keep the deep variant for
-     borders / pressed states / text-on-tint. */
+     active accent significantly; remap the "dark" alias to the
+     lifted variant too — its main job is text-on-pale-accent and
+     a deep cobalt fails contrast against the dark-mode pale tint. */
   html.dark[data-theme="cobalt"] {
     --color-accent:       #5B82E8;
     --color-accent-light: #7BA0F0;
-    --color-accent-dark:  #1E40AF;
+    --color-accent-dark:  #7BA0F0;
     --color-accent-pale:  rgba(91, 130, 232, 0.14);
     --color-accent-glow:  rgba(91, 130, 232, 0.22);
     --color-accent-on:    #1F1C17;  /* dark text on the bright cobalt button */
@@ -424,12 +434,12 @@
 
   /* ── Burgundy theme · dark mode ───────────────────────────────
      Deep burgundy goes muddy on dark surfaces. Lift to a brighter
-     rose/wine for legibility; the deep wine becomes the dark variant
-     used for borders and text-on-tint. */
+     rose/wine for legibility; the deep wine alias also moves to the
+     lifted variant for the same contrast-on-dark rationale. */
   html.dark[data-theme="burgundy"] {
     --color-accent:       #D88599;
     --color-accent-light: #E8A3B4;
-    --color-accent-dark:  #7F1D1D;
+    --color-accent-dark:  #E8A3B4;
     --color-accent-pale:  rgba(216, 133, 153, 0.14);
     --color-accent-glow:  rgba(216, 133, 153, 0.22);
     --color-accent-on:    #1F1614;  /* warm-dark text on the bright rose button */
@@ -16799,8 +16809,12 @@
     color: var(--text-muted);
   }
 
-  /* The recommendation area — top pick prominent, alternates below */
-  .caddie-recs { }
+  /* The recommendation area — top pick prominent, alternates below.
+     Top margin separates it from the preceding wind block (or the
+     distance input, when wind isn't shown). */
+  .caddie-recs {
+    margin-top: var(--space-4);
+  }
 
   .caddie-top-pick {
     display: flex;
@@ -54598,7 +54612,6 @@
       <div class="caddie-recs">
         ${rangeBanner}
         <div class="caddie-top-pick">
-          <div class="caddie-top-pick-icon" aria-hidden="true">🎯</div>
           <div class="caddie-top-pick-body">
             <div class="caddie-top-pick-name">${escapeHtml(formatSwingLabel(topPick))}</div>
             <div class="caddie-top-pick-detail">${topDist} ${unit} · ${diffText}</div>
