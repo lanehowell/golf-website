@@ -31455,23 +31455,25 @@
       left: 0;
       right: 0;
       height: calc(env(safe-area-inset-top, 0px) + 14px);
-      background-color: color-mix(in srgb, var(--bg-page) 60%, transparent);
-      backdrop-filter: blur(18px) saturate(160%);
-      -webkit-backdrop-filter: blur(18px) saturate(160%);
-      /* Mask fades the blur+tint out smoothly at the bottom — no
-         hard line where the blur ends. The mask is opaque for the
-         top ~80% of the strip, then fades to transparent for the
-         remaining 20% at the bottom edge. */
+      background-color: color-mix(in srgb, var(--bg-page) 35%, transparent);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      /* Mask fades the blur+tint out smoothly. The fade starts at
+         50% (not 75%) so the gradient has more room to taper —
+         critical for hiding the boundary line that backdrop-filter
+         creates at its physical edge. Lighter blur intensity also
+         helps: a strong blur at a hard edge is much more visible
+         than a gentle blur fading away. */
       -webkit-mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 75%,
+        rgba(0, 0, 0, 1) 50%,
         rgba(0, 0, 0, 0) 100%
       );
       mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 75%,
+        rgba(0, 0, 0, 1) 50%,
         rgba(0, 0, 0, 0) 100%
       );
       pointer-events: none;
