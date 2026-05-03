@@ -355,6 +355,10 @@
        they point at --color-white (which stays #FFFFFF) in light mode
        but should map to the elevated dark surface in dark mode. */
     --bg-elevated:    var(--color-cream-200);   /* cards, modals — elevated above page */
+    /* Restore --bg-surface to the dark surface tone — light mode
+       overrides it to white in :root above, but dark mode needs the
+       warm dark surface (cream-200 = #302C26 in dark). */
+    --bg-surface:     var(--color-cream-200);
     --text-inverse:   var(--color-cream-50);     /* text ON light/orange backgrounds (rare) */
     --text-on-accent: var(--color-white);        /* text on orange — stays white */
     --border-dark:    var(--color-black);        /* "dark" borders — now means strong text-colored */
@@ -31530,6 +31534,12 @@
   :root {
     --mobile-topbar-h: 52px;
     --mobile-bottomnav-h: 64px;
+    /* Override design-system.css default — cards in light mode read
+       cleaner as plain white over the cream page than as another
+       beige tint over cream. Matches the visual treatment of stat
+       bars / SG card content rows. Dark mode preserves the original
+       cream-200 (a dark brown surface) via the html.dark override. */
+    --bg-surface: var(--color-white);
   }
 
   @media (max-width: 768px) {
@@ -40101,6 +40111,13 @@
     // current round's pattern visually dominates; historical is
     // context). Different style (grey, no fill, thinner stroke) so
     // the eye reads the live one first.
+    //
+    // Color treatment: all chart chrome (axes, ellipses, ticks)
+    // uses currentColor with alpha mixes — so the SVG's `color`
+    // attribute can drive light/dark theming. The SVG root sets
+    // color: var(--text-primary), which is dark in light mode and
+    // off-white in dark mode. Ellipse strokes appear as ~25% of
+    // text color either way: visible on cream and dark surfaces.
     const p70 = (arr) => arr[Math.floor(arr.length * 0.70)] || arr[arr.length - 1] || 0;
     let ellipseHtml = '';
     // Historical ellipse — only if we have enough data to be
@@ -40113,7 +40130,7 @@
       const yRad = p70(histLongs) * yScale;
       ellipseHtml += `
         <ellipse cx="${cx}" cy="${cy}" rx="${xRad.toFixed(1)}" ry="${yRad.toFixed(1)}"
-                 fill="none" stroke="rgba(255,255,255,0.22)"
+                 fill="none" stroke="currentColor" stroke-opacity="0.28"
                  stroke-width="1" stroke-dasharray="2 4"/>`;
     }
     // Live ellipse — for THIS round's data.
@@ -40124,8 +40141,8 @@
       const yRad = p70(liveLongs) * yScale;
       ellipseHtml += `
         <ellipse cx="${cx}" cy="${cy}" rx="${xRad.toFixed(1)}" ry="${yRad.toFixed(1)}"
-                 fill="color-mix(in srgb, var(--color-accent) 8%, transparent)" stroke="color-mix(in srgb, var(--color-accent) 35%, transparent)"
-                 stroke-width="1" stroke-dasharray="3 3"/>`;
+                 fill="color-mix(in srgb, var(--color-accent) 8%, transparent)" stroke="color-mix(in srgb, var(--color-accent) 50%, transparent)"
+                 stroke-width="1.2" stroke-dasharray="3 3"/>`;
     }
 
     // Axis lines (crosshairs through origin) + bounds box.
@@ -40148,41 +40165,49 @@
                         fill="${color}" fill-opacity="0.4"
                         stroke="${color}" stroke-width="1"/>`;
       }
+      // Dot stroke uses currentColor for theme-adaptive contrast
+      // — a thin halo separates dots from each other and from the
+      // background. In light mode this is a dark hairline; in dark
+      // mode it's a light hairline. Both improve readability.
       return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}"
-                      r="${dotRadius}" fill="${color}" fill-opacity="0.7"
-                      stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>`;
+                      r="${dotRadius}" fill="${color}" fill-opacity="0.78"
+                      stroke="currentColor" stroke-opacity="0.25" stroke-width="0.5"/>`;
     }).join('');
 
     // Axis labels — tick marks and yardage at axis ends.
     const axisLabels = `
       <text x="${cx}" y="${padding - 8}" text-anchor="middle"
-            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+            font-family="var(--font-mono)" font-size="10" fill="currentColor" fill-opacity="0.6">
         long ${yBound}${unit}
       </text>
       <text x="${cx}" y="${H - padding + 16}" text-anchor="middle"
-            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+            font-family="var(--font-mono)" font-size="10" fill="currentColor" fill-opacity="0.6">
         short ${yBound}${unit}
       </text>
       <text x="${padding - 6}" y="${cy + 3}" text-anchor="end"
-            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+            font-family="var(--font-mono)" font-size="10" fill="currentColor" fill-opacity="0.6">
         L ${xBound}
       </text>
       <text x="${W - padding + 6}" y="${cy + 3}" text-anchor="start"
-            font-family="var(--font-mono)" font-size="10" fill="rgba(255,255,255,0.55)">
+            font-family="var(--font-mono)" font-size="10" fill="currentColor" fill-opacity="0.6">
         R ${xBound}
       </text>`;
 
+    // SVG root sets `color: var(--text-primary)` so currentColor
+    // resolves to a theme-appropriate foreground for all chart
+    // chrome (axes, ticks, ellipse strokes, dot halos).
     const svg = `
       <svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
-           class="disp-scatter-svg" role="img" aria-label="Dispersion pattern: ${valid.length} shots">
+           class="disp-scatter-svg" role="img" aria-label="Dispersion pattern: ${valid.length} shots"
+           style="color: var(--text-primary);">
         <!-- bounding box -->
         <rect x="${padding}" y="${padding}" width="${innerW}" height="${innerH}"
-              fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              fill="currentColor" fill-opacity="0.025" stroke="currentColor" stroke-opacity="0.18" stroke-width="1"/>
         <!-- crosshairs through origin (target) -->
         <line x1="${padding}" y1="${cy}" x2="${W - padding}" y2="${cy}"
-              stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+              stroke="currentColor" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="2 3"/>
         <line x1="${cx}" y1="${padding}" x2="${cx}" y2="${H - padding}"
-              stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+              stroke="currentColor" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="2 3"/>
         <!-- target marker at origin -->
         <circle cx="${cx}" cy="${cy}" r="3" fill="none"
                 stroke="color-mix(in srgb, var(--color-accent) 60%, transparent)" stroke-width="1.5"/>
@@ -71841,6 +71866,45 @@
       ` : ''}
 
       ${(() => {
+        // Round Replay entry — sits directly under the scorecard so
+        // it's the first action a user sees when reviewing a round.
+        // Only renders if the round has GPS-tracked shots; quick-score
+        // rounds and rounds without tracked shots have nothing to
+        // animate. Hoisted to a local so we can reference it once
+        // here and skip the standalone block lower in the page.
+        const shotsMap = round.shots || {};
+        let totalShots = 0;
+        let holesWithShots = 0;
+        for (const arr of Object.values(shotsMap)) {
+          if (!Array.isArray(arr)) continue;
+          const valid = arr.filter(s =>
+            typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
+            typeof s.endLat === 'number' && typeof s.endLng === 'number');
+          if (valid.length > 0) {
+            totalShots += valid.length;
+            holesWithShots += 1;
+          }
+        }
+        if (totalShots === 0) return '';
+        return `
+          <button class="round-replay-entry round-replay-entry-after-scorecard"
+                  onclick="openReplay('${round.id}')"
+                  aria-label="Watch round replay">
+            <div class="round-replay-entry-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/>
+              </svg>
+            </div>
+            <div class="round-replay-entry-text">
+              <div class="round-replay-entry-title">Replay round</div>
+              <div class="round-replay-entry-sub">${totalShots} shots across ${holesWithShots} hole${holesWithShots === 1 ? '' : 's'}</div>
+            </div>
+            <div class="round-replay-entry-arrow" aria-hidden="true">→</div>
+          </button>
+        `;
+      })()}
+
+      ${(() => {
         // Strokes Gained block — empirical PGA Tour comparison. Most
         // useful and prescriptive single metric in the app. Only render
         // if we have enough shot data to compute it meaningfully.
@@ -71928,43 +71992,6 @@
             </div>
             <div class="scramble-attr-rows">${rowsHtml}</div>
           </div>`;
-      })()}
-
-      ${(() => {
-        // Round Replay entry — only show if the round has GPS-tracked
-        // shots somewhere. Quick-score rounds (no per-hole detail)
-        // and rounds where the user just typed scores without
-        // tracking shots have nothing to animate.
-        const shotsMap = round.shots || {};
-        let totalShots = 0;
-        let holesWithShots = 0;
-        for (const arr of Object.values(shotsMap)) {
-          if (!Array.isArray(arr)) continue;
-          const valid = arr.filter(s =>
-            typeof s.startLat === 'number' && typeof s.startLng === 'number' &&
-            typeof s.endLat === 'number' && typeof s.endLng === 'number');
-          if (valid.length > 0) {
-            totalShots += valid.length;
-            holesWithShots += 1;
-          }
-        }
-        if (totalShots === 0) return '';
-        return `
-          <button class="round-replay-entry"
-                  onclick="openReplay('${round.id}')"
-                  aria-label="Watch round replay">
-            <div class="round-replay-entry-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/>
-              </svg>
-            </div>
-            <div class="round-replay-entry-text">
-              <div class="round-replay-entry-title">Replay round</div>
-              <div class="round-replay-entry-sub">${totalShots} shots across ${holesWithShots} hole${holesWithShots === 1 ? '' : 's'}</div>
-            </div>
-            <div class="round-replay-entry-arrow" aria-hidden="true">→</div>
-          </button>
-        `;
       })()}
 
       ${(() => {
