@@ -31487,37 +31487,23 @@
        Round-context panels override the topbar back to transparent
        further down (search "Round-context panels keep") so their X
        button + LIVE pill float free over the round content. */
-    /* Floating fixed back arrow — no surrounding bar. Pins to the
-       viewport just below any active banner; otherwise to the top.
-       Transparent background keeps content visible behind/around it
-       as it floats over the scrolling page. Fixed (not sticky)
-       because the button needs to pin to the viewport, not scroll
-       within a parent — and the parent .mobile-topbar collapses to
-       just the button height, so sticky has nothing to scroll within. */
-    body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
-      position: fixed;
-      top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
-      left: var(--space-2);
-      transform: none;
-      width: 44px;
-      height: 44px;
-      margin: 0;
-      background: transparent;
-      z-index: calc(var(--z-dropdown) - 1);
-    }
-    /* When a banner is active, pin below it. --session-banner-height
-       already includes the safe-area portion (via the banner's own
-       internal padding-top: env(safe-area-inset-top)), so we just
-       reserve the banner height — no separate safe-area addition. */
+
+    /* When a banner is active (round in progress, etc.), the back
+       button on sub-panels needs to shift down so it doesn't sit
+       under the banner. The base .mobile-topbar-back rule sets
+       top: 4px relative to the topbar inner zone; here we shift
+       it down by the banner height. Scoped to non-root, non-round
+       panels since they're the only ones that actually display
+       the back button. */
     body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back,
     body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
-      top: calc(var(--session-banner-height, 52px) + var(--space-2));
+      top: calc(var(--session-banner-height, 52px) + 4px);
     }
     body.session-active.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back {
-      top: calc(var(--session-banner-height, 52px) * 2 + var(--space-2));
+      top: calc(var(--session-banner-height, 52px) * 2 + 4px);
     }
-    /* Arrow glyph inside the Liquid Glass bead — sized to feel
-       proportional to the 36px bead. Slightly chunky weight (500)
+    /* Arrow glyph inside the back-button bead — sized to feel
+       proportional to the 40px bead. Slightly chunky weight (500)
        reads as a real button glyph rather than a thin character. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
       font-size: 18px;
