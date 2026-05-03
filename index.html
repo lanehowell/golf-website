@@ -31178,8 +31178,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background-color: rgba(255, 253, 247, 0.55);
       backdrop-filter: blur(20px) saturate(160%);
@@ -31486,7 +31486,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: env(safe-area-inset-top, 0px);
+      height: calc(env(safe-area-inset-top, 0px) + 6px);
       background-color: color-mix(in srgb, var(--bg-page) 5%, transparent);
       backdrop-filter: blur(3px);
       -webkit-backdrop-filter: blur(3px);
@@ -31540,10 +31540,10 @@
       top: calc(var(--session-banner-height, 52px) * 2 + 4px);
     }
     /* Arrow glyph inside the back-button bead — sized to feel
-       proportional to the 40px bead. Slightly chunky weight (500)
+       proportional to the 44px bead. Slightly chunky weight (500)
        reads as a real button glyph rather than a thin character. */
     body:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .mobile-topbar-back-arrow {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 500;
       line-height: 1;
       color: var(--text-primary);
@@ -31663,7 +31663,7 @@
        with an SVG so existing markup keeps working. */
     .mobile-topbar-back {
       position: absolute;
-      left: var(--space-5);
+      left: var(--space-4);
       /* Lift the button up so it sits high in the topbar — closer to
          the dynamic island / status bar where iOS conventionally
          places close affordances. The inner zone is 52px tall; a
@@ -31671,8 +31671,8 @@
          top portion of the topbar. */
       top: 4px;
       transform: none;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background-color: rgba(255, 253, 247, 0.55);
       backdrop-filter: blur(20px) saturate(160%);
       -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -31685,12 +31685,17 @@
       justify-content: center;
       padding: 0;
       border-radius: 50%;
-      font-size: 18px;
+      font-size: 20px;
       line-height: 1;
       font-weight: 500;
-      transition: transform 180ms cubic-bezier(0.2, 0, 0, 1),
-                  box-shadow 180ms ease,
-                  background 180ms ease;
+      /* Faster transition so the press state actually flashes
+         visibly even when the tap immediately triggers navigation.
+         At 180ms the brighten could finish AFTER goBack() already
+         fired and the panel changed; at 100ms it lands within the
+         tap window. */
+      transition: transform 100ms cubic-bezier(0.2, 0, 0, 1),
+                  box-shadow 100ms ease,
+                  background 100ms ease;
       -webkit-tap-highlight-color: transparent;
     }
     html.dark .mobile-topbar-back {
@@ -31700,17 +31705,17 @@
       color: var(--text-primary);
     }
     /* Press feedback — iOS-style "press in" where the button
-       slightly grows AND brightens, rather than shrinking. The
-       grow + brighten combo reads as the glass "lighting up" under
-       a finger, like Liquid Glass affordances on iOS. */
+       slightly grows AND brightens. More emphatic transform +
+       brightness so the flash is visible even on a quick tap that
+       immediately navigates away. */
     .mobile-topbar-back:active {
-      transform: scale(1.06);
-      background-color: rgba(255, 253, 247, 0.78);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      transform: scale(1.1);
+      background-color: rgba(255, 253, 247, 0.92);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
     }
     html.dark .mobile-topbar-back:active {
-      background-color: rgba(50, 50, 55, 0.7);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      background-color: rgba(70, 70, 75, 0.85);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
     }
     @media (hover: hover) {
       .mobile-topbar-back:hover {
