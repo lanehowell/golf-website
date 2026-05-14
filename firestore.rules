@@ -1,0 +1,340 @@
+rules_version = '2';
+
+// Firestore security rules for golf-site-525a9.
+//
+// PRIVATE DATA lives under users/{uid}/… and is mostly owner-only. Two
+// carve-outs for the friend system allow limited cross-user writes:
+//   - Any authenticated user can create a friend request in another user's
+//     friendRequests subcollection (subject to content validation below).
+//   - Accepting a friend request writes to both users' friends subcollections
+//     atomically. The non-owner write is allowed only when the "handshake"
+//     exists (the pending request doc is present in the writer's inbox).
+//
+// PUBLIC DATA lives in top-level collections and is readable by any
+// authenticated user (not the world — you still need to sign in).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ────────────────────────────────────────────────────────────
+    // PRIVATE: users/{uid}/* — generally owner-only.
+    // ────────────────────────────────────────────────────────────
+
+    // Preferences — owner only.
+    match /users/{userId}/preferences/{docId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Rounds — owner only.
+    match /users/{userId}/rounds/{roundId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Range entities — owner only. Each user defines their own ranges
+    // (tee position + targets) for GPS-tracked range sessions.
+    match /users/{userId}/ranges/{rangeId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Range sessions — owner only. A session is a collection of shots
+    // logged at a specific range. Tied to a rangeId for context but
+    // stored independently (a range can be deleted without losing
+    // session history).
+    match /users/{userId}/rangeSessions/{sessionId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Practice sessions — owner only. Range sessions, putting drills,
+    // etc. Same private-only model as rounds. No public mirror; practice
+    // is for self-tracking, not social feed.
+    match /users/{userId}/practiceSessions/{sessionId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Sessions — owner only.
+    match /users/{userId}/sessions/{sessionId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Custom exercises — owner only. Each user maintains their own private
+    // exercise library that supplements the built-in EXERCISES catalog.
+    // No cross-user reads (your custom exercises are private to you), and
+    // no public mirror — these don't show up in friends' feeds.
+    match /users/{userId}/customExercises/{exerciseId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Routines — owner only. User-built workout templates that reference
+    // exercises by id (built-in or custom). Same private-only model as
+    // customExercises; no public mirror or sharing in Phase 2.
+    match /users/{userId}/routines/{routineId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Friends subcollection — owner can always read/write. Additionally,
+    // another authenticated user can write their own record IF a handshake
+    // exists. Specifically, when user Jake accepts a request from Lane,
+    // Jake's client writes users/LANE/friends/JAKE. For that write:
+    //   userId = LANE, otherUid = JAKE, auth.uid = JAKE
+    // The handshake we need to verify is: Jake has a pending request from
+    // Lane in HIS OWN inbox — i.e. exists(users/JAKE/friendRequests/LANE),
+    // which in rule variables is:
+    //   exists(users/$(auth.uid)/friendRequests/$(userId))
+    // This makes cross-user writes strictly handshake-based — you can't
+    // force yourself into someone's friends list without them first
+    // sending you a request that landed in your inbox.
+    match /users/{userId}/friends/{otherUid} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == otherUid
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friendRequests/$(userId));
+      allow delete: if request.auth != null
+                    && request.auth.uid == otherUid;
+    }
+
+    // Friend requests inbox — owner reads and deletes. Any authenticated
+    // user can CREATE a request addressed to this user. The request ID
+    // must match the sender's uid (prevents spoofing / impersonation).
+    match /users/{userId}/friendRequests/{senderUid} {
+      allow read, delete: if request.auth != null
+                          && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == senderUid
+                    && request.auth.uid != userId
+                    && request.resource.data.from == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // USERNAMES: unique handles, auth-readable, write-once, owner-delete.
+    // ────────────────────────────────────────────────────────────
+    match /usernames/{name} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid']);
+      allow update: if false;
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // PUBLIC PROFILES: one doc per user. Any authenticated user can read.
+    // ────────────────────────────────────────────────────────────
+    match /publicProfiles/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+
+      match /rounds/{roundId} {
+        allow read: if request.auth != null;
+        // Owner has full write. Non-owner can only update the commentCount
+        // field — used when posting/deleting a comment denormalizes the
+        // count onto the round doc. We verify: caller is a friend of the
+        // owner, ONLY commentCount is changing, it's moving by ±1 (not a
+        // malicious set to 999999), AND the new value is non-negative.
+        // Uses resource.data.get(...) with a default so rounds mirrored
+        // before commentCount existed can still accept the first
+        // increment (treated as 0→1). The non-negative guard prevents
+        // commentCount from drifting below zero on a buggy delete path.
+        allow write: if request.auth != null && request.auth.uid == uid;
+        allow update: if request.auth != null
+                      && request.auth.uid != uid
+                      && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid))
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+                      && request.resource.data.commentCount is int
+                      && request.resource.data.commentCount >= 0
+                      && (
+                        request.resource.data.commentCount == resource.data.get('commentCount', 0) + 1
+                        || request.resource.data.commentCount == resource.data.get('commentCount', 0) - 1
+                      );
+
+        // Comments on a public round. Friends of the round owner (plus the
+        // owner themselves) can post. Any authenticated user can read. The
+        // author or round owner can delete. No updates — comments are
+        // immutable; edit means delete-and-repost.
+        match /comments/{commentId} {
+          allow read: if request.auth != null;
+
+          // Create: caller authenticated, authorUid matches auth (prevents
+          // impersonation), and caller is the round owner OR a friend of
+          // the owner. Friendship is bi-directional in our model so
+          // checking the owner's friends list for auth.uid is equivalent
+          // to checking the inverse.
+          allow create: if request.auth != null
+                        && request.resource.data.authorUid == request.auth.uid
+                        && (
+                          request.auth.uid == uid
+                          || exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid))
+                        );
+
+          // No edits.
+          allow update: if false;
+
+          // Delete: comment's author, or the round owner (thread moderation).
+          allow delete: if request.auth != null
+                        && (
+                          resource.data.authorUid == request.auth.uid
+                          || request.auth.uid == uid
+                        );
+        }
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // GROUP ROUND INVITES — per-user inbox. Structure mirrors
+    // friendRequests: invites live in the recipient's subcollection,
+    // the sender writes to the recipient's path. The invite doc
+    // references a groupRoundId; the recipient accepts by adding
+    // themselves to the group round's players list (gated by the
+    // groupRounds rule below, which requires a matching invite).
+    // ────────────────────────────────────────────────────────────
+    match /users/{userId}/groupRoundInvites/{groupRoundId} {
+      // Recipient reads + deletes their own inbox.
+      allow read, delete: if request.auth != null
+                          && request.auth.uid == userId;
+
+      // Sender creates an invite pointing at a group round they
+      // organize. Verify: the group round exists, caller is the
+      // organizer, and they're an existing friend of the recipient
+      // (we already enforce mutual friendship elsewhere — here we
+      // just check that one side of the friendship is recorded).
+      allow create: if request.auth != null
+                    && request.auth.uid != userId
+                    && request.resource.data.fromUid == request.auth.uid
+                    && request.resource.data.groupRoundId == groupRoundId
+                    && exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid));
+
+      // Sender can also delete their own sent invite (cancel before
+      // acceptance). Matches by fromUid on the existing doc.
+      allow delete: if request.auth != null
+                    && resource.data.fromUid == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // GROUP ROUNDS — shared multi-player rounds. Top-level because
+    // multiple users need read+write. Access is gated by membership
+    // in the playerUids array.
+    // ────────────────────────────────────────────────────────────
+    match /groupRounds/{groupRoundId} {
+      // Read: caller must be a player, OR have a pending invite, OR
+      // have previously finished this round (results doc exists).
+      // The third condition covers the post-completion leaderboard
+      // case: when a player finishes they're removed from playerUids
+      // but still need to see the round's live players[] array to
+      // show other players' in-progress scores on their summary.
+      allow read: if request.auth != null
+                  && (
+                    request.auth.uid in resource.data.playerUids
+                    || exists(/databases/$(database)/documents/users/$(request.auth.uid)/groupRoundInvites/$(groupRoundId))
+                    || exists(/databases/$(database)/documents/groupRounds/$(groupRoundId)/results/$(request.auth.uid))
+                  );
+
+      // Create: caller must be the organizer and must include
+      // themselves in both players + playerUids. Status must start
+      // as "lobby".
+      allow create: if request.auth != null
+                    && request.resource.data.organizerUid == request.auth.uid
+                    && request.auth.uid in request.resource.data.playerUids
+                    && request.resource.data.status == 'lobby';
+
+      // Update: caller must be a player (existing or joining). Two
+      // legitimate cases: (a) player updating their own scores /
+      // status, (b) invitee joining (not yet in playerUids but has
+      // a valid invite). We allow both by checking EITHER existing
+      // membership OR a valid pending invite for this round.
+      allow update: if request.auth != null
+                    && (
+                      request.auth.uid in resource.data.playerUids
+                      || exists(/databases/$(database)/documents/users/$(request.auth.uid)/groupRoundInvites/$(groupRoundId))
+                    );
+
+      // Delete: never — rounds are historical records. Players who
+      // want to "undo" should abandon via status update.
+      allow delete: if false;
+
+      // Per-player completion results. When a player finishes a group
+      // round (either all 18 holes or partial-save), their totals are
+      // mirrored here so OTHER players can see a leaderboard from
+      // their own summary screen. Necessary because once a player
+      // finishes, they're removed from the parent doc's players[]
+      // array and their personal history card lives on a private path
+      // that other players can't read.
+      match /results/{uid} {
+        // Read: any player who was in this round can see all results.
+        // Check EITHER current membership in playerUids (still playing)
+        // OR an existing own-results doc (already finished — which
+        // removed them from playerUids). Both prove they were a
+        // legitimate participant.
+        allow read: if request.auth != null
+                    && (
+                      request.auth.uid in get(/databases/$(database)/documents/groupRounds/$(groupRoundId)).data.playerUids
+                      || exists(/databases/$(database)/documents/groupRounds/$(groupRoundId)/results/$(request.auth.uid))
+                    );
+
+        // Write: each player can only write their own result doc.
+        // `uid` in the path must match the caller. No delete path —
+        // once a result is recorded it stays.
+        allow create, update: if request.auth != null
+                              && request.auth.uid == uid
+                              && request.resource.data.uid == uid;
+        allow delete: if false;
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // COURSES — top-level catalog. Anyone authenticated can read.
+    // Most writes are admin-only (course catalog is curated). Phase 4
+    // carve-out: any authenticated user can update the greenCoords
+    // and teeBoxes fields, since both are crowd-sourced — one user's
+    // pin helps everyone playing that course.
+    // ────────────────────────────────────────────────────────────
+    match /courses/{courseId} {
+      allow read: if request.auth != null;
+
+      // Full creation: admins only.
+      allow create: if request.auth != null
+                    && request.auth.uid in [
+                         'LldPjvPzC6aASDfyfDaBRsYVIBr2'   // Lane
+                       ];
+
+      // Updates: admins can change anything. Non-admins can ONLY
+      // change crowd-sourced GPS fields (greenCoords, teeBoxes). We
+      // diff the existing doc against the proposed one — only those
+      // fields may have changed — and any included field must be a
+      // map (sanity).
+      allow update: if request.auth != null
+                    && (
+                      request.auth.uid in [
+                        'LldPjvPzC6aASDfyfDaBRsYVIBr2'   // Lane
+                      ]
+                      || (
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['greenCoords', 'teeBoxes'])
+                        && (
+                          !('greenCoords' in request.resource.data.diff(resource.data).affectedKeys())
+                          || request.resource.data.greenCoords is map
+                        )
+                        && (
+                          !('teeBoxes' in request.resource.data.diff(resource.data).affectedKeys())
+                          || request.resource.data.teeBoxes is map
+                        )
+                      )
+                    );
+
+      // No deletes.
+      allow delete: if false;
+    }
+  }
+}

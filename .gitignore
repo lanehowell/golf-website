@@ -1,0 +1,21 @@
+# Claude Code session metadata
+.claude/
+
+# Node deps (in functions/)
+node_modules/
+
+# Logs
+*.log
+firebase-debug.log*
+firestore-debug.log*
+
+# Firebase deploy cache
+.firebase/
+
+# Environment
+.env
+.env.local
+
+# OS junk
+.DS_Store
+Thumbs.db
