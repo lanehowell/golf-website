@@ -771,3 +771,175 @@ export const getHoleAnalysis = onCall(
     };
   }
 );
+
+// ═════════════════════════════════════════════════════════════════════
+// RANGE SESSION DEBRIEF — getRangeSessionDebrief
+// Reviews one completed range session. Returns short markdown:
+// how the session went, what worked, what slipped, one takeaway.
+// Compares per-club performance against the player's lifetime baseline
+// so the model can flag improvement / regression in concrete terms.
+// ═════════════════════════════════════════════════════════════════════
+
+const RANGE_DEBRIEF_SYSTEM_PROMPT = `You are a golf coach reviewing one range session the player just finished. Your job is to surface what worked, what slipped, and one thing to carry forward.
+
+Your output MUST follow this exact markdown structure:
+
+## How the session went
+ONE sentence (two at most). Reference the total shot count and the most notable club or pattern.
+
+## What worked
+- Bullet 1: a club or pattern that performed well. Reference specific numbers (e.g., "7-iron full-swing avg of 165y, up from 160y lifetime").
+- Bullet 2 if there is a clear second win. (At most two bullets.)
+
+## What slipped
+- Bullet 1: a club or pattern that regressed or showed concerning dispersion / contact. Reference specific numbers.
+- Bullet 2 if there is a clear second issue. (At most two bullets.)
+
+## One thing to carry forward
+A single concrete takeaway for next session or the next round. ONE sentence.
+
+Rules:
+- Reference REAL numbers from the data — full-swing avg, dispersion (either "yards from aim line" or L/S/R %), clean-contact %, vs-lifetime deltas.
+- DISPERSION SHAPES: per-club rows describe dispersion in ONE of two ways depending on how the shots were logged. Use whichever the row gives you; never invent the other.
+  (a) GPS shots — "avg Xy from aim line, leans Y left/right of aim" (signed yards). Magnitude is RELATIVE TO THE CLUB. Examples: 4y avg from aim is tight for a driver but wide for a wedge; 12y avg from aim is great for a driver but a disaster for a wedge. Judge per club.
+  (b) Manual chips — L/S/R bucket percentages. Coarser; use the same per-club judgment.
+- "Lifetime" baselines come from the player's full range + on-course history. Use them as the reference point for improvement / regression.
+- Do not invent stats the data does not show.
+- Be specific and direct — no platitudes ("good effort", "keep practicing").
+- No preamble. Lead with the most important pattern.
+- Total response under 280 words.
+- HANDEDNESS: ball-flight terminology is RELATIVE to the player's handedness. For a LEFT-handed player, a fade moves the ball LEFT (not right) and a draw moves it RIGHT (not left). A "leans right of aim" miss for a left-hander is a pull or hook; for a right-hander it's a push or fade. Never assume right-handed.`;
+
+/**
+ * Build the user prompt body for a range session debrief. Whitelists
+ * the session fields we send — never echoes raw shot rows to the
+ * model. payload: { playerProfile, session, byClub, patternAnalysis? }
+ *   - playerProfile: { handedness }
+ *   - session: { dateKey, durationMin, count, avg, max, clubCount, targetedCount? }
+ *   - byClub: array of per-club summaries (see _computeSessionPerClubStats
+ *     in index.html for the source shape)
+ *   - patternAnalysis: optional text snippet from the client's
+ *     analyzeDispersion run on this session's targeted shots
+ */
+function buildRangeDebriefBlock(payload) {
+  const lines = [];
+  const profile = payload.playerProfile || {};
+  const handedness = profile.handedness === 'left' ? 'left' : 'right';
+  lines.push('## PLAYER PROFILE');
+  lines.push(`- Handedness: ${handedness}-handed`);
+  if (handedness === 'left') {
+    lines.push('- IMPORTANT: ball-flight terminology is mirrored. For this player, a fade goes LEFT and a draw goes RIGHT.');
+  }
+  lines.push('');
+
+  const s = payload.session || {};
+  lines.push('## SESSION SUMMARY');
+  if (s.dateKey) lines.push(`- Date: ${s.dateKey}`);
+  if (typeof s.durationMin === 'number' && s.durationMin > 0) lines.push(`- Duration: ${s.durationMin} min`);
+  if (typeof s.count === 'number') lines.push(`- Total shots: ${s.count}${typeof s.clubCount === 'number' ? ` across ${s.clubCount} club${s.clubCount === 1 ? '' : 's'}` : ''}`);
+  if (typeof s.avg === 'number' && s.avg > 0) lines.push(`- Overall avg distance: ${s.avg} yd`);
+  if (typeof s.targetedCount === 'number' && s.targetedCount > 0) lines.push(`- Targeted (GPS) shots: ${s.targetedCount}`);
+
+  // Per-club table — session stats with lifetime deltas inline so the
+  // model can see improvement / regression without doing math itself.
+  if (Array.isArray(payload.byClub) && payload.byClub.length > 0) {
+    lines.push('');
+    lines.push('## PER-CLUB (this session vs lifetime baseline)');
+    for (const c of payload.byClub) {
+      const parts = [];
+      parts.push(`${c.shots} shot${c.shots === 1 ? '' : 's'}`);
+      // Full-swing average + lifetime delta
+      if (typeof c.avg100 === 'number' && c.avg100 > 0) {
+        const lifetime = (typeof c.lifetimeAvg === 'number' && c.lifetimeAvg > 0) ? c.lifetimeAvg : null;
+        const delta = lifetime != null ? c.avg100 - lifetime : null;
+        const deltaStr = delta != null
+          ? ` (lifetime ${lifetime}, ${delta > 0 ? '+' : ''}${delta})`
+          : '';
+        parts.push(`full-swing avg ${c.avg100}y${deltaStr}`);
+      }
+      // Dispersion — TWO possible shapes depending on how the shots
+      // were logged. GPS shots have actual yards-from-aim data
+      // (preferred — magnitude is honest per club). Manual UI shots
+      // fall back to coarse L/S/R bucket percentages.
+      if (typeof c.avgAbsLateralYd === 'number') {
+        // GPS lateral: pass through raw numbers + bias interpretation.
+        // The model judges "tight" vs "wide" relative to the club
+        // (4y avg is tight for a driver, wide for a wedge).
+        const biasNote = (typeof c.avgLateralYd === 'number' && Math.abs(c.avgLateralYd) >= 1)
+          ? (c.avgLateralYd > 0
+              ? `leans ${Math.abs(c.avgLateralYd).toFixed(1)}y right of aim`
+              : `leans ${Math.abs(c.avgLateralYd).toFixed(1)}y left of aim`)
+          : 'no consistent side bias';
+        const lifeStr = (typeof c.lifetimeAvgAbsLateralYd === 'number')
+          ? ` (lifetime ${c.lifetimeAvgAbsLateralYd}y)`
+          : '';
+        parts.push(`avg ${c.avgAbsLateralYd}y from aim line${lifeStr}, ${biasNote}`);
+        if (typeof c.maxAbsLateralYd === 'number' && c.maxAbsLateralYd > 0) {
+          parts.push(`worst miss ${c.maxAbsLateralYd}y off aim`);
+        }
+      } else if (typeof c.dispStraightPct === 'number') {
+        // Simple-UI L/S/R bucket fallback.
+        const lifeStr = (typeof c.lifetimeDispStraightPct === 'number')
+          ? ` (lifetime straight ${c.lifetimeDispStraightPct}%)`
+          : '';
+        parts.push(`${c.dispLeftPct ?? 0}% L / ${c.dispStraightPct}% S / ${c.dispRightPct ?? 0}% R${lifeStr}`);
+      }
+      // Contact — session clean% + lifetime clean%
+      if (typeof c.contactCleanPct === 'number') {
+        const lifeStr = (typeof c.lifetimeContactCleanPct === 'number')
+          ? ` (lifetime ${c.lifetimeContactCleanPct}%)`
+          : '';
+        parts.push(`${c.contactCleanPct}% clean contact${lifeStr}`);
+      }
+      // Swing% mix — only mention if non-trivially mixed (some
+      // throttled-back swings present alongside full swings)
+      if (c.swingMix) {
+        const sub = [];
+        if (c.swingMix[100]) sub.push(`${c.swingMix[100]}@100%`);
+        if (c.swingMix[75]) sub.push(`${c.swingMix[75]}@75%`);
+        if (c.swingMix[50]) sub.push(`${c.swingMix[50]}@50%`);
+        if (sub.length > 1) parts.push(`swing mix ${sub.join(' / ')}`);
+      }
+      lines.push(`- ${c.club}: ${parts.join(' · ')}`);
+    }
+  }
+
+  if (typeof payload.patternAnalysis === 'string' && payload.patternAnalysis.trim().length > 0) {
+    lines.push('');
+    lines.push('## SHOT PATTERN ANALYSIS (from targeted-shot scatter)');
+    lines.push(payload.patternAnalysis.trim());
+  }
+
+  return lines.join('\n');
+}
+
+export const getRangeSessionDebrief = onCall(
+  { secrets: [GEMINI_API_KEY], timeoutSeconds: 60 },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError('unauthenticated', 'Sign in to get a session debrief.');
+    }
+    const payload = request.data || {};
+    if (!payload.session || typeof payload.session !== 'object') {
+      throw new HttpsError('invalid-argument', 'Missing session data.');
+    }
+    // Refuse to debrief trivially small sessions — the model can't say
+    // anything useful from a handful of shots.
+    const shotCount = payload.session?.count ?? 0;
+    if (shotCount < 10) {
+      throw new HttpsError('failed-precondition', 'Need at least 10 logged shots to debrief a session.');
+    }
+    const userPrompt = buildRangeDebriefBlock(payload);
+    const apiKey = GEMINI_API_KEY.value();
+    // 768 tokens — debrief target is ~280 words. Some headroom for the
+    // structured-output overhead vs the practice plan's 2048.
+    const text = await callGemini(RANGE_DEBRIEF_SYSTEM_PROMPT, userPrompt, apiKey, { maxOutputTokens: 768 });
+    return {
+      recommendation: text,
+      model: GEMINI_MODEL,
+      generatedAt: new Date().toISOString(),
+      scope: 'range-debrief',
+      statsBlock: userPrompt,
+    };
+  }
+);

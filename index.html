@@ -35143,6 +35143,7 @@
   window.fbCallCoach = httpsCallable(functions, 'getCoachRecommendation');
   window.fbCallRoundReview = httpsCallable(functions, 'getRoundReview');
   window.fbCallHoleAnalysis = httpsCallable(functions, 'getHoleAnalysis');
+  window.fbCallRangeDebrief = httpsCallable(functions, 'getRangeSessionDebrief');
 
   // Persist the auth session locally so the user stays signed in across
   // page reloads. browserLocalPersistence is the Firebase default but we
@@ -35226,6 +35227,14 @@
   // app's URL.
   const GOOGLE_CLIENT_ID = '905202969291-pgns58hiu26mbubts4huedbqs41tg2fp.apps.googleusercontent.com';
 
+  // GSI `initialize()` is meant to be called ONCE per page-load. Calling
+  // it again logs a noisy "google.accounts.id.initialize() is called
+  // multiple times" warning, which we'd hit on every auth state change
+  // because three different surfaces (profile sign-in button, signin
+  // banner, play-screen banner) each call renderGoogleSignInButton.
+  // Track init state across calls; only call initialize the first time.
+  let __gsiInitialized = false;
+
   // Render the Google Sign-In button into a container element. The button
   // is rendered by Google's library — we don't control its visual; we
   // can only configure it. Auto-detects light/dark theme from the page.
@@ -35244,13 +35253,16 @@
       return;
     }
     try {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredentialResponse,
-        ux_mode: 'popup',           // 'popup' uses an in-page modal; 'redirect' navigates away
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
+      if (!__gsiInitialized) {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse,
+          ux_mode: 'popup',           // 'popup' uses an in-page modal; 'redirect' navigates away
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        __gsiInitialized = true;
+      }
       // Clear any prior render attempt
       container.innerHTML = '';
       const isDark = document.documentElement.classList.contains('dark');
@@ -35749,6 +35761,16 @@
     saveRoundAIReview: async (myUid, roundId, reviewData) => {
       await updateDoc(doc(db, `users/${myUid}/rounds/${roundId}`), {
         aiReview: reviewData,
+      });
+    },
+
+    // Save an AI-generated debrief onto a practice session doc. Reuses
+    // the existing users/{uid}/practiceSessions rule (owner-only). The
+    // field is `aiDebrief` — distinct from rounds' `aiReview` so the
+    // two surfaces can evolve independently.
+    saveSessionAIDebrief: async (myUid, sessionId, debriefData) => {
+      await updateDoc(doc(db, `users/${myUid}/practiceSessions/${sessionId}`), {
+        aiDebrief: debriefData,
       });
     },
 
@@ -58211,6 +58233,16 @@
     expandedFor: new Set(),        // roundIds where the review body is expanded
   };
 
+  // Range-session debrief transient state. Mirrors roundReviewState
+  // shape — one session detail is visible at a time. Generated debriefs
+  // persist on the session doc as `session.aiDebrief`.
+  const rangeDebriefState = {
+    loadingSessionId: null,
+    errorBySessionId: new Map(),
+    showPayloadFor: new Set(),     // sessionIds with the data toggle open
+    expandedFor: new Set(),        // sessionIds with the debrief body expanded
+  };
+
   // Per-hole analysis transient state (one drill-down open at a time).
   const holeAnalysisState = {
     loading: false,
@@ -58995,6 +59027,484 @@
 
   // Renders the round-review section that lives in the round summary,
   // after the SG block and before the scramble attribution.
+  // ══════════════════════════════════════════════════════════════════
+  // RANGE SESSION DEBRIEF — AI review of a completed range session.
+  // Mirrors the round-review pattern: manual button on the detail
+  // panel → callable → persist on session.aiDebrief → render inline.
+  // ══════════════════════════════════════════════════════════════════
+
+  // Aggregate one session's shots into per-club summaries (distance,
+  // dispersion, contact, swing% mix). Mirrors the shape used by
+  // computeAllClubStats so the debrief payload can compare session
+  // numbers against the player's lifetime baseline for the same club.
+  //
+  // Two dispersion shapes are tracked separately so the prompt can
+  // describe each shot honestly:
+  //  - L/S/R bucket counts come from `shot.direction` (manual chips
+  //    in the simple range-session UI).
+  //  - Lateral offset aggregates (avg/avg-abs/max-abs yards from aim
+  //    line) come from `shot.lateralOffset` (GPS range sessions). The
+  //    magnitude is RELATIVE TO THE CLUB — a 4y avg is tight for a
+  //    driver, wide for a wedge — so we don't collapse it into L/S/R
+  //    buckets here; we pass it through and let the AI judge per-club.
+  function _computeSessionPerClubStats(session) {
+    const shots = (session && Array.isArray(session.shots)) ? session.shots : [];
+    const bag = (typeof prefs !== 'undefined' && Array.isArray(prefs?.bag)) ? prefs.bag : [];
+    const bagById = new Map();
+    for (const c of bag) {
+      const key = c.id || c.name;
+      if (key) bagById.set(key, c);
+    }
+    const buckets = new Map();
+    for (const shot of shots) {
+      // Resolve club name from either `clubId` (simple range UI) or
+      // `club` (GPS range UI); both store in the same downstream
+      // bucket via clubKey so a session with both shot types groups
+      // correctly.
+      const clubName = (typeof resolveShotClubName === 'function')
+        ? resolveShotClubName(shot, bagById)
+        : (shot.clubId || shot.club || null);
+      if (!clubName) continue;
+      const clubKey = (typeof makeClubKey === 'function') ? makeClubKey(clubName) : clubName;
+      let b = buckets.get(clubKey);
+      if (!b) {
+        b = {
+          clubKey,
+          clubName,
+          count: 0,
+          avg100Sum: 0,
+          avg100Count: 0,
+          swingMix: { 100: 0, 75: 0, 50: 0 },
+          disp: { left: 0, straight: 0, right: 0, total: 0 },
+          contact: { clean: 0, thin: 0, chunk: 0, other: 0, total: 0 },
+          lateral: { sum: 0, absSum: 0, maxAbs: 0, count: 0 },
+        };
+        buckets.set(clubKey, b);
+      }
+      b.count++;
+      const dist = (shot.distanceActual ?? shot.distance ?? shot.yardage) || 0;
+      const swing = shot.swingPct || 100;
+      // Full-swing average — same definition as computeAllClubStats:
+      // only 100% swings count toward "how far does this club go".
+      if (swing === 100) {
+        b.avg100Sum += dist;
+        b.avg100Count++;
+        b.swingMix[100]++;
+      } else if (swing === 75) {
+        b.swingMix[75]++;
+      } else if (swing === 50) {
+        b.swingMix[50]++;
+      }
+      // Direction (L/S/R bucket) — only set for shots from the simple
+      // UI where the user tapped a chip. GPS shots have no `direction`
+      // field so they don't contribute here; their dispersion shows up
+      // in the lateral aggregates instead.
+      const dir = (typeof resolveShotDirection === 'function')
+        ? resolveShotDirection(shot, 'range') : null;
+      if (dir && b.disp[dir] !== undefined) {
+        b.disp[dir]++;
+        b.disp.total++;
+      }
+      const con = (typeof resolveShotContact === 'function')
+        ? resolveShotContact(shot, 'range') : null;
+      if (con && b.contact[con] !== undefined) {
+        b.contact[con]++;
+        b.contact.total++;
+      }
+      // Lateral offset (GPS shots) — signed yards from the aim line,
+      // positive = right. Tracked separately from the L/S/R bucket so
+      // we can hand the AI the raw numerical pattern per club and let
+      // it judge tight/wide relative to the club's expected dispersion.
+      if (typeof shot.lateralOffset === 'number' && Number.isFinite(shot.lateralOffset)) {
+        b.lateral.sum += shot.lateralOffset;
+        b.lateral.absSum += Math.abs(shot.lateralOffset);
+        if (Math.abs(shot.lateralOffset) > b.lateral.maxAbs) {
+          b.lateral.maxAbs = Math.abs(shot.lateralOffset);
+        }
+        b.lateral.count++;
+      }
+    }
+    return Array.from(buckets.values()).map(b => {
+      const L = b.lateral;
+      const out = {
+        clubKey: b.clubKey,
+        clubName: b.clubName,
+        count: b.count,
+        avg100: b.avg100Count > 0 ? Math.round(b.avg100Sum / b.avg100Count) : null,
+        swingMix: b.swingMix,
+        disp: b.disp,
+        contact: b.contact,
+      };
+      if (L.count > 0) {
+        out.lateral = {
+          count: L.count,
+          // 1-decimal precision so the model can spot small biases
+          // without drowning in noise.
+          avgSigned: Math.round((L.sum / L.count) * 10) / 10,
+          avgAbs: Math.round((L.absSum / L.count) * 10) / 10,
+          maxAbs: Math.round(L.maxAbs * 10) / 10,
+        };
+      }
+      return out;
+    }).sort((a, b) => b.count - a.count);
+  }
+
+  // Walk the player's full range history once and aggregate lateral
+  // offsets (signed yards from aim line) per club. Returns a Map
+  // keyed by clubKey so the payload builder can pair this session's
+  // lateral stats with a lifetime baseline. GPS shots only — manual
+  // simple-UI shots have no lateralOffset.
+  function _computeLifetimeLateralByClub() {
+    const result = new Map();
+    const sessions = Array.isArray(rangeSessionsHistory) ? rangeSessionsHistory : [];
+    const bag = (typeof prefs !== 'undefined' && Array.isArray(prefs?.bag)) ? prefs.bag : [];
+    const bagById = new Map();
+    for (const c of bag) {
+      const key = c.id || c.name;
+      if (key) bagById.set(key, c);
+    }
+    for (const sess of sessions) {
+      if (!sess || !Array.isArray(sess.shots)) continue;
+      for (const shot of sess.shots) {
+        if (typeof shot.lateralOffset !== 'number' || !Number.isFinite(shot.lateralOffset)) continue;
+        const name = (typeof resolveShotClubName === 'function')
+          ? resolveShotClubName(shot, bagById)
+          : (shot.clubId || shot.club || null);
+        if (!name) continue;
+        const key = (typeof makeClubKey === 'function') ? makeClubKey(name) : name;
+        let agg = result.get(key);
+        if (!agg) {
+          agg = { sum: 0, absSum: 0, count: 0 };
+          result.set(key, agg);
+        }
+        agg.sum += shot.lateralOffset;
+        agg.absSum += Math.abs(shot.lateralOffset);
+        agg.count++;
+      }
+    }
+    return result;
+  }
+
+  // Build the whitelist payload sent to the getRangeSessionDebrief
+  // callable. Per-club aggregates for the top clubs by shot count,
+  // paired with the same club's lifetime baseline so the prompt can
+  // surface "vs lifetime" deltas inline (model doesn't have to do math).
+  function buildRangeSessionDebriefPayload(session) {
+    if (!session || !Array.isArray(session.shots) || session.shots.length === 0) return null;
+    const playerProfile = {
+      handedness: (typeof prefs !== 'undefined' && prefs && prefs.handedness === 'left')
+        ? 'left' : 'right',
+    };
+    const sessionStats = sessionSummaryStats(session);
+    const sessionByClub = _computeSessionPerClubStats(session);
+
+    // Lifetime per-club baseline. computeAllClubStats includes THIS
+    // session's shots in the lifetime aggregate — accepted as a v1
+    // simplification; the deltas are still directionally correct since
+    // the session is one of many sessions feeding the baseline.
+    const lifetimeAll = (typeof computeAllClubStats === 'function')
+      ? computeAllClubStats() : [];
+    const lifetimeByKey = new Map();
+    for (const c of lifetimeAll) {
+      lifetimeByKey.set(c.clubKey, c);
+    }
+    // Lifetime lateral-offset baseline — GPS shots only. Lives outside
+    // computeAllClubStats because that function only knows about
+    // shot.direction (L/S/R bucket), not lateralOffset.
+    const lifetimeLateralByKey = _computeLifetimeLateralByClub();
+
+    // Cap at top 6 clubs by session shot count. More than that and
+    // the prompt body becomes a wall of bullets the model glosses over.
+    const byClub = sessionByClub.slice(0, 6).map(c => {
+      const dispTotal = c.disp.total || 0;
+      const conTotal = c.contact.total || 0;
+      const lifetime = lifetimeByKey.get(c.clubKey);
+      const out = {
+        club: c.clubName,
+        shots: c.count,
+        avg100: c.avg100,
+        swingMix: {
+          100: c.swingMix[100],
+          75: c.swingMix[75],
+          50: c.swingMix[50],
+        },
+        contactCleanPct: conTotal > 0 ? Math.round((c.contact.clean / conTotal) * 100) : null,
+      };
+      // Lateral dispersion (GPS shots) — preferred when present. We
+      // pass through the raw yardage so the model can judge tight vs
+      // wide relative to the club rather than collapse to L/S/R
+      // buckets with a one-size threshold.
+      if (c.lateral && c.lateral.count > 0) {
+        out.lateralCount = c.lateral.count;
+        out.avgLateralYd = c.lateral.avgSigned;   // signed: + right, - left
+        out.avgAbsLateralYd = c.lateral.avgAbs;   // magnitude of typical miss
+        out.maxAbsLateralYd = c.lateral.maxAbs;   // worst miss this session
+        // Pair with lifetime lateral for this club if we have history.
+        const lifeLat = lifetimeLateralByKey.get(c.clubKey);
+        if (lifeLat && lifeLat.count > 0) {
+          out.lifetimeAvgAbsLateralYd = Math.round((lifeLat.absSum / lifeLat.count) * 10) / 10;
+          out.lifetimeAvgLateralYd = Math.round((lifeLat.sum / lifeLat.count) * 10) / 10;
+          out.lifetimeLateralCount = lifeLat.count;
+        }
+      } else if (dispTotal > 0) {
+        // Fall back to the L/S/R bucket for shots tagged via the
+        // simple range UI. Coarser than lateral, but real data.
+        out.dispLeftPct = Math.round((c.disp.left / dispTotal) * 100);
+        out.dispStraightPct = Math.round((c.disp.straight / dispTotal) * 100);
+        out.dispRightPct = Math.round((c.disp.right / dispTotal) * 100);
+        if (lifetime) {
+          const ldt = lifetime.disp?.total || 0;
+          if (ldt > 0) out.lifetimeDispStraightPct = Math.round((lifetime.disp.straight / ldt) * 100);
+        }
+      }
+      if (lifetime) {
+        if (typeof lifetime.carryAvg === 'number' && lifetime.carryAvg > 0) {
+          out.lifetimeAvg = lifetime.carryAvg;
+        }
+        const lct = lifetime.contact?.total || 0;
+        if (lct > 0) out.lifetimeContactCleanPct = Math.round((lifetime.contact.clean / lct) * 100);
+      }
+      return out;
+    });
+
+    return {
+      playerProfile,
+      session: {
+        dateKey: session.dateKey || (session.startTime
+          ? new Date(session.startTime).toISOString().slice(0, 10)
+          : null),
+        durationMin: sessionStats.durationMin,
+        count: sessionStats.count,
+        avg: sessionStats.avg,
+        max: sessionStats.max,
+        clubCount: sessionStats.clubCount,
+      },
+      byClub,
+    };
+  }
+
+  async function saveSessionAIDebrief(sessionId, debriefData) {
+    if (!currentUser || !sessionId) return false;
+    if (!window.fb?.saveSessionAIDebrief) return false;
+    try {
+      await window.fb.saveSessionAIDebrief(currentUser.uid, sessionId, debriefData);
+      // Mirror onto the caches so the next render picks it up without
+      // a Firestore round-trip.
+      if (Array.isArray(rangeSessionsHistory)) {
+        const cached = rangeSessionsHistory.find(s => s.id === sessionId);
+        if (cached) cached.aiDebrief = debriefData;
+      }
+      if (typeof rangeSessionDetailState !== 'undefined'
+          && rangeSessionDetailState?.session?.id === sessionId) {
+        rangeSessionDetailState.session.aiDebrief = debriefData;
+      }
+      return true;
+    } catch (err) {
+      console.error('Failed to save range session AI debrief:', err);
+      return false;
+    }
+  }
+
+  async function generateRangeSessionDebrief(sessionId) {
+    if (!sessionId) return;
+    if (rangeDebriefState.loadingSessionId === sessionId) return;
+    if (!currentUser) {
+      rangeDebriefState.errorBySessionId.set(sessionId, 'Sign in to use the coach.');
+      if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+      return;
+    }
+    // Prefer the live detail-panel session reference so we work against
+    // whichever copy the user is looking at — history list and detail
+    // both feed into the same in-memory cache, but the detail state
+    // gets the freshest copy when freshly loaded.
+    const session = (typeof rangeSessionDetailState !== 'undefined'
+                      && rangeSessionDetailState?.session?.id === sessionId)
+      ? rangeSessionDetailState.session
+      : (Array.isArray(rangeSessionsHistory)
+          ? rangeSessionsHistory.find(s => s.id === sessionId)
+          : null);
+    if (!session) {
+      rangeDebriefState.errorBySessionId.set(sessionId, 'Session not loaded.');
+      if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+      return;
+    }
+    const payload = buildRangeSessionDebriefPayload(session);
+    if (!payload || (payload.session?.count ?? 0) < 10) {
+      rangeDebriefState.errorBySessionId.set(sessionId, 'Need at least 10 logged shots to debrief.');
+      if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+      return;
+    }
+
+    rangeDebriefState.loadingSessionId = sessionId;
+    rangeDebriefState.errorBySessionId.delete(sessionId);
+    if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+
+    try {
+      if (typeof window.fbCallRangeDebrief !== 'function') {
+        throw new Error('Coach service is not initialized.');
+      }
+      const result = await window.fbCallRangeDebrief(payload);
+      const data = result?.data || {};
+      const debriefData = {
+        recommendation: data.recommendation || '',
+        generatedAt: data.generatedAt || new Date().toISOString(),
+        model: data.model || null,
+        scope: 'range-debrief',
+        statsBlock: data.statsBlock || null,
+      };
+      await saveSessionAIDebrief(sessionId, debriefData);
+      // Fresh debrief paints expanded so the user immediately sees
+      // the response. Subsequent reopens of the panel start collapsed.
+      rangeDebriefState.expandedFor.add(sessionId);
+    } catch (err) {
+      const code = err?.code || '';
+      let msg = err?.message || 'Something went wrong.';
+      if (code === 'functions/resource-exhausted' || /429/.test(msg)) {
+        msg = 'The coach is rate-limited right now. Try again in a minute.';
+      } else if (code === 'functions/unauthenticated') {
+        msg = 'Please sign in to use the coach.';
+      }
+      rangeDebriefState.errorBySessionId.set(sessionId, msg);
+    } finally {
+      rangeDebriefState.loadingSessionId = null;
+      if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+    }
+  }
+  window.generateRangeSessionDebrief = generateRangeSessionDebrief;
+
+  function toggleRangeDebriefPayload(sessionId) {
+    if (!sessionId) return;
+    if (rangeDebriefState.showPayloadFor.has(sessionId)) {
+      rangeDebriefState.showPayloadFor.delete(sessionId);
+    } else {
+      rangeDebriefState.showPayloadFor.add(sessionId);
+    }
+    if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+  }
+  window.toggleRangeDebriefPayload = toggleRangeDebriefPayload;
+
+  function toggleRangeDebriefExpanded(sessionId) {
+    if (!sessionId) return;
+    if (rangeDebriefState.expandedFor.has(sessionId)) {
+      rangeDebriefState.expandedFor.delete(sessionId);
+    } else {
+      rangeDebriefState.expandedFor.add(sessionId);
+    }
+    if (typeof renderRangeSessionDetail === 'function') renderRangeSessionDetail();
+  }
+  window.toggleRangeDebriefExpanded = toggleRangeDebriefExpanded;
+
+  // Renders the debrief block that lives inside the range session
+  // detail panel, between Clubs Hit and the shot-pattern scatter.
+  // Reuses the .round-review-* class family so it inherits the
+  // editorial look the round-review block already has.
+  function renderRangeSessionDebriefBlock(session) {
+    if (!session) return '';
+    const sessionId = session.id;
+    const shotCount = (session.shots || []).length;
+    const debrief = session.aiDebrief || null;
+    const hasDebrief = !!(debrief && debrief.recommendation);
+    const isLoading = rangeDebriefState.loadingSessionId === sessionId;
+    const error = rangeDebriefState.errorBySessionId.get(sessionId);
+    const showPayload = rangeDebriefState.showPayloadFor.has(sessionId);
+    const ineligible = shotCount < 10;
+
+    let bodyHtml;
+    if (hasDebrief) {
+      const ts = debrief.generatedAt ? new Date(debrief.generatedAt).toLocaleString() : '';
+      const expanded = rangeDebriefState.expandedFor.has(sessionId);
+      let collapsedHtml = '';
+      if (!expanded) {
+        const summary = (typeof _coachExtractSummary === 'function')
+          ? _coachExtractSummary(debrief.recommendation)
+          : { diagnosis: null };
+        const lead = summary.diagnosis
+          || (debrief.recommendation || '')
+               .replace(/^#+\s.*$/gm, '')
+               .replace(/\s+/g, ' ')
+               .trim()
+               .slice(0, 200);
+        collapsedHtml = `
+          <div class="round-review-summary">
+            <p class="round-review-summary-text">${escapeHtml(lead)}${lead.length >= 200 ? '…' : ''}</p>
+            <button class="coach-plan-expand"
+                    type="button"
+                    onclick="toggleRangeDebriefExpanded('${escapeHtml(sessionId)}')">
+              Expand full debrief ▾
+            </button>
+          </div>
+        `;
+      }
+      const expandedHtml = expanded ? `
+        <article class="coach-plan-body round-review-body">
+          ${_coachMarkdownToHtml(debrief.recommendation)}
+        </article>
+        <button class="coach-plan-collapse"
+                type="button"
+                onclick="toggleRangeDebriefExpanded('${escapeHtml(sessionId)}')">
+          Collapse debrief ▴
+        </button>
+      ` : '';
+      bodyHtml = `
+        <div class="round-review-status">${escapeHtml(debrief.model || 'Gemini')} · ${escapeHtml(ts)}</div>
+        ${collapsedHtml}
+        ${expandedHtml}
+        ${debrief.statsBlock ? `
+          <button class="coach-payload-toggle"
+                  type="button"
+                  onclick="toggleRangeDebriefPayload('${escapeHtml(sessionId)}')"
+                  aria-expanded="${showPayload}">
+            ${showPayload ? '▾' : '▸'} ${showPayload ? 'Hide' : 'Show'} data sent to coach
+          </button>
+          ${showPayload ? `<pre class="coach-payload">${escapeHtml(debrief.statsBlock)}</pre>` : ''}
+        ` : ''}
+        <div class="round-review-actions">
+          <button class="btn btn-ghost btn-sm"
+                  type="button"
+                  ${isLoading ? 'disabled' : ''}
+                  onclick="generateRangeSessionDebrief('${escapeHtml(sessionId)}')">
+            ${isLoading ? 'Re-analyzing…' : 'Re-debrief'}
+          </button>
+        </div>
+      `;
+    } else if (isLoading) {
+      bodyHtml = `
+        <div class="round-review-loading">
+          <div class="coach-spinner"></div>
+          <div>Analyzing your session…</div>
+        </div>
+      `;
+    } else if (ineligible) {
+      bodyHtml = `
+        <div class="round-review-empty">
+          Need at least 10 logged shots to debrief a session.
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="round-review-empty">
+          Reads your per-club stats and compares them against your lifetime baseline to surface what worked, what slipped, and one thing to carry forward.
+        </div>
+        ${error ? `<div class="coach-error">${escapeHtml(error)}</div>` : ''}
+        <div class="round-review-actions">
+          <button class="btn btn-primary"
+                  type="button"
+                  onclick="generateRangeSessionDebrief('${escapeHtml(sessionId)}')">
+            Get AI debrief
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="range-detail-section-label">Coach Debrief</div>
+      <section class="round-review-block">
+        ${bodyHtml}
+      </section>
+    `;
+  }
+  window.renderRangeSessionDebriefBlock = renderRangeSessionDebriefBlock;
+
   function renderRoundReviewSection(round, sgResult) {
     if (!round) return '';
     const roundId = round.id;
@@ -62162,6 +62672,9 @@
       ` : `
         <div class="range-shotlist-empty">No shots logged in this session.</div>
       `}
+
+      ${shots.length > 0 && typeof renderRangeSessionDebriefBlock === 'function'
+        ? renderRangeSessionDebriefBlock(s) : ''}
 
       ${(() => {
         // Shot pattern scatter for the session — only renders when at
