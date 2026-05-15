@@ -46,7 +46,7 @@ const BASE_SYSTEM_PROMPT = `You are a golf coach analyzing a player's recent per
 Your output MUST follow this exact markdown structure:
 
 ## Diagnosis
-One or two sentences identifying the player's biggest weakness within the requested scope. Reference specific numbers from the data.
+ONE sentence (two at most, only if a club callout is required). Name the player's biggest weakness within the requested scope and LEAD WITH THE SPECIFIC NUMBER from the data. No preamble like "Overall," "Looking at your data," "In summary," "It seems," or restating the scope. Example: "Your 6-10 ft putts make at 38%, well below Tour ~70%."
 
 ## Practice plan
 Numbered list of 3-5 drills, each formatted as:
@@ -60,6 +60,7 @@ Numbered list of 3-5 drills, each formatted as:
 One drill the player can do in 15 minutes today to make a noticeable difference. One sentence.
 
 Rules:
+- PLAYER REQUEST OVERRIDE: If the user prompt opens with a "## PLAYER REQUEST (PRIMARY TOPIC)" block, that topic is a hard constraint. The Diagnosis MUST be about THAT topic. At least one drill MUST directly target it. Do not substitute another weakness from the stats — even if the stats suggest a bigger leak elsewhere. Use the stats only to find the specific failure mode within the requested topic. If the request names a specific club (e.g., "Driver", "7-iron"), anchor on THAT club's row in CLUB BAG — do not pivot to a different club in the same scope.
 - Be CONCRETE. "Make 7 out of 10 putts from 6 feet" beats "improve short putting".
 - Reference the player's specific weak numbers in the Diagnosis.
 - Order drills by impact — the one that addresses their worst weakness goes first.
@@ -67,6 +68,7 @@ Rules:
 - Do not recommend drills outside golf practice (e.g., no gym work).
 - Keep total response under 400 words.
 - When the data includes per-distance, per-lie, or per-club breakdowns, reference specific buckets in the Diagnosis (e.g., "your 10-20 ft putt make rate of 22% is well below the Tour average of ~40%").
+- CLUB CALLOUTS: when a club row in CLUB BAG has a "Note:" sub-line, that club has a flagged anomaly (dispersion bias or low clean-contact rate). You MUST (a) name that club by name in the Diagnosis, and (b) include at least one drill in the Practice plan specifically targeting that anomaly. Dispersion bias → an alignment / setup / face-control drill (e.g., gate drill with tees, alignment sticks, mirror work). Low clean contact → a contact-quality drill (e.g., impact bag, foot-powder face check, half-swing tempo work). Apply the HANDEDNESS rule below when describing miss shape (a right miss is a push/fade for a right-hander, a pull/hook for a left-hander).
 - When RECENT FORM shows a clear trend (↓ or ↑), call out whether the player is regressing or improving in the Diagnosis.
 - HANDEDNESS: The PLAYER PROFILE section at the top of the data block lists the golfer's handedness. ALL direction-based advice (fades, draws, miss patterns, target lines, club face angles) MUST be relative to that handedness. For a LEFT-HANDED player, a fade moves the ball LEFT (not right) and a draw moves it RIGHT (not left) — the opposite of right-handed terminology. Never assume right-handed. Never recommend "hit a fade to counteract a left miss" to a left-handed player; that advice goes the wrong way.`;
 
@@ -304,6 +306,18 @@ function buildStatsBlock(payload) {
         ? ` · ${c.contactCleanPct}% clean`
         : '';
       lines.push(`- ${c.club}: ${distStr} (${c.shots} shot${c.shots === 1 ? '' : 's'})${dispStr}${contactStr}`);
+      // Anomaly note line — only present when the client flagged
+      // something (dispersion bias, low contact). Indented so it
+      // reads as a sub-bullet under the club row. The CLUB CALLOUTS
+      // rule in BASE_SYSTEM_PROMPT mandates that any club with a
+      // Note line gets named in the Diagnosis with a targeted drill.
+      if (Array.isArray(c.anomalies) && c.anomalies.length > 0) {
+        const notes = c.anomalies
+          .map(a => (a && typeof a.promptNote === 'string') ? a.promptNote : null)
+          .filter(s => s && s.length > 0)
+          .join('. ');
+        if (notes) lines.push(`    Note: ${notes}.`);
+      }
     }
   }
 
@@ -421,10 +435,21 @@ export const getCoachRecommendation = onCall(
     // par 4s." and similar.
     const customFocus = customFocusRaw.slice(0, 240);
 
-    let userPrompt = buildStatsBlock(payload);
+    // Book-end the custom focus at TOP and BOTTOM of the user prompt
+    // when present. Putting it only at the end (after a long stats
+    // block) made the model drift — it would pick whatever weakness
+    // the data suggested and ignore the player's explicit request.
+    // Two surfaces + strong language keep it sticky.
+    let userPrompt = '';
+    if (customFocus) {
+      userPrompt += `## PLAYER REQUEST (PRIMARY TOPIC)\n`;
+      userPrompt += `The player specifically asked: "${customFocus}"\n`;
+      userPrompt += `This is the primary subject of the plan. The Diagnosis MUST address THIS topic. At least one drill MUST target it. Do not substitute another weakness from the stats below — even if the stats suggest a different leak, the player asked about this one. Use the stats to find the SPECIFIC failure mode within the requested topic.\n\n`;
+    }
+    userPrompt += buildStatsBlock(payload);
     userPrompt += `\n\nRequested scope: ${SCOPE_CONFIG[scope].label}.`;
     if (customFocus) {
-      userPrompt += `\nThe player also wrote: "${customFocus}". Address this directly in the plan.`;
+      userPrompt += `\n\nREMINDER: the player specifically asked about "${customFocus}". Stay on that topic. Do not pivot to a different weakness from the stats. If the requested topic is "Driver" or a specific club, anchor the Diagnosis on that club's row in CLUB BAG — not on a different long club.`;
     }
 
     const systemPrompt = buildSystemPrompt(scope);

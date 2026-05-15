@@ -18829,6 +18829,13 @@
     background: var(--bg-hover, var(--bg-surface));
   }
   .stats-club-row-main { min-width: 0; }
+  .stats-club-row-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
   .stats-club-row-title {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -18838,6 +18845,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+  }
+  .stats-club-anomaly-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: var(--bg-warning-tint);
+    color: var(--text-warning);
+    border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+  }
+  .stats-club-anomaly-badge.is-warn {
+    /* default tone; alias retained so future tones (.is-danger etc.) slot in cleanly */
   }
   .stats-club-row-sub {
     font-family: var(--font-body);
@@ -18940,114 +18966,157 @@
      styling, history list, payload viewer) live in this block too.
      ═══════════════════════════════════════════════════════════════ */
 
-  /* Stats snapshot — the "why these recommendations" tile strip.
-     Each tile is a button that adds its hint to the focus input. */
-  .coach-stats-snapshot {
+  /* Weakness snapshot — editorial list rows. Each row is a button
+     that adds its metric hint to the focus input. Vertical stack of
+     three-column rows (label · value · + Focus) with hairline
+     dividers; no card chrome. */
+  .coach-stats-snapshot-tiles {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: var(--space-3);
-    background: var(--bg-base);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-  }
-  .coach-stats-snapshot-label {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    line-height: var(--leading-normal);
-  }
-  .coach-stats-snapshot-tiles {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
+    gap: 0;
   }
   .coach-stat-tile {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: var(--space-2) var(--space-3);
-    background: var(--bg-surface);
-    border: 1px solid var(--border-light);
-    border-left: 3px solid var(--color-warning, var(--color-accent));
-    border-radius: var(--radius-sm);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border-light);
+    border-radius: 0;
     text-align: left;
     font: inherit;
     color: inherit;
     cursor: pointer;
     transition: background var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast);
+                color var(--transition-fast);
     min-width: 0;
   }
+  .coach-stat-tile:first-child { border-top: none; padding-top: var(--space-1); }
   .coach-stat-tile:hover {
-    background: var(--bg-hover, var(--bg-base));
-    border-left-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
   }
-  .coach-stat-tile:active { transform: translateY(1px); }
   .coach-stat-tile-label {
     font-family: var(--font-mono);
     font-size: var(--text-2xs);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
     line-height: 1.2;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
   .coach-stat-tile-value {
     font-family: var(--font-display);
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     font-weight: var(--weight-bold);
-    color: var(--color-warning, var(--color-accent));
-    line-height: 1.1;
+    color: var(--text-primary);
+    line-height: 1;
+    white-space: nowrap;
   }
   .coach-stat-tile-hint {
     font-family: var(--font-mono);
     font-size: var(--text-2xs);
-    color: var(--text-muted);
-    margin-top: 2px;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+    margin-top: 0;
+    white-space: nowrap;
   }
-  @media (max-width: 640px) {
-    .coach-stats-snapshot-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 480px) {
+    .coach-stat-tile { gap: var(--space-2); padding: 10px 0; }
+    .coach-stat-tile-value { font-size: var(--text-lg); }
   }
 
-  /* Plan body — full-width article styling. No inner box. */
+  /* Plan body — editorial article styling. Typography carries the
+     hierarchy; no card chrome, no inner box. ## section headers
+     become tiny mono eyebrows; the lead paragraph under each heading
+     is rendered as a serif italic pull-quote-style lead. Drill
+     paragraphs (those with a leading <strong> — the "**1. Drill
+     name**" pattern) get serif heading treatment with the numeral +
+     name in accent color. Meta lists (Where/Duration/Success) become
+     italic body with em-dash markers in accent. */
   .coach-plan-body {
-    padding: var(--space-2) 0;
+    padding: 0;
     color: var(--text-primary);
   }
   .coach-plan-body .coach-h {
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    margin: var(--space-4) 0 var(--space-2);
-    line-height: 1.3;
-    letter-spacing: -0.01em;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted);
+    margin: var(--space-5) 0 var(--space-3);
+    line-height: 1.2;
   }
   .coach-plan-body .coach-h:first-child { margin-top: 0; }
-  .coach-plan-body .coach-p {
-    font-family: var(--font-body);
+  /* Lead paragraph — Diagnosis body, Quick win body, any paragraph
+     without a <strong> in it. Upright serif at body size; the serif
+     typeface itself carries the editorial voice — no need for a size
+     bump that competes with the drill headings. */
+  .coach-plan-body .coach-p:not(:has(strong)) {
+    font-family: var(--font-display);
     font-size: var(--text-base);
+    font-style: normal;
+    font-weight: var(--weight-regular);
     color: var(--text-primary);
-    line-height: var(--leading-relaxed);
-    margin: 0 0 var(--space-3);
+    line-height: 1.45;
+    letter-spacing: -0.005em;
+    margin: 0 0 var(--space-4);
   }
+  /* Drill heading paragraph — "**N. Drill name** — desc." pattern OR
+     "N. **Drill name** — desc." pattern (the model sometimes puts the
+     numeral outside the bold). Any paragraph containing a <strong>
+     gets the serif heading treatment; the <strong> itself gets
+     accent color so the drill name pops. Diagnosis/Quick win bodies
+     intentionally do NOT use bold so they stay in the lead style. */
+  .coach-plan-body .coach-p:has(strong) {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-style: normal;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    line-height: 1.35;
+    margin: var(--space-4) 0 var(--space-2);
+  }
+  .coach-plan-body .coach-p:has(strong) strong {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+  }
+  /* Drill meta — Where / Duration / Success bullets. Italic body
+     with em-dash markers in accent. Hanging indent so labels align. */
   .coach-plan-body .coach-ol,
   .coach-plan-body .coach-ul {
-    margin: 0 0 var(--space-3);
-    padding-left: 1.5em;
+    list-style: none;
+    margin: 0 0 var(--space-4);
+    padding-left: var(--space-4);
   }
   .coach-plan-body .coach-ol li,
   .coach-plan-body .coach-ul li {
     font-family: var(--font-body);
-    font-size: var(--text-base);
-    color: var(--text-primary);
-    line-height: var(--leading-relaxed);
-    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 4px;
+    position: relative;
   }
+  .coach-plan-body .coach-ol li::before,
+  .coach-plan-body .coach-ul li::before {
+    content: "—";
+    position: absolute;
+    left: -16px;
+    color: var(--color-accent);
+    font-style: normal;
+  }
+  /* Inline emphasis — defensive defaults for in-prose **bold** /
+     _italic_ outside the patterns handled above. */
   .coach-plan-body strong {
     color: var(--text-primary);
     font-weight: var(--weight-semibold);
@@ -19056,12 +19125,15 @@
     font-style: italic;
     color: var(--text-secondary);
   }
+  /* "Focus: ..." attribution line under the plan body. Quiet
+     uppercase mono — the prose did the talking; this is footer. */
   .coach-plan-focus-line {
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
     color: var(--text-muted);
-    padding: var(--space-2) 0;
-    border-top: 1px solid var(--border-light);
+    padding: var(--space-3) 0 0;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -19172,51 +19244,153 @@
   .coach-sheet.opening,
   .coach-sheet.closing { transform: translateY(100%); }
 
+  /* Editorial header: title only, no border, no chrome. Title is the
+     anchor; the close button is a discreet ghost circle. Bottom
+     padding gives the title room to breathe before the body content. */
   .coach-sheet-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: var(--space-4) var(--space-5);
-    border-bottom: 1px solid var(--border-light);
+    padding: var(--space-5) var(--space-6) var(--space-5);
     flex-shrink: 0;
-  }
-  .coach-sheet-header-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
   }
   .coach-sheet-title {
     font-family: var(--font-display);
-    font-size: var(--text-xl);
+    font-size: var(--text-3xl);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
-    line-height: 1.1;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin: 0;
   }
-  .coach-sheet-status {
+  .coach-sheet-title-icon {
+    display: inline-block;
+    font-size: 0.65em;
+    margin-right: 8px;
+    vertical-align: 0.15em;
+    line-height: 1;
+    /* Emoji glyph — its color is rendered by the OS, not the CSS
+       color property. Sized relative to the title so it scales on
+       mobile alongside the title's typographic step-down. */
+  }
+  .coach-sheet-title em {
+    font-style: italic;
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+  }
+  /* Section blocks inside the sheet body — used by the cold-open
+     options layout AND by the "Tune the plan" disclosure when a plan
+     exists. Mono-uppercase eyebrows do the rhythm; no card chrome.
+     The space-3 gap between label and content gives each section
+     room to breathe without dividers. */
+  .coach-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .coach-section-label {
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
     color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
+    font-weight: var(--weight-semibold);
+    line-height: 1.2;
+  }
+  .coach-section-help {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-style: italic;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: calc(-1 * var(--space-2));
+  }
+  /* "Tune the plan" disclosure — top of the body in the plan-exists
+     path so it's reachable without scrolling past the plan. Cold-open
+     shows the same options content inline (no wrapper). No top-border
+     here — the header padding handles the gap above; sheet body gap
+     handles the gap below. Subtle bottom-border when open separates
+     the controls from the plan body that follows. */
+  .coach-options {
+    margin: 0;
+  }
+  .coach-options.is-open {
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: var(--space-3);
+  }
+  .coach-options-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: var(--space-1) 0;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .coach-options-summary-text {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    font-weight: var(--weight-semibold);
+  }
+  .coach-options-summary-chev {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    transition: transform 200ms ease;
+  }
+  .coach-options.is-open .coach-options-summary-chev {
+    transform: rotate(90deg);
+  }
+  .coach-options-summary:hover .coach-options-summary-text,
+  .coach-options-summary:hover .coach-options-summary-chev {
+    color: var(--color-accent);
+  }
+  .coach-options-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+  /* Loading state used when the sheet opens cold and the plan is
+     in-flight. Larger than the inline .coach-loading so the spinner
+     reads as the headline of the body. */
+  .coach-loading-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
   }
   .coach-sheet-close {
-    width: 36px;
-    height: 36px;
-    background: var(--bg-base);
-    border: 1px solid var(--border-light);
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
     border-radius: 50%;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     transition: background var(--transition-fast),
-                border-color var(--transition-fast);
+                color var(--transition-fast);
   }
   .coach-sheet-close:hover {
-    border-color: var(--color-accent);
+    background: var(--bg-base);
     color: var(--color-accent);
   }
   .coach-sheet-close svg {
@@ -19226,13 +19400,13 @@
   .coach-sheet-body {
     flex: 1;
     overflow-y: auto;
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-2) var(--space-6) var(--space-6);
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
   .coach-sheet-footer {
-    padding: var(--space-3) var(--space-5);
+    padding: var(--space-3) var(--space-6);
     border-top: 1px solid var(--border-light);
     background: var(--bg-surface);
     flex-shrink: 0;
@@ -19243,11 +19417,13 @@
     padding: var(--space-3) var(--space-6);
     font-size: var(--text-base);
     font-weight: var(--weight-semibold);
+    letter-spacing: 0.02em;
   }
 
   @media (max-width: 480px) {
-    .coach-sheet-body { padding: var(--space-3) var(--space-4); }
-    .coach-sheet-header { padding: var(--space-3) var(--space-4); }
+    .coach-sheet-body { padding: var(--space-1) var(--space-4) var(--space-4); }
+    .coach-sheet-header { padding: var(--space-4) var(--space-4); }
+    .coach-sheet-title { font-size: var(--text-2xl); }
     .coach-sheet-footer {
       padding: var(--space-3) var(--space-4);
       justify-content: stretch;
@@ -19298,28 +19474,10 @@
     font-size: var(--text-sm);
     line-height: var(--leading-normal);
   }
-  .coach-empty {
-    padding: var(--space-4);
-    background: var(--bg-base);
-    border: 1px dashed var(--border-light);
-    border-radius: var(--radius-md);
-    color: var(--text-muted);
-    text-align: center;
-  }
-  .coach-empty-text {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
-  }
-  .coach-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-  }
+  /* (Old .coach-empty / .coach-empty-text / .coach-loading removed —
+     replaced by .coach-loading-block defined just above the header
+     styles. The cold-open path now renders the options content
+     directly as the body, so no empty-state wrapper is needed.) */
   .coach-spinner {
     width: 20px;
     height: 20px;
@@ -19332,20 +19490,22 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Scope chips — horizontal pill picker above the focus input */
+  /* Scope chips — refined for editorial: transparent inactive,
+     accent fill active. Slightly larger horizontal padding so the
+     labels feel typographic rather than crammed. */
   .coach-scope-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
   .coach-scope-chip {
-    padding: 6px 12px;
-    background: var(--bg-base);
+    padding: 6px 14px;
+    background: transparent;
     border: 1px solid var(--border-light);
     border-radius: var(--radius-pill);
     font-family: var(--font-body);
     font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
+    font-weight: var(--weight-medium);
     color: var(--text-secondary);
     cursor: pointer;
     transition: background var(--transition-fast),
@@ -19365,32 +19525,35 @@
     background: var(--color-accent);
     border-color: var(--color-accent);
     color: var(--color-white);
+    font-weight: var(--weight-semibold);
   }
 
-  /* Custom focus free-text input */
+  /* Focus free-text input — underline-only treatment. Italic
+     placeholder echoes the editorial body voice. */
   .coach-focus-row {
     display: flex;
   }
   .coach-focus-input {
     flex: 1;
-    padding: 8px 12px;
-    background: var(--bg-base);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
+    padding: 8px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-medium, var(--border-light));
+    border-radius: 0;
     color: var(--text-primary);
     font-family: var(--font-body);
-    font-size: var(--text-sm);
-    line-height: 1.3;
-    transition: border-color var(--transition-fast),
-                box-shadow var(--transition-fast);
+    font-size: var(--text-base);
+    line-height: 1.4;
+    transition: border-bottom-color var(--transition-fast);
   }
   .coach-focus-input::placeholder {
     color: var(--text-muted);
+    font-style: italic;
   }
   .coach-focus-input:focus {
     outline: none;
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 2px var(--color-accent-glow);
+    border-bottom-color: var(--color-accent);
+    box-shadow: none;
   }
 
   /* Show-data toggle and history toggle share styling */
@@ -40893,6 +41056,64 @@
     }
   }
 
+  // Per-club anomaly detection thresholds. Tuned for noticeable but
+  // not noisy callouts; surfaced in the AI Coach payload (drives prompt
+  // Note lines under the relevant club bullet) AND as small pills in
+  // the My Stats → Clubs tab. Bumping these is the right knob if
+  // either surface starts feeling alarmist.
+  const CLUB_DISP_MIN_SHOTS = 10;
+  const CLUB_DISP_BIAS_GAP_PCT = 25;        // |L% - R%| at or above this is biased
+  const CLUB_CONTACT_MIN_SHOTS = 10;
+  const CLUB_CONTACT_GAP_FROM_BAG_PCT = 15; // below bag avg by this much
+  const CLUB_CONTACT_ABSOLUTE_CEILING_PCT = 75; // AND under this floor
+  const CLUB_CONTACT_BAG_MIN_SAMPLE = 20;
+  const CLUB_CONTACT_BAG_FALLBACK_PCT = 85; // assumed bag avg when sample is thin
+
+  // Compute anomaly flags for one club row. Returns an array of
+  // { type, severity, label, promptNote, direction? }. Empty when the
+  // club is balanced + consistent. Label = pill text for the Clubs
+  // tab; promptNote = longer phrase the Coach prompt renders under
+  // the club bullet so the model has explicit hints to reference.
+  // Dispersion direction is physical (where the ball went from
+  // observer view); handedness translation (push vs pull, fade vs
+  // draw) is left to the Coach prompt's HANDEDNESS rule.
+  function _computeClubAnomalies(club, bagCleanPct) {
+    const anomalies = [];
+    const disp = club.disp || { left: 0, straight: 0, right: 0, total: 0 };
+    const dispTotal = disp.total || 0;
+    if (dispTotal >= CLUB_DISP_MIN_SHOTS) {
+      const leftPct = Math.round((disp.left / dispTotal) * 100);
+      const rightPct = Math.round((disp.right / dispTotal) * 100);
+      if (Math.abs(leftPct - rightPct) >= CLUB_DISP_BIAS_GAP_PCT) {
+        const direction = rightPct > leftPct ? 'right' : 'left';
+        const dominantPct = direction === 'right' ? rightPct : leftPct;
+        const oppositePct = direction === 'right' ? leftPct : rightPct;
+        anomalies.push({
+          type: 'dispersion-bias',
+          severity: 'warn',
+          direction,
+          label: direction === 'right' ? 'Right bias' : 'Left bias',
+          promptNote: `${direction}-biased dispersion (${dominantPct}% ${direction === 'right' ? 'R' : 'L'} / ${oppositePct}% ${direction === 'right' ? 'L' : 'R'})`,
+        });
+      }
+    }
+    const contact = club.contact || { clean: 0, total: 0 };
+    const contactTotal = contact.total || 0;
+    if (contactTotal >= CLUB_CONTACT_MIN_SHOTS) {
+      const cleanPct = Math.round(((contact.clean || 0) / contactTotal) * 100);
+      if (cleanPct < CLUB_CONTACT_ABSOLUTE_CEILING_PCT
+          && (bagCleanPct - cleanPct) >= CLUB_CONTACT_GAP_FROM_BAG_PCT) {
+        anomalies.push({
+          type: 'low-contact',
+          severity: 'warn',
+          label: 'Inconsistent contact',
+          promptNote: `low clean contact (${cleanPct}%, bag avg ${bagCleanPct}%)`,
+        });
+      }
+    }
+    return anomalies;
+  }
+
   // Build per-club stats.
   // Returns an array of {
   //   clubKey, clubLabel,
@@ -40900,7 +41121,8 @@
   //   gpsCount, gpsAvg, gpsMin, gpsMax,           // round-only (GPS total)
   //   disp: { left, straight, right, total },     // range + round
   //   contact: { clean, thin, chunk, other, total }, // range + round
-  //   bagOrderIdx
+  //   bagOrderIdx,
+  //   anomalies: [{ type, severity, label, promptNote, direction? }]
   // }
   function computeAllClubStats() {
     const bag = Array.isArray(prefs.bag) ? sortedBag(prefs.bag) : [];
@@ -40960,7 +41182,7 @@
     }
 
     const bagLen = bag.length;
-    return Array.from(buckets.values()).map(b => ({
+    const clubs = Array.from(buckets.values()).map(b => ({
       clubKey: b.clubKey,
       clubLabel: b.clubLabel,
       totalShots: b.totalShots,
@@ -40975,7 +41197,25 @@
       disp: b.disp,
       contact: b.contact,
       bagOrderIdx: bagOrder.has(b.clubKey) ? bagOrder.get(b.clubKey) : bagLen + 1,
-    })).sort((a, b) => {
+    }));
+
+    // Bag-wide weighted clean-contact baseline. Computed once so each
+    // club is judged against the same reference. Fallback when sample
+    // is thin avoids flagging every club for users with sparse data.
+    let bagContactClean = 0;
+    let bagContactTotal = 0;
+    for (const c of clubs) {
+      bagContactClean += (c.contact?.clean || 0);
+      bagContactTotal += (c.contact?.total || 0);
+    }
+    const bagCleanPct = bagContactTotal >= CLUB_CONTACT_BAG_MIN_SAMPLE
+      ? Math.round((bagContactClean / bagContactTotal) * 100)
+      : CLUB_CONTACT_BAG_FALLBACK_PCT;
+    for (const c of clubs) {
+      c.anomalies = _computeClubAnomalies(c, bagCleanPct);
+    }
+
+    return clubs.sort((a, b) => {
       if (a.bagOrderIdx !== b.bagOrderIdx) return a.bagOrderIdx - b.bagOrderIdx;
       // Sort by whichever distance is available — prefer carry, fall
       // back to GPS so round-only users still get a sensible order.
@@ -57955,6 +58195,11 @@
     // — otherwise the sheet animates back off-screen mid-use. Set
     // true after openCoachSheet's RAF finishes; reset on close.
     sheetAnimatedIn: false,
+    // "Tune the plan" disclosure: collapsed by default once a plan
+    // exists so the plan body is the headline of the sheet. Cold-open
+    // (no plan) shows the same options content inline as the body —
+    // this flag is only consulted in the plan-exists branch.
+    optionsOpen: false,
   };
 
   // Round-review transient state. One round summary is visible at a
@@ -58144,6 +58389,17 @@
               const d = c.disp || {};
               const dt = d.total || 0;
               const ct = c.contact?.total || 0;
+              // Whitelist anomaly fields to what the prompt actually
+              // consumes — keep label out so we don't double-publish
+              // it (server uses promptNote; the badge label lives on
+              // the client only).
+              const anomalies = Array.isArray(c.anomalies)
+                ? c.anomalies.map(a => {
+                    const out = { type: a.type, promptNote: a.promptNote };
+                    if (a.direction) out.direction = a.direction;
+                    return out;
+                  })
+                : [];
               return {
                 club: c.clubLabel,
                 shots: c.totalShots,
@@ -58153,6 +58409,7 @@
                 dispStraightPct: dt > 0 ? Math.round((d.straight / dt) * 100) : null,
                 dispRightPct: dt > 0 ? Math.round((d.right / dt) * 100) : null,
                 contactCleanPct: ct > 0 ? Math.round(((c.contact.clean || 0) / ct) * 100) : null,
+                anomalies,
               };
             });
           return usable.length > 0 ? usable : null;
@@ -58287,6 +58544,15 @@
     renderPracticeCoach();
   }
   window.toggleCoachPayload = toggleCoachPayload;
+
+  // "Tune the plan" disclosure toggle. Only consumed when a plan
+  // exists — the cold-open path shows the options content inline as
+  // the sheet body, with no disclosure wrapper.
+  function toggleCoachOptions() {
+    coachState.optionsOpen = !coachState.optionsOpen;
+    renderPracticeCoach();
+  }
+  window.toggleCoachOptions = toggleCoachOptions;
 
   // Extract a compact summary from a generated plan's markdown.
   // Pulls the Diagnosis section (the lead paragraph after `## Diagnosis`)
@@ -59045,61 +59311,43 @@
     if (!barMount && !sheetMount) return;
     const hasRec = !!coachState.recommendation;
     const scopeLabel = (COACH_SCOPES.find(s => s.id === coachState.scope) || COACH_SCOPES[0]).label;
-
-    // Status sub-line — mono-font single line under the title.
-    // No plan: a one-liner explaining what this does. Has a plan:
-    // scope · model · timestamp.
-    const statusLine = (() => {
-      if (coachState.loading) return 'Working on it…';
-      if (!hasRec) {
-        return `Personalized drills from your last rounds · pick a scope below`;
-      }
-      const parts = [escapeHtml(scopeLabel)];
-      if (coachState.model) parts.push(escapeHtml(coachState.model));
-      if (coachState.generatedAt) {
-        parts.push(escapeHtml(new Date(coachState.generatedAt).toLocaleString()));
-      }
-      return parts.join(' · ');
-    })();
+    // scopeLabel preserved for the bar teaser fallback only — the sheet
+    // header no longer carries a status/meta sub-line in the editorial
+    // layout. Meta info (scope · model · timestamp) is intentionally
+    // not surfaced; users who need it can open "Show data sent to coach."
 
     const buttonLabel = coachState.loading
       ? 'Thinking…'
       : (hasRec ? 'Regenerate' : 'Generate plan');
 
-    // Stats snapshot strip — the "why these recommendations" tiles.
-    // Pulled from the same payload that gets sent to Gemini, so what
-    // the user sees IS what's driving the recommendation. Tapping a
-    // tile loads its hint into the focus input.
-    let snapshotHtml = '';
+    // ── Reusable option blocks ──
+    // The same three controls (scope chips, focus input, weakness
+    // tiles) drive the cold-open body AND the "Tune the plan"
+    // disclosure that lives below the plan when one exists. Each
+    // sits inside a `.coach-section` wrapper with a small uppercase
+    // section-label above so the body has a consistent rhythm.
+
     const payloadForSnapshot = (typeof buildCoachPayload === 'function')
       ? buildCoachPayload()
       : null;
     const snapshot = (typeof buildCoachStatsSnapshot === 'function')
       ? buildCoachStatsSnapshot(payloadForSnapshot)
       : [];
-    if (snapshot.length > 0) {
-      snapshotHtml = `
-        <div class="coach-stats-snapshot" aria-label="Weakness snapshot">
-          <div class="coach-stats-snapshot-label">Why these recommendations — your weakest signals right now:</div>
-          <div class="coach-stats-snapshot-tiles">
-            ${snapshot.map(t => `
-              <button class="coach-stat-tile is-${escapeHtml(t.tone || 'warn')}"
-                      type="button"
-                      title="Tap to add to focus"
-                      onclick="applyCoachFocusHint('${escapeHtml(t.hint)}')">
-                <div class="coach-stat-tile-label">${escapeHtml(t.label)}</div>
-                <div class="coach-stat-tile-value">${escapeHtml(t.value)}</div>
-                <div class="coach-stat-tile-hint">+ Focus</div>
-              </button>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
+    const snapshotTilesHtml = snapshot.length > 0 ? `
+      <div class="coach-stats-snapshot-tiles">
+        ${snapshot.map(t => `
+          <button class="coach-stat-tile is-${escapeHtml(t.tone || 'warn')}"
+                  type="button"
+                  title="Tap to add to focus"
+                  onclick="applyCoachFocusHint('${escapeHtml(t.hint)}')">
+            <div class="coach-stat-tile-label">${escapeHtml(t.label)}</div>
+            <div class="coach-stat-tile-value">${escapeHtml(t.value)}</div>
+            <div class="coach-stat-tile-hint">+ Focus</div>
+          </button>
+        `).join('')}
+      </div>
+    ` : '';
 
-    // Scope chip picker — segmented selector that drives the prompt
-    // narrowing on the server. Always visible (above any plan) so
-    // users can switch and regenerate without scrolling.
     const scopeChipsHtml = `
       <div class="coach-scope-row" role="tablist" aria-label="Plan scope">
         ${COACH_SCOPES.map(s => `
@@ -59114,19 +59362,32 @@
       </div>
     `;
 
-    // Optional free-text focus input. Lives below the chips so
-    // structure (chip) comes before flavor (free text). Capped at
-    // 240 chars to match the server-side cap.
     const focusInputHtml = `
-      <div class="coach-focus-row">
-        <input class="coach-focus-input"
-               type="text"
-               placeholder="Optional: anything specific to focus on? (e.g., long iron shots, tournament prep)"
-               maxlength="240"
-               value="${escapeHtml(coachState.customFocus || '')}"
-               oninput="setCoachCustomFocus(this.value)"
-               aria-label="Optional custom focus for the plan" />
+      <input class="coach-focus-input"
+             type="text"
+             placeholder="e.g. long iron shots, tournament prep"
+             maxlength="240"
+             value="${escapeHtml(coachState.customFocus || '')}"
+             oninput="setCoachCustomFocus(this.value)"
+             aria-label="Optional custom focus for the plan" />
+    `;
+
+    const optionsContentHtml = `
+      <div class="coach-section">
+        <div class="coach-section-label">Where to focus</div>
+        ${scopeChipsHtml}
       </div>
+      <div class="coach-section">
+        <div class="coach-section-label">Anything specific?</div>
+        ${focusInputHtml}
+      </div>
+      ${snapshot.length > 0 ? `
+        <div class="coach-section">
+          <div class="coach-section-label">Your weakest signals right now</div>
+          <div class="coach-section-help">Tap a tile to drop it into your focus.</div>
+          ${snapshotTilesHtml}
+        </div>
+      ` : ''}
     `;
 
     const errorHtml = coachState.error ? `
@@ -59197,26 +59458,59 @@
       }
     }
 
-    // Plan body — rendered full-width inside the sheet. No collapse
-    // logic: the sheet itself acts as the "expanded" view, and the
-    // Practice page only shows the thin bar.
-    let planBodyHtml;
-    if (hasRec) {
-      planBodyHtml = `
+    // ── Body assembly ──
+    // Three render paths so the headline of the body matches what
+    // the user actually needs at that moment.
+    //
+    //  1. Loading without a plan → spinner is the headline; options
+    //     can wait until the response lands.
+    //  2. No plan yet → options are the headline (it's the only
+    //     thing to do); sections rendered inline under labels.
+    //  3. Plan exists → plan body IS the headline; options collapse
+    //     into a "Tune the plan" disclosure below it.
+    let bodyHtml;
+    if (coachState.loading && !hasRec) {
+      bodyHtml = `
+        ${errorHtml}
+        <div class="coach-loading-block">
+          <div class="coach-spinner"></div>
+          <div>Analyzing your stats…</div>
+        </div>
+      `;
+    } else if (!hasRec) {
+      bodyHtml = `
+        ${errorHtml}
+        ${optionsContentHtml}
+      `;
+    } else {
+      // Order: tune-the-plan disclosure first (top of body so it's
+      // immediately tappable when the user wants to adjust + regen),
+      // then any error, then the plan body itself, then the
+      // attribution focus line, then show-data + history toggles.
+      bodyHtml = `
+        <div class="coach-options${coachState.optionsOpen ? ' is-open' : ''}">
+          <button class="coach-options-summary"
+                  type="button"
+                  onclick="toggleCoachOptions()"
+                  aria-expanded="${coachState.optionsOpen}">
+            <span class="coach-options-summary-text">Tune the plan</span>
+            <span class="coach-options-summary-chev" aria-hidden="true">›</span>
+          </button>
+          ${coachState.optionsOpen ? `
+            <div class="coach-options-content">
+              ${optionsContentHtml}
+            </div>
+          ` : ''}
+        </div>
+        ${errorHtml}
         <article class="coach-plan-body">
           ${_coachMarkdownToHtml(coachState.recommendation)}
         </article>
         ${coachState.customFocus ? `
           <div class="coach-plan-focus-line">Focus: "${escapeHtml(coachState.customFocus)}"</div>
         ` : ''}
-      `;
-    } else {
-      planBodyHtml = `
-        <div class="coach-empty">
-          ${coachState.loading
-            ? `<div class="coach-loading"><div class="coach-spinner"></div><div>Analyzing your stats…</div></div>`
-            : `<div class="coach-empty-text">Tap “Generate plan” to ask the AI coach for personalized drills. Uses your most recent rounds.</div>`}
-        </div>
+        ${payloadHtml ? `<div class="coach-hero-toggles">${payloadHtml}</div>` : ''}
+        ${historyHtml ? `<div class="coach-hero-toggles">${historyHtml}</div>` : ''}
       `;
     }
 
@@ -59288,10 +59582,9 @@
       <div class="coach-sheet-backdrop${animCls}" onclick="closeCoachSheet()"></div>
       <div class="coach-sheet${animCls}" role="dialog" aria-label="AI Coach">
         <div class="coach-sheet-header">
-          <div class="coach-sheet-header-meta">
-            <div class="coach-sheet-title">Your Coach</div>
-            <div class="coach-sheet-status">${statusLine}</div>
-          </div>
+          <h1 class="coach-sheet-title">
+            <span class="coach-sheet-title-icon" aria-hidden="true">✨</span>Your <em>Coach</em>
+          </h1>
           <button class="coach-sheet-close" type="button"
                   onclick="closeCoachSheet()" aria-label="Close coach">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -59301,13 +59594,7 @@
           </button>
         </div>
         <div class="coach-sheet-body">
-          ${snapshotHtml}
-          ${scopeChipsHtml}
-          ${focusInputHtml}
-          ${errorHtml}
-          ${planBodyHtml}
-          ${payloadHtml ? `<div class="coach-hero-toggles">${payloadHtml}</div>` : ''}
-          ${historyHtml ? `<div class="coach-hero-toggles">${historyHtml}</div>` : ''}
+          ${bodyHtml}
         </div>
         <div class="coach-sheet-footer">
           <button class="btn btn-primary btn-lg"
@@ -73848,18 +74135,27 @@
       </div>
     ` : '';
 
-    // Per-club tile list. Each tile shows: name, sample count, avg
-    // distance (carry preferred, GPS fallback), dispersion bar.
+    // Per-club tile list. Each tile shows: name, anomaly badges (if
+    // any), sample count, avg distance (carry preferred, GPS
+    // fallback), dispersion bar.
     const tiles = clubs.map(c => {
       const dist = c.carryAvg || c.gpsAvg;
       const distSource = c.carryAvg ? 'avg carry' : (c.gpsAvg ? 'avg on course' : '');
       const distLabel = dist ? `${dist} yd ${distSource}` : 'No distance data';
       const dispHtml = c.disp.total > 0 ? renderDispersionBar(c.disp, { compact: true }) : '';
+      const badgesHtml = Array.isArray(c.anomalies) && c.anomalies.length > 0
+        ? c.anomalies.map(a =>
+            `<span class="stats-club-anomaly-badge is-${a.severity || 'warn'}">${escapeHtml(a.label)}</span>`
+          ).join('')
+        : '';
       return `
         <button class="stats-club-row" type="button"
                 onclick="openClubDataDetail('${escapeHtml(c.clubKey)}', '${escapeHtml(c.clubLabel)}')">
           <div class="stats-club-row-main">
-            <div class="stats-club-row-title">${escapeHtml(c.clubLabel)}</div>
+            <div class="stats-club-row-titlebar">
+              <div class="stats-club-row-title">${escapeHtml(c.clubLabel)}</div>
+              ${badgesHtml}
+            </div>
             <div class="stats-club-row-sub">${c.totalShots} shot${c.totalShots === 1 ? '' : 's'} · ${escapeHtml(distLabel)}</div>
           </div>
           <div class="stats-club-row-disp">${dispHtml}</div>
