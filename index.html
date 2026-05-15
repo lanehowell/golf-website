@@ -18933,9 +18933,439 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     AI COACH CARD — Practice tab
-     Renders the Gemini-powered recommendation. One card with head,
-     body (markdown-rendered), error slot, action button.
+     AI COACH HERO — Practice tab (redesigned)
+     Replaces the original .coach-card layout. Hero-style block with
+     full-width plan body, stats snapshot strip (driving "why these
+     recommendations"), scope picker, and a large CTA. Designed to be
+     the featured section of the Practice tab, not a buried card.
+     The original .coach-card / .coach-body / .coach-card-head rules
+     below are retained for backwards compatibility but no longer used
+     by renderPracticeCoach.
+     ═══════════════════════════════════════════════════════════════ */
+  .coach-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-accent) 4%, var(--bg-surface)),
+      var(--bg-surface));
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--space-6);
+  }
+  .coach-hero-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .coach-hero-title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .coach-hero-status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+    line-height: var(--leading-normal);
+  }
+
+  /* Stats snapshot — the "why these recommendations" tile strip.
+     Each tile is a button that adds its hint to the focus input. */
+  .coach-stats-snapshot {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .coach-stats-snapshot-label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: var(--leading-normal);
+  }
+  .coach-stats-snapshot-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .coach-stat-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--color-warning, var(--color-accent));
+    border-radius: var(--radius-sm);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--transition-fast);
+    min-width: 0;
+  }
+  .coach-stat-tile:hover {
+    background: var(--bg-hover, var(--bg-base));
+    border-left-color: var(--color-accent);
+  }
+  .coach-stat-tile:active { transform: translateY(1px); }
+  .coach-stat-tile-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .coach-stat-tile-value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--color-warning, var(--color-accent));
+    line-height: 1.1;
+  }
+  .coach-stat-tile-hint {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  @media (max-width: 640px) {
+    .coach-stats-snapshot-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* Plan body — full-width article styling. No inner box. */
+  .coach-plan-body {
+    padding: var(--space-2) 0;
+    color: var(--text-primary);
+  }
+  .coach-plan-body .coach-h {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: var(--space-4) 0 var(--space-2);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  .coach-plan-body .coach-h:first-child { margin-top: 0; }
+  .coach-plan-body .coach-p {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: var(--leading-relaxed);
+    margin: 0 0 var(--space-3);
+  }
+  .coach-plan-body .coach-ol,
+  .coach-plan-body .coach-ul {
+    margin: 0 0 var(--space-3);
+    padding-left: 1.5em;
+  }
+  .coach-plan-body .coach-ol li,
+  .coach-plan-body .coach-ul li {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-2);
+  }
+  .coach-plan-body strong {
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+  }
+  .coach-plan-body em {
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+  .coach-plan-focus-line {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--border-light);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     COACH BAR + SHEET — Practice page Idea-1 layout.
+     The Practice page shows only the thin .coach-bar. Tapping it
+     opens a bottom-sheet overlay (.coach-sheet + .coach-sheet-backdrop)
+     that contains the full Coach UI. Sheet slides up from below,
+     backdrop fades in. Same animation pattern as .hsd-sheet.
+     ═══════════════════════════════════════════════════════════════ */
+  .coach-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-accent) 7%, var(--bg-surface)),
+      var(--bg-surface) 70%);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    margin-bottom: var(--space-5);
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                transform var(--transition-fast);
+  }
+  .coach-bar:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-md);
+  }
+  .coach-bar:active { transform: translateY(1px); }
+  .coach-bar-icon {
+    font-size: var(--text-lg);
+    line-height: 1;
+    color: var(--color-accent);
+    flex-shrink: 0;
+  }
+  .coach-bar-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .coach-bar-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: var(--weight-semibold);
+  }
+  .coach-bar-detail {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+  }
+  .coach-bar-detail.is-warn {
+    color: var(--color-warning, var(--color-accent));
+  }
+  .coach-bar-chev {
+    color: var(--color-accent);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    flex-shrink: 0;
+  }
+
+  /* Backdrop + sheet — full-screen overlay. Same animation pattern
+     as the hole drill-down sheet for consistency. */
+  .coach-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9000;
+    opacity: 1;
+    transition: opacity 220ms ease;
+  }
+  .coach-sheet-backdrop.opening,
+  .coach-sheet-backdrop.closing { opacity: 0; }
+
+  .coach-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 92vh;
+    z-index: 9001;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(0);
+    transition: transform 220ms ease;
+  }
+  .coach-sheet.opening,
+  .coach-sheet.closing { transform: translateY(100%); }
+
+  .coach-sheet-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .coach-sheet-header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .coach-sheet-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .coach-sheet-status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .coach-sheet-close {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+  .coach-sheet-close:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .coach-sheet-close svg {
+    width: 16px;
+    height: 16px;
+  }
+  .coach-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .coach-sheet-footer {
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .coach-sheet-footer .btn-lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+  }
+
+  @media (max-width: 480px) {
+    .coach-sheet-body { padding: var(--space-3) var(--space-4); }
+    .coach-sheet-header { padding: var(--space-3) var(--space-4); }
+    .coach-sheet-footer {
+      padding: var(--space-3) var(--space-4);
+      justify-content: stretch;
+    }
+    .coach-sheet-footer .btn-lg { width: 100%; }
+  }
+
+  /* Compact plan summary (collapsed state) — Diagnosis paragraph
+     + drill count + expand button. Keeps the Coach hero short on
+     return visits so Practice Modes stays within scroll reach. */
+  .coach-plan-summary {
+    padding: var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .coach-plan-summary-diagnosis {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .coach-plan-summary-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* Expand / Collapse buttons — minimal text-only ghost button
+     so they sit visually below the plan content without competing
+     with the primary "Generate" CTA. */
+  .coach-plan-expand,
+  .coach-plan-collapse {
+    align-self: flex-start;
+    background: transparent;
+    border: none;
+    padding: var(--space-1) 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-accent);
+    cursor: pointer;
+  }
+  .coach-plan-expand:hover,
+  .coach-plan-collapse:hover {
+    text-decoration: underline;
+  }
+
+  /* Toggle rows for "Show data" / "Show history" — grouped together */
+  .coach-hero-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  /* Action row — large CTA at the bottom */
+  .coach-hero-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .coach-hero-actions .btn-lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+  }
+
+  @media (max-width: 480px) {
+    .coach-hero { padding: var(--space-4); }
+    .coach-hero-title { font-size: var(--text-xl); }
+    .coach-hero-actions { justify-content: stretch; }
+    .coach-hero-actions .btn-lg { width: 100%; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     AI COACH CARD — original styles (now legacy, kept for any
+     code path still mounting via .coach-card). renderPracticeCoach
+     uses .coach-hero above.
      ═══════════════════════════════════════════════════════════════ */
   .coach-card {
     background: var(--bg-surface);
@@ -19063,6 +19493,284 @@
   .coach-card-actions {
     display: flex;
     justify-content: flex-end;
+  }
+
+  /* Scope chips — horizontal pill picker above the focus input */
+  .coach-scope-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .coach-scope-chip {
+    padding: 6px 12px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .coach-scope-chip:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+  }
+  .coach-scope-chip.is-active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-white);
+  }
+
+  /* Custom focus free-text input */
+  .coach-focus-row {
+    display: flex;
+  }
+  .coach-focus-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.3;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+  }
+  .coach-focus-input::placeholder {
+    color: var(--text-muted);
+  }
+  .coach-focus-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent-glow);
+  }
+
+  /* Show-data toggle and history toggle share styling */
+  .coach-payload-toggle {
+    align-self: flex-start;
+    margin-top: var(--space-1);
+    padding: 4px 0;
+    background: transparent;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: left;
+  }
+  .coach-payload-toggle:hover {
+    color: var(--color-accent);
+  }
+  .coach-payload {
+    margin: 0;
+    padding: var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-secondary);
+    line-height: var(--leading-normal);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  /* History list */
+  .coach-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: var(--space-1);
+  }
+  .coach-history-empty {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: var(--space-2) var(--space-1);
+    font-style: italic;
+  }
+  .coach-history-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    min-width: 0;
+  }
+  .coach-history-row.is-active {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--bg-base));
+  }
+  .coach-history-row-main {
+    min-width: 0;
+  }
+  .coach-history-row-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .coach-history-row-sub {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .coach-history-action {
+    padding: 4px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast);
+  }
+  .coach-history-action:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .coach-history-action:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .coach-history-action-danger {
+    padding: 4px 8px;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+  }
+  .coach-history-action-danger:hover:not(:disabled) {
+    border-color: var(--color-warning, var(--color-accent));
+    color: var(--color-warning, var(--color-accent));
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     ROUND REVIEW BLOCK — lives inside the round summary panel,
+     between the SG block and the scramble attribution. Reads
+     round.aiReview for persisted state.
+     ═══════════════════════════════════════════════════════════════ */
+  .round-review-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-accent) 4%, var(--bg-surface)),
+      var(--bg-surface));
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .round-review-status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-wide);
+  }
+  .round-review-body {
+    /* inherit .coach-plan-body styling defined above */
+  }
+  .round-review-loading {
+    padding: var(--space-4) 0;
+    color: var(--text-secondary);
+  }
+  .round-review-empty {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+  }
+  /* Collapsed-by-default summary view — first ~200 chars of the
+     review + expand toggle. Mirrors .coach-plan-summary styling so
+     the two surfaces feel consistent. */
+  .round-review-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .round-review-summary-text {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: var(--leading-relaxed);
+    margin: 0;
+  }
+  .round-review-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  /* Per-hole "Why this hole?" block — lives in the hole drill-down
+     sheet, below the per-category SG bars. */
+  .hole-analysis-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin: var(--space-3) 0;
+  }
+  .hole-analysis-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-accent);
+    cursor: pointer;
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+  .hole-analysis-trigger:hover {
+    border-color: var(--color-accent);
+    background: var(--bg-hover, var(--bg-surface));
+  }
+  .hole-analysis-body {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+  }
+  .hole-analysis-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
   }
 
   /* Insight blurb — one-line callout under a contrast block */
@@ -33709,27 +34417,29 @@
            renderPracticeLanding when isAnyPracticeSessionActive(). -->
       <div id="practice-resume-mount"></div>
 
+      <!-- ═══════════════════════════════════════════════════════════
+           AI COACH — Gemini-powered practice recommendations.
+           Surfaces as a thin insight bar at the top of Practice; the
+           full Coach UI (scope picker, focus, plan body, history,
+           generate) lives in a bottom sheet that the bar opens.
+           Keeps Practice Modes within scroll reach without burying
+           Coach.
+           ═══════════════════════════════════════════════════════════ -->
+      <div id="practice-coach-bar-mount"></div>
+
+      <!-- PRACTICE MODES — the four entry points (GPS Range, Range,
+           Short Game, Course Practice) plus the Coming Soon putting
+           card. Pulled directly under the Coach bar so tapping a
+           mode is one tap away. -->
+      <div class="home-section-label home-section-label-prominent">Practice Modes</div>
+      <div id="practice-modes-mount"></div>
+
       <!-- YOUR PRACTICE — stats strip mirroring the Play tab's
            "Your Game" section. Renders 3 quiet stats with vertical
            dividers + a right-aligned "View detailed stats" link
            below. -->
       <div class="home-section-label home-section-label-prominent">Your Practice</div>
       <div id="practice-stats-mount"></div>
-
-      <!-- PRACTICE MODES — the four entry points (GPS Range, Range,
-           Short Game, Course Practice) plus the Coming Soon putting
-           card. Sits above Recent Sessions so tapping a mode is one
-           scroll-free action; the data sections below provide
-           context once the user has history to look at. -->
-      <div class="home-section-label home-section-label-prominent">Practice Modes</div>
-      <div id="practice-modes-mount"></div>
-
-      <!-- AI COACH — Gemini-powered drill recommendations based on
-           the player's recent stats. Renders a single card with a
-           "Generate" button + result area. Rendered by
-           renderPracticeCoach() in renderPracticeLanding(). -->
-      <div class="home-section-label home-section-label-prominent">AI Coach</div>
-      <div id="practice-coach-mount"></div>
 
       <!-- RECENT SESSIONS — mirrors Play's Recent Rounds. Up to 3
            recent sessions across both range + short-game types,
@@ -33750,6 +34460,12 @@
            Rendered by renderPracticeSwingThoughtsSection(). -->
       <div class="home-section-label home-section-label-prominent">Swing Thoughts</div>
       <div id="practice-swing-thoughts-mount"></div>
+
+      <!-- AI Coach bottom-sheet overlay. Position-fixed, so its DOM
+           location doesn't matter much, but anchoring it inside the
+           panel keeps the markup tidy. Populated by renderCoachSheet()
+           when coachState.sheetOpen is true; empty otherwise. -->
+      <div id="coach-sheet-mount"></div>
     </section>
 
     <!-- ═══════════════ RANGE SESSION ═══════════════ -->
@@ -34421,10 +35137,12 @@
   const functions = getFunctions(app, 'us-central1');
   const provider = new GoogleAuthProvider();
 
-  // Expose the coach callable on window so the non-module rendering
-  // code can invoke it. Matches the pattern used for other firebase
+  // Expose the coach callables on window so the non-module rendering
+  // code can invoke them. Matches the pattern used for other firebase
   // helpers below.
   window.fbCallCoach = httpsCallable(functions, 'getCoachRecommendation');
+  window.fbCallRoundReview = httpsCallable(functions, 'getRoundReview');
+  window.fbCallHoleAnalysis = httpsCallable(functions, 'getHoleAnalysis');
 
   // Persist the auth session locally so the user stays signed in across
   // page reloads. browserLocalPersistence is the Firebase default but we
@@ -34992,6 +35710,46 @@
 
     deleteSwingThought: async (myUid, thoughtId) => {
       await deleteDoc(doc(db, `users/${myUid}/swingThoughts/${thoughtId}`));
+    },
+
+    // ── Coach plans — AI-generated practice recommendations.
+    // Persisted so the most recent plan survives a page refresh and
+    // older plans are browsable as history.
+    saveCoachPlan: async (myUid, planData) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await setDoc(doc(db, `users/${myUid}/coachPlans/${id}`), {
+        ...planData,
+        createdAt: Date.now(),
+      });
+      return id;
+    },
+
+    getMostRecentCoachPlan: async (myUid) => {
+      const ref = collection(db, `users/${myUid}/coachPlans`);
+      const q = query(ref, orderBy('createdAt', 'desc'), limit(1));
+      const snap = await getDocs(q);
+      if (snap.empty) return null;
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() };
+    },
+
+    listCoachPlans: async (myUid, max = 10) => {
+      const ref = collection(db, `users/${myUid}/coachPlans`);
+      const q = query(ref, orderBy('createdAt', 'desc'), limit(max));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+
+    deleteCoachPlan: async (myUid, planId) => {
+      await deleteDoc(doc(db, `users/${myUid}/coachPlans/${planId}`));
+    },
+
+    // Save an AI-generated review onto the round doc directly (no new
+    // subcollection — reuses the existing users/{uid}/rounds rule).
+    saveRoundAIReview: async (myUid, roundId, reviewData) => {
+      await updateDoc(doc(db, `users/${myUid}/rounds/${roundId}`), {
+        aiReview: reviewData,
+      });
     },
 
 
@@ -37935,6 +38693,13 @@
           if (currentPanelId === 'practice') renderPracticeLanding();
         })();
       }
+      // Pull the most recent saved coach plan so the panel shows it
+      // instead of a blank card on page load. Only attempts once per
+      // panel show; if it fails we silently fall through to the
+      // empty state. Does its own re-render via renderPracticeCoach().
+      if (currentUser && !coachState.recommendation && !coachState.loading) {
+        loadMostRecentCoachPlan();
+      }
     }
     if (id === 'range-session') renderRangeSession();
     if (id === 'range-history') renderRangeHistory();
@@ -39180,6 +39945,13 @@
     // Default is 'right' since that's ~90% of golfers; a lefty
     // flipping the toggle once in Profile is a one-time setup.
     handedness: 'right',
+
+    // Auto-generate the AI Coach review on round completion. When
+    // true, completing a standard round fires the round-review call
+    // in the background so the review is ready by the time the
+    // summary screen is open. Default false to avoid burning API
+    // calls for users who don't want it on every round.
+    autoCoachReview: false,
 
     // Tee gender — affects which tees show up in tee selectors. Same
     // physical tee box can have separate ratings for men and women on
@@ -57247,6 +58019,24 @@
     // Reset the Shot Pattern scatter filter — each round opens fresh.
     roundSummaryState.scatterCategory = 'all';
     showPanel('round-summary', null);
+
+    // Auto-trigger an AI review for this round, gated by the pref +
+    // by the absence of a stored review. Fire-and-forget; the
+    // round-review render path picks up the result when it lands.
+    // We do this AFTER showPanel so the summary screen is already
+    // visible with a loading state by the time the function returns.
+    if (typeof prefs !== 'undefined' && prefs && prefs.autoCoachReview && currentUser) {
+      const round = (recentRounds || []).find(r => r.id === roundId);
+      const eligible = round
+        && round.status === 'completed'
+        && !round.aiReview            // don't re-burn on rounds already reviewed
+        && (round.totals?.holesPlayed ?? 0) >= 3
+        && (typeof roundCountsForStats !== 'function' || roundCountsForStats(round));
+      if (eligible && typeof generateRoundReview === 'function') {
+        // Defer one tick so the panel paints first.
+        setTimeout(() => generateRoundReview(roundId), 50);
+      }
+    }
   }
 
   // Called when the user leaves the summary panel or opens a
@@ -57296,13 +58086,59 @@
   // Cloud Function, and renders the markdown response inline.
   // ═══════════════════════════════════════════════════════════════
 
+  const COACH_SCOPES = [
+    { id: 'full',        label: 'Full plan',     short: 'Full' },
+    { id: 'putting',     label: 'Putting',       short: 'Putt' },
+    { id: 'short-game',  label: 'Short game',    short: 'Short' },
+    { id: 'approach',    label: 'Approach',      short: 'Approach' },
+    { id: 'tee',         label: 'Off the tee',   short: 'Tee' },
+    { id: 'range',       label: 'Range session', short: 'Range' },
+  ];
+
   const coachState = {
     loading: false,
-    recommendation: null,   // raw markdown text
+    recommendation: null,    // raw markdown text
     generatedAt: null,
     model: null,
     error: null,
-    cacheKey: null,         // stats fingerprint at time of generation
+    scope: 'full',
+    customFocus: '',
+    statsBlock: null,        // the rendered prompt body Gemini saw
+    showPayload: false,
+    planId: null,            // Firestore doc id of currently displayed plan
+    history: [],             // [{ id, scope, customFocus, generatedAt, recommendation, statsBlock }]
+    historyLoaded: false,
+    showHistory: false,
+    // Plan-body collapse — kept for legacy paths but not used by
+    // the new bar+sheet UI (the sheet always shows full content).
+    planCollapsed: false,
+    // Bar+sheet UI — the Practice page renders only a thin insight
+    // bar; tapping it opens the full Coach surface in a bottom sheet.
+    sheetOpen: false,
+    // Tracks whether the slide-up open animation has completed.
+    // Re-renders triggered by in-sheet interactions (scope chip taps,
+    // focus input changes, etc.) must NOT re-apply the .opening class
+    // — otherwise the sheet animates back off-screen mid-use. Set
+    // true after openCoachSheet's RAF finishes; reset on close.
+    sheetAnimatedIn: false,
+  };
+
+  // Round-review transient state. One round summary is visible at a
+  // time so a single loading flag + error keyed by roundId is enough.
+  const roundReviewState = {
+    loadingRoundId: null,
+    errorByRoundId: new Map(),
+    showPayloadFor: new Set(),     // roundIds where payload toggle is open
+    expandedFor: new Set(),        // roundIds where the review body is expanded
+  };
+
+  // Per-hole analysis transient state (one drill-down open at a time).
+  const holeAnalysisState = {
+    loading: false,
+    holeNumber: null,
+    analysis: null,        // most recent markdown result
+    generatedAt: null,
+    error: null,
   };
 
   // Build a compact stats snapshot to send to the Cloud Function.
@@ -57361,7 +58197,18 @@
         attempts: h.attempts,
       }));
 
+    // Player profile — fields from prefs that change how the model
+    // should interpret the data. Handedness is the big one: a "fade"
+    // for a righty goes LEFT for a lefty, so any miss-pattern advice
+    // has to be polarity-aware. Keep this list narrow — only stuff
+    // that materially affects practice recommendations.
+    const playerProfile = {
+      handedness: (typeof prefs !== 'undefined' && prefs && prefs.handedness === 'left')
+        ? 'left' : 'right',
+    };
+
     return {
+      playerProfile,
       sample: {
         rounds: filtered.length,
         timeFilter,
@@ -57411,6 +58258,92 @@
         total: aggSG.avgPerRound.total,
       } : null,
       worstHoles,
+      // Per-distance putt make rates + 3-putt rate by first-putt
+      // distance. Strip empty buckets so the prompt doesn't carry
+      // "0 of 0 — N/A" lines (noise for the model).
+      // NOTE: bucket `lo`/`hi` are intentionally OMITTED — the
+      // top bucket carries `hi: Infinity` which the Firebase callable
+      // JSON encoder rejects. The server renders from `label` only,
+      // so the numeric bounds are dead weight.
+      puttingDetail: putting ? {
+        byDistanceBucket: (putting.byDistanceBucket || [])
+          .filter(b => b && b.attempts > 0)
+          .map(b => ({
+            label: b.label,
+            attempts: b.attempts, made: b.made, makePct: b.makePct,
+          })),
+        threePuttRateByFirstPuttBucket: (putting.threePuttRateByFirstPuttBucket || [])
+          .filter(b => b && b.holes > 0)
+          .map(b => ({
+            label: b.label,
+            holes: b.holes, threePutts: b.threePutts, pct: b.pct,
+          })),
+      } : null,
+      // Approach proximity by distance. approachByLie is already
+      // covered above in `approach.proxFromFairway / proxFromRough`.
+      // `lo`/`hi` omitted for the same Infinity reason as above.
+      approachDetail: sit ? {
+        byDistance: (sit.approachByDistance || [])
+          .filter(b => b && b.shots > 0)
+          .map(b => ({
+            label: b.label,
+            shots: b.shots,
+            medianProximityFt: b.medianProximityFt,
+            avgProximityFt: b.avgProximityFt,
+            girPct: b.girPct,
+          })),
+      } : null,
+      // Per-club aggregates from range + on-course shots. Computed
+      // by computeAllClubStats which reads iterateTrackedShots and
+      // requires rangeSessionsHistoryLoaded — the Practice tab triggers
+      // this on entry, so it's loaded by the time Generate is tapped.
+      // Filter to clubs with reasonable sample sizes; top 8 by usage.
+      clubData: (() => {
+        if (typeof computeAllClubStats !== 'function') return null;
+        try {
+          const allClubs = computeAllClubStats() || [];
+          const usable = allClubs
+            .filter(c => c && c.totalShots >= 5)
+            .sort((a, b) => b.totalShots - a.totalShots)
+            .slice(0, 8)
+            .map(c => {
+              const d = c.disp || {};
+              const dt = d.total || 0;
+              const ct = c.contact?.total || 0;
+              return {
+                club: c.clubLabel,
+                shots: c.totalShots,
+                carryAvg: c.carryAvg || null,
+                gpsAvg: c.gpsAvg || null,
+                dispLeftPct: dt > 0 ? Math.round((d.left / dt) * 100) : null,
+                dispStraightPct: dt > 0 ? Math.round((d.straight / dt) * 100) : null,
+                dispRightPct: dt > 0 ? Math.round((d.right / dt) * 100) : null,
+                contactCleanPct: ct > 0 ? Math.round(((c.contact.clean || 0) / ct) * 100) : null,
+              };
+            });
+          return usable.length > 0 ? usable : null;
+        } catch (err) {
+          console.warn('clubData compute failed:', err);
+          return null;
+        }
+      })(),
+      // Recent-form deltas (last-10 rounds vs lifetime). Skip if the
+      // recent snapshot is too small to be meaningful. Polarity is
+      // applied on the SERVER (renderer knows which direction is
+      // "better" for each metric); we just send raw deltas here.
+      recentTrend: (stats.last10 && stats.last10.n >= 3) ? {
+        n: stats.last10.n,
+        scoreDelta: (stats.last10.avgScore != null && stats.avgScore != null)
+          ? stats.last10.avgScore - stats.avgScore : null,
+        vsParDelta: (stats.last10.avgVsPar != null && stats.avgVsPar != null)
+          ? stats.last10.avgVsPar - stats.avgVsPar : null,
+        firDelta: (stats.last10.avgFairwayPct != null && stats.avgFairwayPct != null)
+          ? stats.last10.avgFairwayPct - stats.avgFairwayPct : null,
+        girDelta: (stats.last10.avgGirPct != null && stats.avgGirPct != null)
+          ? stats.last10.avgGirPct - stats.avgGirPct : null,
+        puttsPerHoleDelta: (stats.last10.avgPuttsPerHole != null && stats.avgPuttsPerHole != null)
+          ? stats.last10.avgPuttsPerHole - stats.avgPuttsPerHole : null,
+      } : null,
     };
   }
 
@@ -57501,6 +58434,192 @@
     return out.join('\n');
   }
 
+  function setCoachScope(scope) {
+    if (!COACH_SCOPES.some(s => s.id === scope)) return;
+    coachState.scope = scope;
+    renderPracticeCoach();
+  }
+  window.setCoachScope = setCoachScope;
+
+  function setCoachCustomFocus(text) {
+    coachState.customFocus = (text || '').slice(0, 240);
+    // No re-render — would force the textarea to lose focus on every
+    // keystroke. The state is read on submit.
+  }
+  window.setCoachCustomFocus = setCoachCustomFocus;
+
+  function toggleCoachPayload() {
+    coachState.showPayload = !coachState.showPayload;
+    renderPracticeCoach();
+  }
+  window.toggleCoachPayload = toggleCoachPayload;
+
+  function toggleCoachPlanCollapsed() {
+    coachState.planCollapsed = !coachState.planCollapsed;
+    renderPracticeCoach();
+  }
+  window.toggleCoachPlanCollapsed = toggleCoachPlanCollapsed;
+
+  // Extract a compact summary from a generated plan's markdown.
+  // Pulls the Diagnosis section (the lead paragraph after `## Diagnosis`)
+  // and the count of items under `## Practice plan`. Returns
+  // { diagnosis, drillCount, quickWin } — any field may be null when
+  // not parseable, which is fine; the renderer falls back gracefully.
+  function _coachExtractSummary(md) {
+    if (!md || typeof md !== 'string') return { diagnosis: null, drillCount: 0, quickWin: null };
+    const lines = md.split(/\r?\n/);
+    let diagnosis = '';
+    let inDiagnosis = false;
+    let inPlan = false;
+    let drillCount = 0;
+    let quickWin = '';
+    let inQuick = false;
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (/^##\s+Diagnosis/i.test(line)) {
+        inDiagnosis = true; inPlan = false; inQuick = false;
+        continue;
+      }
+      if (/^##\s+Practice plan/i.test(line)) {
+        inDiagnosis = false; inPlan = true; inQuick = false;
+        continue;
+      }
+      if (/^##\s+Quick win/i.test(line)) {
+        inDiagnosis = false; inPlan = false; inQuick = true;
+        continue;
+      }
+      if (/^##\s+/.test(line)) {
+        // Some other section we don't care about — stop accumulating.
+        inDiagnosis = false; inPlan = false; inQuick = false;
+        continue;
+      }
+      if (inDiagnosis && line && !diagnosis) {
+        diagnosis = line;
+      } else if (inDiagnosis && line && diagnosis.length < 240) {
+        // Continuation of the diagnosis paragraph — concatenate up to
+        // a short cap so the compact view doesn't grow.
+        diagnosis += ' ' + line;
+      }
+      if (inPlan && /^(?:\*\*)?\d+[.)]\s+/.test(line)) {
+        drillCount += 1;
+      }
+      if (inQuick && line && !quickWin) {
+        quickWin = line;
+      }
+    }
+    return {
+      diagnosis: diagnosis.slice(0, 280) || null,
+      drillCount,
+      quickWin: quickWin.slice(0, 200) || null,
+    };
+  }
+
+  function toggleCoachHistory() {
+    coachState.showHistory = !coachState.showHistory;
+    if (coachState.showHistory && !coachState.historyLoaded) {
+      loadCoachHistory();
+    } else {
+      renderPracticeCoach();
+    }
+  }
+  window.toggleCoachHistory = toggleCoachHistory;
+
+  function loadCoachPlanIntoView(planId) {
+    const plan = coachState.history.find(p => p.id === planId);
+    if (!plan) return;
+    coachState.recommendation = plan.recommendation || '';
+    coachState.generatedAt = plan.generatedAt || null;
+    coachState.model = plan.model || null;
+    coachState.scope = plan.scope || 'full';
+    coachState.customFocus = plan.customFocus || '';
+    coachState.statsBlock = plan.statsBlock || null;
+    coachState.planId = plan.id;
+    coachState.error = null;
+    coachState.showHistory = false;
+    // Loading an old plan from history — start collapsed so the user
+    // sees the gist (Diagnosis + drill count). Expand if they want.
+    coachState.planCollapsed = true;
+    renderPracticeCoach();
+  }
+  window.loadCoachPlanIntoView = loadCoachPlanIntoView;
+
+  // ────────────────────────────────────────────────────────────────
+  // Firestore persistence — coachPlans subcollection.
+  // Routes through window.fb so the module-scoped Firestore SDK +
+  // `db` instance are accessible. Each successful generation writes
+  // a plan doc; on page load we pull the most recent so the user
+  // sees their last plan instead of an empty card.
+  // ────────────────────────────────────────────────────────────────
+
+  async function saveCoachPlanToFirestore(planData) {
+    try {
+      if (!currentUser || !window.fb?.saveCoachPlan) return null;
+      return await window.fb.saveCoachPlan(currentUser.uid, planData);
+    } catch (err) {
+      console.error('Failed to save coach plan to Firestore:', err);
+      return null;
+    }
+  }
+
+  async function loadMostRecentCoachPlan() {
+    try {
+      if (!currentUser || !window.fb?.getMostRecentCoachPlan) return;
+      const plan = await window.fb.getMostRecentCoachPlan(currentUser.uid);
+      if (!plan) return;
+      coachState.recommendation = plan.recommendation || '';
+      coachState.generatedAt = plan.generatedAt || null;
+      coachState.model = plan.model || null;
+      coachState.scope = plan.scope || 'full';
+      coachState.customFocus = plan.customFocus || '';
+      coachState.statsBlock = plan.statsBlock || null;
+      coachState.planId = plan.id;
+      // Default to collapsed on revisit so the page is short.
+      // Tapping "Expand" or generating a fresh plan opens it back up.
+      coachState.planCollapsed = true;
+      renderPracticeCoach();
+    } catch (err) {
+      console.error('Failed to load most recent coach plan:', err);
+    }
+  }
+  window.loadMostRecentCoachPlan = loadMostRecentCoachPlan;
+
+  async function loadCoachHistory() {
+    try {
+      if (!currentUser || !window.fb?.listCoachPlans) {
+        coachState.historyLoaded = true;
+        renderPracticeCoach();
+        return;
+      }
+      coachState.history = await window.fb.listCoachPlans(currentUser.uid, 10);
+      coachState.historyLoaded = true;
+      renderPracticeCoach();
+    } catch (err) {
+      console.error('Failed to load coach plan history:', err);
+      coachState.historyLoaded = true;
+      renderPracticeCoach();
+    }
+  }
+
+  async function deleteCoachPlanFromFirestore(planId) {
+    try {
+      if (!currentUser || !window.fb?.deleteCoachPlan) return false;
+      await window.fb.deleteCoachPlan(currentUser.uid, planId);
+      coachState.history = coachState.history.filter(p => p.id !== planId);
+      if (coachState.planId === planId) {
+        coachState.recommendation = null;
+        coachState.generatedAt = null;
+        coachState.statsBlock = null;
+        coachState.planId = null;
+      }
+      renderPracticeCoach();
+      return true;
+    } catch (err) {
+      console.error('Failed to delete coach plan:', err);
+      return false;
+    }
+  }
+  window.deleteCoachPlanFromFirestore = deleteCoachPlanFromFirestore;
+
   async function generateCoachRecommendation() {
     if (coachState.loading) return;
     if (!currentUser) {
@@ -57526,13 +58645,47 @@
       if (typeof window.fbCallCoach !== 'function') {
         throw new Error('Coach service is not initialized.');
       }
-      const result = await window.fbCallCoach({ stats: payload });
+      // Snapshot the scope + focus at submit time so a user fiddling
+      // with the picker while the request is in flight doesn't mutate
+      // what gets attributed to the response.
+      const scope = coachState.scope;
+      const customFocus = coachState.customFocus;
+      const result = await window.fbCallCoach({
+        stats: payload,
+        scope,
+        customFocus,
+      });
       const data = result?.data || {};
       coachState.recommendation = data.recommendation || '';
       coachState.generatedAt = data.generatedAt || new Date().toISOString();
       coachState.model = data.model || null;
-      coachState.cacheKey = _hashCoachPayload(payload);
+      coachState.statsBlock = data.statsBlock || null;
+      coachState.scope = data.scope || scope;
+      coachState.customFocus = data.customFocus || customFocus;
       coachState.error = null;
+      // Newly-generated plan paints expanded so the user immediately
+      // sees the response. Subsequent reloads from history / Firestore
+      // will collapse it again.
+      coachState.planCollapsed = false;
+      // Persist to Firestore. Don't await for UI responsiveness — the
+      // plan is already on screen; the save is fire-and-forget. If it
+      // fails the user sees the plan but loses history retention; we
+      // log to console for debugging.
+      saveCoachPlanToFirestore({
+        recommendation: coachState.recommendation,
+        generatedAt: coachState.generatedAt,
+        model: coachState.model,
+        scope: coachState.scope,
+        customFocus: coachState.customFocus,
+        statsBlock: coachState.statsBlock,
+      }).then(id => {
+        if (id) {
+          coachState.planId = id;
+          // Invalidate cached history so the new plan shows up on
+          // next history open.
+          coachState.historyLoaded = false;
+        }
+      });
     } catch (err) {
       // Firebase HttpsError surfaces `code` + `message`. Map known
       // failure cases to friendlier copy.
@@ -57553,47 +58706,793 @@
   }
   window.generateCoachRecommendation = generateCoachRecommendation;
 
+  // ═════════════════════════════════════════════════════════════════
+  // ROUND REVIEW — per-round AI feedback rendered inside the
+  // round summary panel. Stored on the round doc itself (so it
+  // survives reloads) at round.aiReview = { recommendation, ... }.
+  // ═════════════════════════════════════════════════════════════════
+
+  // Build a single-round payload for the getRoundReview callable.
+  // Whitelists fields — never sends raw GPS coords or untrusted data.
+  function buildRoundReviewPayload(round, course) {
+    if (!round) return null;
+    const sg = (course && typeof computeRoundSG === 'function')
+      ? computeRoundSG(round, course)
+      : null;
+
+    // Per-hole scoring summary — strip down score entries to what
+    // the model needs (par, strokes, fir/gir, putts, penalties).
+    const scorecard = [];
+    if (round.scores && typeof round.scores === 'object') {
+      const holes = (course?.holes || []).slice().sort((a, b) => (a.number || 0) - (b.number || 0));
+      for (const courseHole of holes) {
+        const hn = courseHole.number;
+        const entry = round.scores[hn] || round.scores[String(hn)];
+        if (!entry) continue;
+        const row = {
+          number: hn,
+          par: courseHole.par,
+          strokes: typeof entry.strokes === 'number' ? entry.strokes : null,
+          putts: typeof entry.putts === 'number' ? entry.putts : null,
+        };
+        if (typeof entry.fir === 'boolean') row.fir = entry.fir;
+        if (typeof entry.gir === 'boolean') row.gir = entry.gir;
+        if (typeof entry.penalties === 'number' && entry.penalties > 0) row.penalties = entry.penalties;
+        scorecard.push(row);
+      }
+    }
+
+    // Penalty shots — walk shots for endedInTrouble; useful detail
+    // for the model to point at specific moments ("you went OB on 14").
+    const penaltyShots = [];
+    if (round.shots && typeof round.shots === 'object') {
+      for (const hn of Object.keys(round.shots)) {
+        const arr = round.shots[hn] || [];
+        for (const s of arr) {
+          if (s && s.endedInTrouble === true) {
+            penaltyShots.push({
+              holeNumber: Number(hn),
+              club: s.club || null,
+              kind: s.penaltyKind || null,
+            });
+          }
+        }
+      }
+    }
+
+    const playerProfile = {
+      handedness: (typeof prefs !== 'undefined' && prefs && prefs.handedness === 'left')
+        ? 'left' : 'right',
+    };
+
+    // SG payload — only the fields the function needs. Don't send the
+    // full perShot raw object verbatim; whitelist a few fields per shot
+    // so we control payload size and don't leak GPS coords.
+    let sgPayload = null;
+    if (sg && sg.totals) {
+      sgPayload = {
+        totals: { ...sg.totals },
+        coverage: sg.coverage || null,
+        perShot: Array.isArray(sg.perShot)
+          ? sg.perShot.map(c => ({
+              holeNumber: c.holeNumber,
+              category: c.category,
+              sg: c.sg,
+              startLie: c.startLie,
+              distFromPin: c.distFromPin,
+            }))
+          : [],
+      };
+    }
+
+    return {
+      playerProfile,
+      round: {
+        roundId: round.id || round.docId || null,
+        courseName: round.courseName || course?.name || null,
+        dateKey: round.dateKey || null,
+        format: round.format || 'standard',
+        totals: round.totals || null,
+        scorecard,
+        penaltyShots,
+      },
+      sg: sgPayload,
+    };
+  }
+
+  // Persist a generated review onto the round doc. Routes through
+  // window.fb so the module-scoped Firestore SDK + `db` instance are
+  // accessible — same pattern used elsewhere for non-module callers.
+  async function saveRoundAIReview(roundId, reviewData) {
+    if (!currentUser || !roundId) return false;
+    if (!window.fb?.saveRoundAIReview) return false;
+    try {
+      await window.fb.saveRoundAIReview(currentUser.uid, roundId, reviewData);
+      // Mirror onto the cached round so the next render picks it up
+      // without a Firestore round-trip.
+      const cached = (recentRounds || []).find(r => r.id === roundId);
+      if (cached) cached.aiReview = reviewData;
+      return true;
+    } catch (err) {
+      console.error('Failed to save round AI review:', err);
+      return false;
+    }
+  }
+
+  async function generateRoundReview(roundId) {
+    if (!roundId) return;
+    if (roundReviewState.loadingRoundId === roundId) return;
+    if (!currentUser) {
+      roundReviewState.errorByRoundId.set(roundId, 'Sign in to use the coach.');
+      if (typeof renderRoundSummary === 'function') renderRoundSummary();
+      return;
+    }
+    const round = (recentRounds || []).find(r => r.id === roundId);
+    if (!round) {
+      roundReviewState.errorByRoundId.set(roundId, 'Round not loaded.');
+      if (typeof renderRoundSummary === 'function') renderRoundSummary();
+      return;
+    }
+    const course = (typeof getCourse === 'function') ? getCourse(round.courseId) : null;
+    if (!course) {
+      roundReviewState.errorByRoundId.set(roundId, 'Course data missing for this round.');
+      if (typeof renderRoundSummary === 'function') renderRoundSummary();
+      return;
+    }
+    const payload = buildRoundReviewPayload(round, course);
+    if (!payload || (payload.round?.totals?.holesPlayed ?? 0) < 3) {
+      roundReviewState.errorByRoundId.set(roundId, 'Not enough hole data to review this round.');
+      if (typeof renderRoundSummary === 'function') renderRoundSummary();
+      return;
+    }
+
+    roundReviewState.loadingRoundId = roundId;
+    roundReviewState.errorByRoundId.delete(roundId);
+    if (typeof renderRoundSummary === 'function') renderRoundSummary();
+
+    try {
+      if (typeof window.fbCallRoundReview !== 'function') {
+        throw new Error('Coach service is not initialized.');
+      }
+      const result = await window.fbCallRoundReview(payload);
+      const data = result?.data || {};
+      const reviewData = {
+        recommendation: data.recommendation || '',
+        generatedAt: data.generatedAt || new Date().toISOString(),
+        model: data.model || null,
+        scope: 'round-review',
+        statsBlock: data.statsBlock || null,
+      };
+      // Save to Firestore first, then re-render so the UI reads from
+      // the cached round which mirror-writes inside saveRoundAIReview.
+      await saveRoundAIReview(roundId, reviewData);
+      // Fresh generation paints expanded so the user immediately sees
+      // the response. Subsequent re-renders pull from this set; the
+      // user can collapse manually. Reopening the round later starts
+      // collapsed again.
+      roundReviewState.expandedFor.add(roundId);
+    } catch (err) {
+      const code = err?.code || '';
+      let msg = err?.message || 'Something went wrong.';
+      if (code === 'functions/resource-exhausted' || /429/.test(msg)) {
+        msg = 'The coach is rate-limited right now. Try again in a minute.';
+      } else if (code === 'functions/unauthenticated') {
+        msg = 'Please sign in to use the coach.';
+      }
+      roundReviewState.errorByRoundId.set(roundId, msg);
+    } finally {
+      roundReviewState.loadingRoundId = null;
+      if (typeof renderRoundSummary === 'function') renderRoundSummary();
+    }
+  }
+  window.generateRoundReview = generateRoundReview;
+
+  function toggleRoundReviewPayload(roundId) {
+    if (!roundId) return;
+    if (roundReviewState.showPayloadFor.has(roundId)) {
+      roundReviewState.showPayloadFor.delete(roundId);
+    } else {
+      roundReviewState.showPayloadFor.add(roundId);
+    }
+    if (typeof renderRoundSummary === 'function') renderRoundSummary();
+  }
+  window.toggleRoundReviewPayload = toggleRoundReviewPayload;
+
+  function toggleRoundReviewExpanded(roundId) {
+    if (!roundId) return;
+    if (roundReviewState.expandedFor.has(roundId)) {
+      roundReviewState.expandedFor.delete(roundId);
+    } else {
+      roundReviewState.expandedFor.add(roundId);
+    }
+    if (typeof renderRoundSummary === 'function') renderRoundSummary();
+  }
+  window.toggleRoundReviewExpanded = toggleRoundReviewExpanded;
+
+  // Renders the round-review section that lives in the round summary,
+  // after the SG block and before the scramble attribution.
+  function renderRoundReviewSection(round, sgResult) {
+    if (!round) return '';
+    const roundId = round.id;
+    const review = round.aiReview || null;
+    const hasReview = !!(review && review.recommendation);
+    const isLoading = roundReviewState.loadingRoundId === roundId;
+    const error = roundReviewState.errorByRoundId.get(roundId);
+    const showPayload = roundReviewState.showPayloadFor.has(roundId);
+
+    // Eligibility — same gate as the function (need ≥3 holes). Show
+    // a different empty state for ineligible rounds so users don't
+    // tap a useless button.
+    const holesPlayed = round.totals?.holesPlayed ?? 0;
+    const ineligible = holesPlayed < 3;
+    const isQuickScore = !!round.quickScore;
+    const couldUseSG = !!(sgResult && sgResult.coverage?.holesAnalyzed >= 3);
+
+    let bodyHtml;
+    if (hasReview) {
+      const ts = review.generatedAt ? new Date(review.generatedAt).toLocaleString() : '';
+      const expanded = roundReviewState.expandedFor.has(roundId);
+      // Compact summary uses the same diagnosis extractor as the
+      // coach plan summary — works on the review's markdown since
+      // the round-review prompt uses similar section headers
+      // (## How you played / ## What worked / ## What cost you /
+      // ## Drill to fix it). When the extractor can't find a lead
+      // paragraph, fall back to the first ~200 chars of the body.
+      let collapsedHtml = '';
+      if (!expanded) {
+        const summary = (typeof _coachExtractSummary === 'function')
+          ? _coachExtractSummary(review.recommendation)
+          : { diagnosis: null };
+        const lead = summary.diagnosis
+          || (review.recommendation || '')
+               .replace(/^#+\s.*$/gm, '')
+               .replace(/\s+/g, ' ')
+               .trim()
+               .slice(0, 200);
+        collapsedHtml = `
+          <div class="round-review-summary">
+            <p class="round-review-summary-text">${escapeHtml(lead)}${lead.length >= 200 ? '…' : ''}</p>
+            <button class="coach-plan-expand"
+                    type="button"
+                    onclick="toggleRoundReviewExpanded('${escapeHtml(roundId)}')">
+              Expand full review ▾
+            </button>
+          </div>
+        `;
+      }
+      const expandedHtml = expanded ? `
+        <article class="coach-plan-body round-review-body">
+          ${_coachMarkdownToHtml(review.recommendation)}
+        </article>
+        <button class="coach-plan-collapse"
+                type="button"
+                onclick="toggleRoundReviewExpanded('${escapeHtml(roundId)}')">
+          Collapse review ▴
+        </button>
+      ` : '';
+      bodyHtml = `
+        <div class="round-review-status">${escapeHtml(review.model || 'Gemini')} · ${escapeHtml(ts)}</div>
+        ${collapsedHtml}
+        ${expandedHtml}
+        ${review.statsBlock ? `
+          <button class="coach-payload-toggle"
+                  type="button"
+                  onclick="toggleRoundReviewPayload('${escapeHtml(roundId)}')"
+                  aria-expanded="${showPayload}">
+            ${showPayload ? '▾' : '▸'} ${showPayload ? 'Hide' : 'Show'} data sent to coach
+          </button>
+          ${showPayload ? `<pre class="coach-payload">${escapeHtml(review.statsBlock)}</pre>` : ''}
+        ` : ''}
+        <div class="round-review-actions">
+          <button class="btn btn-ghost btn-sm"
+                  type="button"
+                  ${isLoading ? 'disabled' : ''}
+                  onclick="generateRoundReview('${escapeHtml(roundId)}')">
+            ${isLoading ? 'Re-analyzing…' : 'Re-review'}
+          </button>
+        </div>
+      `;
+    } else if (isLoading) {
+      bodyHtml = `
+        <div class="coach-loading round-review-loading">
+          <div class="coach-spinner"></div>
+          <div>Analyzing your round…</div>
+        </div>
+      `;
+    } else if (ineligible) {
+      bodyHtml = `
+        <div class="round-review-empty">
+          Need at least 3 holes of data to review this round.
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="round-review-empty">
+          ${isQuickScore
+            ? 'Quick Score round — review reads totals + per-hole scoring only (no shot data).'
+            : (couldUseSG
+                ? 'Reads your shot data, strokes gained, and miss patterns to point out what went well and what didn’t.'
+                : 'Reads your scoring + per-hole pattern to point out what went well and what didn’t.')}
+        </div>
+        ${error ? `<div class="coach-error">${escapeHtml(error)}</div>` : ''}
+        <div class="round-review-actions">
+          <button class="btn btn-primary"
+                  type="button"
+                  onclick="generateRoundReview('${escapeHtml(roundId)}')">
+            Get AI review of this round
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="round-summary-section-label">Coach Review</div>
+      <section class="round-review-block">
+        ${bodyHtml}
+      </section>
+    `;
+  }
+  window.renderRoundReviewSection = renderRoundReviewSection;
+
+  // Build a "weakness snapshot" of 3-4 worst metrics from the payload.
+  // These tiles render above the plan and double as quick prompts —
+  // tapping one prepends a hint to the custom focus input so the user
+  // can target a specific weakness without typing.
+  // Each candidate metric carries a `badness` score (higher = worse);
+  // we sort and take the top 4 above a positive threshold.
+  function buildCoachStatsSnapshot(payload) {
+    if (!payload) return [];
+    const items = [];
+    const sc = payload.scoring || {};
+    const drv = payload.driving || {};
+    const app = payload.approach || {};
+    const sh = payload.shortGame || {};
+    const p = payload.putting || {};
+    const sg = payload.sg || {};
+
+    // Helper to push a candidate. Skip if badness is zero/negative
+    // (player is at or above the benchmark for that metric).
+    const push = (label, value, badness, hint, tone) => {
+      if (typeof badness !== 'number' || !Number.isFinite(badness) || badness <= 0) return;
+      items.push({ label, value, badness, hint, tone: tone || 'warn' });
+    };
+
+    // Make from 6 ft (Tour ~70%) — strongest putting signal at small range.
+    if (typeof p.makeFrom6 === 'number') {
+      push('Make from 6 ft', `${Math.round(p.makeFrom6)}%`, 70 - p.makeFrom6, 'short putts (5-7 ft)', 'warn');
+    }
+    // 3-putt rate — concerning over 5%.
+    if (typeof p.threePuttRate === 'number') {
+      push('3-putt rate', `${p.threePuttRate.toFixed(1)}%`, p.threePuttRate - 3, 'lag putting + 3-putt avoidance', 'warn');
+    }
+    // Fairways — Tour ~60%, concerning under 50%.
+    if (typeof drv.firPct === 'number') {
+      push('Fairways hit', `${Math.round(drv.firPct)}%`, 55 - drv.firPct, 'tee accuracy', 'warn');
+    }
+    // GIR — Tour ~67%, concerning under 40%.
+    if (typeof app.girPct === 'number') {
+      push('Greens in reg', `${Math.round(app.girPct)}%`, 50 - app.girPct, 'approach accuracy', 'warn');
+    }
+    // Sand save — Tour ~50%, concerning under 30%.
+    if (typeof sh.sandSavePct === 'number' && (sh.sandSaveAttempts ?? 0) >= 3) {
+      push('Sand saves', `${Math.round(sh.sandSavePct)}%`, 50 - sh.sandSavePct, 'bunker play', 'warn');
+    }
+    // Scrambling — Tour ~60%.
+    if (typeof sh.scramblingPct === 'number') {
+      push('Scrambling', `${Math.round(sh.scramblingPct)}%`, 50 - sh.scramblingPct, 'short game saves', 'warn');
+    }
+    // Approach proximity from rough — concerning over 35 ft median.
+    if (typeof app.proxFromRough === 'number') {
+      push('Approach from rough', `${Math.round(app.proxFromRough)} ft`, app.proxFromRough - 30, 'wedges from rough', 'warn');
+    }
+    // SG categories. Each negative SG point per round is significant.
+    // Multiply by 10 so SG concerns compete with percentage-point ones.
+    const fmtSG = (v) => (typeof formatSGValue === 'function') ? formatSGValue(v) : v.toFixed(1);
+    if (typeof sg.tee === 'number') {
+      push('SG: Tee', fmtSG(sg.tee), -sg.tee * 10, 'driving', 'warn');
+    }
+    if (typeof sg.approach === 'number') {
+      push('SG: Approach', fmtSG(sg.approach), -sg.approach * 10, 'approach shots', 'warn');
+    }
+    if (typeof sg.around === 'number') {
+      push('SG: Around green', fmtSG(sg.around), -sg.around * 10, 'short game', 'warn');
+    }
+    if (typeof sg.putt === 'number') {
+      push('SG: Putting', fmtSG(sg.putt), -sg.putt * 10, 'putting', 'warn');
+    }
+    // Bogey+ rate over 40% is a flag for scoring discipline.
+    if (typeof sc.bogeyRate === 'number') {
+      push('Bogey+ rate', `${Math.round(sc.bogeyRate)}%`, sc.bogeyRate - 35, 'scoring discipline', 'warn');
+    }
+
+    items.sort((a, b) => b.badness - a.badness);
+    // De-duplicate by hint so we don't show "SG: Putting" and "3-putt"
+    // both targeting the same area. Prefer the highest-badness instance.
+    const seenHints = new Set();
+    const deduped = [];
+    for (const item of items) {
+      if (seenHints.has(item.hint)) continue;
+      seenHints.add(item.hint);
+      deduped.push(item);
+      if (deduped.length >= 4) break;
+    }
+    return deduped;
+  }
+
+  // Apply a snapshot tile's focus hint to the custom focus input.
+  // Doesn't clobber an existing custom focus — appends instead.
+  function applyCoachFocusHint(hint) {
+    if (!hint) return;
+    const existing = (coachState.customFocus || '').trim();
+    const prefix = 'Help me with my ';
+    let next;
+    if (!existing) {
+      next = `${prefix}${hint}.`;
+    } else if (existing.toLowerCase().includes(hint.toLowerCase())) {
+      // Already mentioned — no-op so a double-tap doesn't bloat the
+      // input with duplicate phrases.
+      return;
+    } else {
+      // Append rather than replace so chained taps build up a multi-
+      // focus request.
+      next = `${existing.replace(/\.\s*$/, '')}. Also ${hint}.`;
+    }
+    coachState.customFocus = next.slice(0, 240);
+    renderPracticeCoach();
+    // Move caret to end of input on the next frame so the typing
+    // experience is sensible if the user wants to keep editing.
+    requestAnimationFrame(() => {
+      const input = document.querySelector('.coach-focus-input');
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    });
+  }
+  window.applyCoachFocusHint = applyCoachFocusHint;
+
+  // Bar-tap handlers — open / close the bottom-sheet overlay that
+  // holds the full Coach UI. The Practice page only shows a thin
+  // insight bar; everything else (scope picker, plan body, history,
+  // Generate) lives inside the sheet.
+  function openCoachSheet() {
+    if (coachState.sheetOpen) return;
+    coachState.sheetOpen = true;
+    coachState.sheetAnimatedIn = false;
+    if (typeof acquireScrollLock === 'function') acquireScrollLock();
+    renderPracticeCoach();
+    // Two-frame defer so the .opening class lands before its removal
+    // triggers the slide-up transition.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const sheet = document.querySelector('.coach-sheet');
+        const backdrop = document.querySelector('.coach-sheet-backdrop');
+        if (sheet) sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+        // Mark the open animation complete so subsequent re-renders
+        // (scope chip taps, focus changes, etc.) skip the .opening
+        // class and don't accidentally animate the sheet back off.
+        coachState.sheetAnimatedIn = true;
+      });
+    });
+  }
+  window.openCoachSheet = openCoachSheet;
+
+  function closeCoachSheet() {
+    if (!coachState.sheetOpen) return;
+    const sheet = document.querySelector('.coach-sheet');
+    const backdrop = document.querySelector('.coach-sheet-backdrop');
+    const finish = () => {
+      coachState.sheetOpen = false;
+      coachState.sheetAnimatedIn = false;
+      if (typeof releaseScrollLock === 'function') releaseScrollLock();
+      const mount = document.getElementById('coach-sheet-mount');
+      if (mount) mount.innerHTML = '';
+    };
+    if (sheet && backdrop) {
+      sheet.classList.add('closing');
+      backdrop.classList.add('closing');
+      // Match the CSS transition duration.
+      setTimeout(finish, 220);
+    } else {
+      finish();
+    }
+  }
+  window.closeCoachSheet = closeCoachSheet;
+
+  // Ensure the sheet mount lives as a direct child of <body>.
+  // The .panel elements use transform-based slide animations, which
+  // create a containing block — position:fixed children become
+  // positioned relative to the panel instead of the viewport, which
+  // means the sheet renders OFF-SCREEN below. Moving the mount out
+  // of the panel and onto <body> fixes that.
+  function _ensureCoachSheetMount() {
+    let mount = document.getElementById('coach-sheet-mount');
+    if (mount && mount.parentElement !== document.body) {
+      // Existing mount lives inside a panel — detach + reparent to
+      // body. Cheap idempotent operation; safe to run on every render.
+      document.body.appendChild(mount);
+    }
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'coach-sheet-mount';
+      document.body.appendChild(mount);
+    }
+    return mount;
+  }
+
   function renderPracticeCoach() {
-    const mount = document.getElementById('practice-coach-mount');
-    if (!mount) return;
+    const barMount = document.getElementById('practice-coach-bar-mount');
+    const sheetMount = _ensureCoachSheetMount();
+    if (!barMount && !sheetMount) return;
     const hasRec = !!coachState.recommendation;
-    const headLine = hasRec
-      ? `Based on your recent rounds · ${coachState.model ? escapeHtml(coachState.model) : 'Gemini'}`
-      : 'Get drill recommendations based on your recent rounds.';
+    const scopeLabel = (COACH_SCOPES.find(s => s.id === coachState.scope) || COACH_SCOPES[0]).label;
+
+    // Status sub-line — mono-font single line under the title.
+    // No plan: a one-liner explaining what this does. Has a plan:
+    // scope · model · timestamp.
+    const statusLine = (() => {
+      if (coachState.loading) return 'Working on it…';
+      if (!hasRec) {
+        return `Personalized drills from your last rounds · pick a scope below`;
+      }
+      const parts = [escapeHtml(scopeLabel)];
+      if (coachState.model) parts.push(escapeHtml(coachState.model));
+      if (coachState.generatedAt) {
+        parts.push(escapeHtml(new Date(coachState.generatedAt).toLocaleString()));
+      }
+      return parts.join(' · ');
+    })();
 
     const buttonLabel = coachState.loading
       ? 'Thinking…'
-      : (hasRec ? 'Regenerate' : 'Generate practice plan');
+      : (hasRec ? 'Regenerate' : 'Generate plan');
+
+    // Stats snapshot strip — the "why these recommendations" tiles.
+    // Pulled from the same payload that gets sent to Gemini, so what
+    // the user sees IS what's driving the recommendation. Tapping a
+    // tile loads its hint into the focus input.
+    let snapshotHtml = '';
+    const payloadForSnapshot = (typeof buildCoachPayload === 'function')
+      ? buildCoachPayload()
+      : null;
+    const snapshot = (typeof buildCoachStatsSnapshot === 'function')
+      ? buildCoachStatsSnapshot(payloadForSnapshot)
+      : [];
+    if (snapshot.length > 0) {
+      snapshotHtml = `
+        <div class="coach-stats-snapshot" aria-label="Weakness snapshot">
+          <div class="coach-stats-snapshot-label">Why these recommendations — your weakest signals right now:</div>
+          <div class="coach-stats-snapshot-tiles">
+            ${snapshot.map(t => `
+              <button class="coach-stat-tile is-${escapeHtml(t.tone || 'warn')}"
+                      type="button"
+                      title="Tap to add to focus"
+                      onclick="applyCoachFocusHint('${escapeHtml(t.hint)}')">
+                <div class="coach-stat-tile-label">${escapeHtml(t.label)}</div>
+                <div class="coach-stat-tile-value">${escapeHtml(t.value)}</div>
+                <div class="coach-stat-tile-hint">+ Focus</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Scope chip picker — segmented selector that drives the prompt
+    // narrowing on the server. Always visible (above any plan) so
+    // users can switch and regenerate without scrolling.
+    const scopeChipsHtml = `
+      <div class="coach-scope-row" role="tablist" aria-label="Plan scope">
+        ${COACH_SCOPES.map(s => `
+          <button class="coach-scope-chip${coachState.scope === s.id ? ' is-active' : ''}"
+                  type="button"
+                  role="tab"
+                  aria-selected="${coachState.scope === s.id}"
+                  onclick="setCoachScope('${escapeHtml(s.id)}')">
+            ${escapeHtml(s.label)}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    // Optional free-text focus input. Lives below the chips so
+    // structure (chip) comes before flavor (free text). Capped at
+    // 240 chars to match the server-side cap.
+    const focusInputHtml = `
+      <div class="coach-focus-row">
+        <input class="coach-focus-input"
+               type="text"
+               placeholder="Optional: anything specific to focus on? (e.g., long iron shots, tournament prep)"
+               maxlength="240"
+               value="${escapeHtml(coachState.customFocus || '')}"
+               oninput="setCoachCustomFocus(this.value)"
+               aria-label="Optional custom focus for the plan" />
+      </div>
+    `;
 
     const errorHtml = coachState.error ? `
       <div class="coach-error">${escapeHtml(coachState.error)}</div>
     ` : '';
 
-    const bodyHtml = hasRec ? `
-      <div class="coach-body">
-        ${_coachMarkdownToHtml(coachState.recommendation)}
-      </div>
-      <div class="coach-meta">
-        ${coachState.generatedAt ? `Generated ${escapeHtml(new Date(coachState.generatedAt).toLocaleString())}` : ''}
-      </div>
-    ` : `
-      <div class="coach-empty">
-        ${coachState.loading
-          ? `<div class="coach-loading"><div class="coach-spinner"></div><div>Analyzing your stats…</div></div>`
-          : `<div class="coach-empty-text">Tap “Generate practice plan” to ask the AI coach for personalized drills. Uses your current filter window from My Stats.</div>`}
-      </div>
-    `;
+    // "What we sent to Gemini" — collapsible. Shows the rendered
+    // stats block the function returned in the response.
+    const payloadHtml = (hasRec && coachState.statsBlock) ? `
+      <button class="coach-payload-toggle"
+              type="button"
+              onclick="toggleCoachPayload()"
+              aria-expanded="${coachState.showPayload}">
+        ${coachState.showPayload ? '▾' : '▸'} ${coachState.showPayload ? 'Hide' : 'Show'} data sent to coach
+      </button>
+      ${coachState.showPayload ? `
+        <pre class="coach-payload">${escapeHtml(coachState.statsBlock)}</pre>
+      ` : ''}
+    ` : '';
 
-    mount.innerHTML = `
-      <div class="coach-card">
-        <div class="coach-card-head">
-          <div class="coach-card-title">Coach</div>
-          <div class="coach-card-sub">${headLine}</div>
+    // History — collapsible list of recent plans. Each row shows
+    // scope + when + a load button to bring that plan back into view.
+    let historyHtml = '';
+    if (currentUser) {
+      const historyCount = coachState.history.length;
+      historyHtml = `
+        <button class="coach-payload-toggle"
+                type="button"
+                onclick="toggleCoachHistory()"
+                aria-expanded="${coachState.showHistory}">
+          ${coachState.showHistory ? '▾' : '▸'} ${coachState.showHistory ? 'Hide history' : 'Show history'}${coachState.historyLoaded && historyCount > 0 ? ` (${historyCount})` : ''}
+        </button>
+      `;
+      if (coachState.showHistory) {
+        if (!coachState.historyLoaded) {
+          historyHtml += `<div class="coach-history-empty">Loading…</div>`;
+        } else if (coachState.history.length === 0) {
+          historyHtml += `<div class="coach-history-empty">No saved plans yet. Generate one and it'll appear here.</div>`;
+        } else {
+          historyHtml += `
+            <div class="coach-history-list">
+              ${coachState.history.map(p => {
+                const labelEntry = COACH_SCOPES.find(s => s.id === p.scope) || COACH_SCOPES[0];
+                const ts = p.generatedAt ? new Date(p.generatedAt) : new Date(p.createdAt || Date.now());
+                const isActive = p.id === coachState.planId;
+                return `
+                  <div class="coach-history-row${isActive ? ' is-active' : ''}">
+                    <div class="coach-history-row-main">
+                      <div class="coach-history-row-title">${escapeHtml(labelEntry.label)}${p.customFocus ? ` · ${escapeHtml(p.customFocus.slice(0, 50))}${p.customFocus.length > 50 ? '…' : ''}` : ''}</div>
+                      <div class="coach-history-row-sub">${escapeHtml(ts.toLocaleString())}</div>
+                    </div>
+                    <button class="coach-history-action" type="button"
+                            ${isActive ? 'disabled' : ''}
+                            onclick="loadCoachPlanIntoView('${escapeHtml(p.id)}')">
+                      ${isActive ? 'Showing' : 'Load'}
+                    </button>
+                    <button class="coach-history-action coach-history-action-danger"
+                            type="button"
+                            title="Delete this plan"
+                            aria-label="Delete this plan"
+                            onclick="if (confirm('Delete this plan?')) deleteCoachPlanFromFirestore('${escapeHtml(p.id)}')">×</button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Plan body — rendered full-width inside the sheet. No collapse
+    // logic: the sheet itself acts as the "expanded" view, and the
+    // Practice page only shows the thin bar.
+    let planBodyHtml;
+    if (hasRec) {
+      planBodyHtml = `
+        <article class="coach-plan-body">
+          ${_coachMarkdownToHtml(coachState.recommendation)}
+        </article>
+        ${coachState.customFocus ? `
+          <div class="coach-plan-focus-line">Focus: "${escapeHtml(coachState.customFocus)}"</div>
+        ` : ''}
+      `;
+    } else {
+      planBodyHtml = `
+        <div class="coach-empty">
+          ${coachState.loading
+            ? `<div class="coach-loading"><div class="coach-spinner"></div><div>Analyzing your stats…</div></div>`
+            : `<div class="coach-empty-text">Tap “Generate plan” to ask the AI coach for personalized drills. Uses your most recent rounds.</div>`}
         </div>
-        ${errorHtml}
-        ${bodyHtml}
-        <div class="coach-card-actions">
-          <button class="btn btn-primary"
+      `;
+    }
+
+    // ── BAR — thin one-line teaser pinned at the top of the Practice
+    // page. Shows the most relevant state: no plan / loading / error /
+    // diagnosis summary. Tap anywhere on the bar to open the sheet.
+    let barTextHtml;
+    if (coachState.loading) {
+      barTextHtml = `
+        <span class="coach-bar-icon" aria-hidden="true">✨</span>
+        <span class="coach-bar-text">
+          <span class="coach-bar-label">Coach</span>
+          <span class="coach-bar-detail">Generating plan…</span>
+        </span>
+      `;
+    } else if (coachState.error && !hasRec) {
+      barTextHtml = `
+        <span class="coach-bar-icon" aria-hidden="true">✨</span>
+        <span class="coach-bar-text">
+          <span class="coach-bar-label">Coach</span>
+          <span class="coach-bar-detail is-warn">${escapeHtml(coachState.error)} — tap to retry</span>
+        </span>
+      `;
+    } else if (hasRec) {
+      const summary = (typeof _coachExtractSummary === 'function')
+        ? _coachExtractSummary(coachState.recommendation)
+        : { diagnosis: null, drillCount: 0 };
+      const teaser = summary.diagnosis
+        ? summary.diagnosis.slice(0, 110) + (summary.diagnosis.length > 110 ? '…' : '')
+        : `${scopeLabel} plan ready`;
+      barTextHtml = `
+        <span class="coach-bar-icon" aria-hidden="true">✨</span>
+        <span class="coach-bar-text">
+          <span class="coach-bar-label">Coach</span>
+          <span class="coach-bar-detail">${escapeHtml(teaser)}</span>
+        </span>
+      `;
+    } else {
+      barTextHtml = `
+        <span class="coach-bar-icon" aria-hidden="true">✨</span>
+        <span class="coach-bar-text">
+          <span class="coach-bar-label">Coach</span>
+          <span class="coach-bar-detail">Personalized drills from your recent rounds</span>
+        </span>
+      `;
+    }
+
+    const barHtml = `
+      <button class="coach-bar" type="button" onclick="openCoachSheet()">
+        ${barTextHtml}
+        <span class="coach-bar-chev" aria-hidden="true">›</span>
+      </button>
+    `;
+    if (barMount) barMount.innerHTML = barHtml;
+
+    // ── SHEET — full Coach UI. Only rendered when sheetOpen, else
+    // sheet mount is cleared so it doesn't intercept clicks.
+    if (!sheetMount) return;
+    if (!coachState.sheetOpen) {
+      sheetMount.innerHTML = '';
+      return;
+    }
+    // Only include `.opening` on the very first render of a fresh
+    // open (sheetAnimatedIn = false). Subsequent re-renders triggered
+    // by in-sheet interactions skip it so the sheet doesn't animate
+    // back off-screen mid-use.
+    const animCls = coachState.sheetAnimatedIn ? '' : ' opening';
+    sheetMount.innerHTML = `
+      <div class="coach-sheet-backdrop${animCls}" onclick="closeCoachSheet()"></div>
+      <div class="coach-sheet${animCls}" role="dialog" aria-label="AI Coach">
+        <div class="coach-sheet-header">
+          <div class="coach-sheet-header-meta">
+            <div class="coach-sheet-title">Your Coach</div>
+            <div class="coach-sheet-status">${statusLine}</div>
+          </div>
+          <button class="coach-sheet-close" type="button"
+                  onclick="closeCoachSheet()" aria-label="Close coach">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="coach-sheet-body">
+          ${snapshotHtml}
+          ${scopeChipsHtml}
+          ${focusInputHtml}
+          ${errorHtml}
+          ${planBodyHtml}
+          ${payloadHtml ? `<div class="coach-hero-toggles">${payloadHtml}</div>` : ''}
+          ${historyHtml ? `<div class="coach-hero-toggles">${historyHtml}</div>` : ''}
+        </div>
+        <div class="coach-sheet-footer">
+          <button class="btn btn-primary btn-lg"
                   type="button"
                   onclick="generateCoachRecommendation()"
                   ${coachState.loading ? 'disabled' : ''}>
@@ -66130,6 +68029,15 @@
     }
     holeSGDetailState.open = true;
     holeSGDetailState.holeNumber = holeNumber;
+    // Reset hole-analysis transient state on every fresh open so a
+    // stale analysis from a previous hole doesn't flash through.
+    if (typeof holeAnalysisState !== 'undefined') {
+      holeAnalysisState.loading = false;
+      holeAnalysisState.holeNumber = holeNumber;
+      holeAnalysisState.analysis = null;
+      holeAnalysisState.generatedAt = null;
+      holeAnalysisState.error = null;
+    }
     acquireScrollLock();
     renderHoleSGDetail();
     // Trigger the slide-up animation: render with .opening (offscreen),
@@ -66299,6 +68207,7 @@
         <div class="hsd-body">
           <div class="hsd-total-phrase">${escapeHtml(totalPhrase)}</div>
           ${barsHtml ? `<div class="sg-bars hsd-bars">${barsHtml}</div>` : ''}
+          ${renderHoleAnalysisBlock(holeNumber)}
           <div class="hsd-shots-label">Shot by shot</div>
           <div class="hsd-shots-list">${shotRows}</div>
         </div>
@@ -66306,6 +68215,203 @@
     `;
   }
   window.renderHoleSGDetail = renderHoleSGDetail;
+
+  // ─────────────────────────────────────────────────────────────
+  // Per-hole AI analysis — "Why this hole?" button + result render
+  // inside the SG drill-down sheet. Uses the cached holeSGDetailState
+  // so we don't recompute SG. Not persisted — cheap to regenerate.
+  // ─────────────────────────────────────────────────────────────
+
+  // Renders the wrapper for the per-hole analysis block. The actual
+  // contents go into a stable inner mount (`hole-analysis-block-mount`)
+  // so generateHoleAnalysis can repaint just the contents without
+  // touching the sheet around it — re-rendering the whole sheet
+  // re-applies the `.opening` slide-down class and breaks the drill-
+  // down's open animation.
+  function renderHoleAnalysisBlock(holeNumber) {
+    if (!holeSGDetailState.open || holeSGDetailState.holeNumber !== holeNumber) {
+      return '';
+    }
+    return `
+      <div class="hole-analysis-block" id="hole-analysis-block-mount" data-hole="${holeNumber}">
+        ${_renderHoleAnalysisInner(holeNumber)}
+      </div>
+    `;
+  }
+
+  // Inner contents — split from the wrapper so we can paint just this
+  // when generateHoleAnalysis updates state, without touching the
+  // surrounding hsd-sheet (which would re-animate it off-screen).
+  function _renderHoleAnalysisInner(holeNumber) {
+    const has = !!(holeAnalysisState.analysis
+                   && holeAnalysisState.holeNumber === holeNumber);
+    const loading = holeAnalysisState.loading
+                  && holeAnalysisState.holeNumber === holeNumber;
+    const error = (holeAnalysisState.holeNumber === holeNumber)
+      ? holeAnalysisState.error : null;
+
+    if (has) {
+      const ts = holeAnalysisState.generatedAt
+        ? new Date(holeAnalysisState.generatedAt).toLocaleTimeString()
+        : '';
+      return `
+        <div class="hole-analysis-meta">Coach · ${escapeHtml(ts)}</div>
+        <div class="hole-analysis-body coach-plan-body">
+          ${_coachMarkdownToHtml(holeAnalysisState.analysis)}
+        </div>
+        <div>
+          <button class="btn btn-ghost btn-sm"
+                  type="button"
+                  onclick="generateHoleAnalysis(${holeNumber})">
+            Re-analyze
+          </button>
+        </div>
+      `;
+    }
+    if (loading) {
+      return `
+        <div class="coach-loading">
+          <div class="coach-spinner"></div>
+          <div>Analyzing this hole…</div>
+        </div>
+      `;
+    }
+    return `
+      ${error ? `<div class="coach-error">${escapeHtml(error)}</div>` : ''}
+      <button class="hole-analysis-trigger"
+              type="button"
+              onclick="generateHoleAnalysis(${holeNumber})">
+        <span aria-hidden="true">✨</span> Why this hole?
+      </button>
+    `;
+  }
+
+  // Paint just the inner contents of the analysis block (no full
+  // sheet re-render). Safe to call on every state change.
+  function _paintHoleAnalysisInner() {
+    const mount = document.getElementById('hole-analysis-block-mount');
+    if (!mount) return;
+    const holeNumber = parseInt(mount.dataset.hole, 10);
+    if (!Number.isFinite(holeNumber)) return;
+    mount.innerHTML = _renderHoleAnalysisInner(holeNumber);
+  }
+
+  // Build a single-hole payload for getHoleAnalysis. Reads holeSG
+  // from the cached SG result (per-category totals + per-shot list)
+  // and combines it with the raw shot details (club, distance) from
+  // round.shots[holeNumber] so the model can reason about each shot.
+  function buildHoleAnalysisPayload(holeNumber) {
+    const { sg, round, course } = holeSGDetailState;
+    if (!sg || !round || !course) return null;
+    const courseHole = (course.holes || []).find(h => h.number === holeNumber);
+    if (!courseHole) return null;
+    const par = courseHole.par;
+    const entry = round.scores?.[holeNumber] || round.scores?.[String(holeNumber)] || {};
+    const rawShots = (round.shots?.[holeNumber] || round.shots?.[String(holeNumber)] || []);
+
+    // Per-shot SG list for this hole — taken from the cached compute
+    // result so we don't recompute. Whitelisted fields only.
+    const sgShots = sg.perShot
+      .filter(s => s.holeNumber === holeNumber)
+      .map(s => ({
+        category: s.category,
+        sg: s.sg,
+        startLie: s.startLie,
+        distFromPin: s.distFromPin,
+      }));
+
+    // Merge raw shot details onto the SG entries — alignment is
+    // positional (both lists are in shot order). If lengths differ
+    // (legacy round shape or putt synthesis), fall back gracefully.
+    const merged = sgShots.map((s, i) => {
+      const raw = rawShots[i] || {};
+      return {
+        category: s.category,
+        sg: s.sg,
+        startLie: s.startLie,
+        distFromPin: s.distFromPin,
+        club: raw.club || null,
+        distance: typeof raw.distance === 'number' ? raw.distance : null,
+        actualYards: typeof raw.actualYards === 'number' ? raw.actualYards : null,
+        proximityFt: typeof raw.proximityFt === 'number' ? raw.proximityFt : null,
+        endedInTrouble: raw.endedInTrouble === true || undefined,
+      };
+    });
+
+    // Per-category SG totals for this hole.
+    const holeSG = { tee: 0, approach: 0, around: 0, putt: 0, total: 0 };
+    for (const s of sgShots) {
+      if (holeSG[s.category] !== undefined) holeSG[s.category] += s.sg;
+      holeSG.total += s.sg;
+    }
+
+    const playerProfile = {
+      handedness: (typeof prefs !== 'undefined' && prefs && prefs.handedness === 'left')
+        ? 'left' : 'right',
+    };
+
+    return {
+      playerProfile,
+      hole: {
+        number: holeNumber,
+        par,
+        yardage: typeof courseHole.yardage === 'number' ? courseHole.yardage : null,
+        strokes: typeof entry.strokes === 'number' ? entry.strokes : null,
+        putts: typeof entry.putts === 'number' ? entry.putts : null,
+        fir: typeof entry.fir === 'boolean' ? entry.fir : null,
+        gir: typeof entry.gir === 'boolean' ? entry.gir : null,
+        firMiss: entry.firMiss || null,
+        girMiss: entry.girMiss || null,
+        shots: merged,
+      },
+      holeSG,
+    };
+  }
+
+  async function generateHoleAnalysis(holeNumber) {
+    if (holeAnalysisState.loading) return;
+    if (!currentUser) {
+      holeAnalysisState.error = 'Sign in to use the coach.';
+      holeAnalysisState.holeNumber = holeNumber;
+      _paintHoleAnalysisInner();
+      return;
+    }
+    const payload = buildHoleAnalysisPayload(holeNumber);
+    if (!payload) {
+      holeAnalysisState.error = 'Not enough data for this hole.';
+      holeAnalysisState.holeNumber = holeNumber;
+      _paintHoleAnalysisInner();
+      return;
+    }
+    holeAnalysisState.loading = true;
+    holeAnalysisState.holeNumber = holeNumber;
+    holeAnalysisState.error = null;
+    holeAnalysisState.analysis = null;
+    _paintHoleAnalysisInner();
+    try {
+      if (typeof window.fbCallHoleAnalysis !== 'function') {
+        throw new Error('Coach service is not initialized.');
+      }
+      const result = await window.fbCallHoleAnalysis(payload);
+      const data = result?.data || {};
+      holeAnalysisState.analysis = data.analysis || '';
+      holeAnalysisState.generatedAt = data.generatedAt || new Date().toISOString();
+      holeAnalysisState.error = null;
+    } catch (err) {
+      const code = err?.code || '';
+      let msg = err?.message || 'Something went wrong.';
+      if (code === 'functions/resource-exhausted' || /429/.test(msg)) {
+        msg = 'Rate-limited — wait a moment, then try again.';
+      } else if (code === 'functions/unauthenticated') {
+        msg = 'Please sign in to use the coach.';
+      }
+      holeAnalysisState.error = msg;
+    } finally {
+      holeAnalysisState.loading = false;
+      _paintHoleAnalysisInner();
+    }
+  }
+  window.generateHoleAnalysis = generateHoleAnalysis;
 
   // Tiny helper to format start-lie strings ("tee", "fairway", "rough",
   // "sand", "green", etc.) into a display label for the shot list.
@@ -74713,6 +76819,8 @@
         return renderSGBlock(sg);
       })()}
 
+      ${renderRoundReviewSection(round, _roundSGCached)}
+
       ${(() => {
         // Scramble attribution card — "whose ball got picked most"
         // leaderboard. Renders only on scramble rounds. The data
@@ -78222,6 +80330,16 @@
             <button class="${!trackPersonalScrambleShots ? 'active' : ''}" onclick="setTrackPersonalScrambleShots(false)">Off</button>
           </div>
         </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Auto-generate AI round review</div>
+            <div class="settings-row-sub">When you finish a round, the Coach auto-generates a review in the background so it's ready by the time you scroll to it. Off by default to keep API usage down.</div>
+          </div>
+          <div class="seg-control">
+            <button class="${prefs.autoCoachReview ? 'active' : ''}" onclick="setAutoCoachReview(true)">On</button>
+            <button class="${!prefs.autoCoachReview ? 'active' : ''}" onclick="setAutoCoachReview(false)">Off</button>
+          </div>
+        </div>
         <button class="settings-row settings-row-link" onclick="openToolsEditorSheet()">
           <div class="settings-row-info">
             <div class="settings-row-label">In-round tools</div>
@@ -78258,6 +80376,19 @@
     renderProfile();
   }
   window.setTrackPersonalScrambleShots = setTrackPersonalScrambleShots;
+
+  // Toggle auto-generation of the AI Coach round review. When on,
+  // openRoundSummary kicks off generateRoundReview in the background
+  // (gated on currentUser + eligible round). Off by default so we
+  // don't burn API calls for users who don't want it.
+  function setAutoCoachReview(val) {
+    const next = !!val;
+    if (prefs.autoCoachReview === next) return;
+    prefs.autoCoachReview = next;
+    savePreferences();
+    renderProfile();
+  }
+  window.setAutoCoachReview = setAutoCoachReview;
 
   // Set tee gender pref. 'male' | 'female' | null. null means "show all
   // tees" — a useful explicit choice for users who don't want to specify,
