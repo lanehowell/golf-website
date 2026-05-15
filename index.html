@@ -18933,48 +18933,12 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     AI COACH HERO — Practice tab (redesigned)
-     Replaces the original .coach-card layout. Hero-style block with
-     full-width plan body, stats snapshot strip (driving "why these
-     recommendations"), scope picker, and a large CTA. Designed to be
-     the featured section of the Practice tab, not a buried card.
-     The original .coach-card / .coach-body / .coach-card-head rules
-     below are retained for backwards compatibility but no longer used
-     by renderPracticeCoach.
+     AI COACH — Practice tab
+     Renders as a thin bar with a bottom-sheet overlay (see
+     .coach-bar / .coach-sheet rules below). Shared sub-components
+     (snapshot tiles, scope chips, focus input, plan-body markdown
+     styling, history list, payload viewer) live in this block too.
      ═══════════════════════════════════════════════════════════════ */
-  .coach-hero {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-5);
-    background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-accent) 4%, var(--bg-surface)),
-      var(--bg-surface));
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    margin-bottom: var(--space-6);
-  }
-  .coach-hero-head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .coach-hero-title {
-    font-family: var(--font-display);
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-    line-height: 1.1;
-  }
-  .coach-hero-status {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
-    line-height: var(--leading-normal);
-  }
 
   /* Stats snapshot — the "why these recommendations" tile strip.
      Each tile is a button that adds its hint to the focus input. */
@@ -19291,35 +19255,8 @@
     .coach-sheet-footer .btn-lg { width: 100%; }
   }
 
-  /* Compact plan summary (collapsed state) — Diagnosis paragraph
-     + drill count + expand button. Keeps the Coach hero short on
-     return visits so Practice Modes stays within scroll reach. */
-  .coach-plan-summary {
-    padding: var(--space-3);
-    background: var(--bg-base);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  .coach-plan-summary-diagnosis {
-    font-family: var(--font-body);
-    font-size: var(--text-base);
-    line-height: var(--leading-relaxed);
-    color: var(--text-primary);
-    margin: 0;
-  }
-  .coach-plan-summary-meta {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
-  }
-
   /* Expand / Collapse buttons — minimal text-only ghost button
-     so they sit visually below the plan content without competing
-     with the primary "Generate" CTA. */
+     for the round-review expand/collapse toggles. */
   .coach-plan-expand,
   .coach-plan-collapse {
     align-self: flex-start;
@@ -19337,65 +19274,20 @@
     text-decoration: underline;
   }
 
-  /* Toggle rows for "Show data" / "Show history" — grouped together */
+  /* Toggle rows for "Show data" / "Show history" — grouped together
+     inside the bottom-sheet body. (Class name kept from the earlier
+     hero layout; harmless and avoids touching the renderer template.) */
   .coach-hero-toggles {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
   }
 
-  /* Action row — large CTA at the bottom */
-  .coach-hero-actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-  .coach-hero-actions .btn-lg {
-    padding: var(--space-3) var(--space-6);
-    font-size: var(--text-base);
-    font-weight: var(--weight-semibold);
-  }
-
-  @media (max-width: 480px) {
-    .coach-hero { padding: var(--space-4); }
-    .coach-hero-title { font-size: var(--text-xl); }
-    .coach-hero-actions { justify-content: stretch; }
-    .coach-hero-actions .btn-lg { width: 100%; }
-  }
-
   /* ═══════════════════════════════════════════════════════════════
-     AI COACH CARD — original styles (now legacy, kept for any
-     code path still mounting via .coach-card). renderPracticeCoach
-     uses .coach-hero above.
+     AI COACH — shared utility classes (error, empty, spinner).
+     Used by both the bottom-sheet renderer and any future Coach
+     surfaces; styling is layout-agnostic.
      ═══════════════════════════════════════════════════════════════ */
-  .coach-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: var(--space-5);
-    margin-bottom: var(--space-6);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .coach-card-head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .coach-card-title {
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    line-height: 1.2;
-  }
-  .coach-card-sub {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    line-height: var(--leading-normal);
-  }
   .coach-error {
     background: var(--color-warning-bg, color-mix(in srgb, var(--color-warning, var(--color-accent)) 10%, transparent));
     border-left: 3px solid var(--color-warning, var(--color-accent));
@@ -19438,61 +19330,6 @@
   }
   @keyframes coach-spin {
     to { transform: rotate(360deg); }
-  }
-  .coach-body {
-    background: var(--bg-base);
-    padding: var(--space-4);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
-  }
-  .coach-body .coach-h {
-    font-family: var(--font-display);
-    font-size: var(--text-base);
-    font-weight: var(--weight-bold);
-    color: var(--text-primary);
-    margin: var(--space-3) 0 var(--space-2);
-    line-height: 1.3;
-  }
-  .coach-body .coach-h:first-child {
-    margin-top: 0;
-  }
-  .coach-body .coach-p {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-    line-height: var(--leading-relaxed);
-    margin: 0 0 var(--space-2);
-  }
-  .coach-body .coach-ol,
-  .coach-body .coach-ul {
-    margin: 0 0 var(--space-3);
-    padding-left: 1.4em;
-  }
-  .coach-body .coach-ol li,
-  .coach-body .coach-ul li {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-    line-height: var(--leading-relaxed);
-    margin-bottom: 4px;
-  }
-  .coach-body strong {
-    color: var(--text-primary);
-    font-weight: var(--weight-semibold);
-  }
-  .coach-body em {
-    font-style: italic;
-    color: var(--text-secondary);
-  }
-  .coach-meta {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
-    letter-spacing: var(--tracking-wide);
-  }
-  .coach-card-actions {
-    display: flex;
-    justify-content: flex-end;
   }
 
   /* Scope chips — horizontal pill picker above the focus input */
@@ -58109,9 +57946,6 @@
     history: [],             // [{ id, scope, customFocus, generatedAt, recommendation, statsBlock }]
     historyLoaded: false,
     showHistory: false,
-    // Plan-body collapse — kept for legacy paths but not used by
-    // the new bar+sheet UI (the sheet always shows full content).
-    planCollapsed: false,
     // Bar+sheet UI — the Practice page renders only a thin insight
     // bar; tapping it opens the full Coach surface in a bottom sheet.
     sheetOpen: false,
@@ -58454,12 +58288,6 @@
   }
   window.toggleCoachPayload = toggleCoachPayload;
 
-  function toggleCoachPlanCollapsed() {
-    coachState.planCollapsed = !coachState.planCollapsed;
-    renderPracticeCoach();
-  }
-  window.toggleCoachPlanCollapsed = toggleCoachPlanCollapsed;
-
   // Extract a compact summary from a generated plan's markdown.
   // Pulls the Diagnosis section (the lead paragraph after `## Diagnosis`)
   // and the count of items under `## Practice plan`. Returns
@@ -58536,9 +58364,6 @@
     coachState.planId = plan.id;
     coachState.error = null;
     coachState.showHistory = false;
-    // Loading an old plan from history — start collapsed so the user
-    // sees the gist (Diagnosis + drill count). Expand if they want.
-    coachState.planCollapsed = true;
     renderPracticeCoach();
   }
   window.loadCoachPlanIntoView = loadCoachPlanIntoView;
@@ -58573,9 +58398,6 @@
       coachState.customFocus = plan.customFocus || '';
       coachState.statsBlock = plan.statsBlock || null;
       coachState.planId = plan.id;
-      // Default to collapsed on revisit so the page is short.
-      // Tapping "Expand" or generating a fresh plan opens it back up.
-      coachState.planCollapsed = true;
       renderPracticeCoach();
     } catch (err) {
       console.error('Failed to load most recent coach plan:', err);
@@ -58663,10 +58485,6 @@
       coachState.scope = data.scope || scope;
       coachState.customFocus = data.customFocus || customFocus;
       coachState.error = null;
-      // Newly-generated plan paints expanded so the user immediately
-      // sees the response. Subsequent reloads from history / Firestore
-      // will collapse it again.
-      coachState.planCollapsed = false;
       // Persist to Firestore. Don't await for UI responsiveness — the
       // plan is already on screen; the save is fire-and-forget. If it
       // fails the user sees the plan but loses history retention; we
@@ -74762,77 +74580,6 @@
       </div>
     `;
 
-    // Driving: SG: Off the Tee headline + fairway% + miss patterns.
-    // SG card leads — it's the most prescriptive driving metric (fairway
-    // hit-rate alone misses distance gained/lost which SG captures).
-    const drivingSGCard = renderSGCard(
-      aggSG, 'tee', 'SG: Off the Tee',
-      'Strokes gained vs Tour baseline on tee shots'
-    );
-    let drivingMissCard = '';
-    if (stats.firMissesWithDirection > 0 || stats.firMissesTotal > 0) {
-      drivingMissCard = renderMissDirCard('Driving misses', stats.firMissDirCounts, stats.firMissesWithDirection, stats.firMissesTotal);
-    }
-    const drivingContent = `
-      <div class="stats-tab-grid">
-        ${drivingSGCard}
-        ${cardFir}
-        ${drivingMissCard || `
-          <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
-            <div class="stats-card-label">Miss Patterns</div>
-            <div class="stats-card-headline">
-              <span class="stats-card-headline-value stats-miss-dir-empty-headline">No misses yet</span>
-            </div>
-            <div class="stats-card-sub">Logged fairway misses will surface dominant patterns here.</div>
-          </div>
-        `}
-      </div>
-    `;
-
-    // Approach: GIR% + miss patterns (GIR only) + scrambling.
-    let approachMissCard = '';
-    if (stats.girMissesWithDirection > 0 || stats.girMissesTotal > 0) {
-      approachMissCard = renderMissDirCard('Approach misses', stats.girMissDirCounts, stats.girMissesWithDirection, stats.girMissesTotal);
-    }
-    let approachScramblingCard = '';
-    if (stats.scramblingAttempts > 0) {
-      const toneClass = stats.scramblingPct >= 35 ? '' : 'stats-rate-card-warn';
-      approachScramblingCard = `
-        <div class="stats-card ${toneClass === 'stats-rate-card-warn' ? 'stats-card-warn' : ''}">
-          <div class="stats-card-label">Up-and-Down</div>
-          <div class="stats-card-headline">
-            <span class="stats-card-headline-value">${fmtPct(stats.scramblingPct)}</span>
-          </div>
-          <div class="stats-card-sub">Saved par after missing the green: ${stats.scramblingSaves} of ${stats.scramblingAttempts}</div>
-        </div>
-      `;
-    }
-    const approachSGCard = renderSGCard(
-      aggSG, 'approach', 'SG: Approach',
-      'Strokes gained vs Tour on full-swing approaches'
-    );
-    const aroundGreenSGCard = renderSGCard(
-      aggSG, 'around', 'SG: Around Green',
-      'Strokes gained vs Tour on chips, pitches, and bunker shots'
-    );
-    const approachContent = `
-      <div class="stats-tab-grid">
-        ${approachSGCard}
-        ${aroundGreenSGCard}
-        ${cardGir}
-        ${approachMissCard || `
-          <div class="stats-card stats-miss-dir-card stats-miss-dir-card-empty">
-            <div class="stats-card-label">Miss Patterns</div>
-            <div class="stats-card-headline">
-              <span class="stats-card-headline-value stats-miss-dir-empty-headline">No misses yet</span>
-            </div>
-            <div class="stats-card-sub">Logged green misses will surface dominant patterns here.</div>
-          </div>
-        `}
-        ${approachScramblingCard}
-      </div>
-    `;
-
     // Putting: putts/hole + 1-putt + 3-putt rate cards.
     let onePuttCard = '', threePuttCard = '';
     if (stats.onePuttRate != null) {
@@ -74975,288 +74722,24 @@
       overviewContent
     );
 
-    // ── MOBILE LAYOUT — dense, scrollable bucket cards. No tabs.
-    //    All four skill areas stack vertically with everything you need
-    //    inline (no nested cards). Trades visual padding for data
-    //    density, which matches how mobile dashboards work in apps
-    //    people already use (Apple Health, Strava, Google Fit).
-    function renderMobileBucketDriving() {
-      // Recent + Best inline supporting stats
-      const supportingBits = [];
-      if (showLast10 && last10.avgFairwayPct != null) {
-        supportingBits.push(`Recent ${fmtPct(last10.avgFairwayPct)}`);
-      }
-      if (stats.bestFirPct != null) {
-        supportingBits.push(`Best ${fmtPct(stats.bestFirPct)}`);
-      }
-      // Inline aggregate SG when the sample is large enough.
-      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
-        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.tee)}/rd`);
-      }
-      const supportingHtml = supportingBits.length
-        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
-        : '';
-
-      // Inline mini miss-pattern bars when data exists
-      let missHtml = '';
-      const total = stats.firMissesWithDirection;
-      if (total > 0) {
-        const order = ['left', 'right', 'short', 'long'];
-        const dirArrow = { left: '←', right: '→', short: '↓', long: '↑' };
-        const dirLabel = { left: 'Left', right: 'Right', short: 'Short', long: 'Long' };
-        const bars = order.map(dir => {
-          const n = stats.firMissDirCounts[dir] || 0;
-          const pct = total > 0 ? (n / total) * 100 : 0;
-          return `
-            <div class="stats-mb-miss-row">
-              <span class="stats-mb-miss-arrow">${dirArrow[dir]}</span>
-              <span class="stats-mb-miss-label">${dirLabel[dir]}</span>
-              <div class="stats-mb-miss-bar"><div class="stats-mb-miss-bar-fill" style="width: ${pct}%"></div></div>
-              <span class="stats-mb-miss-pct">${Math.round(pct)}%</span>
-            </div>
-          `;
-        }).join('');
-        missHtml = `
-          <div class="stats-mb-subhead">Miss patterns
-            <span class="stats-mb-subhead-note">${total} of ${stats.firMissesTotal} logged</span>
-          </div>
-          <div class="stats-mb-miss-list">${bars}</div>
-        `;
-      } else if (stats.firMissesTotal > 0) {
-        missHtml = `
-          <div class="stats-mb-empty">Tap miss direction during a round to unlock pattern detection.</div>
-        `;
-      }
-
-      return `
-        <div class="stats-mb-card">
-          <div class="stats-mb-head">
-            <div class="stats-mb-title">Driving</div>
-            <div class="stats-mb-headline">${fmtPct(stats.avgFairwayPct)}<span class="stats-mb-headline-unit"> fairways</span></div>
-          </div>
-          ${supportingHtml}
-          ${missHtml}
-        </div>
-      `;
-    }
-
-    function renderMobileBucketApproach() {
-      const supportingBits = [];
-      if (showLast10 && last10.avgGirPct != null) {
-        supportingBits.push(`Recent ${fmtPct(last10.avgGirPct)}`);
-      }
-      if (stats.bestGirPct != null) {
-        supportingBits.push(`Best ${fmtPct(stats.bestGirPct)}`);
-      }
-      if (stats.scramblingAttempts > 0) {
-        supportingBits.push(`Up&Down ${fmtPct(stats.scramblingPct)}`);
-      }
-      // SG: Approach + SG: Around. Two categories live in this bucket
-      // conceptually so surface both; readers can compare their full-
-      // swing approaches vs short-game performance at a glance.
-      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
-        supportingBits.push(`SG App ${formatSGValue(aggSG.avgPerRound.approach)}/rd`);
-        supportingBits.push(`SG Short ${formatSGValue(aggSG.avgPerRound.around)}/rd`);
-      }
-      const supportingHtml = supportingBits.length
-        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
-        : '';
-
-      let missHtml = '';
-      const total = stats.girMissesWithDirection;
-      if (total > 0) {
-        const order = ['left', 'right', 'short', 'long'];
-        const dirArrow = { left: '←', right: '→', short: '↓', long: '↑' };
-        const dirLabel = { left: 'Left', right: 'Right', short: 'Short', long: 'Long' };
-        const bars = order.map(dir => {
-          const n = stats.girMissDirCounts[dir] || 0;
-          const pct = total > 0 ? (n / total) * 100 : 0;
-          return `
-            <div class="stats-mb-miss-row">
-              <span class="stats-mb-miss-arrow">${dirArrow[dir]}</span>
-              <span class="stats-mb-miss-label">${dirLabel[dir]}</span>
-              <div class="stats-mb-miss-bar"><div class="stats-mb-miss-bar-fill" style="width: ${pct}%"></div></div>
-              <span class="stats-mb-miss-pct">${Math.round(pct)}%</span>
-            </div>
-          `;
-        }).join('');
-        missHtml = `
-          <div class="stats-mb-subhead">Miss patterns
-            <span class="stats-mb-subhead-note">${total} of ${stats.girMissesTotal} logged</span>
-          </div>
-          <div class="stats-mb-miss-list">${bars}</div>
-        `;
-      } else if (stats.girMissesTotal > 0) {
-        missHtml = `
-          <div class="stats-mb-empty">Tap miss direction during a round to unlock pattern detection.</div>
-        `;
-      }
-
-      return `
-        <div class="stats-mb-card">
-          <div class="stats-mb-head">
-            <div class="stats-mb-title">Approach</div>
-            <div class="stats-mb-headline">${fmtPct(stats.avgGirPct)}<span class="stats-mb-headline-unit"> greens</span></div>
-          </div>
-          ${supportingHtml}
-          ${missHtml}
-        </div>
-      `;
-    }
-
-    function renderMobileBucketPutting() {
-      const supportingBits = [];
-      if (showLast10 && last10.avgPuttsPerHole != null) {
-        supportingBits.push(`Recent ${fmtPutts(last10.avgPuttsPerHole)}`);
-      }
-      if (stats.lowestPuttsPerHole != null) {
-        supportingBits.push(`Best ${fmtPutts(stats.lowestPuttsPerHole)}`);
-      }
-      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
-        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.putt)}/rd`);
-      }
-      const supportingHtml = supportingBits.length
-        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
-        : '';
-
-      // Inline 1-putt + 3-putt as a tight 2-up
-      let ratesHtml = '';
-      if (stats.onePuttRate != null || stats.threePuttRate != null) {
-        ratesHtml = `
-          <div class="stats-mb-mini-grid">
-            ${stats.onePuttRate != null ? `
-              <div class="stats-mb-mini">
-                <div class="stats-mb-mini-value">${fmtPct(stats.onePuttRate)}</div>
-                <div class="stats-mb-mini-label">1-Putt rate</div>
-              </div>
-            ` : ''}
-            ${stats.threePuttRate != null ? `
-              <div class="stats-mb-mini${stats.threePuttRate >= 8 ? ' is-warn' : ''}">
-                <div class="stats-mb-mini-value">${fmtPct(stats.threePuttRate)}</div>
-                <div class="stats-mb-mini-label">3-Putt rate</div>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }
-
-      return `
-        <div class="stats-mb-card">
-          <div class="stats-mb-head">
-            <div class="stats-mb-title">Putting</div>
-            <div class="stats-mb-headline">${fmtPutts(stats.avgPuttsPerHole)}<span class="stats-mb-headline-unit"> per hole</span></div>
-          </div>
-          ${supportingHtml}
-          ${ratesHtml}
-        </div>
-      `;
-    }
-
-    function renderMobileBucketScoring() {
-      const supportingBits = [];
-      if (showLast10 && last10.avgScore != null) {
-        supportingBits.push(`Recent ${fmtScore(last10.avgScore)} ${fmtVsPar(last10.avgVsPar)}`);
-      }
-      if (stats.bestRound) {
-        supportingBits.push(`Best ${fmtScore(stats.bestRound.totals?.strokes)} ${fmtVsPar(stats.bestVsPar)}`);
-      }
-      if (aggSG && aggSG.avgPerRound && aggSG.roundsWithSG >= 3) {
-        supportingBits.push(`SG ${formatSGValue(aggSG.avgPerRound.total)}/rd`);
-      }
-      const supportingHtml = supportingBits.length
-        ? `<div class="stats-mb-supporting">${supportingBits.join(' · ')}</div>`
-        : '';
-
-      // Per-par mini-tiles inline
-      let parHtml = '';
-      const parData3 = stats.parBreakdown || {};
-      if (parData3[3] || parData3[4] || parData3[5]) {
-        const renderParMini = (par) => {
-          const d = parData3[par];
-          if (!d) return `<div class="stats-mb-par-mini stats-mb-par-mini-empty"><div class="stats-mb-par-mini-label">Par ${par}</div><div class="stats-mb-par-mini-value">—</div></div>`;
-          const vsParStr = Math.abs(d.vsPar) < 0.05 ? 'E'
-            : (d.vsPar > 0 ? `+${d.vsPar.toFixed(1)}` : d.vsPar.toFixed(1));
-          const tone = d.vsPar < -0.05 ? 'is-under' : d.vsPar > 0.05 ? 'is-over' : 'is-even';
-          return `
-            <div class="stats-mb-par-mini ${tone}">
-              <div class="stats-mb-par-mini-label">Par ${par}</div>
-              <div class="stats-mb-par-mini-value">${d.avg.toFixed(1)}</div>
-              <div class="stats-mb-par-mini-vs">${escapeHtml(vsParStr)}</div>
-            </div>
-          `;
-        };
-        parHtml = `
-          <div class="stats-mb-subhead">Average by par</div>
-          <div class="stats-mb-par-grid">
-            ${renderParMini(3)}
-            ${renderParMini(4)}
-            ${renderParMini(5)}
-          </div>
-        `;
-      }
-
-      // Birdie/Bogey/Penalty as a tight 3-up grid below
-      const detailMinis = [];
-      if (stats.birdieRate != null) {
-        detailMinis.push(`
-          <div class="stats-mb-mini">
-            <div class="stats-mb-mini-value">${fmtPct(stats.birdieRate)}</div>
-            <div class="stats-mb-mini-label">Birdie+</div>
-          </div>
-        `);
-      }
-      if (stats.bogeyRate != null) {
-        detailMinis.push(`
-          <div class="stats-mb-mini${stats.bogeyRate >= 50 ? ' is-warn' : ''}">
-            <div class="stats-mb-mini-value">${fmtPct(stats.bogeyRate)}</div>
-            <div class="stats-mb-mini-label">Bogey+</div>
-          </div>
-        `);
-      }
-      if (stats.holesWithPenaltyData > 0) {
-        const roundsWithPenaltyData = Math.max(1, Math.ceil(stats.holesWithPenaltyData / 18));
-        const avgPerRound = stats.penaltyStrokes / roundsWithPenaltyData;
-        detailMinis.push(`
-          <div class="stats-mb-mini${avgPerRound >= 2 ? ' is-warn' : ''}">
-            <div class="stats-mb-mini-value">${avgPerRound.toFixed(1).replace(/\.0$/, '')}</div>
-            <div class="stats-mb-mini-label">Penalties</div>
-          </div>
-        `);
-      }
-      const detailHtml = detailMinis.length
-        ? `<div class="stats-mb-mini-grid">${detailMinis.join('')}</div>`
-        : '';
-
-      return `
-        <div class="stats-mb-card">
-          <div class="stats-mb-head">
-            <div class="stats-mb-title">Scoring</div>
-            <div class="stats-mb-headline">${fmtScore(stats.avgScore)}<span class="stats-mb-headline-unit"> ${fmtVsPar(stats.avgVsPar)}</span></div>
-          </div>
-          ${supportingHtml}
-          ${parHtml}
-          ${detailHtml}
-        </div>
-      `;
-    }
-
-    const mobileContent = `
-      ${aggSGBlock}
-      <div class="stats-mb-stack">
-        ${renderMobileBucketDriving()}
-        ${renderMobileBucketApproach()}
-        ${renderMobileBucketPutting()}
-        ${renderMobileBucketScoring()}
-      </div>
-    `;
-
-    // Use the tabbed layout everywhere. The previous mobile-only
-    // bucket stack ('mobileContent') is retired by the redesign —
-    // the new Putting + Situational deep-dives are the headline
-    // value of this panel and they belong on every viewport. The
-    // tab bar already horizontal-scrolls on narrow screens, and
-    // the deep sections collapse to single-column at <480px via
-    // .stats-deep-section's responsive rules.
+    // ── LEGACY MOBILE BUCKET LAYOUT — REMOVED.
+    //    Earlier versions of this panel rendered a separate dense
+    //    bucket stack on viewports ≤ 768px instead of the tabbed
+    //    layout. The redesign now uses the tabbed layout on every
+    //    viewport (the tabbar horizontal-scrolls on narrow screens
+    //    and deep sections collapse to single-column at <480px),
+    //    so the four renderMobileBucket* functions and mobileContent
+    //    variable were dropped. The .stats-mb-* CSS classes that
+    //    powered the old layout are no longer applied anywhere
+    //    (they remain in the stylesheet near line 18170 for now;
+    //    safe to remove on a future polish pass).
+    // Tabbed layout for every viewport. Earlier versions of this
+    // panel had a separate mobile bucket stack (renderMobileBucket*
+    // + mobileContent) for ≤768px, but the redesign uses the same
+    // tabbed surface everywhere — the tabbar horizontal-scrolls on
+    // narrow screens and deep sections collapse to single-column at
+    // <480px. The .stats-mb-* CSS classes near line 18170 remain
+    // unused and can be removed on a future polish pass.
     const bodyContent = `${tabBar}${tabContent}`;
 
     // sampleNote is now folded into the filter bar (right-aligned).

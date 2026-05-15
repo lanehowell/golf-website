@@ -4,7 +4,19 @@
 
 **App identity:** A golf practice + rounds tracking + social PWA. Single user ("Lane") is the primary operator. Dallas-based lefty, ~5 handicap. iOS Safari PWA is the primary target; the app works on desktop and other mobile browsers as a secondary concern.
 
-**Project context:** Firebase project `golf-site-525a9`. Two test accounts used for group round testing. The main file lives at `golf-training-plan.html` and is ~72,000 lines.
+**Project context:** Firebase project `golf-site-525a9`. Two test accounts used for group round testing. The main file lives at `index.html` and is ~94,000 lines (older versions of this doc referred to it as `golf-training-plan.html`).
+
+---
+
+## Recent additions (read these first)
+
+The app gained three big systems that aren't fully described below — see the dedicated docs:
+
+- **AI Coach** (Practice tab bar + bottom sheet, Round Review on round summary, "Why this hole?" in hole drill-down) — see `COACH.md`. Backed by Cloud Functions in `functions/index.js` proxying to Gemini.
+- **My Stats redesign** — 7 tabs (Overview / Putting / Situational / Scoring / Trends / Clubs / Strokes Gained) with deep-dive aggregators (`computePuttingStats`, `computeSituationalStats`, `computeHoleSGRanking`) and custom SVG charts (`renderSparkline`, `renderLineChart`, `renderHistogramBuckets`). The file/function index in §10 below is out of date for this area.
+- **Cloud Functions** — first server-side code in this repo. See `DEPLOY.md` for deploy commands and `functions/index.js` for the three callables (`getCoachRecommendation`, `getRoundReview`, `getHoleAnalysis`).
+
+Handoff prompt for a new agent chat: `HANDOFF.md`.
 
 ---
 
