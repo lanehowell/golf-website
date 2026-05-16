@@ -25956,71 +25956,145 @@
   }
 
   /* ─── Club Data detail page ─────────────────────────────────── */
-  /* Filter bar — full-width sticky strip at the very top of the page,
-     containing the inline back arrow + source toggle + time pills +
-     sample count. The floating .mobile-topbar-back is hidden on this
-     panel (see body[data-current-panel="club-data-detail"] rules); the
-     inline arrow inside this bar replaces it so back nav + filters
-     read as ONE unified strip rather than two stacked elements.
-     Sticks at the safe-area inset on iOS so the notch / Dynamic
-     Island clears it cleanly. Opaque background prevents content
-     from showing through when scrolled. */
-  .club-detail-filter-bar {
-    position: sticky;
-    top: env(safe-area-inset-top, 0px);
-    z-index: 10;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px var(--space-2);
-    /* Reach edge-to-edge of the viewport, overriding the panel's
-       horizontal padding. Negative margins of the same magnitude;
-       inner padding restores the breathing room. */
-    margin: 0 calc(-1 * var(--space-5)) var(--space-4);
-    padding: 8px var(--space-4);
-    background: var(--bg-page);
-    border: none;
-    border-bottom: 1px solid var(--border-light);
-    border-radius: 0;
+  /* The FAB + modal live in a body-level mount (escapes panel
+     transforms). Hide on every other panel so leftover contents
+     don't leak through after navigation. */
+  body:not([data-current-panel="club-data-detail"]) #club-data-filter-overlay-mount {
+    display: none;
   }
-  /* When a session/round banner is active, the content shifts down —
-     the sticky offset must include the banner height(s) so the bar
-     lands below the banner stack instead of being hidden beneath it. */
-  body.round-active:not(.round-gps-open) .club-detail-filter-bar,
-  body.session-active .club-detail-filter-bar {
-    top: calc(var(--session-banner-height, 52px) + env(safe-area-inset-top, 0px));
-  }
-  body.round-active.session-active:not(.round-gps-open) .club-detail-filter-bar {
-    top: calc((var(--session-banner-height, 52px) * 2) + env(safe-area-inset-top, 0px));
-  }
-  /* Inline back arrow — replaces the floating .mobile-topbar-back on
-     this panel. Sits flush with the filter pills as part of the same
-     top strip. */
-  .club-detail-filter-back {
-    width: 30px;
-    height: 30px;
-    background: transparent;
-    border: none;
-    border-radius: 50%;
+  /* Floating filter button — mirrors the .mobile-topbar-back style
+     (frosted bead) but pinned to the top-RIGHT of the viewport.
+     Tapping opens the filter modal. Position fixed so it stays put
+     regardless of panel scroll; matches the back arrow's vertical
+     position so the two beads visually balance the top edge. */
+  .club-detail-filter-fab {
+    position: fixed;
+    right: var(--space-4);
+    top: calc(env(safe-area-inset-top, 0px) + 4px);
+    width: 44px;
+    height: 44px;
+    z-index: var(--z-dropdown);
+    background-color: rgba(255, 253, 247, 0.55);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     color: var(--text-primary);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
     padding: 0;
-    margin-right: 2px;
-    transition: background var(--transition-fast), color var(--transition-fast);
+    border-radius: 50%;
+    transition: transform 100ms cubic-bezier(0.2, 0, 0, 1),
+                box-shadow 100ms ease,
+                background 100ms ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .club-detail-filter-back:hover {
+  html.dark .club-detail-filter-fab {
+    background-color: rgba(28, 28, 30, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .club-detail-filter-fab:hover {
+    background-color: rgba(255, 253, 247, 0.85);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  }
+  html.dark .club-detail-filter-fab:hover {
+    background-color: rgba(40, 40, 44, 0.75);
+  }
+  .club-detail-filter-fab:active { transform: scale(0.96); }
+  .club-detail-filter-fab svg { width: 20px; height: 20px; }
+  /* Shift down when banners are active, matching the back-arrow
+     shift behavior. */
+  body.round-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="my-stats"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .club-detail-filter-fab,
+  body.session-active:not([data-current-panel="play"]):not([data-current-panel="practice"]):not([data-current-panel="today"]):not([data-current-panel="social"]):not([data-current-panel="profile"]):not([data-current-panel="my-stats"]):not([data-current-panel="round"]):not([data-current-panel="group-round"]):not([data-current-panel="group-lobby"]):not([data-current-panel="range-session"]):not([data-current-panel="shortgame-session"]):not([data-current-panel="course-practice-session"]) .club-detail-filter-fab {
+    top: calc(var(--session-banner-height, 52px) + 4px);
+  }
+
+  /* Filter modal — bottom sheet that slides up from below, matching
+     the Coach sheet + hole drill-down sheet pattern used elsewhere
+     in the app. Backdrop fades in; sheet transforms from
+     translateY(100%) → translateY(0). The .opening / .closing
+     classes drive the animation; CSS transitions handle the rest. */
+  .club-detail-filter-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9000;
+    opacity: 1;
+    transition: opacity 220ms ease;
+  }
+  .club-detail-filter-modal-backdrop.opening,
+  .club-detail-filter-modal-backdrop.closing { opacity: 0; }
+  .club-detail-filter-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 80vh;
+    z-index: 9001;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+    padding: var(--space-5);
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    transform: translateY(0);
+    transition: transform 220ms ease;
+    overflow-y: auto;
+  }
+  .club-detail-filter-modal.opening,
+  .club-detail-filter-modal.closing { transform: translateY(100%); }
+  .club-detail-filter-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  .club-detail-filter-modal-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+  .club-detail-filter-modal-close {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .club-detail-filter-modal-close:hover {
     background: var(--bg-base);
     color: var(--color-accent);
   }
-  .club-detail-filter-back svg {
-    width: 18px;
-    height: 18px;
+  .club-detail-filter-modal-close svg { width: 16px; height: 16px; }
+  .club-detail-filter-modal-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
   }
+  .club-detail-filter-modal-section:last-child { margin-bottom: 0; }
+  .club-detail-filter-modal-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+  }
+
   .club-detail-filter-group {
     display: inline-flex;
     gap: 4px;
@@ -34011,16 +34085,12 @@
     body[data-current-panel="social"] .mobile-topbar-title,
     body[data-current-panel="profile"] .mobile-topbar-title,
     body[data-current-panel="my-stats"] .mobile-topbar-title,
-    body[data-current-panel="club-data-detail"] .mobile-topbar-title,
     body[data-current-panel="play"] .mobile-topbar-back,
     body[data-current-panel="practice"] .mobile-topbar-back,
     body[data-current-panel="today"] .mobile-topbar-back,
     body[data-current-panel="social"] .mobile-topbar-back,
     body[data-current-panel="profile"] .mobile-topbar-back,
-    body[data-current-panel="my-stats"] .mobile-topbar-back,
-    /* club-data-detail uses an inline back arrow inside the sticky
-       filter bar — the floating one would duplicate it. */
-    body[data-current-panel="club-data-detail"] .mobile-topbar-back {
+    body[data-current-panel="my-stats"] .mobile-topbar-back {
       display: none;
     }
     body[data-current-panel="play"] .mobile-topbar,
@@ -34028,8 +34098,7 @@
     body[data-current-panel="today"] .mobile-topbar,
     body[data-current-panel="social"] .mobile-topbar,
     body[data-current-panel="profile"] .mobile-topbar,
-    body[data-current-panel="my-stats"] .mobile-topbar,
-    body[data-current-panel="club-data-detail"] .mobile-topbar {
+    body[data-current-panel="my-stats"] .mobile-topbar {
       display: none;
     }
     /* Since the topbar on top-level tabs is now visually empty, collapse
@@ -34041,11 +34110,7 @@
     body[data-current-panel="today"]:not(.round-active):not(.session-active),
     body[data-current-panel="social"]:not(.round-active):not(.session-active),
     body[data-current-panel="profile"]:not(.round-active):not(.session-active),
-    body[data-current-panel="my-stats"]:not(.round-active):not(.session-active),
-    /* club-data-detail handles its own back nav via the inline arrow
-       inside the sticky filter bar — so it drops the topbar reserved
-       height the same way top-level panels do. */
-    body[data-current-panel="club-data-detail"]:not(.round-active):not(.session-active) {
+    body[data-current-panel="my-stats"]:not(.round-active):not(.session-active) {
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
     body[data-current-panel="play"].round-active,
@@ -34054,14 +34119,12 @@
     body[data-current-panel="social"].round-active,
     body[data-current-panel="profile"].round-active,
     body[data-current-panel="my-stats"].round-active,
-    body[data-current-panel="club-data-detail"].round-active,
     body[data-current-panel="play"].session-active,
     body[data-current-panel="practice"].session-active,
     body[data-current-panel="today"].session-active,
     body[data-current-panel="social"].session-active,
     body[data-current-panel="profile"].session-active,
-    body[data-current-panel="my-stats"].session-active,
-    body[data-current-panel="club-data-detail"].session-active {
+    body[data-current-panel="my-stats"].session-active {
       /* --session-banner-height is the banner's full rendered offsetHeight,
          which includes its internal padding-top: env(safe-area-inset-top).
          So adding env(safe-area-inset-top) here would double-count the
@@ -34074,8 +34137,7 @@
     body[data-current-panel="today"].round-active.session-active,
     body[data-current-panel="social"].round-active.session-active,
     body[data-current-panel="profile"].round-active.session-active,
-    body[data-current-panel="my-stats"].round-active.session-active,
-    body[data-current-panel="club-data-detail"].round-active.session-active {
+    body[data-current-panel="my-stats"].round-active.session-active {
       /* Both banners stacked. Same reasoning as above: each banner's
          offsetHeight includes the safe-area inset, but only the
          topmost banner sits at top:0 — the second sits at
@@ -34090,8 +34152,7 @@
     body[data-current-panel="today"] .panel.active,
     body[data-current-panel="social"] .panel.active,
     body[data-current-panel="profile"] .panel.active,
-    body[data-current-panel="my-stats"] .panel.active,
-    body[data-current-panel="club-data-detail"] .panel.active {
+    body[data-current-panel="my-stats"] .panel.active {
       padding-top: var(--space-3);
     }
 
@@ -35522,6 +35583,15 @@
      jump to that round's full replay. Body-level for same reasons as
      replay mount above. -->
 <div id="hole-history-mount"></div>
+
+<!-- CLUB DATA DETAIL OVERLAY mount — body-level home for the floating
+     filter FAB + filter modal on the per-club detail page. Lives outside
+     panels because .panel.active applies a transform (animation: fadeUp
+     with both fill mode) which creates a containing block for any
+     position:fixed children, sending them off-screen. Mounting at body
+     level escapes that. Populated by renderClubDataDetailPage; visibility
+     gated by CSS on body[data-current-panel="club-data-detail"]. -->
+<div id="club-data-filter-overlay-mount"></div>
 
 <!-- LOBBY ACTION BAR mount — populated by renderGroupLobby() with the
      fixed bottom Start Round pill (or "Waiting for…" hint). Lives at
@@ -41471,6 +41541,17 @@
     // Time window filter — same pattern as the My Stats page.
     //   'all' | '1y' | '90d' | '30d'
     timeFilter: 'all',
+    // Filter modal — bottom sheet that opens when the user taps the
+    // floating filter button on the top-right. Holds the source
+    // toggle + time pills. Stays closed by default each render;
+    // opens on tap, closes on backdrop tap / close X / panel exit.
+    filterModalOpen: false,
+    // Animation flag — matches the Coach sheet pattern. The .opening
+    // class is only applied on the FIRST render of an open cycle so
+    // the slide-up animation runs once; subsequent re-renders (when
+    // the user taps a pill while the sheet is open) skip the class
+    // so the sheet doesn't animate back off-screen mid-use.
+    filterModalAnimatedIn: false,
   };
 
   // ─── Aggregation helpers ────────────────────────────────────────
@@ -43121,6 +43202,10 @@
   function openClubDataDetail(clubKey, clubLabel) {
     clubDataDetailState.clubKey = clubKey;
     clubDataDetailState.clubLabel = clubLabel;
+    // Always open a fresh club view with the modal closed —
+    // carrying it open from a previous club would be jarring.
+    clubDataDetailState.filterModalOpen = false;
+    clubDataDetailState.filterModalAnimatedIn = false;
     showPanel('club-data-detail', null);
   }
 
@@ -43139,6 +43224,60 @@
     if (currentPanelId === 'club-data-detail') renderClubDataDetailPage();
   }
   window.setClubDetailTimeFilter = setClubDetailTimeFilter;
+
+  // Filter modal lifecycle — mirrors the Coach sheet pattern:
+  //   - Open: render with .opening class so the sheet starts off-screen
+  //     and the backdrop transparent. Two requestAnimationFrames later,
+  //     strip the class so CSS transitions slide it up + fade in.
+  //   - Close: add .closing class, wait 220ms (CSS transition), then
+  //     clear the overlay and reset state.
+  // The animatedIn flag prevents re-renders during interactions
+  // (filter pill taps) from re-applying .opening and sliding the
+  // sheet off-screen mid-use.
+  function openClubDetailFilterModal() {
+    if (clubDataDetailState.filterModalOpen) return;
+    clubDataDetailState.filterModalOpen = true;
+    clubDataDetailState.filterModalAnimatedIn = false;
+    if (currentPanelId === 'club-data-detail') renderClubDataDetailPage();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const sheet = document.querySelector('.club-detail-filter-modal');
+        const backdrop = document.querySelector('.club-detail-filter-modal-backdrop');
+        if (sheet) sheet.classList.remove('opening');
+        if (backdrop) backdrop.classList.remove('opening');
+        clubDataDetailState.filterModalAnimatedIn = true;
+      });
+    });
+  }
+  window.openClubDetailFilterModal = openClubDetailFilterModal;
+
+  function closeClubDetailFilterModal() {
+    if (!clubDataDetailState.filterModalOpen) return;
+    const sheet = document.querySelector('.club-detail-filter-modal');
+    const backdrop = document.querySelector('.club-detail-filter-modal-backdrop');
+    const finish = () => {
+      clubDataDetailState.filterModalOpen = false;
+      clubDataDetailState.filterModalAnimatedIn = false;
+      if (currentPanelId === 'club-data-detail') renderClubDataDetailPage();
+    };
+    if (sheet && backdrop) {
+      sheet.classList.add('closing');
+      backdrop.classList.add('closing');
+      setTimeout(finish, 220);
+    } else {
+      finish();
+    }
+  }
+  window.closeClubDetailFilterModal = closeClubDetailFilterModal;
+
+  function toggleClubDetailFilterModal() {
+    if (clubDataDetailState.filterModalOpen) {
+      closeClubDetailFilterModal();
+    } else {
+      openClubDetailFilterModal();
+    }
+  }
+  window.toggleClubDetailFilterModal = toggleClubDetailFilterModal;
 
   // ─── Club Data detail page render ──────────────────────────────
 
@@ -43223,30 +43362,62 @@
         `).join('')}
       </div>
     `;
-    // Inline back arrow sits at the LEFT edge of the filter bar so
-    // back nav and filter controls read as one unified top strip. The
-    // floating .mobile-topbar-back is hidden on this panel via CSS
-    // (see body[data-current-panel="club-data-detail"] rules) — the
-    // inline arrow replaces it.
-    const inlineBack = `
-      <button class="club-detail-filter-back"
+    // Floating filter button — mirrors the .mobile-topbar-back styling
+    // but pinned to the top-RIGHT of the viewport. Tapping it opens
+    // the filter modal (source toggle + time pills). Decision-light
+    // surface so the page itself stays clean — no toolbar consuming
+    // vertical space.
+    const filterFab = `
+      <button class="club-detail-filter-fab"
               type="button"
-              onclick="goBack()"
-              aria-label="Back">
+              onclick="toggleClubDetailFilterModal()"
+              aria-label="Filters"
+              aria-expanded="${clubDataDetailState.filterModalOpen ? 'true' : 'false'}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
              aria-hidden="true">
-          <path d="M15 18l-6-6 6-6"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="6" y1="12" x2="18" y2="12"/>
+          <line x1="10" y1="18" x2="14" y2="18"/>
         </svg>
       </button>
     `;
-    const filterBar = `
-      <div class="club-detail-filter-bar">
-        ${inlineBack}
-        ${sourcePills}
-        ${timePills}
+
+    // Filter modal — bottom sheet that slides up from below. Same
+    // animation pattern as the Coach sheet: .opening class applied
+    // on first render of an open cycle places it off-screen, then
+    // RAF×2 strips the class to trigger the CSS transition. The
+    // filterModalAnimatedIn flag tells subsequent re-renders (when
+    // the user taps a pill while open) to skip the .opening class
+    // so the sheet doesn't animate back off mid-use.
+    const filterAnimCls = clubDataDetailState.filterModalAnimatedIn ? '' : ' opening';
+    const filterModal = clubDataDetailState.filterModalOpen ? `
+      <div class="club-detail-filter-modal-backdrop${filterAnimCls}"
+           onclick="closeClubDetailFilterModal()"
+           aria-hidden="true"></div>
+      <div class="club-detail-filter-modal${filterAnimCls}" role="dialog" aria-label="Filters">
+        <div class="club-detail-filter-modal-head">
+          <div class="club-detail-filter-modal-title">Filters</div>
+          <button class="club-detail-filter-modal-close"
+                  type="button"
+                  onclick="closeClubDetailFilterModal()"
+                  aria-label="Close filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="club-detail-filter-modal-section">
+          <div class="club-detail-filter-modal-label">Source</div>
+          ${sourcePills}
+        </div>
+        <div class="club-detail-filter-modal-section">
+          <div class="club-detail-filter-modal-label">Time</div>
+          ${timePills}
+        </div>
       </div>
-    `;
+    ` : '';
 
     if (allEntries.length === 0) {
       mount.innerHTML = `
@@ -43261,11 +43432,12 @@
     if (entries.length === 0) {
       mount.innerHTML = `
         ${head}
-        ${filterBar}
         <div class="range-history-empty">
           <div class="range-history-empty-title">No shots in this view</div>
           <div class="range-history-empty-text">Try widening the time window or switching to Course + Range.</div>
         </div>`;
+      const overlayMount = document.getElementById('club-data-filter-overlay-mount');
+      if (overlayMount) overlayMount.innerHTML = `${filterFab}${filterModal}`;
       return;
     }
 
@@ -43454,11 +43626,12 @@
         </div>`;
     }).join('');
 
-    // Filter bar BEFORE the panel head — keeps the back arrow at the
-    // very top of the viewport (where the user expects it) and lets
-    // the bar pin to viewport top cleanly when scrolled.
+    // Page content: head + sections. The floating filter FAB and the
+    // filter modal live in a body-level overlay mount (below) so they
+    // escape the panel's transform (animation: fadeUp with both fill
+    // mode creates a containing block that would otherwise send any
+    // position:fixed children off-screen).
     mount.innerHTML = `
-      ${filterBar}
       ${head}
       ${carryBlock}
       ${gpsBlock}
@@ -43468,6 +43641,14 @@
       <div class="range-detail-section-label">Recent Shots</div>
       <div class="club-detail-shot-list">${shotRows}</div>
     `;
+
+    // Body-level overlay — FAB + modal. CSS hides this mount on every
+    // other panel so leftover contents don't bleed through after the
+    // user navigates away.
+    const overlayMount = document.getElementById('club-data-filter-overlay-mount');
+    if (overlayMount) {
+      overlayMount.innerHTML = `${filterFab}${filterModal}`;
+    }
   }
 
   // Format a timestamp as "2 days ago" / "just now" / etc. Keeps the
